@@ -1,0 +1,1 @@
+# TaxMate Settings DocType package

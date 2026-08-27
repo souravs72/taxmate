@@ -1,0 +1,91 @@
+{
+ "actions": [],
+ "creation": "2026-08-27 15:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "uae_section",
+  "default_country",
+  "column_break_uae",
+  "enforce_trn_validation",
+  "require_emirate_on_address",
+  "guidance_section",
+  "onboarding_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "uae_section",
+   "fieldtype": "Section Break",
+   "label": "UAE Localization"
+  },
+  {
+   "default": "United Arab Emirates",
+   "description": "Default country for TaxMate SaaS tenants. ERPNext UAE regional features activate when Company country matches this value.",
+   "fieldname": "default_country",
+   "fieldtype": "Link",
+   "label": "Default Country",
+   "options": "Country"
+  },
+  {
+   "fieldname": "column_break_uae",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "description": "When enabled, Company / Customer / Supplier Tax ID must be a 15-digit UAE TRN when the party or company is in the UAE.",
+   "fieldname": "enforce_trn_validation",
+   "fieldtype": "Check",
+   "label": "Enforce TRN Validation"
+  },
+  {
+   "default": "1",
+   "description": "When enabled, Address records for the UAE must include an Emirate (Place of Supply).",
+   "fieldname": "require_emirate_on_address",
+   "fieldtype": "Check",
+   "label": "Require Emirate on UAE Address"
+  },
+  {
+   "fieldname": "guidance_section",
+   "fieldtype": "Section Break",
+   "label": "Operator Guidance"
+  },
+  {
+   "default": "TaxMate reuses ERPNext UAE VAT features. After creating a Company with country United Arab Emirates:\n\n1. Set Company Tax ID (TRN).\n2. Confirm UAE VAT 5% / Zero / Exempted tax templates.\n3. Link VAT accounts in UAE VAT Settings.\n4. Set Emirate on the company Address.\n5. Use Simplified or Detailed Tax Invoice print formats.\n6. File returns via the UAE VAT 201 report.\n\nDocs: https://docs.frappe.io/erpnext/UAE-vat-setup",
+   "fieldname": "onboarding_notes",
+   "fieldtype": "Text",
+   "label": "Onboarding Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-08-27 15:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "TaxMate",
+ "name": "TaxMate Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

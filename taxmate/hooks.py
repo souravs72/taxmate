@@ -1,14 +1,14 @@
 app_name = "taxmate"
 app_title = "TaxMate"
 app_publisher = "Sourav Singh"
-app_description = "Accounting Tool Product"
+app_description = "A cloud accounting SaaS platform for businesses to manage bookkeeping, taxation, and financial reporting."
 app_email = "sourav@ascratech.com"
 app_license = "mit"
 
 # Apps
 # ------------------
 
-# required_apps = []
+required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
@@ -26,7 +26,7 @@ app_license = "mit"
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/taxmate/css/taxmate.css"
-# app_include_js = "/assets/taxmate/js/taxmate.js"
+app_include_js = "/assets/taxmate/js/taxmate_e_invoice.js"
 
 # include js, css files in header of web template
 # web_include_css = "/assets/taxmate/css/taxmate.css"
@@ -43,8 +43,17 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
-# doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
+doctype_js = {
+	"Company": "public/js/company.js",
+	"Customer": "public/js/party.js",
+	"Supplier": "public/js/party.js",
+	"Sales Invoice": "public/js/sales_invoice.js",
+	"Purchase Invoice": "public/js/purchase_invoice.js",
+}
+doctype_list_js = {
+	"Sales Invoice": "public/js/sales_invoice_list.js",
+	"Purchase Invoice": "public/js/purchase_invoice_list.js",
+}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
 
@@ -86,7 +95,8 @@ app_license = "mit"
 # ------------
 
 # before_install = "taxmate.install.before_install"
-# after_install = "taxmate.install.after_install"
+after_install = "taxmate.install.after_install"
+after_migrate = "taxmate.install.after_migrate"
 
 # Uninstallation
 # ------------
@@ -138,34 +148,48 @@ app_license = "mit"
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+	"Company": {
+		"validate": "taxmate.uae.company.validate",
+		"after_insert": "taxmate.uae.company.after_insert",
+		"on_update": "taxmate.uae.company.on_update",
+	},
+	"Customer": {
+		"validate": "taxmate.uae.validation.validate_party_trn",
+	},
+	"Supplier": {
+		"validate": "taxmate.uae.validation.validate_party_trn",
+	},
+	"Address": {
+		"validate": "taxmate.uae.validation.validate_address_emirate",
+	},
+	"Item": {
+		"validate": "taxmate.uae_vat.overrides.item.validate",
+	},
+	"Sales Invoice": {
+		"validate": "taxmate.uae_e_invoicing.overrides.sales_invoice.validate",
+		"before_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_submit",
+		"on_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_submit",
+		"before_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_cancel",
+		"on_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_cancel",
+	},
+	"Purchase Invoice": {
+		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",
+		"on_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_submit",
+		"before_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_cancel",
+		"on_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_cancel",
+	},
+}
 
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"taxmate.tasks.all"
-# 	],
-# 	"daily": [
-# 		"taxmate.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"taxmate.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"taxmate.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"taxmate.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"hourly": [
+		"taxmate.uae_e_invoicing.background_jobs.retry.retry_failed_e_invoices",
+		"taxmate.uae_e_invoicing.background_jobs.status_poll.poll_submitted_e_invoices",
+	],
+}
 
 # Testing
 # -------

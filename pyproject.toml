@@ -3,7 +3,7 @@ name = "taxmate"
 authors = [
     { name = "Sourav Singh", email = "sourav@ascratech.com"}
 ]
-description = "Accounting Tool Product"
+description = "A cloud accounting SaaS platform for businesses to manage bookkeeping, taxation, and financial reporting."
 requires-python = ">=3.14"
 readme = "README.md"
 dynamic = ["version"]
