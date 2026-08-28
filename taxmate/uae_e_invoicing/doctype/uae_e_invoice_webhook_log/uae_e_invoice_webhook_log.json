@@ -1,0 +1,120 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-08-27 18:10:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "event_type",
+  "asp_document_id",
+  "asp_status",
+  "column_break_main",
+  "processed",
+  "signature_valid",
+  "e_invoice_log",
+  "payload_section",
+  "payload"
+ ],
+ "fields": [
+  {
+   "fieldname": "event_type",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Event Type",
+   "read_only": 1,
+   "translatable": 0
+  },
+  {
+   "fieldname": "asp_document_id",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "ASP Document ID",
+   "read_only": 1,
+   "translatable": 0
+  },
+  {
+   "fieldname": "asp_status",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "ASP Status",
+   "read_only": 1,
+   "translatable": 0
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "fieldname": "processed",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Processed",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "signature_valid",
+   "fieldtype": "Check",
+   "label": "Signature Valid",
+   "read_only": 1
+  },
+  {
+   "fieldname": "e_invoice_log",
+   "fieldtype": "Link",
+   "label": "E-Invoice Log",
+   "options": "UAE E-Invoice Log",
+   "read_only": 1
+  },
+  {
+   "fieldname": "payload_section",
+   "fieldtype": "Section Break",
+   "label": "Payload"
+  },
+  {
+   "fieldname": "payload",
+   "fieldtype": "Code",
+   "label": "Payload",
+   "options": "JSON",
+   "read_only": 1
+  }
+ ],
+ "in_create": 1,
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-08-27 18:10:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE E-Invoicing",
+ "name": "UAE E-Invoice Webhook Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

@@ -1,1 +1,3 @@
 TaxMate
+UAE VAT
+UAE E-Invoicing

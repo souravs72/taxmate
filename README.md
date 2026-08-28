@@ -1,6 +1,16 @@
 ### TaxMate
 
-Accounting Tool Product
+A cloud accounting SaaS platform for businesses to manage bookkeeping, taxation, and financial reporting.
+
+### UAE localization
+
+TaxMate is UAE-first. It **orchestrates** ERPNext’s built-in UAE VAT features (regional fields, tax templates, print formats, UAE VAT Settings, UAE VAT 201) and does **not** modify ERPNext core.
+
+- On install/migrate, TaxMate applies ERPNext UAE regional setup so fields and print formats are ready before company onboarding.
+- When `Company.country` is **United Arab Emirates**, TaxMate runs readiness checks (TRN, tax templates, VAT settings, Emirate, print formats).
+- Enforcement flags live in **TaxMate Settings** (TRN validation, require Emirate on UAE addresses).
+
+See [UAE VAT setup](https://docs.frappe.io/erpnext/UAE-vat-setup) and [UAE VAT 201](https://docs.frappe.io/erpnext/uae-vat-201-report).
 
 ### Installation
 
