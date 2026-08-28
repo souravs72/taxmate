@@ -11,9 +11,7 @@ from frappe.utils import get_url
 
 from taxmate.uae_e_invoicing.utils.e_invoice import apply_status_update
 
-WEBHOOK_METHOD_PATH = (
-	"/api/method/taxmate.uae_e_invoicing.utils.webhook.uae_e_invoice_webhook"
-)
+WEBHOOK_METHOD_PATH = "/api/method/taxmate.uae_e_invoicing.utils.webhook.uae_e_invoice_webhook"
 
 
 @frappe.whitelist(allow_guest=True)
@@ -33,9 +31,7 @@ def uae_e_invoice_webhook():
 		or (payload.get("data") or {}).get("document_id")
 	)
 	asp_status = (
-		payload.get("status")
-		or (payload.get("data") or {}).get("status")
-		or _status_from_event(event_type)
+		payload.get("status") or (payload.get("data") or {}).get("status") or _status_from_event(event_type)
 	)
 
 	webhook_log = frappe.get_doc(
@@ -93,13 +89,9 @@ def register_webhook():
 	callback_url = get_url(WEBHOOK_METHOD_PATH)
 	response = api.register_webhook(callback_url, secret)
 
-	subscription_id = (
-		response.get("subscription_id") or response.get("subscriptionId") or response.get("id")
-	)
+	subscription_id = response.get("subscription_id") or response.get("subscriptionId") or response.get("id")
 	if subscription_id:
-		frappe.db.set_single_value(
-			"UAE Tax Settings", "webhook_subscription_id", subscription_id
-		)
+		frappe.db.set_single_value("UAE Tax Settings", "webhook_subscription_id", subscription_id)
 
 	return {"ok": True, "subscription_id": subscription_id, "callback_url": callback_url}
 

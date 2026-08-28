@@ -13,10 +13,6 @@ def execute(filters=None):
 		{"label": _("Note"), "fieldname": "note", "fieldtype": "Data", "width": 500},
 	]
 	data = [
-		{
-			"note": _(
-				"EmaraTax export is not implemented yet. Use UAE VAT 201 and e-invoice logs for now."
-			)
-		}
+		{"note": _("EmaraTax export is not implemented yet. Use UAE VAT 201 and e-invoice logs for now.")}
 	]
 	return columns, data

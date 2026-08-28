@@ -173,9 +173,7 @@ class TestRounding(unittest.TestCase):
 
 class TestCodeLists(unittest.TestCase):
 	def test_vat_category_codes(self):
-		self.assertEqual(
-			set(VAT_CATEGORY_CODES.values()), {"S", "Z", "E", "O", "AE", "N"}
-		)
+		self.assertEqual(set(VAT_CATEGORY_CODES.values()), {"S", "Z", "E", "O", "AE", "N"})
 
 	def test_payment_means_codes_are_uncl4461_subset(self):
 		for code in APPROVED_PAYMENT_MEANS:
@@ -274,9 +272,7 @@ class TestPintAePayload(unittest.TestCase):
 		}
 		_, payload = build_payload_from_data(data)
 		self.assertEqual(payload["InvoiceTypeCode"], "381")
-		self.assertEqual(
-			payload["BillingReference"]["InvoiceDocumentReference"]["ID"], "SINV-0000"
-		)
+		self.assertEqual(payload["BillingReference"]["InvoiceDocumentReference"]["ID"], "SINV-0000")
 		self.assertEqual(payload["Note"], "Goods returned")
 
 	def test_invoice_note_ibt022(self):
@@ -317,7 +313,7 @@ class TestPintAePayload(unittest.TestCase):
 
 	def test_document_allowance_charge(self):
 		data = golden_transaction_data()
-		# Pre-discount line extensions (1500) − allowance (100) = tax exclusive (1400)
+		# Pre-discount line extensions (1500) - allowance (100) = tax exclusive (1400)
 		data["lines"][0]["net_amount"] = 1100.0
 		data["lines"][0]["taxable_amount"] = 1000.0
 		data["document_allowance"] = {"amount": 100.0, "reason": "Document Discount"}
@@ -344,7 +340,6 @@ class TestPintAePayload(unittest.TestCase):
 		self.assertEqual(payload2["UUID"], fixed)
 		fresh_uuid, _ = build_payload_from_data(data)
 		self.assertNotEqual(fresh_uuid, fixed)
-
 
 	def test_both_item_type_emits_hs_and_sac(self):
 		data = golden_transaction_data()
@@ -416,9 +411,7 @@ class TestFlickMapper(unittest.TestCase):
 
 		means = self.document["payment_means"][0]
 		self.assertEqual(means["payment_means_code"], "30")
-		self.assertEqual(
-			means["payee_financial_account"]["id"], "AE070331234567890123456"
-		)
+		self.assertEqual(means["payee_financial_account"]["id"], "AE070331234567890123456")
 
 	def test_metadata_flags(self):
 		self.assertFalse(self.document["metadata"]["is_export"])

@@ -26,9 +26,7 @@ def build_pint_ae_payload(doc, doc_uuid: str | None = None) -> tuple[str, dict[s
 	return build_payload_from_data(data, doc_uuid=doc_uuid)
 
 
-def build_payload_from_data(
-	data: dict[str, Any], doc_uuid: str | None = None
-) -> tuple[str, dict[str, Any]]:
+def build_payload_from_data(data: dict[str, Any], doc_uuid: str | None = None) -> tuple[str, dict[str, Any]]:
 	"""Map a validated transaction-data dict onto the PINT-AE structure.
 
 	``doc_uuid`` reuses an existing fiscal document UUID on retry so the ASP
@@ -197,9 +195,7 @@ def _payment_means(entry: dict[str, Any]) -> dict[str, Any]:
 			"Name": account.get("name"),
 		}
 		if account.get("branch"):
-			result["PayeeFinancialAccount"]["FinancialInstitutionBranch"] = {
-				"ID": account["branch"]
-			}
+			result["PayeeFinancialAccount"]["FinancialInstitutionBranch"] = {"ID": account["branch"]}
 	card = entry.get("card_account")
 	if card:
 		result["CardAccount"] = {"HolderName": card.get("holder_name")}
@@ -245,23 +241,15 @@ def _invoice_line(line: dict[str, Any], currency: str) -> dict[str, Any]:
 	classifications = []
 	item_type = line.get("uae_item_type")
 	if item_type in (ITEM_TYPE_GOODS, ITEM_TYPE_BOTH) and line.get("hs_code"):
-		classifications.append(
-			{"ItemClassificationCode": {"listID": "HS", "value": line["hs_code"]}}
-		)
+		classifications.append({"ItemClassificationCode": {"listID": "HS", "value": line["hs_code"]}})
 	if item_type in (ITEM_TYPE_SERVICE, ITEM_TYPE_BOTH) and line.get("sac_code"):
-		classifications.append(
-			{"ItemClassificationCode": {"listID": "SAC", "value": line["sac_code"]}}
-		)
+		classifications.append({"ItemClassificationCode": {"listID": "SAC", "value": line["sac_code"]}})
 	# Fallback when type is blank but a code is present
 	if not classifications:
 		if line.get("hs_code"):
-			classifications.append(
-				{"ItemClassificationCode": {"listID": "HS", "value": line["hs_code"]}}
-			)
+			classifications.append({"ItemClassificationCode": {"listID": "HS", "value": line["hs_code"]}})
 		elif line.get("sac_code"):
-			classifications.append(
-				{"ItemClassificationCode": {"listID": "SAC", "value": line["sac_code"]}}
-			)
+			classifications.append({"ItemClassificationCode": {"listID": "SAC", "value": line["sac_code"]}})
 
 	if len(classifications) == 1:
 		result["Item"]["CommodityClassification"] = classifications[0]

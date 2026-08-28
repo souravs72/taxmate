@@ -40,9 +40,7 @@ class UAETransactionData:
 	def __init__(self, doc):
 		self.doc = doc
 		self.company = frappe.get_cached_doc("Company", doc.company)
-		self.customer = (
-			frappe.get_cached_doc("Customer", doc.customer) if doc.customer else None
-		)
+		self.customer = frappe.get_cached_doc("Customer", doc.customer) if doc.customer else None
 		self.errors: list[str] = []
 
 	# ------------------------------------------------------------------
@@ -126,10 +124,7 @@ class UAETransactionData:
 
 	def get_transaction_flags(self) -> dict[str, bool]:
 		code = self.get_transaction_type_code()
-		return {
-			flag: code[position] == "1"
-			for position, flag in enumerate(TRANSACTION_TYPE_FLAGS)
-		}
+		return {flag: code[position] == "1" for position, flag in enumerate(TRANSACTION_TYPE_FLAGS)}
 
 	def _get_issue_time(self) -> str | None:
 		posting_time = self.doc.get("posting_time")
@@ -167,9 +162,7 @@ class UAETransactionData:
 			)
 			reference = {
 				"id": self.doc.return_against,
-				"issue_date": str(getdate(original_posting_date))
-				if original_posting_date
-				else None,
+				"issue_date": str(getdate(original_posting_date)) if original_posting_date else None,
 			}
 		elif self.doc.get("uae_return_against_external"):
 			# Original invoice issued outside this system (pre-go-live / other ERP)
@@ -205,8 +198,7 @@ class UAETransactionData:
 			return None
 
 		distributed = sum(
-			abs(to_decimal(row.get("distributed_discount_amount") or 0))
-			for row in (self.doc.items or [])
+			abs(to_decimal(row.get("distributed_discount_amount") or 0)) for row in (self.doc.items or [])
 		)
 		if distributed <= 0:
 			# Cannot rebuild pre-discount extensions safely
@@ -224,9 +216,7 @@ class UAETransactionData:
 		"""IBG-14 InvoicePeriod — only for summary / continuous / explicit frequency."""
 		flags = self.get_transaction_flags()
 		frequency = (self.doc.get("uae_billing_frequency") or "").strip() or None
-		needs_period = bool(
-			frequency or flags.get("summary_invoice") or flags.get("continuous_supply")
-		)
+		needs_period = bool(frequency or flags.get("summary_invoice") or flags.get("continuous_supply"))
 		if not needs_period:
 			return None
 
@@ -254,9 +244,7 @@ class UAETransactionData:
 			"trn": self.company.tax_id,
 			"peppol_id": self.company.get("uae_peppol_id"),
 			"trade_license_number": self.company.get("trade_license_number"),
-			"legal_registration_identifier_type": self.company.get(
-				"legal_registration_identifier_type"
-			),
+			"legal_registration_identifier_type": self.company.get("legal_registration_identifier_type"),
 			"legal_registration_identifier": self.company.get("legal_registration_identifier"),
 			"address": address,
 			"contact": {
@@ -283,14 +271,11 @@ class UAETransactionData:
 			"legal_registration_identifier_type": (
 				party.get("legal_registration_identifier_type") if party else None
 			),
-			"legal_registration_identifier": (
-				party.get("legal_registration_identifier") if party else None
-			),
+			"legal_registration_identifier": (party.get("legal_registration_identifier") if party else None),
 			"address": address,
 			"contact": {
 				"name": self.doc.get("contact_display") or self.doc.customer_name,
-				"email": self.doc.get("contact_email")
-				or (address or {}).get("email"),
+				"email": self.doc.get("contact_email") or (address or {}).get("email"),
 				"phone": self.doc.get("contact_mobile") or (address or {}).get("phone"),
 			},
 		}
@@ -346,23 +331,15 @@ class UAETransactionData:
 			category_code = VAT_CATEGORY_CODES.get(category_label or "Standard", "S")
 
 			# Post-document-discount net (what ERPNext taxed)
-			taxable_net = abs(
-				to_decimal(row.net_amount if row.net_amount is not None else row.amount)
-			)
+			taxable_net = abs(to_decimal(row.net_amount if row.net_amount is not None else row.amount))
 			distributed = abs(to_decimal(row.get("distributed_discount_amount") or 0))
 			# LineExtensionAmount is pre-document-discount when we emit AllowanceCharge
-			line_extension = (
-				taxable_net + distributed if rebuild_pre_discount else taxable_net
-			)
+			line_extension = taxable_net + distributed if rebuild_pre_discount else taxable_net
 			base_taxable = abs(
-				to_decimal(
-					row.base_net_amount if row.base_net_amount is not None else row.amount
-				)
+				to_decimal(row.base_net_amount if row.base_net_amount is not None else row.amount)
 			)
 			base_line_extension = (
-				base_taxable + (distributed * conversion)
-				if rebuild_pre_discount
-				else base_taxable
+				base_taxable + (distributed * conversion) if rebuild_pre_discount else base_taxable
 			)
 
 			tax_rate, tax_amount = self._get_line_tax(row, item_wise_tax, taxable_net)
@@ -384,9 +361,7 @@ class UAETransactionData:
 					"price_before_discount": r2(
 						row.get("price_list_rate")
 						or row.get("rate_with_margin")
-						or (
-							to_decimal(row.rate) + to_decimal(row.get("discount_amount") or 0)
-						)
+						or (to_decimal(row.rate) + to_decimal(row.get("discount_amount") or 0))
 					)
 					if row.get("discount_amount")
 					else None,
@@ -395,9 +370,7 @@ class UAETransactionData:
 					"base_net_amount": r2(base_line_extension),
 					# Taxable base after document allowance (matches ERPNext VAT)
 					"taxable_amount": r2(taxable_net),
-					"discount_amount": r2(
-						abs(to_decimal(row.get("discount_amount")) * to_decimal(row.qty))
-					),
+					"discount_amount": r2(abs(to_decimal(row.get("discount_amount")) * to_decimal(row.qty))),
 					"uae_item_type": row.get("uae_item_type"),
 					"hs_code": row.get("hs_code"),
 					"sac_code": row.get("sac_code"),
@@ -501,9 +474,7 @@ class UAETransactionData:
 			return rate, item_wise_tax[row.name]
 
 		key = row.item_code or row.item_name
-		unique_codes = len(self.doc.items) == len(
-			{r.item_code or r.item_name for r in self.doc.items}
-		)
+		unique_codes = len(self.doc.items) == len({r.item_code or r.item_name for r in self.doc.items})
 		if key in item_wise_tax and unique_codes:
 			return rate, item_wise_tax[key]
 
@@ -532,9 +503,7 @@ class UAETransactionData:
 		buckets: dict[tuple[str, float], dict[str, Decimal]] = {}
 		for line in lines:
 			key = (line["vat_category_code"], line["tax_rate"])
-			bucket = buckets.setdefault(
-				key, {"taxable": Decimal("0"), "tax": Decimal("0")}
-			)
+			bucket = buckets.setdefault(key, {"taxable": Decimal("0"), "tax": Decimal("0")})
 			# TaxableAmount is post document-allowance (matches ERPNext VAT base)
 			bucket["taxable"] += to_decimal(line.get("taxable_amount", line["net_amount"]))
 			bucket["tax"] += to_decimal(line["tax_amount"])
@@ -701,21 +670,17 @@ class UAETransactionData:
 				)
 			)
 		if not is_valid_uae_trn(self.company.tax_id):
-			self.errors.append(
-				_("Company Tax ID must be a valid 15-digit UAE TRN (IBT-031).")
-			)
+			self.errors.append(_("Company Tax ID must be a valid 15-digit UAE TRN (IBT-031)."))
 		if not self.company.get("uae_peppol_id"):
 			self.errors.append(
-				_(
-					"Company Peppol Participant ID (IBT-034) is required — set it on Company {0}."
-				).format(self.doc.company)
+				_("Company Peppol Participant ID (IBT-034) is required — set it on Company {0}.").format(
+					self.doc.company
+				)
 			)
 
 	def _check_currency(self):
 		if self.doc.currency != AED_CURRENCY and not self.doc.conversion_rate:
-			self.errors.append(
-				_("Exchange rate to AED is mandatory when invoice currency is not AED.")
-			)
+			self.errors.append(_("Exchange rate to AED is mandatory when invoice currency is not AED."))
 
 	def _check_parties(self):
 		supplier = self._get_supplier()
@@ -739,13 +704,13 @@ class UAETransactionData:
 		else:
 			self._check_address(customer["address"], _("Customer address"))
 			if not customer["address"].get("postal_zone"):
-				self.errors.append(
-					_("Customer address: Postal Zone is required (IBT-053).")
-				)
+				self.errors.append(_("Customer address: Postal Zone is required (IBT-053)."))
 
 		if not (customer["contact"] or {}).get("email"):
 			self.errors.append(
-				_("Customer email is required — set a Contact Email on the invoice or an email on the customer address.")
+				_(
+					"Customer email is required — set a Contact Email on the invoice or an email on the customer address."
+				)
 			)
 
 		flags = self.get_transaction_flags()
@@ -759,10 +724,7 @@ class UAETransactionData:
 				)
 			if not customer["trn"] and not customer["trade_license_number"]:
 				self.errors.append(
-					_(
-						"Customer must have a TRN or Trade License Number for domestic "
-						"invoices (IBR-135-ae)."
-					)
+					_("Customer must have a TRN or Trade License Number for domestic invoices (IBR-135-ae).")
 				)
 			elif customer["trn"] and not is_valid_uae_trn(customer["trn"]):
 				self.errors.append(_("Customer TRN must be a valid 15-digit UAE TRN."))
@@ -772,14 +734,8 @@ class UAETransactionData:
 				_("FZ Beneficiary ID (BTAE-01) is mandatory for Free Trade Zone transactions.")
 			)
 
-		if (
-			self.doc.get("is_return")
-			and not customer["trade_license_number"]
-			and not customer["trn"]
-		):
-			self.errors.append(
-				_("Customer legal identifier is mandatory for Credit Notes (IBR-136-ae).")
-			)
+		if self.doc.get("is_return") and not customer["trade_license_number"] and not customer["trn"]:
+			self.errors.append(_("Customer legal identifier is mandatory for Credit Notes (IBR-136-ae)."))
 
 	def _check_address(self, address: dict, label: str):
 		if not address.get("line1"):
@@ -789,9 +745,7 @@ class UAETransactionData:
 		if not address.get("country"):
 			self.errors.append(_("{0}: Country is required (IBT-055).").format(label))
 		if address.get("country") == UAE_COUNTRY and not address.get("emirate_code"):
-			self.errors.append(
-				_("{0}: Emirate is required for UAE addresses (IBT-054).").format(label)
-			)
+			self.errors.append(_("{0}: Emirate is required for UAE addresses (IBT-054).").format(label))
 
 	def _check_lines(self):
 		if not self.doc.items:
@@ -806,9 +760,7 @@ class UAETransactionData:
 			item_type = row.get("uae_item_type")
 			if not item_type:
 				self.errors.append(
-					_("Row #{0}: UAE Item Type (Goods / Service / Both) is required.").format(
-						row.idx
-					)
+					_("Row #{0}: UAE Item Type (Goods / Service / Both) is required.").format(row.idx)
 				)
 			elif item_type == ITEM_TYPE_GOODS and not row.get("hs_code"):
 				self.errors.append(_("Row #{0}: HS Code is required for Goods.").format(row.idx))
@@ -817,15 +769,11 @@ class UAETransactionData:
 			elif item_type == ITEM_TYPE_BOTH:
 				if not row.get("hs_code"):
 					self.errors.append(
-						_("Row #{0}: HS Code is required for Both (Goods + Service).").format(
-							row.idx
-						)
+						_("Row #{0}: HS Code is required for Both (Goods + Service).").format(row.idx)
 					)
 				if not row.get("sac_code"):
 					self.errors.append(
-						_("Row #{0}: SAC Code is required for Both (Goods + Service).").format(
-							row.idx
-						)
+						_("Row #{0}: SAC Code is required for Both (Goods + Service).").format(row.idx)
 					)
 
 			if row.get("item_tax_template"):
@@ -897,8 +845,10 @@ class UAETransactionData:
 				self.errors.append(_("Invoice Period start date (posting date) is required."))
 			if not self.doc.get("due_date"):
 				self.errors.append(
-					_("Invoice Period end date (Payment Due Date) is required for Summary / "
-					  "Continuous Supply.")
+					_(
+						"Invoice Period end date (Payment Due Date) is required for Summary / "
+						"Continuous Supply."
+					)
 				)
 		if frequency == "OTH" and not self._get_notes():
 			self.errors.append(

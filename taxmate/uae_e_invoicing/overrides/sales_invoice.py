@@ -55,9 +55,7 @@ def on_cancel(doc, method=None):
 		return
 
 	if doc.get("uae_e_invoice_log"):
-		frappe.db.set_value(
-			"UAE E-Invoice Log", doc.uae_e_invoice_log, "status", "Cancelled"
-		)
+		frappe.db.set_value("UAE E-Invoice Log", doc.uae_e_invoice_log, "status", "Cancelled")
 	doc.db_set("uae_e_invoice_status", "Cancelled", update_modified=False)
 
 

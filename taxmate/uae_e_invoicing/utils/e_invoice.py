@@ -154,12 +154,7 @@ def sync_status_from_asp(log_name: str) -> str | None:
 		)
 		return None
 
-	asp_status = (
-		result.get("status")
-		or result.get("document_status")
-		or result.get("documentStatus")
-		or ""
-	)
+	asp_status = result.get("status") or result.get("document_status") or result.get("documentStatus") or ""
 	mapped = ASP_STATUS_MAP.get(str(asp_status).lower())
 	if not mapped:
 		return None
@@ -168,14 +163,9 @@ def sync_status_from_asp(log_name: str) -> str | None:
 	return mapped
 
 
-
-def apply_status_update(
-	asp_document_id: str, asp_status: str, response: dict | None = None
-) -> str | None:
+def apply_status_update(asp_document_id: str, asp_status: str, response: dict | None = None) -> str | None:
 	"""Update log + invoice from an ASP status event (webhook / polling)."""
-	log_name = frappe.db.get_value(
-		"UAE E-Invoice Log", {"asp_document_id": asp_document_id}, "name"
-	)
+	log_name = frappe.db.get_value("UAE E-Invoice Log", {"asp_document_id": asp_document_id}, "name")
 	if not log_name:
 		return None
 

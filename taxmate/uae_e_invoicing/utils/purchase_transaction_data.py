@@ -23,9 +23,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 
 	def __init__(self, doc):
 		super().__init__(doc)
-		self.supplier_party = (
-			frappe.get_cached_doc("Supplier", doc.supplier) if doc.supplier else None
-		)
+		self.supplier_party = frappe.get_cached_doc("Supplier", doc.supplier) if doc.supplier else None
 
 	def get_document_type_code(self) -> str:
 		explicit = self.doc.get("uae_document_type_code")
@@ -52,9 +50,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 			"legal_registration_identifier_type": (
 				party.get("legal_registration_identifier_type") if party else None
 			),
-			"legal_registration_identifier": (
-				party.get("legal_registration_identifier") if party else None
-			),
+			"legal_registration_identifier": (party.get("legal_registration_identifier") if party else None),
 			"address": address,
 			"contact": {
 				"name": self.doc.get("contact_display") or self.doc.supplier_name,
@@ -74,9 +70,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 			"peppol_id": self.company.get("uae_peppol_id"),
 			"fz_beneficiary_id": None,
 			"trade_license_number": self.company.get("trade_license_number"),
-			"legal_registration_identifier_type": self.company.get(
-				"legal_registration_identifier_type"
-			),
+			"legal_registration_identifier_type": self.company.get("legal_registration_identifier_type"),
 			"legal_registration_identifier": self.company.get("legal_registration_identifier"),
 			"address": address,
 			"contact": {
@@ -95,9 +89,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 		if not supplier["name"]:
 			self.errors.append(_("Supplier legal name is required."))
 		if not supplier["address"]:
-			self.errors.append(
-				_("Supplier address is required — set Supplier Address on the invoice.")
-			)
+			self.errors.append(_("Supplier address is required — set Supplier Address on the invoice."))
 		else:
 			self._check_address(supplier["address"], _("Supplier address"))
 
@@ -156,8 +148,8 @@ def build_purchase_pint_ae_payload(doc, doc_uuid: str | None = None) -> tuple[st
 	"""Return (uuid, payload_dict) for a self-billed Purchase Invoice.
 
 	Callers: ``generate_and_submit`` in e_invoice.py (retry reuses ``doc_uuid``).
-	API: same PINT-AE dict as sales; UUID preserved on Failed→retry.
-	User: 1A–4A review fixes — item 3A reuse UUID on retry.
+	API: same PINT-AE dict as sales; UUID preserved on Failed->retry.
+	User: 1A-4A review fixes - item 3A reuse UUID on retry.
 	"""
 	data = UAEPurchaseTransactionData(doc).get_data()
 	return build_payload_from_data(data, doc_uuid=doc_uuid)

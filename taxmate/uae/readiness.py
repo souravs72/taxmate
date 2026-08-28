@@ -27,9 +27,7 @@ def get_uae_readiness_checklist(company: str) -> dict:
 			"country": country,
 			"items": [],
 			"ready": True,
-			"message": _("UAE readiness checks apply only when Company country is {0}.").format(
-				UAE_COUNTRY
-			),
+			"message": _("UAE readiness checks apply only when Company country is {0}.").format(UAE_COUNTRY),
 		}
 
 	tax_id = frappe.db.get_value("Company", company, "tax_id")
@@ -125,9 +123,7 @@ def _item(key: str, label: str, ok: bool, help_text: str, route: str) -> dict:
 def _has_vat_settings_with_accounts(company: str) -> bool:
 	if not frappe.db.exists("UAE VAT Settings", company):
 		return False
-	return bool(
-		frappe.db.exists("UAE VAT Account", {"parent": company, "parenttype": "UAE VAT Settings"})
-	)
+	return bool(frappe.db.exists("UAE VAT Account", {"parent": company, "parenttype": "UAE VAT Settings"}))
 
 
 def _has_company_address_with_emirate(company: str) -> bool:

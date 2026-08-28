@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from taxmate.utils.custom_fields import get_custom_fields_creator
 from taxmate.uae_vat.constants.custom_fields import CUSTOM_FIELDS
+from taxmate.utils.custom_fields import get_custom_fields_creator
 
 create_custom_fields = get_custom_fields_creator("UAE VAT")
 

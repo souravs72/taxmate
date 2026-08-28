@@ -25,18 +25,14 @@ def validate(doc, method=None):
 	needs_sac = item_type in (ITEM_TYPE_SERVICE, ITEM_TYPE_BOTH)
 
 	if needs_hs and not doc.get("hs_code"):
-		msg = _("HS Code is required for {0} items when UAE e-invoicing is enabled.").format(
-			item_type
-		)
+		msg = _("HS Code is required for {0} items when UAE e-invoicing is enabled.").format(item_type)
 		if strict:
 			frappe.throw(msg)
 		else:
 			frappe.msgprint(msg, indicator="orange", alert=True)
 
 	if needs_sac and not doc.get("sac_code"):
-		msg = _("SAC Code is required for {0} items when UAE e-invoicing is enabled.").format(
-			item_type
-		)
+		msg = _("SAC Code is required for {0} items when UAE e-invoicing is enabled.").format(item_type)
 		if strict:
 			frappe.throw(msg)
 		else:

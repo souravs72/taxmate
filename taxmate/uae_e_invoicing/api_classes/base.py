@@ -103,9 +103,7 @@ class BaseAPI:
 					message=f"{response.status_code}: {response.text[:2000]}",
 				)
 				frappe.throw(
-					_("Could not obtain an access token from the ASP ({0}).").format(
-						response.status_code
-					),
+					_("Could not obtain an access token from the ASP ({0}).").format(response.status_code),
 					title=_("ASP Authentication Failed"),
 				)
 
@@ -121,6 +119,7 @@ class BaseAPI:
 			settings_doc.save(ignore_permissions=True)
 			self.settings = settings_doc
 			return token
+
 	# ------------------------------------------------------------------
 	# HTTP
 	# ------------------------------------------------------------------
@@ -219,6 +218,6 @@ class BaseAPI:
 			"auth_key",
 			"webhook_secret",
 		):
-			if key in masked and masked[key]:
+			if masked.get(key):
 				masked[key] = "*****"
 		return masked

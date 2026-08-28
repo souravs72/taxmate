@@ -17,6 +17,7 @@ def ensure_uae_regional_setup(company: str | None = None) -> None:
 
 	erpnext_uae_setup(company=company, patch=True)
 
+
 def ensure_company_uae_ready(company: str) -> None:
 	"""Verify / complete UAE readiness for a company after ERPNext country fixtures."""
 	if not company:

@@ -62,9 +62,7 @@ class FlickAPI(BaseAPI):
 		response = self.post(f"{self.participant_id}/documents", document) or {}
 		return {
 			"status": response.get("status") or "Submitted",
-			"document_id": response.get("document_id")
-			or response.get("documentId")
-			or response.get("id"),
+			"document_id": response.get("document_id") or response.get("documentId") or response.get("id"),
 			"uuid": response.get("uuid") or payload.get("UUID"),
 			"raw": response,
 		}
@@ -300,10 +298,7 @@ def _transaction_metadata(transaction_type_code: str | None) -> dict[str, bool]:
 		"e_commerce": "is_ecommerce",
 		"export": "is_export",
 	}
-	return {
-		names[flag]: code[position] == "1"
-		for position, flag in enumerate(TRANSACTION_TYPE_FLAGS)
-	}
+	return {names[flag]: code[position] == "1" for position, flag in enumerate(TRANSACTION_TYPE_FLAGS)}
 
 
 def _prune(data: dict[str, Any]) -> dict[str, Any]:

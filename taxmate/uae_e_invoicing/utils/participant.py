@@ -30,9 +30,7 @@ def _company_address(company: str) -> dict[str, Any]:
 	if not address_name:
 		return {}
 	address = frappe.get_cached_doc("Address", address_name)
-	country_code = (
-		frappe.db.get_value("Country", address.country, "code") if address.country else None
-	)
+	country_code = frappe.db.get_value("Country", address.country, "code") if address.country else None
 	emirate = address.get("emirate")
 	return {
 		"street_address": address.address_line1,
@@ -119,9 +117,7 @@ def update_participant_profile(company: str | None = None) -> dict[str, Any]:
 	payload = build_participant_payload(company)
 	if not payload.get("peppol_id"):
 		frappe.throw(
-			_("Set Peppol Participant ID on Company {0} before pushing the profile.").format(
-				company
-			)
+			_("Set Peppol Participant ID on Company {0} before pushing the profile.").format(company)
 		)
 
 	response = api.update_participant(payload)

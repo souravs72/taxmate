@@ -1,6 +1,8 @@
 // Copyright (c) 2026, Sourav Singh and contributors
 // For license information, please see license.txt
 
+/* global taxmate */
+
 frappe.ui.form.on("Purchase Invoice", {
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1 || !frm.doc.uae_submit_to_fta) {

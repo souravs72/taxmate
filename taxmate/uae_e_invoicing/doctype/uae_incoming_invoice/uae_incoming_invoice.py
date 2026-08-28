@@ -22,10 +22,7 @@ def create_from_webhook(payload: dict[str, Any]) -> str | None:
 	"""Create an incoming-invoice record from an ASP delivery event."""
 	document = payload.get("document") or payload.get("data") or payload
 	document_id = (
-		payload.get("document_id")
-		or payload.get("documentId")
-		or document.get("UUID")
-		or document.get("ID")
+		payload.get("document_id") or payload.get("documentId") or document.get("UUID") or document.get("ID")
 	)
 	if not document_id:
 		return None
@@ -33,9 +30,7 @@ def create_from_webhook(payload: dict[str, Any]) -> str | None:
 	if frappe.db.exists("UAE Incoming Invoice", {"asp_document_id": document_id}):
 		return None
 
-	supplier_party = (
-		(document.get("AccountingSupplierParty") or {}).get("Party") or {}
-	)
+	supplier_party = (document.get("AccountingSupplierParty") or {}).get("Party") or {}
 	monetary_total = document.get("LegalMonetaryTotal") or {}
 
 	record = frappe.get_doc(
@@ -66,9 +61,7 @@ def create_purchase_invoice(name: str) -> str:
 
 	if record.purchase_invoice:
 		frappe.throw(
-			_("Purchase Invoice {0} already exists for this document.").format(
-				record.purchase_invoice
-			)
+			_("Purchase Invoice {0} already exists for this document.").format(record.purchase_invoice)
 		)
 
 	document = json.loads(record.payload or "{}")
@@ -76,8 +69,7 @@ def create_purchase_invoice(name: str) -> str:
 	if not supplier:
 		frappe.throw(
 			_(
-				"No Supplier found with TRN {0}. Create the Supplier first, "
-				"then draft the Purchase Invoice."
+				"No Supplier found with TRN {0}. Create the Supplier first, then draft the Purchase Invoice."
 			).format(record.supplier_trn or _("(unknown)"))
 		)
 

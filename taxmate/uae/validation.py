@@ -40,9 +40,7 @@ def validate_trn(trn: str | None, label: str = "Tax ID"):
 		return
 	if not is_valid_uae_trn(normalized):
 		frappe.throw(
-			_("{0} must be a {1}-digit UAE Tax Registration Number (TRN).").format(
-				label, UAE_TRN_LENGTH
-			),
+			_("{0} must be a {1}-digit UAE Tax Registration Number (TRN).").format(label, UAE_TRN_LENGTH),
 			title=_("Invalid TRN"),
 		)
 

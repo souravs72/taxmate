@@ -13,8 +13,7 @@ frappe.ui.form.on("UAE Incoming Invoice", {
 		if (frm.doc.status === "Received") {
 			frm.add_custom_button(__("Create Purchase Invoice"), () => {
 				frappe.call({
-					method:
-						"taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",
+					method: "taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",
 					args: { name: frm.doc.name },
 					freeze: true,
 					freeze_message: __("Drafting Purchase Invoice..."),

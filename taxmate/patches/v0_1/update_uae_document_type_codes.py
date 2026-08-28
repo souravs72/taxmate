@@ -21,7 +21,10 @@ def execute():
 
 		# Legacy 388 => 380; retired codes 383/386 => blank (auto-derive)
 		frappe.db.set_value(
-			doctype, {"uae_document_type_code": "388"}, "uae_document_type_code", "380",
+			doctype,
+			{"uae_document_type_code": "388"},
+			"uae_document_type_code",
+			"380",
 			update_modified=False,
 		)
 		frappe.db.set_value(
