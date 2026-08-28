@@ -14,7 +14,9 @@ from taxmate.uae_e_invoicing.utils.e_invoice import apply_status_update
 WEBHOOK_METHOD_PATH = "/api/method/taxmate.uae_e_invoicing.utils.webhook.uae_e_invoice_webhook"
 
 
-@frappe.whitelist(allow_guest=True)
+# ASP callbacks are unauthenticated at the Frappe session layer; auth is HMAC
+# over the request body using the configured webhook secret (see _verify_signature).
+@frappe.whitelist(allow_guest=True)  # nosemgrep: frappe-semgrep-rules.rules.security.guest-whitelisted-method
 def uae_e_invoice_webhook():
 	"""Receive ASP status callbacks, verify the secret, update statuses."""
 	if frappe.request.method != "POST":

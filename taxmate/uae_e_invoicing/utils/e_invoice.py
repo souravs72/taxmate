@@ -228,7 +228,7 @@ def fetch_asp_documents(log_name: str):
 
 
 @frappe.whitelist()
-def bulk_generate_e_invoices(docnames, doctype: str = "Sales Invoice"):
+def bulk_generate_e_invoices(docnames: str | list, doctype: str = "Sales Invoice"):
 	"""Submit e-invoices for multiple invoices from the list view."""
 	if isinstance(docnames, str):
 		docnames = frappe.parse_json(docnames)

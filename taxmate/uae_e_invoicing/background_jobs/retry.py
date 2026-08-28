@@ -56,7 +56,8 @@ def retry_failed_e_invoices():
 		if row.asp_document_id:
 			mapped = sync_status_from_asp(row.name)
 			if mapped and mapped in SKIP_RESUBMIT_STATUSES:
-				frappe.db.commit()
+				# Commit per row so one failure does not roll back the batch
+				frappe.db.commit()  # nosemgrep
 				continue
 
 		frappe.db.set_value(
@@ -69,7 +70,8 @@ def retry_failed_e_invoices():
 
 		try:
 			generate_and_submit(doc)
-			frappe.db.commit()
+			# Commit per row so one failure does not roll back the batch
+			frappe.db.commit()  # nosemgrep
 		except Exception:
 			frappe.db.rollback()
 			frappe.log_error(

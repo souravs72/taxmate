@@ -33,7 +33,8 @@ def poll_submitted_e_invoices():
 	for log_name in pending:
 		try:
 			sync_status_from_asp(log_name)
-			frappe.db.commit()
+			# Commit per row so one failure does not roll back the batch
+			frappe.db.commit()  # nosemgrep
 		except Exception:
 			frappe.db.rollback()
 			frappe.log_error(

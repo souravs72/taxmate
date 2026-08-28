@@ -36,26 +36,25 @@ def execute(filters=None):
 		{"label": _("Modified"), "fieldname": "modified", "fieldtype": "Datetime", "width": 160},
 	]
 
-	conditions = []
-	values = {}
+	query_filters = {}
 	if filters.get("company"):
-		conditions.append("company = %(company)s")
-		values["company"] = filters["company"]
+		query_filters["company"] = filters["company"]
 	if filters.get("status"):
-		conditions.append("status = %(status)s")
-		values["status"] = filters["status"]
+		query_filters["status"] = filters["status"]
 
-	where = (" where " + " and ".join(conditions)) if conditions else ""
-	data = frappe.db.sql(
-		f"""
-		select company, reference_doctype, reference_name, uuid, status,
-			document_type_code, modified
-		from `tabUAE E-Invoice Log`
-		{where}
-		order by modified desc
-		limit 500
-		""",
-		values,
-		as_dict=True,
+	data = frappe.get_all(
+		"UAE E-Invoice Log",
+		filters=query_filters,
+		fields=[
+			"company",
+			"reference_doctype",
+			"reference_name",
+			"uuid",
+			"status",
+			"document_type_code",
+			"modified",
+		],
+		order_by="modified desc",
+		limit=500,
 	)
 	return columns, data
