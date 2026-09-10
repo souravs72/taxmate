@@ -92,12 +92,12 @@ def _ensure_product_branding():
 		if current in (None, "", "Frappe", "ERPNext", "frappe", "erpnext"):
 			frappe.db.set_single_value(doctype, field, value)
 
-	# Standard ERPNext workspace — keep hidden on TaxMate product sites
+	# ERPNext Settings is replaced by TaxMate Settings workspace (setup/workspaces.py)
 	if frappe.db.exists("Workspace", "ERPNext Settings"):
 		frappe.db.set_value(
 			"Workspace",
 			"ERPNext Settings",
-			{"title": "TaxMate App Settings", "is_hidden": 1},
+			{"is_hidden": 1, "public": 0},
 			update_modified=False,
 		)
 
