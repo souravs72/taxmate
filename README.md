@@ -9,6 +9,8 @@ TaxMate is UAE-first. It **orchestrates** ERPNext’s built-in UAE VAT features 
 - On install/migrate, TaxMate applies ERPNext UAE regional setup so fields and print formats are ready before company onboarding.
 - When `Company.country` is **United Arab Emirates**, TaxMate runs readiness checks (TRN, tax templates, VAT settings, Emirate, print formats).
 - Enforcement flags live in **TaxMate Settings** (TRN validation, require Emirate on UAE addresses).
+- Item Tax Templates get TaxMate `uae_vat_category` stamped (Standard / Zero Rated / Exempt).
+- Standard Modes of Payment get UAE payment means codes (UNCL 4461) for e-invoicing.
 
 See [UAE VAT setup](https://docs.frappe.io/erpnext/UAE-vat-setup) and [UAE VAT 201](https://docs.frappe.io/erpnext/uae-vat-201-report).
 

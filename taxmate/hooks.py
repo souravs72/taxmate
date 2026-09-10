@@ -26,7 +26,10 @@ required_apps = ["erpnext"]
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/taxmate/css/taxmate.css"
-app_include_js = "/assets/taxmate/js/taxmate_e_invoice.js"
+app_include_js = [
+	"/assets/taxmate/js/taxmate_e_invoice.js",
+	"/assets/taxmate/js/taxmate_search.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/taxmate/css/taxmate.css"
@@ -267,6 +270,8 @@ scheduler_events = {
 # auth_hooks = [
 # 	"taxmate.auth.validate"
 # ]
+
+extend_bootinfo = "taxmate.search.boot_session"
 
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True

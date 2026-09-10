@@ -147,9 +147,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 def build_purchase_pint_ae_payload(doc, doc_uuid: str | None = None) -> tuple[str, dict[str, Any]]:
 	"""Return (uuid, payload_dict) for a self-billed Purchase Invoice.
 
-	Callers: ``generate_and_submit`` in e_invoice.py (retry reuses ``doc_uuid``).
 	API: same PINT-AE dict as sales; UUID preserved on Failed->retry.
-	User: 1A-4A review fixes - item 3A reuse UUID on retry.
 	"""
 	data = UAEPurchaseTransactionData(doc).get_data()
 	return build_payload_from_data(data, doc_uuid=doc_uuid)

@@ -20,7 +20,7 @@
   },
   {
    "default": "United Arab Emirates",
-   "description": "Default country for TaxMate SaaS tenants. ERPNext UAE regional features activate when Company country matches this value.",
+   "description": "Default country for TaxMate SaaS tenants. UAE regional features activate when Company country matches this value.",
    "fieldname": "default_country",
    "fieldtype": "Link",
    "label": "Default Country",
@@ -50,7 +50,7 @@
    "label": "Operator Guidance"
   },
   {
-   "default": "TaxMate reuses ERPNext UAE VAT features. After creating a Company with country United Arab Emirates:\n\n1. Set Company Tax ID (TRN).\n2. Confirm UAE VAT 5% / Zero / Exempted tax templates.\n3. Link VAT accounts in UAE VAT Settings.\n4. Set Emirate on the company Address.\n5. Use Simplified or Detailed Tax Invoice print formats.\n6. File returns via the UAE VAT 201 report.\n\nDocs: https://docs.frappe.io/erpnext/UAE-vat-setup",
+   "default": "TaxMate UAE VAT setup checklist. After creating a Company with country United Arab Emirates:\n\n1. Set Company Tax ID (TRN).\n2. Confirm UAE VAT 5% / Zero / Exempted tax templates.\n3. Link VAT accounts in UAE VAT Settings.\n4. Set Emirate on the company Address.\n5. Use Simplified or Detailed Tax Invoice print formats.\n6. File returns via the UAE VAT 201 report.",
    "fieldname": "onboarding_notes",
    "fieldtype": "Text",
    "label": "Onboarding Notes"

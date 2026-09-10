@@ -30,6 +30,7 @@ def ensure_company_uae_ready(company: str) -> None:
 	ensure_uae_regional_setup(company=company)
 	_ensure_print_formats_enabled()
 	_ensure_uae_vat_settings_shell(company)
+	ensure_item_tax_template_vat_categories(company)
 
 
 def _ensure_print_formats_enabled() -> None:
@@ -76,6 +77,50 @@ def bootstrap_existing_uae_companies() -> None:
 	companies = frappe.get_all("Company", filters={"country": UAE_COUNTRY}, pluck="name")
 	for company in companies:
 		ensure_company_uae_ready(company)
+
+
+# Map ERPNext UAE Item Tax Template titles → TaxMate uae_vat_category
+_ITEM_TAX_CATEGORY_BY_TITLE = {
+	"UAE VAT 5%": "Standard",
+	"UAE VAT Zero": "Zero Rated",
+	"UAE VAT Exempted": "Exempt",
+}
+
+
+def ensure_item_tax_template_vat_categories(company: str | None = None) -> int:
+	"""Stamp TaxMate ``uae_vat_category`` on ERPNext UAE Item Tax Templates.
+
+	ERPNext creates the templates; TaxMate owns the PINT-AE category field.
+	Returns the number of templates updated.
+	"""
+	if not frappe.db.has_column("Item Tax Template", "uae_vat_category"):
+		return 0
+
+	filters: dict = {}
+	if company:
+		filters["company"] = company
+
+	updated = 0
+	for title, category in _ITEM_TAX_CATEGORY_BY_TITLE.items():
+		rows = frappe.get_all(
+			"Item Tax Template",
+			filters={**filters, "title": title},
+			fields=["name", "uae_vat_category"],
+		)
+		# Fallback: name may be "UAE VAT 5% - ABBR"
+		if not rows:
+			like_filters = {**filters, "name": ["like", f"{title}%"]}
+			rows = frappe.get_all(
+				"Item Tax Template",
+				filters=like_filters,
+				fields=["name", "uae_vat_category"],
+			)
+		for row in rows:
+			if row.uae_vat_category == category:
+				continue
+			frappe.db.set_value("Item Tax Template", row.name, "uae_vat_category", category)
+			updated += 1
+	return updated
 
 
 def company_has_uae_tax_templates(company: str) -> bool:

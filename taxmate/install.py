@@ -17,6 +17,12 @@ def after_install():
 	_setup_e_invoicing_uae()
 	bootstrap_existing_uae_companies()
 	_ensure_taxmate_settings_defaults()
+	_ensure_product_branding()
+	from taxmate.search import configure_global_search
+	from taxmate.setup.workspaces import ensure_product_workspaces
+
+	configure_global_search()
+	ensure_product_workspaces()
 
 
 def after_migrate():
@@ -65,6 +71,40 @@ def _ensure_taxmate_settings_defaults():
 	if settings.require_emirate_on_address is None:
 		settings.require_emirate_on_address = 1
 		changed = True
+	notes = settings.onboarding_notes or ""
+	if "ERPNext" in notes:
+		settings.onboarding_notes = notes.replace("ERPNext", "TaxMate")
+		changed = True
 	if changed:
 		settings.flags.ignore_permissions = True
 		settings.save()
+
+
+def _ensure_product_branding():
+	"""Show TaxMate (not Frappe/ERPNext) as the product name in Desk/browser chrome."""
+	for doctype, field, value in (
+		("System Settings", "app_name", "TaxMate"),
+		("Website Settings", "app_name", "TaxMate"),
+	):
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		current = frappe.db.get_single_value(doctype, field)
+		if current in (None, "", "Frappe", "ERPNext", "frappe", "erpnext"):
+			frappe.db.set_single_value(doctype, field, value)
+
+	# Standard ERPNext workspace — keep hidden on TaxMate product sites
+	if frappe.db.exists("Workspace", "ERPNext Settings"):
+		frappe.db.set_value(
+			"Workspace",
+			"ERPNext Settings",
+			{"title": "TaxMate App Settings", "is_hidden": 1},
+			update_modified=False,
+		)
+
+	if frappe.db.exists("DocType", "Navbar Item"):
+		for label in frappe.get_all(
+			"Navbar Item",
+			filters={"item_label": ("in", ["Frappe Support", "ERPNext Support"])},
+			pluck="name",
+		):
+			frappe.db.set_value("Navbar Item", label, "item_label", "TaxMate Support", update_modified=False)
