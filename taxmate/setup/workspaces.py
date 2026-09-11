@@ -57,6 +57,9 @@ def ensure_product_workspaces() -> None:
 			update_modified=False,
 		)
 
+	from taxmate.setup.home import ensure_uae_home_workspace
+
+	ensure_uae_home_workspace()
 	frappe.clear_cache()
 
 
