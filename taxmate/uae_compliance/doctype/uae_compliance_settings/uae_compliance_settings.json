@@ -1,0 +1,139 @@
+{
+ "actions": [],
+ "creation": "2026-09-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "ubo_section",
+  "ubo_change_report_deadline_days",
+  "enable_ubo_reminders",
+  "column_break_ubo",
+  "ubo_reminder_days_before_deadline",
+  "esr_section",
+  "esr_notification_deadline_months",
+  "esr_report_deadline_months",
+  "column_break_esr",
+  "enable_esr_reminders",
+  "esr_reminder_window_days",
+  "guidance_section",
+  "onboarding_notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "ubo_section",
+   "fieldtype": "Section Break",
+   "label": "UBO (Ultimate Beneficial Owner) Reporting"
+  },
+  {
+   "default": "15",
+   "description": "Calendar days to report a UBO change to the licensing authority (Cabinet Decision 109/2023: 15 days). Confirm with your authority before changing.",
+   "fieldname": "ubo_change_report_deadline_days",
+   "fieldtype": "Int",
+   "label": "Change Report Deadline (Days)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_ubo_reminders",
+   "fieldtype": "Check",
+   "label": "Enable UBO Deadline Reminders"
+  },
+  {
+   "fieldname": "column_break_ubo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "3",
+   "description": "Send a reminder when a UBO change report deadline is this many days away.",
+   "fieldname": "ubo_reminder_days_before_deadline",
+   "fieldtype": "Int",
+   "label": "Reminder Lead Time (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "esr_section",
+   "fieldtype": "Section Break",
+   "label": "Economic Substance Regulations (ESR)"
+  },
+  {
+   "default": "6",
+   "description": "Default months after Financial Year End by which the ESR Notification is due. Regulatory-authority specific -- override per filing if different.",
+   "fieldname": "esr_notification_deadline_months",
+   "fieldtype": "Int",
+   "label": "Notification Deadline (Months)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "default": "12",
+   "description": "Default months after Financial Year End by which the ESR Report is due (non-exempt entities only).",
+   "fieldname": "esr_report_deadline_months",
+   "fieldtype": "Int",
+   "label": "Report Deadline (Months)",
+   "non_negative": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_esr",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "1",
+   "fieldname": "enable_esr_reminders",
+   "fieldtype": "Check",
+   "label": "Enable ESR Deadline Reminders"
+  },
+  {
+   "default": "30",
+   "description": "Start showing a filing as \"Due\" (and remind) this many days before its deadline.",
+   "fieldname": "esr_reminder_window_days",
+   "fieldtype": "Int",
+   "label": "Reminder Window (Days)",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "guidance_section",
+   "fieldtype": "Section Break",
+   "label": "Operator Guidance"
+  },
+  {
+   "default": "TaxMate UAE Compliance module: tracks UBO (beneficial ownership) register changes and Economic Substance Regulations (ESR) notification/report filings.\n\nThis module keeps a record for reminders and audit trail -- it does NOT submit anything to the Ministry of Economy, a Free Zone Authority, or the UBO registrar on your behalf. File through your regulatory authority's own portal, then record the filing here.\n\nDeadlines above are configurable defaults; UBO reporting windows and ESR notification/report deadlines can vary by regulatory authority -- confirm the exact figures that apply to each company.",
+   "fieldname": "onboarding_notes",
+   "fieldtype": "Text",
+   "label": "Onboarding Notes"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Compliance",
+ "name": "UAE Compliance Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

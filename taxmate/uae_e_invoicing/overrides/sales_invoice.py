@@ -40,11 +40,12 @@ def before_cancel(doc, method=None):
 	if not is_e_invoice_applicable(doc):
 		return
 
-	if doc.get("uae_e_invoice_status") in ("Submitted", "Accepted"):
+	# Queued/Generated: ASP job may still run; Submitted/Accepted: legal e-invoice exists
+	if doc.get("uae_e_invoice_status") in ("Queued", "Generated", "Submitted", "Accepted"):
 		frappe.throw(
 			_(
-				"{0} has already been reported to the FTA via the ASP and cannot be "
-				"cancelled. Issue a Credit Note (Return) instead."
+				"{0} has already been reported (or queued for reporting) to the FTA "
+				"and cannot be cancelled. Issue a Credit Note (Return) instead."
 			).format(doc.name),
 			title=_("E-Invoice Reported"),
 		)

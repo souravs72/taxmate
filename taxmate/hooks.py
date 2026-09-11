@@ -154,7 +154,10 @@ after_migrate = "taxmate.install.after_migrate"
 doc_events = {
 	"Company": {
 		"validate": "taxmate.uae.company.validate",
-		"after_insert": "taxmate.uae.company.after_insert",
+		"after_insert": [
+			"taxmate.uae.company.after_insert",
+			"taxmate.uae_compliance.company.after_insert",
+		],
 		"on_update": "taxmate.uae.company.on_update",
 	},
 	"Customer": {
@@ -177,6 +180,7 @@ doc_events = {
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_cancel",
 	},
 	"Purchase Invoice": {
+		"validate": "taxmate.uae_vat.overrides.purchase_invoice.validate",
 		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_submit",
 		"before_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_cancel",
@@ -191,6 +195,10 @@ scheduler_events = {
 	"hourly": [
 		"taxmate.uae_e_invoicing.background_jobs.retry.retry_failed_e_invoices",
 		"taxmate.uae_e_invoicing.background_jobs.status_poll.poll_submitted_e_invoices",
+	],
+	"daily": [
+		"taxmate.uae_compliance.notifications.refresh_all_statuses",
+		"taxmate.uae_compliance.notifications.send_deadline_reminders",
 	],
 }
 

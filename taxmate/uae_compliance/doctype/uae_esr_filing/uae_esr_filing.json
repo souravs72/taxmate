@@ -1,0 +1,253 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:ESR-{company}-{financial_year_end}",
+ "creation": "2026-09-10 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "financial_year_start",
+  "financial_year_end",
+  "column_break_header",
+  "regulatory_authority",
+  "status",
+  "activity_section",
+  "has_relevant_activity",
+  "activities",
+  "exemption_section",
+  "is_exempt",
+  "exemption_reason",
+  "notification_section",
+  "notification_due_date",
+  "notification_filed_on",
+  "column_break_notification",
+  "notification_reference",
+  "notification_file",
+  "report_section",
+  "report_due_date",
+  "report_filed_on",
+  "column_break_report",
+  "report_reference",
+  "report_file",
+  "amended_from",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "financial_year_start",
+   "fieldtype": "Date",
+   "label": "Financial Year Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "financial_year_end",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Financial Year End",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "The Free Zone Authority / Ministry of Economy this entity files ESR with (e.g. DMCC, JAFZA, ADGM, DIFC, Ministry of Economy).",
+   "fieldname": "regulatory_authority",
+   "fieldtype": "Data",
+   "label": "Regulatory Authority",
+   "reqd": 1
+  },
+  {
+   "default": "Not Started",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Not Started\nNotification Due\nNotification Filed\nReport Due\nComplete\nOverdue",
+   "read_only": 1
+  },
+  {
+   "fieldname": "activity_section",
+   "fieldtype": "Section Break",
+   "label": "Relevant Activity"
+  },
+  {
+   "default": "0",
+   "description": "Did this entity earn income from any of the 9 ESR Relevant Activities during the financial year?",
+   "fieldname": "has_relevant_activity",
+   "fieldtype": "Check",
+   "label": "Relevant Activity Conducted"
+  },
+  {
+   "depends_on": "eval:doc.has_relevant_activity",
+   "fieldname": "activities",
+   "fieldtype": "Table",
+   "label": "Relevant Activities",
+   "options": "UAE ESR Activity Row"
+  },
+  {
+   "fieldname": "exemption_section",
+   "fieldtype": "Section Break",
+   "label": "Exemption"
+  },
+  {
+   "default": "0",
+   "description": "Even entities with a Relevant Activity may be exempt from the full Report (notification is still required).",
+   "fieldname": "is_exempt",
+   "fieldtype": "Check",
+   "label": "Claiming Exemption"
+  },
+  {
+   "depends_on": "eval:doc.is_exempt",
+   "fieldname": "exemption_reason",
+   "fieldtype": "Select",
+   "label": "Exemption Reason",
+   "options": "Not Applicable \u2014 No Relevant Activity Conducted\nTax Resident Outside the UAE\nInvestment Fund\nEntity Fully Owned by UAE Residents, With No Part of a MNE Group, and Business Only in the UAE\nBranch of a Foreign Entity Whose Relevant Income Is Taxed Outside the UAE\nUAE Government / Government-Owned Entity\nOther (see Notes)"
+  },
+  {
+   "fieldname": "notification_section",
+   "fieldtype": "Section Break",
+   "label": "Notification"
+  },
+  {
+   "description": "Auto-filled from UAE Compliance Settings when left blank; edit directly if your regulatory authority's deadline differs.",
+   "fieldname": "notification_due_date",
+   "fieldtype": "Date",
+   "label": "Notification Due Date"
+  },
+  {
+   "fieldname": "notification_filed_on",
+   "fieldtype": "Date",
+   "label": "Notification Filed On"
+  },
+  {
+   "fieldname": "column_break_notification",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notification_reference",
+   "fieldtype": "Data",
+   "label": "Portal Reference / Acknowledgement No."
+  },
+  {
+   "fieldname": "notification_file",
+   "fieldtype": "Attach",
+   "label": "Notification Copy"
+  },
+  {
+   "depends_on": "eval:!doc.is_exempt",
+   "fieldname": "report_section",
+   "fieldtype": "Section Break",
+   "label": "Economic Substance Report"
+  },
+  {
+   "description": "Auto-filled from UAE Compliance Settings when left blank; edit directly if your regulatory authority's deadline differs.",
+   "fieldname": "report_due_date",
+   "fieldtype": "Date",
+   "label": "Report Due Date"
+  },
+  {
+   "fieldname": "report_filed_on",
+   "fieldtype": "Date",
+   "label": "Report Filed On"
+  },
+  {
+   "fieldname": "column_break_report",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "report_reference",
+   "fieldtype": "Data",
+   "label": "Portal Reference / Acknowledgement No."
+  },
+  {
+   "fieldname": "report_file",
+   "fieldtype": "Attach",
+   "label": "Report Copy"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "UAE ESR Filing",
+   "print_hide": 1,
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Compliance",
+ "name": "UAE ESR Filing",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1,
+ "is_submittable": 1
+}

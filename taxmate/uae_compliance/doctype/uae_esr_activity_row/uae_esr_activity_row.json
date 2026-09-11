@@ -1,0 +1,50 @@
+{
+ "actions": [],
+ "creation": "2026-09-10 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "activity",
+  "is_core_income_generating_activity_in_uae",
+  "income_from_activity",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "activity",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Relevant Activity",
+   "options": "Banking Business\nInsurance Business\nInvestment Fund Management Business\nLease-Finance Business\nHeadquarters Business\nShipping Business\nHolding Company Business\nIntellectual Property Business\nDistribution and Service Centre Business",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "description": "Core Income Generating Activities (CIGA) must be demonstrably conducted in the UAE for this activity.",
+   "fieldname": "is_core_income_generating_activity_in_uae",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "CIGA Conducted in UAE"
+  },
+  {
+   "fieldname": "income_from_activity",
+   "fieldtype": "Currency",
+   "label": "Income from this Activity (AED)",
+   "options": "AED"
+  },
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"}
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Compliance",
+ "name": "UAE ESR Activity Row",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

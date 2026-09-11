@@ -1,0 +1,153 @@
+{
+ "actions": [],
+ "creation": "2026-09-10 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "full_name",
+  "date_of_birth",
+  "nationality",
+  "country_of_residence",
+  "column_break_id",
+  "identification_type",
+  "identification_number",
+  "identification_issuing_authority",
+  "identification_issue_date",
+  "identification_expiry_date",
+  "control_section",
+  "control_basis",
+  "ownership_percentage",
+  "position_title",
+  "column_break_dates",
+  "became_ubo_on",
+  "is_active",
+  "ceased_to_be_ubo_on",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "full_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Full Name",
+   "reqd": 1
+  },
+  {
+   "fieldname": "date_of_birth",
+   "fieldtype": "Date",
+   "label": "Date of Birth"
+  },
+  {
+   "fieldname": "nationality",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Nationality",
+   "options": "Country"
+  },
+  {
+   "fieldname": "country_of_residence",
+   "fieldtype": "Link",
+   "label": "Country of Residence",
+   "options": "Country"
+  },
+  {
+   "fieldname": "column_break_id",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "identification_type",
+   "fieldtype": "Select",
+   "label": "ID Type",
+   "options": "Passport\nEmirates ID\nNational ID (Other)"
+  },
+  {
+   "fieldname": "identification_number",
+   "fieldtype": "Data",
+   "label": "ID Number"
+  },
+  {
+   "fieldname": "identification_issuing_authority",
+   "fieldtype": "Data",
+   "label": "Issuing Authority"
+  },
+  {
+   "fieldname": "identification_issue_date",
+   "fieldtype": "Date",
+   "label": "ID Issue Date"
+  },
+  {
+   "fieldname": "identification_expiry_date",
+   "fieldtype": "Date",
+   "label": "ID Expiry Date"
+  },
+  {
+   "fieldname": "control_section",
+   "fieldtype": "Section Break",
+   "label": "Basis of Control"
+  },
+  {
+   "description": "Cabinet Decision 109/2023: 25%+ ownership or voting rights, right to appoint/dismiss majority of directors, or other significant control. Use the Senior Management Official option only when no individual meets the other tests.",
+   "fieldname": "control_basis",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Basis of Control",
+   "options": "Ownership of 25% or more of share capital\nHolds 25% or more of voting rights\nRight to appoint or dismiss majority of directors/managers\nOtherwise exercises significant control or influence\nSenior Management Official (fallback \u2014 no individual meets the above)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ownership_percentage",
+   "fieldtype": "Percent",
+   "in_list_view": 1,
+   "label": "Ownership / Voting %"
+  },
+  {
+   "depends_on": "eval:doc.control_basis && doc.control_basis.includes('Senior Management Official')",
+   "description": "Required when Basis of Control is the Senior Management Official fallback (Cabinet Decision 109/2023).",
+   "fieldname": "position_title",
+   "fieldtype": "Data",
+   "label": "Position / Title",
+   "mandatory_depends_on": "eval:doc.control_basis && doc.control_basis.includes('Senior Management Official')"
+  },
+  {
+   "fieldname": "column_break_dates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "became_ubo_on",
+   "fieldtype": "Date",
+   "label": "Became UBO On",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "is_active",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Currently a UBO"
+  },
+  {
+   "depends_on": "eval:!doc.is_active",
+   "fieldname": "ceased_to_be_ubo_on",
+   "fieldtype": "Date",
+   "label": "Ceased to be UBO On"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes (nominee arrangements, complex structures, etc.)"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-10 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Compliance",
+ "name": "UAE UBO Owner",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
