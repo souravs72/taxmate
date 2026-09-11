@@ -130,3 +130,61 @@ ARCHIVE_RETENTION_YEARS = 5
 
 # Contingency: report ASP/FTA downtime within this many days
 CONTINGENCY_REPORT_DAYS = 2
+
+# --- E-Invoicing mandate rollout --------------------------------------------
+# Ministerial Decision 244/2025 as amended by Ministerial Resolution 66/2026.
+# Not legal advice — confirm the live circular with the ASP or FTA.
+EINVOICE_LARGE_BUSINESS_REVENUE_THRESHOLD_AED = 50_000_000
+
+# MD 244 classifies on most-recent accounting-period *financial-statement*
+# revenue (gross), not VAT 201 and not a TaxMate GL window. Empty band =
+# Unclassified. TaxMate will not guess Large vs SME from the ledger.
+EINVOICE_REVENUE_BAND_BELOW = "Below AED 50,000,000"
+EINVOICE_REVENUE_BAND_AT_OR_ABOVE = "AED 50,000,000 or more"
+
+# cohort -> {asp_deadline, go_live, label}. Pilot is never auto-assigned.
+# Unclassified has no dates — set the FS revenue band or an override first.
+EINVOICE_MANDATE_PHASES = {
+	"Unclassified": {
+		"asp_deadline": None,
+		"go_live": None,
+		"label": "Unclassified — set last accounting-period FS revenue or an override",
+	},
+	"Pilot": {
+		"asp_deadline": None,
+		"go_live": "2026-07-01",
+		"label": "Pilot — selected early participants",
+	},
+	"Large": {
+		"asp_deadline": "2026-10-30",
+		"go_live": "2027-01-01",
+		"label": "Large business — FS revenue ≥ AED 50,000,000",
+	},
+	"SME": {
+		"asp_deadline": "2027-03-31",
+		"go_live": "2027-07-01",
+		"label": "SME — FS revenue < AED 50,000,000",
+	},
+	"Government": {
+		"asp_deadline": "2027-03-31",
+		"go_live": "2027-10-01",
+		"label": "Government entities",
+	},
+}
+
+EINVOICE_MANDATE_COHORTS = ("Pilot", "Large", "SME", "Government")
+
+# Nudge this many days before ASP appointment *or* go-live (and after, until
+# e-invoicing is enabled).
+EINVOICE_MANDATE_REMINDER_WINDOW_DAYS = 60
+
+EINVOICE_MANDATE_TODO_KEY = "tm-einvoice-mandate"
+EINVOICE_CLASSIFY_TODO_KEY = "tm-einvoice-classify"
+
+EINVOICE_MANDATE_DISCLAIMER = (
+	"Dates follow Ministerial Decision 244/2025 as amended by Resolution 66/2026 "
+	"(Large ASP appointment 30 Oct 2026). Confirm this company's cohort with the "
+	"ASP or FTA — this is not legal or tax advice. Classification uses the "
+	"revenue band you enter from the last accounting-period financial statements, "
+	"not TaxMate's general ledger."
+)

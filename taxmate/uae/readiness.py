@@ -114,7 +114,22 @@ def get_uae_readiness_checklist(company: str) -> dict:
 		"message": _("UAE VAT setup is complete.")
 		if ready
 		else _("Complete the remaining UAE VAT setup items below."),
+		# Informational only — does not affect `ready` above. A company can be
+		# fully VAT-ready today and still not yet be in scope for e-invoicing;
+		# this just tells them which cohort/deadlines apply when they are.
+		"e_invoice_mandate": _e_invoice_mandate_status(company),
 	}
+
+
+def _e_invoice_mandate_status(company: str) -> dict | None:
+	"""Best-effort e-invoicing mandate cohort/dates; never blocks the checklist."""
+	try:
+		from taxmate.uae_e_invoicing.utils.mandate import mandate_status
+
+		return mandate_status(company)
+	except Exception:
+		frappe.log_error(title="TaxMate e-invoice mandate status lookup failed")
+		return None
 
 
 def _item(key: str, label: str, ok: bool, help_text: str, route: str) -> dict:

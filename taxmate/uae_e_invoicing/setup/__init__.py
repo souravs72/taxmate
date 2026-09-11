@@ -1,9 +1,14 @@
-"""UAE E-Invoicing setup — Mode of Payment means codes (UNCL 4461)."""
+"""UAE E-Invoicing setup — Mode of Payment means codes (UNCL 4461) + mandate custom fields."""
 
 
 from __future__ import annotations
 
 import frappe
+
+from taxmate.uae_e_invoicing.constants.custom_fields import CUSTOM_FIELDS
+from taxmate.utils.custom_fields import get_custom_fields_creator
+
+create_custom_fields = get_custom_fields_creator("UAE E-Invoicing")
 
 # Mode of Payment name → UNCL 4461 select option used on invoices (IBT-081)
 _MODE_OF_PAYMENT_MEANS = {
@@ -17,6 +22,7 @@ _MODE_OF_PAYMENT_MEANS = {
 
 def setup():
 	"""Idempotent e-invoicing fixtures."""
+	create_custom_fields(CUSTOM_FIELDS, ignore_validate=True, update=True)
 	ensure_mode_of_payment_means_codes()
 
 

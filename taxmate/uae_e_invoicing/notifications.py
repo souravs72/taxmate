@@ -1,4 +1,4 @@
-"""Daily SLA and contingency reminders for UAE e-invoicing."""
+"""Daily SLA, contingency, and mandate-deadline reminders for UAE e-invoicing."""
 
 from __future__ import annotations
 
@@ -7,12 +7,18 @@ from frappe import _
 from frappe.utils import get_url_to_form, getdate, nowdate
 from frappe.utils.user import get_users_with_role
 
-from taxmate.uae_e_invoicing.utils.mandate import sla_status
+from taxmate.uae.constants import UAE_COUNTRY
+from taxmate.uae_e_invoicing.constants import (
+	EINVOICE_CLASSIFY_TODO_KEY,
+	EINVOICE_MANDATE_REMINDER_WINDOW_DAYS,
+)
+from taxmate.uae_e_invoicing.utils.mandate import mandate_reminder_payload, mandate_status, sla_status
 
 
 def send_e_invoice_reminders() -> None:
 	_remind_sla_breaches()
 	_remind_contingency()
+	_remind_mandate_deadlines()
 
 
 def _remind_sla_breaches() -> None:
@@ -63,8 +69,105 @@ def _remind_contingency() -> None:
 		)
 
 
-def _raise_todo_once(doctype: str, name: str, description: str) -> None:
-	if frappe.db.exists("ToDo", {"reference_type": doctype, "reference_name": name, "status": "Open"}):
+def _remind_mandate_deadlines() -> None:
+	"""Nudge UAE companies that still need a cohort or an ASP before the MD 244 dates."""
+	if not frappe.db.has_column("Company", "uae_e_invoice_enabled"):
+		return
+	companies = frappe.get_all(
+		"Company",
+		filters={"country": UAE_COUNTRY, "uae_e_invoice_enabled": 0},
+		pluck="name",
+	)
+	for company in companies:
+		try:
+			status = mandate_status(company)
+		except Exception:
+			frappe.log_error(title=f"TaxMate mandate status failed for {company}")
+			continue
+
+		if status.get("cohort") != "Unclassified":
+			_close_keyed_todos("Company", company, EINVOICE_CLASSIFY_TODO_KEY)
+		payload = mandate_reminder_payload(status, EINVOICE_MANDATE_REMINDER_WINDOW_DAYS)
+		if not payload:
+			continue
+		_raise_todo_once(
+			"Company",
+			company,
+			_mandate_todo_message(payload),
+			unique_key=payload["unique_key"],
+		)
+
+
+def _mandate_todo_message(payload: dict) -> str:
+	company = payload.get("company") or ""
+	disclaimer = payload.get("disclaimer") or ""
+	if payload.get("kind") == "classify":
+		message = _(
+			"{0} has no e-invoicing cohort yet. Enter last accounting-period "
+			"financial-statement revenue (MD 244) or set a cohort override. "
+			"TaxMate does not classify Large vs SME from the general ledger."
+		).format(company)
+		return f"{message}\n\n{disclaimer}"
+
+	parts = []
+	cohort = payload.get("cohort")
+	for reason in payload.get("reasons") or []:
+		if reason == "asp_passed":
+			parts.append(
+				_(
+					"{0}'s ASP-appointment deadline for the {1} e-invoicing cohort "
+					"({2}) has passed and e-invoicing is not yet enabled."
+				).format(company, cohort, payload.get("asp_appointment_deadline"))
+			)
+		elif reason == "asp_upcoming":
+			parts.append(
+				_(
+					"{0} is in the {1} e-invoicing cohort — appoint an ASP before {2} "
+					"({3} day(s) left)."
+				).format(
+					company,
+					cohort,
+					payload.get("asp_appointment_deadline"),
+					payload.get("days_to_asp_deadline"),
+				)
+			)
+		elif reason == "go_live_now":
+			parts.append(
+				_(
+					"Mandatory e-invoicing for the {0} cohort is live from {1} and "
+					"e-invoicing is not yet enabled on {2}."
+				).format(cohort, payload.get("go_live_date"), company)
+			)
+		elif reason == "go_live_upcoming":
+			parts.append(
+				_(
+					"Mandatory e-invoicing for the {0} cohort goes live on {1} "
+					"({2} day(s) left)."
+				).format(cohort, payload.get("go_live_date"), payload.get("days_to_go_live"))
+			)
+	return "{0}\n\n{1}".format(" ".join(parts), disclaimer)
+
+
+def _close_keyed_todos(doctype: str, name: str, unique_key: str) -> None:
+	for todo in frappe.get_all(
+		"ToDo",
+		filters={
+			"reference_type": doctype,
+			"reference_name": name,
+			"status": "Open",
+			"description": ["like", f"%[{unique_key}]%"],
+		},
+		pluck="name",
+	):
+		frappe.db.set_value("ToDo", todo, "status", "Closed")
+
+
+def _raise_todo_once(doctype: str, name: str, description: str, unique_key: str | None = None) -> None:
+	filters = {"reference_type": doctype, "reference_name": name, "status": "Open"}
+	if unique_key:
+		description = f"{description}\n[{unique_key}]"
+		filters["description"] = ["like", f"%[{unique_key}]%"]
+	if frappe.db.exists("ToDo", filters):
 		return
 	recipients = get_users_with_role("Accounts Manager") or get_users_with_role("System Manager")
 	if not recipients:
