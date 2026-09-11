@@ -551,7 +551,17 @@ CUSTOM_FIELDS = {
 			"translatable": 0,
 		},
 	],
-	"Sales Invoice": INVOICE_E_INVOICE_FIELDS,
+	"Sales Invoice": INVOICE_E_INVOICE_FIELDS
+	+ [
+		{
+			"fieldname": "uae_establishment",
+			"label": "UAE Establishment",
+			"fieldtype": "Link",
+			"options": "UAE Establishment",
+			"insert_after": "company",
+			"description": "Mainland / Free Zone / Designated Zone establishment that made this supply.",
+		},
+	],
 	"Purchase Invoice": PURCHASE_VAT_OPS_FIELDS
 	+ PURCHASE_INVOICE_E_INVOICE_FIELDS
 	+ [
@@ -562,6 +572,14 @@ CUSTOM_FIELDS = {
 			"options": "UAE Customs Declaration",
 			"insert_after": "bill_no",
 			"description": "Import bill that feeds VAT 201 Box 6/7 for this purchase.",
+		},
+		{
+			"fieldname": "uae_establishment",
+			"label": "UAE Establishment",
+			"fieldtype": "Link",
+			"options": "UAE Establishment",
+			"insert_after": "company",
+			"description": "Mainland / Free Zone / Designated Zone establishment that received this purchase.",
 		},
 	],
 	"Sales Invoice Item": INVOICE_ITEM_FIELDS,

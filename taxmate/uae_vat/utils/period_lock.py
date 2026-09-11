@@ -15,10 +15,30 @@ def submitted_filing_for(company: str, posting_date) -> str | None:
 		return None
 	if not frappe.db.exists("DocType", "UAE VAT 201 Filing Log"):
 		return None
-	return frappe.db.get_value(
+	own = frappe.db.get_value(
 		"UAE VAT 201 Filing Log",
 		{
 			"company": company,
+			"docstatus": 1,
+			"period_start": ["<=", posting_date],
+			"period_end": [">=", posting_date],
+		},
+		"name",
+	)
+	if own:
+		return own
+	if not frappe.db.has_column("UAE VAT 201 Filing Log", "vat_group"):
+		return None
+	from taxmate.uae_vat.utils.vat_group import active_group_for_company
+
+	group = active_group_for_company(company, posting_date)
+	if not group:
+		return None
+	return frappe.db.get_value(
+		"UAE VAT 201 Filing Log",
+		{
+			"vat_group": group["name"],
+			"include_group_members": 1,
 			"docstatus": 1,
 			"period_start": ["<=", posting_date],
 			"period_end": [">=", posting_date],

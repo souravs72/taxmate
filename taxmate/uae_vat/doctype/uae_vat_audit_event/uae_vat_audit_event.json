@@ -1,0 +1,45 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "hash",
+ "creation": "2026-09-11 12:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "ref_doctype",
+  "ref_name",
+  "column_break_header",
+  "fieldname",
+  "old_value",
+  "new_value",
+  "changed_by",
+  "changed_on"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "read_only": 1},
+  {"fieldname": "ref_doctype", "fieldtype": "Link", "in_list_view": 1, "label": "Document Type", "options": "DocType", "read_only": 1},
+  {"fieldname": "ref_name", "fieldtype": "Dynamic Link", "in_list_view": 1, "label": "Document", "options": "ref_doctype", "read_only": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "fieldname", "fieldtype": "Data", "in_list_view": 1, "label": "Field", "read_only": 1},
+  {"fieldname": "old_value", "fieldtype": "Small Text", "label": "Old Value", "read_only": 1},
+  {"fieldname": "new_value", "fieldtype": "Small Text", "label": "New Value", "read_only": 1},
+  {"fieldname": "changed_by", "fieldtype": "Link", "in_standard_filter": 1, "label": "Changed By", "options": "User", "read_only": 1},
+  {"fieldname": "changed_on", "fieldtype": "Datetime", "in_list_view": 1, "label": "Changed On", "read_only": 1}
+ ],
+ "links": [],
+ "modified": "2026-09-11 12:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE VAT Audit Event",
+ "owner": "Administrator",
+ "permissions": [
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager"},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "UAE Tax Manager"},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager"}
+ ],
+ "sort_field": "changed_on",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 0
+}

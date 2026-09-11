@@ -14,7 +14,23 @@ from taxmate.uae_vat.utils.special_regime_ledger import apply_margin_on_item
 def validate(doc, method=None):
 	validate_sales_invoice(doc)
 	validate_period_lock(doc)
+	_apply_establishment(doc)
 	_apply_margin_scheme(doc)
+
+
+def _apply_establishment(doc):
+	if not hasattr(doc, "uae_establishment") or not frappe.db.exists("DocType", "UAE Establishment"):
+		return
+	if not doc.get("uae_establishment"):
+		head = frappe.db.get_value(
+			"UAE Establishment", {"company": doc.company, "is_head_office": 1}, "name"
+		)
+		if head:
+			doc.uae_establishment = head
+		return
+	est_company = frappe.db.get_value("UAE Establishment", doc.uae_establishment, "company")
+	if est_company and est_company != doc.company:
+		frappe.throw(_("Establishment {0} belongs to {1}.").format(doc.uae_establishment, est_company))
 
 
 def _apply_margin_scheme(doc):

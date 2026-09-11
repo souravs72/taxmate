@@ -245,6 +245,14 @@ def compute_vat_201(
 		if row["amount"] == "":
 			row["amount"] = 0
 
+	from taxmate.uae_e_invoicing.constants import AED_CURRENCY
+	from taxmate.uae_vat.utils.tax_currency import company_to_aed_rate, scale_boxes, to_aed
+
+	rate = company_to_aed_rate(company, period_end)
+	if flt(rate) != 1:
+		boxes = scale_boxes(boxes, rate)
+		totals = {key: to_aed(value, rate) for key, value in totals.items()}
+
 	return {
 		"company": company,
 		"period_start": period_start,
@@ -252,7 +260,47 @@ def compute_vat_201(
 		"boxes": boxes,
 		**totals,
 		"requires_manual_box_6_7": False,
+		"tax_currency": AED_CURRENCY,
+		"tax_currency_rate": rate,
 	}
+
+
+def append_vat_201_totals(detail_boxes: list[dict]) -> tuple[list[dict], dict[str, float]]:
+	"""Rebuild Boxes 8 and 11–14 from detail rows (used for VAT-group merges)."""
+	def _vat(box_no: str) -> float:
+		return r2(sum(flt(row.get("vat_amount")) for row in detail_boxes if row.get("box_no") == box_no))
+
+	box_1_vat = r2(
+		sum(
+			flt(row.get("vat_amount"))
+			for row in detail_boxes
+			if (row.get("box_no") or "")[:1] == "1" and (row.get("box_no") or "")[1:].isalpha()
+		)
+	)
+	totals = compute_totals(
+		box_1_vat_amount=box_1_vat,
+		box_2_vat_amount=_vat("2"),
+		box_3_vat_amount=_vat("3"),
+		box_6_vat_amount=_vat("6"),
+		box_7_vat_amount=_vat("7"),
+		box_9_vat_amount=_vat("9"),
+		box_10_vat_amount=_vat("10"),
+	)
+	boxes = [dict(row) for row in detail_boxes]
+	boxes.append({"box_no": "8", "legend": _("Total value of due tax for the period"), "amount": 0, "vat_amount": totals["box_8_vat_amount"], "is_subtotal": 1})
+	boxes.append({"box_no": "11", "legend": _("Total value of recoverable tax for the period"), "amount": 0, "vat_amount": totals["box_11_vat_amount"], "is_subtotal": 1})
+	boxes.append({"box_no": "12", "legend": _("Net VAT due (or reclaimable) for the period"), "amount": 0, "vat_amount": totals["box_12_vat_amount"], "is_subtotal": 1})
+	boxes.append({"box_no": "13", "legend": _("Total value of recoverable tax for the period"), "amount": 0, "vat_amount": totals["box_13_vat_amount"], "is_subtotal": 1})
+	boxes.append(
+		{
+			"box_no": "14",
+			"legend": _("Payable tax for the period") if totals["net_vat_due"] >= 0 else _("Refundable / reclaimable tax for the period"),
+			"amount": 0,
+			"vat_amount": totals["net_vat_due"],
+			"is_subtotal": 1,
+		}
+	)
+	return boxes, totals
 
 
 def compute_totals(

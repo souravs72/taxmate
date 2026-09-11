@@ -1,0 +1,44 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:EST-{company}-{#####}",
+ "creation": "2026-09-11 12:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "establishment_name",
+  "establishment_type",
+  "column_break_header",
+  "emirate",
+  "licence_number",
+  "cost_center",
+  "is_head_office"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "establishment_name", "fieldtype": "Data", "in_list_view": 1, "label": "Establishment Name", "reqd": 1},
+  {"fieldname": "establishment_type", "fieldtype": "Select", "in_list_view": 1, "label": "Type", "options": "Mainland\nFree Zone\nDesignated Zone", "reqd": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "emirate", "fieldtype": "Select", "in_list_view": 1, "label": "Emirate", "options": "Abu Dhabi\nDubai\nSharjah\nAjman\nUmm Al Quwain\nRas Al Khaimah\nFujairah", "reqd": 1},
+  {"fieldname": "licence_number", "fieldtype": "Data", "label": "Licence Number"},
+  {"fieldname": "cost_center", "fieldtype": "Link", "label": "Cost Center", "options": "Cost Center"},
+  {"default": "0", "description": "One head office per company. Invoices default to this establishment.", "fieldname": "is_head_office", "fieldtype": "Check", "label": "Head Office"}
+ ],
+ "links": [],
+ "modified": "2026-09-11 12:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE Establishment",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "UAE Tax Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

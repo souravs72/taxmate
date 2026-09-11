@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Phase 7 multi-entity tenancy:** `UAE VAT Group` election (representative + members, VAT Group TIN); `UAE Establishment` (mainland / free zone / designated zone); VAT 201 amounts convert to tax currency AED; `UAE Tax Manager` role on filings; `UAE VAT Audit Event` records who changed Box 9 recoverability or Boxes 6/7. `UAE Group VAT Status` lists each UAE company. Portals still file.
+
 - **Phase 6 excise, customs, capital goods:** opt-in `UAE Excise Settings` + submittable `UAE Excise Filing Log`; customs bills link to Purchase Invoice and Landed Cost Voucher; capital-goods scheme records and annual Box 9 adjustments; bad-debt relief (6-month wait + evidence); margin-scheme lines report VAT on the margin in Box 1. `UAE Import VAT Explanation` lists Boxes 6, 7 and 9 without a spreadsheet. Trackers only — FTA portals still file.
 
 - **Phase 5 beneficial-ownership and substance:** `UAE Shareholder Register` (legal ownership, distinct from UBO); nominee / legal-entity chain must resolve to a natural person; licence-authority variants (DED, ADGM, DIFC, RAKEZ, …) override UBO/ESR windows; ESR activity rows require directed-and-managed / employees / spend evidence; board minutes required before submitting an in-scope ESR filing. Compliance Status shows UBO + shareholders + ESR and whether both registers exist. Still a tracker — portals file.

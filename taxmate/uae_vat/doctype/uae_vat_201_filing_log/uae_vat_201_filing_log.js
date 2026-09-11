@@ -2,6 +2,11 @@
 // For license information, please see license.txt
 
 frappe.ui.form.on("UAE VAT 201 Filing Log", {
+	setup(frm) {
+		frm.set_query("vat_group", () => ({
+			filters: { docstatus: 1, representative_company: frm.doc.company },
+		}));
+	},
 	refresh(frm) {
 		if (frm.doc.docstatus === 1) {
 			frm.dashboard.set_headline_alert(
