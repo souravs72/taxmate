@@ -27,7 +27,7 @@ def submitted_filing_for(company: str, posting_date) -> str | None:
 	)
 
 
-def validate_period_lock(doc) -> None:
+def validate_period_lock(doc, posting_date=None) -> None:
 	"""Throw when posting into a filed VAT 201 period (TaxMate Settings)."""
 	if not setting_enabled("block_invoices_in_filed_vat_period", default=1):
 		return
@@ -36,7 +36,8 @@ def validate_period_lock(doc) -> None:
 		return
 	if frappe.db.get_value("Company", company, "country") != UAE_COUNTRY:
 		return
-	filing = submitted_filing_for(company, doc.get("posting_date"))
+	date = posting_date if posting_date is not None else doc.get("posting_date")
+	filing = submitted_filing_for(company, date)
 	if not filing:
 		return
 	frappe.throw(

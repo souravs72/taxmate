@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:BDR-{sales_invoice}-{#####}",
+ "creation": "2026-09-11 10:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "sales_invoice",
+  "due_date",
+  "column_break_header",
+  "write_off_date",
+  "taxable_amount",
+  "vat_amount",
+  "evidence",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "sales_invoice", "fieldtype": "Link", "in_list_view": 1, "label": "Sales Invoice", "options": "Sales Invoice", "reqd": 1},
+  {"description": "Usually the invoice due date. Relief needs six months after this date.", "fieldname": "due_date", "fieldtype": "Date", "label": "Consideration Due Date", "reqd": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "write_off_date", "fieldtype": "Date", "in_list_view": 1, "label": "Written Off On", "reqd": 1},
+  {"fieldname": "taxable_amount", "fieldtype": "Currency", "label": "Taxable Amount", "options": "AED", "reqd": 1},
+  {"fieldname": "vat_amount", "fieldtype": "Currency", "in_list_view": 1, "label": "Output VAT Relieved", "options": "AED", "reqd": 1},
+  {"fieldname": "evidence", "fieldtype": "Attach", "label": "Write-off Evidence"},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"},
+  {"fieldname": "amended_from", "fieldtype": "Link", "label": "Amended From", "no_copy": 1, "options": "UAE Bad Debt Relief", "print_hide": 1, "read_only": 1}
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 10:50:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE Bad Debt Relief",
+ "owner": "Administrator",
+ "permissions": [
+  {"amend": 1, "cancel": 1, "create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "submit": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -53,11 +53,13 @@ class TestBox1Sql(FrappeTestCase):
 		self.assertIn("base_tax_amount", src)
 		self.assertNotIn("sum(i.tax_amount)", src)
 		self.assertIn("exists", src)
+		self.assertIn("uae_is_margin_scheme", getsource(vat_201._box_1_item_predicates))
 
 	def test_box_1_amount_sql_excludes_non_standard(self):
 		sql = _box_1_amount_sql()
 		self.assertIn("is_exempt", sql)
 		self.assertIn("is_zero_rated", sql)
+		self.assertIn("uae_is_margin_scheme", sql)
 
 	def test_pack_invoice_tax_uses_uae_vat_accounts(self):
 		from taxmate.uae_vat.utils import vat_201

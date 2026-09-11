@@ -1,7 +1,7 @@
 {
  "app": "taxmate",
  "charts": [],
- "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>UAE Compliance</b></span>\", \"col\": 12}}, {\"id\": \"card1\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}, {\"id\": \"card2\", \"type\": \"card\", \"data\": {\"card_name\": \"E-Invoicing\", \"col\": 4}}, {\"id\": \"card3\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"card4\", \"type\": \"card\", \"data\": {\"card_name\": \"UBO & ESR\", \"col\": 4}}, {\"id\": \"card5\", \"type\": \"card\", \"data\": {\"card_name\": \"Corporate Tax\", \"col\": 4}}]",
+ "content": "[{\"id\": \"hdr1\", \"type\": \"header\", \"data\": {\"text\": \"<span class=\\\"h4\\\"><b>UAE Compliance</b></span>\", \"col\": 12}}, {\"id\": \"card1\", \"type\": \"card\", \"data\": {\"card_name\": \"Settings\", \"col\": 4}}, {\"id\": \"card2\", \"type\": \"card\", \"data\": {\"card_name\": \"E-Invoicing\", \"col\": 4}}, {\"id\": \"card3\", \"type\": \"card\", \"data\": {\"card_name\": \"Reports\", \"col\": 4}}, {\"id\": \"card4\", \"type\": \"card\", \"data\": {\"card_name\": \"UBO & ESR\", \"col\": 4}}, {\"id\": \"card5\", \"type\": \"card\", \"data\": {\"card_name\": \"Corporate Tax\", \"col\": 4}}, {\"id\": \"card6\", \"type\": \"card\", \"data\": {\"card_name\": \"Special VAT\", \"col\": 4}}]",
  "creation": "2026-08-27 16:55:00.000000",
  "custom_blocks": [],
  "docstatus": 0,
@@ -247,9 +247,88 @@
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "Special VAT",
+   "link_count": 7,
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Card Break"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE Excise Settings",
+   "link_count": 0,
+   "link_to": "UAE Excise Settings",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE Excise Filing Log",
+   "link_count": 0,
+   "link_to": "UAE Excise Filing Log",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE Customs Declaration",
+   "link_count": 0,
+   "link_to": "UAE Customs Declaration",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE Capital Goods Record",
+   "link_count": 0,
+   "link_to": "UAE Capital Goods Record",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE Capital Goods Adjustment",
+   "link_count": 0,
+   "link_to": "UAE Capital Goods Adjustment",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE Bad Debt Relief",
+   "link_count": 0,
+   "link_to": "UAE Bad Debt Relief",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "UAE Import VAT Explanation",
+   "link_count": 0,
+   "link_to": "UAE Import VAT Explanation",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
   }
  ],
- "modified": "2026-09-11 08:30:00.000000",
+ "modified": "2026-09-11 10:55:00.000000",
  "modified_by": "Administrator",
  "module": "UAE E-Invoicing",
  "name": "UAE Compliance",

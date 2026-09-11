@@ -27,6 +27,14 @@ class UAECustomsDeclaration(Document):
 						self.purchase_invoice, pi_company, self.company
 					)
 				)
+		if self.get("landed_cost_voucher") and frappe.db.exists("DocType", "Landed Cost Voucher"):
+			lcv_company = frappe.db.get_value("Landed Cost Voucher", self.landed_cost_voucher, "company")
+			if lcv_company and lcv_company != self.company:
+				frappe.throw(
+					_("Landed Cost Voucher {0} belongs to {1}, not {2}.").format(
+						self.landed_cost_voucher, lcv_company, self.company
+					)
+				)
 		validate_period_lock(self)
 
 	def before_cancel(self):

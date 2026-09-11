@@ -1,0 +1,43 @@
+{
+ "actions": [],
+ "creation": "2026-09-11 10:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["enable_excise", "rates", "onboarding_notes"],
+ "fields": [
+  {
+   "default": "0",
+   "description": "Turn on only if this tenant sells excise goods. Filing is a tracker — the FTA portal still files.",
+   "fieldname": "enable_excise",
+   "fieldtype": "Check",
+   "label": "Enable Excise Tracking"
+  },
+  {
+   "fieldname": "rates",
+   "fieldtype": "Table",
+   "label": "Category Rates",
+   "options": "UAE Excise Category Rate"
+  },
+  {
+   "default": "TaxMate tracks UAE Excise Tax for tenants that sell designated goods. It does not file the Excise Tax Return. Confirm live rates with the FTA before changing defaults.",
+   "fieldname": "onboarding_notes",
+   "fieldtype": "Text",
+   "label": "Onboarding Notes"
+  }
+ ],
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-09-11 10:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE Excise Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "read": 1, "write": 1, "role": "System Manager", "share": 1, "email": 1, "print": 1},
+  {"read": 1, "write": 1, "role": "Accounts Manager", "share": 1, "email": 1, "print": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

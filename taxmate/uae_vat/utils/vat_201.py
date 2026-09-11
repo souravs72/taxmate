@@ -105,11 +105,22 @@ def compute_vat_201(
 	filters = {"company": company, "from_date": period_start, "to_date": period_end}
 
 	box_1_rows = _standard_rated_emiratewise(filters)
+	from taxmate.uae_vat.utils.special_regime_ledger import (
+		apply_box_1_special_regimes,
+		sum_capital_goods_adjustments,
+	)
+
+	box_1_rows = apply_box_1_special_regimes(box_1_rows, filters)
 	box_2 = _tourist_refund(filters)
 	box_3 = _reverse_charge_output(filters)
 	box_4_amount = _zero_rated_total(filters)
 	box_5_amount = _exempt_total(filters)
 	box_9 = _standard_rated_expenses(filters)
+	capital = sum_capital_goods_adjustments(company, period_start, period_end)
+	box_9 = {
+		"amount": r2(box_9["amount"]),
+		"vat_amount": r2(box_9["vat_amount"] + capital["vat_amount"]),
+	}
 	box_10 = _reverse_charge_recoverable_input(filters)
 
 	box_1_amount = r2(sum(row["amount"] for row in box_1_rows))
@@ -359,6 +370,8 @@ def _box_1_item_predicates() -> tuple[str, str]:
 		excluded = ", ".join(frappe.db.escape(c) for c in BOX_1_EXCLUDED_CATEGORIES)
 		category_join = "left join `tabItem Tax Template` t on t.name = i.item_tax_template"
 		category_filter = f"and ifnull(t.uae_vat_category, '') not in ({excluded})"
+	if frappe.db.has_column("Sales Invoice Item", "uae_is_margin_scheme"):
+		category_filter += " and ifnull(i.uae_is_margin_scheme, 0) != 1"
 	return category_join, category_filter
 
 
@@ -528,7 +541,16 @@ def list_period_customs(company: str, period_start, period_end) -> list[dict[str
 			"docstatus": 1,
 			"posting_date": ["between", [period_start, period_end]],
 		},
-		fields=["name", "posting_date", "declaration_number", "is_adjustment", "taxable_amount", "vat_amount"],
+		fields=[
+			"name",
+			"posting_date",
+			"declaration_number",
+			"is_adjustment",
+			"taxable_amount",
+			"vat_amount",
+			"purchase_invoice",
+			"landed_cost_voucher",
+		],
 		order_by="posting_date, name",
 	)
 

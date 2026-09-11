@@ -1,6 +1,6 @@
 """Input-tax recoverability for UAE VAT 201 Box 9.
 
-Capital-goods adjustment periods (FTA capital goods scheme) are Phase 6.
+Capital-goods adjustment periods live on UAE Capital Goods Record / Adjustment.
 """
 
 from __future__ import annotations
