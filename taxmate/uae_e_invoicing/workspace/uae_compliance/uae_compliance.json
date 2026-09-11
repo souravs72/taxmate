@@ -56,7 +56,7 @@
    "hidden": 0,
    "is_query_report": 0,
    "label": "E-Invoicing",
-   "link_count": 1,
+   "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -74,8 +74,28 @@
   {
    "hidden": 0,
    "is_query_report": 0,
+   "label": "UAE Incoming Invoice",
+   "link_count": 0,
+   "link_to": "UAE Incoming Invoice",
+   "link_type": "DocType",
+   "onboard": 1,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
+   "label": "UAE E-Invoice Contingency",
+   "link_count": 0,
+   "link_to": "UAE E-Invoice Contingency",
+   "link_type": "DocType",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 0,
    "label": "Reports",
-   "link_count": 2,
+   "link_count": 3,
    "link_type": "DocType",
    "onboard": 0,
    "type": "Card Break"
@@ -86,6 +106,16 @@
    "label": "UAE E-Invoice Status",
    "link_count": 0,
    "link_to": "UAE E-Invoice Status",
+   "link_type": "Report",
+   "onboard": 0,
+   "type": "Link"
+  },
+  {
+   "hidden": 0,
+   "is_query_report": 1,
+   "label": "UAE E-Invoice VAT 201 Reconciliation",
+   "link_count": 0,
+   "link_to": "UAE E-Invoice VAT 201 Reconciliation",
    "link_type": "Report",
    "onboard": 0,
    "type": "Link"

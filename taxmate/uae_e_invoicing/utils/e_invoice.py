@@ -42,7 +42,24 @@ def is_e_invoice_applicable(doc) -> bool:
 		return False
 	if doc.doctype == "Purchase Invoice" and not doc.get("uae_submit_to_fta"):
 		return False
+	if doc.doctype == "Sales Invoice" and _exclude_b2c() and _is_b2c_sales_invoice(doc):
+		return False
 	return True
+
+
+def _exclude_b2c() -> bool:
+	from taxmate.uae_e_invoicing.utils.mandate import setting_on
+
+	return setting_on("exclude_b2c_e_invoices", default=1)
+
+
+def _is_b2c_sales_invoice(doc) -> bool:
+	from taxmate.uae_e_invoicing.utils.mandate import is_b2c_party
+
+	tax_id = None
+	if doc.get("customer"):
+		tax_id = frappe.db.get_value("Customer", doc.customer, "tax_id")
+	return is_b2c_party(tax_id)
 
 
 @frappe.whitelist()
@@ -52,7 +69,10 @@ def generate_e_invoice(docname: str, doctype: str = "Sales Invoice", throw: bool
 	doc.check_permission("submit")
 
 	if not is_e_invoice_applicable(doc):
-		msg = _("UAE e-invoicing is not enabled for company {0}.").format(doc.company)
+		if doc.doctype == "Sales Invoice" and _exclude_b2c() and _is_b2c_sales_invoice(doc):
+			msg = _("B2C sales invoices are excluded from UAE e-invoicing until the FTA requires them.")
+		else:
+			msg = _("UAE e-invoicing is not enabled for company {0}.").format(doc.company)
 		if throw:
 			frappe.throw(msg)
 		frappe.msgprint(msg)
@@ -113,16 +133,16 @@ def generate_and_submit(doc) -> str:
 		return log.name
 
 	status = ASP_STATUS_MAP.get(str(result.get("status", "")).lower(), "Submitted")
-	log.db_set(
-		{
-			"status": status,
-			"asp_document_id": result.get("document_id"),
-			"submitted_on": now_datetime(),
-			"error_message": None,
-			"response_json": frappe.as_json(result.get("raw") or result),
-		},
-		update_modified=False,
-	)
+	updates = {
+		"status": status,
+		"asp_document_id": result.get("document_id"),
+		"submitted_on": now_datetime(),
+		"error_message": None,
+		"response_json": frappe.as_json(result.get("raw") or result),
+	}
+	if status == "Accepted":
+		updates["accepted_on"] = now_datetime()
+	log.db_set(updates, update_modified=False)
 	_set_invoice_status(doc, status, log.name)
 
 	if status == "Accepted" and result.get("document_id"):
@@ -194,6 +214,8 @@ def apply_status_update(asp_document_id: str, asp_status: str, response: dict | 
 		)
 
 	if status == "Accepted":
+		if not log.get("accepted_on"):
+			log.db_set("accepted_on", now_datetime(), update_modified=False)
 		_enqueue_fetch_documents(log_name)
 
 	return log_name
@@ -216,10 +238,16 @@ def fetch_asp_documents(log_name: str):
 		xml_content = api.get_document_xml(log.asp_document_id)
 		if xml_content:
 			_replace_attachment(reference, f"{log.reference_name}-uae-e-invoice.xml", xml_content)
+			_replace_attachment(
+				("UAE E-Invoice Log", log.name), f"{log.reference_name}-uae-e-invoice.xml", xml_content
+			)
 
 		pdf_content = api.get_document_pdf(log.asp_document_id)
 		if pdf_content:
 			_replace_attachment(reference, f"{log.reference_name}-uae-e-invoice.pdf", pdf_content)
+			_replace_attachment(
+				("UAE E-Invoice Log", log.name), f"{log.reference_name}-uae-e-invoice.pdf", pdf_content
+			)
 	except Exception:
 		frappe.log_error(
 			title=f"UAE e-invoice document fetch failed for {log.name}",
@@ -302,8 +330,19 @@ def _get_or_create_log(doc, doc_uuid: str, payload_json: str):
 		# Never overwrite an existing fiscal UUID (ASP idempotency)
 		if not log.uuid and doc_uuid:
 			updates["uuid"] = doc_uuid
+		if not log.get("issued_on"):
+			from taxmate.uae_e_invoicing.utils.mandate import sla_due_date
+
+			issued = _invoice_issued_on(doc)
+			updates["issued_on"] = issued
+			updates["sla_due"] = sla_due_date(issued)
+		updates["taxable_amount"] = doc.get("base_net_total") or 0
+		updates["vat_amount"] = _invoice_uae_vat_amount(doc)
 		log.db_set(updates, update_modified=False)
 		return log
+
+	issued = _invoice_issued_on(doc)
+	from taxmate.uae_e_invoicing.utils.mandate import sla_due_date
 
 	log = frappe.get_doc(
 		{
@@ -315,6 +354,10 @@ def _get_or_create_log(doc, doc_uuid: str, payload_json: str):
 			"status": "Generated",
 			"document_type_code": doc.get("uae_document_type_code") or "",
 			"payload": payload_json,
+			"issued_on": issued,
+			"sla_due": sla_due_date(issued),
+			"taxable_amount": doc.get("base_net_total") or 0,
+			"vat_amount": _invoice_uae_vat_amount(doc),
 		}
 	)
 	log.insert(ignore_permissions=True)
@@ -357,3 +400,33 @@ def _replace_attachment(reference: tuple[str, str], file_name: str, content: byt
 		frappe.delete_doc("File", file_name_to_delete, force=1, ignore_permissions=True)
 
 	save_file(file_name, content, doctype, name, is_private=1)
+
+
+def _invoice_issued_on(doc):
+	"""SLA clock starts on the invoice issue/posting date, not generate time."""
+	from frappe.utils import get_datetime
+
+	posting_date = doc.get("posting_date") if hasattr(doc, "get") else getattr(doc, "posting_date", None)
+	if posting_date:
+		return get_datetime(posting_date)
+	return now_datetime()
+
+
+def _invoice_uae_vat_amount(doc) -> float:
+	"""VAT on the invoice from mapped UAE VAT accounts, else header tax."""
+	from frappe.utils import flt
+
+	fallback = flt(doc.get("base_total_taxes_and_charges"))
+	if not frappe.db.exists("DocType", "UAE VAT Account"):
+		return fallback
+	accounts = frappe.get_all(
+		"UAE VAT Account",
+		filters={"parent": doc.company, "parenttype": "UAE VAT Settings"},
+		pluck="account",
+	)
+	if not accounts:
+		return fallback
+	return flt(
+		sum(flt(row.get("base_tax_amount")) for row in (doc.get("taxes") or []) if row.get("account_head") in accounts),
+		2,
+	)

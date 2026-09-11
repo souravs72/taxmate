@@ -209,6 +209,7 @@ scheduler_events = {
 		"taxmate.uae_compliance.notifications.refresh_all_statuses",
 		"taxmate.uae_compliance.notifications.send_deadline_reminders",
 		"taxmate.uae_vat.notifications.send_vat_201_reminders",
+		"taxmate.uae_e_invoicing.notifications.send_e_invoice_reminders",
 	],
 }
 

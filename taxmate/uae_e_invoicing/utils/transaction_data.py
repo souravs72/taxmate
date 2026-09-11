@@ -239,9 +239,12 @@ class UAETransactionData:
 		address = self._get_address(self.doc.get("company_address")) or self._get_linked_address(
 			"Company", self.doc.company
 		)
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
 		return {
 			"name": self.company.company_name or self.company.name,
 			"trn": self.company.tax_id,
+			"vat_group_tin": vat_group_tin(self.company.tax_id),
 			"peppol_id": self.company.get("uae_peppol_id"),
 			"trade_license_number": self.company.get("trade_license_number"),
 			"legal_registration_identifier_type": self.company.get("legal_registration_identifier_type"),
@@ -262,9 +265,12 @@ class UAETransactionData:
 		if not address:
 			address = self._get_linked_address("Customer", self.doc.customer)
 
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
 		return {
 			"name": self.doc.customer_name or self.doc.customer,
 			"trn": party.tax_id if party else None,
+			"vat_group_tin": vat_group_tin(party.tax_id) if party else None,
 			"peppol_id": party.get("uae_peppol_id") if party else None,
 			"fz_beneficiary_id": party.get("uae_fz_beneficiary_id") if party else None,
 			"trade_license_number": party.get("trade_license_number") if party else None,

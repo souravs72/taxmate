@@ -10,6 +10,14 @@ frappe.ui.form.on("UAE Incoming Invoice", {
 			return;
 		}
 
+		if (frm.doc.status === "Received" && !frm.doc.company) {
+			frm.dashboard.set_headline_alert(
+				__("Buyer TRN did not match a Company. Set Company before drafting a Purchase Invoice."),
+				"orange"
+			);
+			return;
+		}
+
 		if (frm.doc.status === "Received") {
 			frm.add_custom_button(__("Create Purchase Invoice"), () => {
 				frappe.call({

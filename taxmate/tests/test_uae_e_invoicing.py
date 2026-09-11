@@ -395,6 +395,7 @@ class TestFlickMapper(unittest.TestCase):
 		self.assertEqual(party["vat_number"], "100000000000004")
 		self.assertEqual(party["emirates_code"], "AUH")
 		self.assertEqual(party["country_code"], "AE")
+		self.assertIn({"type": "VAT-GROUP", "value": "1000000000"}, party.get("identifiers") or [])
 
 	def test_invoice_lines(self):
 		lines = self.document["invoice_lines"]

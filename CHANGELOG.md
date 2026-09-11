@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Phase 3 e-invoicing mandate:** B2C excluded until FTA requires it; VAT-group TIN (first 10 of TRN) on the PINT payload; 14-day transmission SLA on the e-invoice log/status report with daily ToDos; signed XML/PDF attached to the log as well as the invoice; accepted/submitted logs cannot be deleted (5-year retention note); `UAE E-Invoice Contingency` for downtime + 2-day FTA report checklist; inbound Corner-4 PI drafts match buyer TRN (no silent wrong company) and can auto-draft; **UAE E-Invoice VAT 201 Reconciliation** compares Accepted e-invoices to Box 1.
+
 - **Phase 2 filing-grade VAT 201:** Box 1 VAT from UAE VAT accounts only (not every item tax); Boxes 6–7 auto-fill from submitted `UAE Customs Declaration` (still overridable); period lock on SI/PI after a Filing Log is submitted; Company TRN snapshot so one entity’s books are not filed under another TRN; due date = period end + 28 with ToDo reminders; accountant pack (box CSV, invoice listing, worksheet print/PDF). EmaraTax remains research-only — there is no public VAT 201 filing API as of 2026-09.
 
 - **Phase 1 VAT operations:** bilingual Tax Invoice / Credit Note / Purchase Invoice print (AR/EN, VAT rate, tax summary, QR/hash placeholder, B2C ≤ AED 10,000 simplified); Item Tax Template blocked/partial recovery applied to line VAT for Box 9 (recompute unless Manual Box 9; purchase credit notes net); Designated Zone matrix (item type required, Out of Scope enforced for in-zone goods); credit-note reference on SI/PI; readiness gate on SI and self-billed PI; Peppol Verify on Company/Customer/Supplier.

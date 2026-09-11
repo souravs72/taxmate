@@ -153,6 +153,11 @@ def _party(party: dict[str, Any]) -> dict[str, Any]:
 			"CompanyID": party["trn"],
 			"TaxScheme": {"ID": "VAT"},
 		}
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
+		group_tin = party.get("vat_group_tin") or vat_group_tin(party["trn"])
+		if group_tin:
+			result["PartyIdentification"] = [{"ID": {"schemeID": "AE:VAT-GROUP", "value": group_tin}}]
 
 	address = party.get("address")
 	if address:

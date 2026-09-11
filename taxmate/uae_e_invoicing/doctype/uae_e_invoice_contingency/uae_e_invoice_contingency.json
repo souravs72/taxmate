@@ -1,0 +1,135 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:CNT-{company}-{#####}",
+ "creation": "2026-09-11 07:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "started_on",
+  "ended_on",
+  "column_break_main",
+  "report_due",
+  "reported_to_fta",
+  "reported_on",
+  "status",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "description": "When ASP or TaxMate e-invoice transmission went down.",
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "in_list_view": 1,
+   "label": "Downtime Started",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ended_on",
+   "fieldtype": "Datetime",
+   "label": "Downtime Ended"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "FTA expects downtime to be reported within 2 days of start.",
+   "fieldname": "report_due",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Report to FTA By",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "reported_to_fta",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Reported to FTA"
+  },
+  {
+   "depends_on": "eval:doc.reported_to_fta",
+   "fieldname": "reported_on",
+   "fieldtype": "Datetime",
+   "label": "Reported On"
+  },
+  {
+   "default": "Open",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Open\nClosed",
+   "read_only": 1,
+   "reqd": 1
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Checklist"
+  },
+  {
+   "default": "1. Note start time and affected invoices.\n2. Report to the FTA within 2 days.\n3. Transmit queued invoices when the ASP is back.\n4. Close this record after recovery.",
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Operator Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-11 07:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE E-Invoicing",
+ "name": "UAE E-Invoice Contingency",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

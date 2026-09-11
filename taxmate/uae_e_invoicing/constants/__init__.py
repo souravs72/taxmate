@@ -118,3 +118,12 @@ E_INVOICE_STATUSES = (
 	"Failed",
 	"Cancelled",
 )
+
+# FTA transmission window: issue/submit → Accepted (calendar days)
+TRANSMISSION_SLA_DAYS = 14
+
+# Signed XML/PDF archive — keep accepted logs at least this long
+ARCHIVE_RETENTION_YEARS = 5
+
+# Contingency: report ASP/FTA downtime within this many days
+CONTINGENCY_REPORT_DAYS = 2
