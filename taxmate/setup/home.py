@@ -458,9 +458,14 @@ def ensure_number_cards() -> None:
 		if frappe.db.exists("Number Card", spec["name"]):
 			doc = frappe.get_doc("Number Card", spec["name"])
 			doc.update(values)
-		else:
-			doc = frappe.get_doc({"doctype": "Number Card", "name": spec["name"], **values})
+			_save_setup_doc(doc)
+			continue
+		# Do not pass name into get_doc — Frappe then treats the row as loaded
+		# and save() raises DoesNotExistError before insert.
+		doc = frappe.get_doc({"doctype": "Number Card", **values})
 		_save_setup_doc(doc)
+		if doc.name != spec["name"]:
+			frappe.rename_doc("Number Card", doc.name, spec["name"], force=True)
 
 
 def _save_setup_doc(doc) -> None:
@@ -469,7 +474,7 @@ def _save_setup_doc(doc) -> None:
 	was = frappe.flags.in_patch
 	frappe.flags.in_patch = True
 	try:
-		if doc.is_new():
+		if doc.is_new() or not doc.name or not frappe.db.exists(doc.doctype, doc.name):
 			doc.insert()
 		else:
 			doc.save()
