@@ -424,3 +424,69 @@ class TestFlickMapper(unittest.TestCase):
 		metadata = map_to_flick_document(payload)["metadata"]
 		self.assertTrue(metadata["is_ftz"])
 		self.assertTrue(metadata["is_export"])
+
+
+class TestIbtRules(unittest.TestCase):
+	"""IBG-14 / BTAE-01 checks aligned with ERPGulf, without their due-date-implies-frequency bug."""
+
+	def test_due_date_alone_does_not_require_invoice_period(self):
+		from taxmate.uae_e_invoicing.utils.transaction_data import (
+			invoice_period_is_required,
+			invoice_period_validation_messages,
+		)
+
+		flags = {"deemed_supply": False, "summary_invoice": False, "continuous_supply": False}
+		self.assertFalse(invoice_period_is_required(flags, None))
+		self.assertFalse(invoice_period_is_required(flags, ""))
+		self.assertEqual(
+			invoice_period_validation_messages(flags, None, "2026-12-01", "2026-12-31", False),
+			[],
+		)
+
+	def test_deemed_supply_requires_full_ibg14(self):
+		from taxmate.uae_e_invoicing.utils.transaction_data import invoice_period_validation_messages
+
+		msgs = invoice_period_validation_messages(
+			{"deemed_supply": True}, None, None, None, False
+		)
+		self.assertEqual(len(msgs), 3)
+		self.assertTrue(any("Billing Frequency" in m for m in msgs))
+		self.assertTrue(any("start date" in m for m in msgs))
+		self.assertTrue(any("end date" in m for m in msgs))
+
+	def test_summary_and_continuous_still_require_period(self):
+		from taxmate.uae_e_invoicing.utils.transaction_data import invoice_period_is_required
+
+		self.assertTrue(invoice_period_is_required({"deemed_supply": True}, None))
+		self.assertTrue(invoice_period_is_required({"summary_invoice": True}, None))
+		self.assertTrue(invoice_period_is_required({"continuous_supply": True}, None))
+
+	def test_complete_deemed_period_is_valid(self):
+		from taxmate.uae_e_invoicing.utils.transaction_data import invoice_period_validation_messages
+
+		self.assertEqual(
+			invoice_period_validation_messages(
+				{"deemed_supply": True}, "MTH", "2026-12-01", "2026-12-31", False
+			),
+			[],
+		)
+
+	def test_oth_requires_invoice_note(self):
+		from taxmate.uae_e_invoicing.utils.transaction_data import invoice_period_validation_messages
+
+		msgs = invoice_period_validation_messages({}, "OTH", "2026-12-01", "2026-12-31", False)
+		self.assertTrue(any("IBT-022" in m for m in msgs))
+		self.assertEqual(
+			invoice_period_validation_messages({}, "OTH", "2026-12-01", "2026-12-31", True),
+			[],
+		)
+
+	def test_buyer_fz_is_required_on_ftz(self):
+		from taxmate.uae_e_invoicing.utils.transaction_data import buyer_fz_validation_messages
+
+		msgs = buyer_fz_validation_messages({"free_trade_zone": True}, None)
+		self.assertEqual(len(msgs), 1)
+		self.assertIn("IBR-007-ae", msgs[0])
+		self.assertIn("buyer", msgs[0].lower())
+		self.assertEqual(buyer_fz_validation_messages({"free_trade_zone": True}, "FZ-99"), [])
+		self.assertEqual(buyer_fz_validation_messages({"free_trade_zone": False}, None), [])

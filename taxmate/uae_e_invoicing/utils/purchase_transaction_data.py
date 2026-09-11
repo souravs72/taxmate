@@ -15,7 +15,10 @@ from frappe import _
 
 from taxmate.uae.validation import is_valid_uae_trn
 from taxmate.uae_e_invoicing.utils.pint_ae import build_payload_from_data
-from taxmate.uae_e_invoicing.utils.transaction_data import UAETransactionData
+from taxmate.uae_e_invoicing.utils.transaction_data import (
+	UAETransactionData,
+	buyer_fz_validation_messages,
+)
 
 
 class UAEPurchaseTransactionData(UAETransactionData):
@@ -74,7 +77,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 			"trn": self.company.tax_id,
 			"vat_group_tin": vat_group_tin(self.company.tax_id),
 			"peppol_id": self.company.get("uae_peppol_id"),
-			"fz_beneficiary_id": None,
+			"fz_beneficiary_id": self.company.get("uae_fz_beneficiary_id"),
 			"trade_license_number": self.company.get("trade_license_number"),
 			"legal_registration_identifier_type": self.company.get("legal_registration_identifier_type"),
 			"legal_registration_identifier": self.company.get("legal_registration_identifier"),
@@ -124,6 +127,12 @@ class UAEPurchaseTransactionData(UAETransactionData):
 			)
 		else:
 			self._check_address(customer["address"], _("Company address"))
+
+		self.errors.extend(
+			buyer_fz_validation_messages(
+				self.get_transaction_flags(), customer.get("fz_beneficiary_id")
+			)
+		)
 
 	def _check_credit_note(self):
 		if not self.doc.get("is_return"):

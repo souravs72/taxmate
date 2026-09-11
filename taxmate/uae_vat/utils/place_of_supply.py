@@ -66,6 +66,16 @@ def validate_return_reference(doc) -> None:
 		)
 
 
+def designated_zone_fz_guidance(buyer_doctype: str, fz_id: str | None) -> str | None:
+	"""Orange Desk hint for BTAE-01 — e-invoice validate throws if the buyer still has no FZ ID."""
+	if (fz_id or "").strip():
+		return None
+	return _(
+		"Free Zone / Designated Zone supply: set FZ Beneficiary ID on the buyer ({0}) "
+		"when the e-invoice requires BTAE-01 / IBR-007-ae."
+	).format(buyer_doctype)
+
+
 def validate_sales_invoice(doc) -> None:
 	"""Enforce Emirate, credit-note, and designated-zone category rules on sales."""
 	if not _is_uae_company(doc):
@@ -78,7 +88,13 @@ def validate_sales_invoice(doc) -> None:
 		)
 
 	validate_return_reference(doc)
-	_validate_designated_zone(doc, party_doctype="Customer", party_name=doc.get("customer"))
+	_validate_designated_zone(
+		doc,
+		party_doctype="Customer",
+		party_name=doc.get("customer"),
+		buyer_doctype="Customer",
+		buyer_name=doc.get("customer"),
+	)
 
 
 def validate_purchase_invoice(doc) -> None:
@@ -87,7 +103,13 @@ def validate_purchase_invoice(doc) -> None:
 		return
 
 	validate_return_reference(doc)
-	_validate_designated_zone(doc, party_doctype="Supplier", party_name=doc.get("supplier"))
+	_validate_designated_zone(
+		doc,
+		party_doctype="Supplier",
+		party_name=doc.get("supplier"),
+		buyer_doctype="Company",
+		buyer_name=doc.get("company"),
+	)
 
 
 def _is_uae_company(doc) -> bool:
@@ -115,7 +137,14 @@ def _template_categories(template_names: list[str]) -> dict[str, str]:
 	return {row.name: (row.uae_vat_category or "") for row in rows}
 
 
-def _validate_designated_zone(doc, *, party_doctype: str, party_name: str | None) -> None:
+def _validate_designated_zone(
+	doc,
+	*,
+	party_doctype: str,
+	party_name: str | None,
+	buyer_doctype: str,
+	buyer_name: str | None,
+) -> None:
 	company = doc.get("company")
 	company_dz = _zone_flag("Company", company)
 	party_dz = _zone_flag(party_doctype, party_name)
@@ -150,14 +179,12 @@ def _validate_designated_zone(doc, *, party_doctype: str, party_name: str | None
 
 	if company_dz or party_dz:
 		fz_id = None
-		if frappe.db.has_column("Company", "uae_fz_beneficiary_id"):
-			fz_id = frappe.db.get_value("Company", company, "uae_fz_beneficiary_id")
-		if not fz_id:
+		if buyer_name and frappe.db.has_column(buyer_doctype, "uae_fz_beneficiary_id"):
+			fz_id = frappe.db.get_value(buyer_doctype, buyer_name, "uae_fz_beneficiary_id")
+		hint = designated_zone_fz_guidance(buyer_doctype, fz_id)
+		if hint:
 			frappe.msgprint(
-				_(
-					"Free Zone / Designated Zone supply: set FZ Beneficiary ID on the Company "
-					"when the e-invoice requires BTAE-01."
-				),
+				hint,
 				title=_("FZ Beneficiary"),
 				indicator="orange",
 				alert=True,

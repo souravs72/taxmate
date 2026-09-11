@@ -3,6 +3,7 @@
 import unittest
 
 from taxmate.uae_vat.utils.place_of_supply import (
+	designated_zone_fz_guidance,
 	designated_zone_guidance,
 	expected_vat_category,
 	is_simplified_tax_invoice,
@@ -62,6 +63,14 @@ class TestDesignatedZone(unittest.TestCase):
 		self.assertEqual(expected_vat_category(True, True, "Goods"), "Out of Scope")
 		self.assertIsNone(expected_vat_category(True, True, "Service"))
 		self.assertIsNone(expected_vat_category(True, False, "Goods"))
+
+	def test_fz_guidance_names_the_buyer(self):
+		hint = designated_zone_fz_guidance("Customer", None)
+		self.assertIsNotNone(hint)
+		self.assertIn("Customer", hint)
+		self.assertIn("IBR-007-ae", hint)
+		self.assertIsNone(designated_zone_fz_guidance("Company", "FZ-1"))
+		self.assertIn("Company", designated_zone_fz_guidance("Company", "") or "")
 
 
 class TestSimplifiedInvoice(unittest.TestCase):

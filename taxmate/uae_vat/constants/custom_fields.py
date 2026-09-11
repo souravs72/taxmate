@@ -54,7 +54,10 @@ PARTY_LEGAL_FIELDS = [
 		"label": "FZ Beneficiary ID",
 		"fieldtype": "Data",
 		"insert_after": "uae_peppol_id",
-		"description": "BTAE-01: mandatory for Free Trade Zone transactions",
+		"description": (
+			"BTAE-01 / IBR-007-ae: Free Zone beneficiary identifier for this party. "
+			"E-invoice requires it on the buyer (Customer on sales; Company on self-billed purchases)."
+		),
 		"translatable": 0,
 	},
 ]
@@ -111,8 +114,8 @@ INVOICE_E_INVOICE_FIELDS = [
 		"options": BILLING_FREQUENCY_SELECT_OPTIONS,
 		"insert_after": "uae_transaction_type_code",
 		"description": (
-			"IBG-14 InvoicePeriod description code. Required for Summary / Continuous Supply "
-			"transactions (transaction type flags)."
+			"IBG-14 InvoicePeriod description code. Required for Deemed Supply, Summary Invoice, "
+			"or Continuous Supply (BTAE-02). Not required merely because a Payment Due Date is set."
 		),
 		"translatable": 0,
 	},
@@ -241,12 +244,39 @@ PURCHASE_INVOICE_E_INVOICE_FIELDS = [
 		"translatable": 0,
 	},
 	{
+		"fieldname": "uae_transaction_type_code",
+		"label": "UAE Transaction Type Code",
+		"fieldtype": "Data",
+		"default": "00000000",
+		"insert_after": "uae_document_type_code",
+		"depends_on": "uae_submit_to_fta",
+		"description": (
+			"BTAE-02: 8-digit flag string — positions: 1 Free Trade Zone, 2 Deemed supply, "
+			"3 Margin scheme, 4 Summary invoice, 5 Continuous supply, "
+			"6 Disclosed agent billing, 7 E-commerce, 8 Export"
+		),
+		"translatable": 0,
+	},
+	{
+		"fieldname": "uae_billing_frequency",
+		"label": "Billing Frequency",
+		"fieldtype": "Select",
+		"options": BILLING_FREQUENCY_SELECT_OPTIONS,
+		"insert_after": "uae_transaction_type_code",
+		"depends_on": "uae_submit_to_fta",
+		"description": (
+			"IBG-14 InvoicePeriod description code. Required for Deemed Supply, Summary Invoice, "
+			"or Continuous Supply (BTAE-02). Not required merely because a Payment Due Date is set."
+		),
+		"translatable": 0,
+	},
+	{
 		"fieldname": "uae_payment_means_code",
 		"label": "UAE Payment Means",
 		"fieldtype": "Select",
 		"options": PAYMENT_MEANS_SELECT_OPTIONS,
 		"default": "30 - Credit transfer",
-		"insert_after": "uae_document_type_code",
+		"insert_after": "uae_billing_frequency",
 		"depends_on": "uae_submit_to_fta",
 		"translatable": 0,
 	},
@@ -417,7 +447,10 @@ CUSTOM_FIELDS = {
 			"label": "FZ Beneficiary ID",
 			"fieldtype": "Data",
 			"insert_after": "uae_peppol_id",
-			"description": "BTAE-01: Free Zone beneficiary identifier for the seller company",
+			"description": (
+				"BTAE-01 / IBR-007-ae: buyer FZ identifier when this company is the "
+				"AccountingCustomerParty (self-billed Purchase Invoice)."
+			),
 			"translatable": 0,
 		},
 		{

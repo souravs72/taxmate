@@ -86,6 +86,9 @@ TRANSACTION_TYPE_FLAGS = (
 
 DEFAULT_TRANSACTION_TYPE_CODE = "00000000"
 
+# IBG-14 must be complete (start, end, frequency) when any of these BTAE-02 bits are set.
+INVOICE_PERIOD_REQUIRED_FLAGS = ("deemed_supply", "summary_invoice", "continuous_supply")
+
 # IBG-14 / InvoicePeriod description codes (frequency of billing)
 BILLING_FREQUENCY_CODES = {
 	"DLY": "Daily",

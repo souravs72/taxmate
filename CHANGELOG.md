@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Deemed supply now requires a full IBG-14 invoice period (billing frequency, start, end), same as summary and continuous supply. A Payment Due Date on an ordinary invoice still does not force frequency. Self-billed Purchase Invoices now have BTAE-02 and billing-frequency fields so those checks can run.
+- FZ Beneficiary ID (BTAE-01 / IBR-007-ae) is validated on the buyer: Customer on sales invoices, Company on self-billed purchase invoices. Desk designated-zone guidance names that buyer instead of always the Company.
 - **`UAE VAT 201 Filing Log` and `UAE ESR Filing` are now submittable (`is_submittable`).** Previously "marking as filed" was just a Select field anyone with write access could quietly re-edit afterwards -- not a real audit record despite being described as one. Submitting is now what locks a filing: Frappe's own docstatus mechanism (not a custom status flag) makes the boxes, dates and figures immutable once filed, and correcting a filed return requires Cancel + Amend, which is itself an audit trail. `generate()` on the VAT 201 log now refuses to run once submitted (previously it only blocked on a status string that nothing enforced).
 - `UAE ESR Filing.regulatory_authority` is now required -- a filing record without knowing which authority it was filed with isn't a complete record.
 - Added `Position / Title` to `UAE UBO Owner`, required when Basis of Control is the Senior Management Official fallback (Cabinet Decision 109/2023 requires this, not just the fallback flag itself).
