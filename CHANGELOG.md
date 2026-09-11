@@ -16,8 +16,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Box 9 taxable amount uses `base_net_total`. Purchase Invoices for UAE companies now default `recoverable_standard_rated_expenses` from UAE VAT tax rows when blank, so Box 9 is not silently empty.
 - Sales/Purchase Invoice cancel is blocked while an e-invoice is Queued or Generated, not only after ASP Submitted/Accepted.
 - Company UAE readiness no longer runs twice on insert (`after_insert` + `on_update`).
+- Filing tests reset `docstatus` before deleting cancelled VAT 201 / customs rows so Phase 8 retention does not break cleanup.
 
 ### Added
+
+- **Phase 9 prove-it:** fixture invoices on the UAE company cover standard, zero-rated, exempt, reverse-charge, import, tourist refund, and credit note; golden VAT 201 boxes must match `compute_vat_201`, the filing log, and the accountant-pack CSVs; e-invoice reject / retry / cancel / credit-note billing reference is covered as an integration matrix; migrate inventory asserts phases 1–8 DocTypes, reports, and `UAE Tax Manager`. Still track-and-file — no FTA APIs.
 
 - **Phase 8 statutory operations:** submitted filings cannot be hard-deleted (keep 5+ years; cancel/amend instead); `UAE Late Filing Notice` is a due/overdue reminder (not a penalty calculator); `UAE FTA Audit Pack` exports a private zip of invoices, VAT 201 boxes, UBO snapshot, and e-invoice XML/PDF; TaxMate Settings records UAE-hosted File preference. Arabic Desk labels added. Portals still file.
 

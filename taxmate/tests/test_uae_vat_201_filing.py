@@ -38,10 +38,20 @@ def _delete_filing(company: str, period_start) -> None:
 		)
 	if not name:
 		return
-	doc = frappe.get_doc("UAE VAT 201 Filing Log", name)
+	_force_delete_retained("UAE VAT 201 Filing Log", name)
+
+
+def _force_delete_retained(doctype: str, name: str) -> None:
+	"""Tests may remove cancelled filings; production on_trash still blocks users."""
+	if not name or not frappe.db.exists(doctype, name):
+		return
+	doc = frappe.get_doc(doctype, name)
 	if doc.docstatus == 1:
 		doc.cancel()
-	frappe.delete_doc("UAE VAT 201 Filing Log", name, force=True, ignore_permissions=True)
+		doc.reload()
+	if frappe.db.exists(doctype, name):
+		frappe.db.set_value(doctype, name, "docstatus", 0, update_modified=False)
+		frappe.delete_doc(doctype, name, force=True, ignore_permissions=True)
 
 
 class TestBox1Sql(FrappeTestCase):
@@ -185,7 +195,4 @@ class TestCustomsRollup(FrappeTestCase):
 			self.assertEqual(after["box_7_vat_amount"] - before["box_7_vat_amount"], 10)
 		finally:
 			for doc in docs:
-				doc.reload()
-				if doc.docstatus == 1:
-					doc.cancel()
-				frappe.delete_doc("UAE Customs Declaration", doc.name, force=True, ignore_permissions=True)
+				_force_delete_retained("UAE Customs Declaration", doc.name)
