@@ -173,7 +173,10 @@ doc_events = {
 		"validate": "taxmate.uae_vat.overrides.item.validate",
 	},
 	"Sales Invoice": {
-		"validate": "taxmate.uae_e_invoicing.overrides.sales_invoice.validate",
+		"validate": [
+			"taxmate.uae_vat.overrides.sales_invoice.validate",
+			"taxmate.uae_e_invoicing.overrides.sales_invoice.validate",
+		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_submit",
 		"before_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_cancel",

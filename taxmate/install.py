@@ -76,6 +76,7 @@ def _ensure_taxmate_settings_defaults():
 		return
 
 	from taxmate.uae.constants import UAE_COUNTRY
+	from taxmate.uae.validation import singles_field_is_set
 
 	settings = frappe.get_single("TaxMate Settings")
 	changed = False
@@ -88,6 +89,14 @@ def _ensure_taxmate_settings_defaults():
 	if settings.require_emirate_on_address is None:
 		settings.require_emirate_on_address = 1
 		changed = True
+	for field, default in (
+		("enforce_credit_note_reference", 1),
+		("require_vat_emirate_on_invoice", 1),
+		("block_e_invoice_until_ready", 1),
+	):
+		if hasattr(settings, field) and not singles_field_is_set(field):
+			setattr(settings, field, default)
+			changed = True
 	notes = settings.onboarding_notes or ""
 	if "ERPNext" in notes:
 		settings.onboarding_notes = notes.replace("ERPNext", "TaxMate")

@@ -18,6 +18,9 @@ def before_submit(doc, method=None):
 	if not is_e_invoice_applicable(doc):
 		return
 
+	from taxmate.uae.readiness import enforce_e_invoice_readiness
+
+	enforce_e_invoice_readiness(doc.company)
 	UAEPurchaseTransactionData(doc).validate()
 
 

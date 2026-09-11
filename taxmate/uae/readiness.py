@@ -7,7 +7,7 @@ from frappe import _
 
 from taxmate.uae.constants import UAE_COUNTRY, UAE_TAX_PRINT_FORMATS
 from taxmate.uae.setup import company_has_uae_tax_templates
-from taxmate.uae.validation import is_valid_uae_trn
+from taxmate.uae.validation import is_valid_uae_trn, setting_enabled
 
 
 @frappe.whitelist()
@@ -72,6 +72,13 @@ def get_uae_readiness_checklist(company: str) -> dict:
 			_("Trade License Number"),
 			_has_company_field(company, "trade_license_number"),
 			_("Set Trade License Number on the Company (required for e-invoicing)."),
+			"/desk/company/" + company,
+		),
+		_item(
+			"legal_id",
+			_("Legal Registration Identifier"),
+			_has_company_field(company, "legal_registration_identifier"),
+			_("Set Legal Registration Identifier (CRN / OTH) on the Company for e-invoicing."),
 			"/desk/company/" + company,
 		),
 		_item(
@@ -147,12 +154,28 @@ def _has_company_address_with_emirate(company: str) -> bool:
 
 
 def _print_formats_enabled() -> bool:
+	"""Ready when at least one FTA tax-invoice print format is enabled."""
 	for name in UAE_TAX_PRINT_FORMATS:
 		if not frappe.db.exists("Print Format", name):
-			return False
-		if frappe.db.get_value("Print Format", name, "disabled"):
-			return False
-	return True
+			continue
+		if not frappe.db.get_value("Print Format", name, "disabled"):
+			return True
+	return False
+
+
+def enforce_e_invoice_readiness(company: str) -> None:
+	"""Block e-invoice submit when TaxMate Settings requires a complete checklist."""
+	if not setting_enabled("block_e_invoice_until_ready", default=1):
+		return
+	checklist = get_uae_readiness_checklist(company)
+	if checklist.get("applicable") and not checklist.get("ready"):
+		missing = ", ".join(i.get("label") for i in checklist.get("items") or [] if not i.get("ok"))
+		frappe.throw(
+			_("UAE e-invoicing is blocked until company readiness is complete: {0}").format(
+				missing or _("see Company readiness checklist")
+			),
+			title=_("Company Not Ready"),
+		)
 
 
 def _has_company_field(company: str, fieldname: str) -> bool:

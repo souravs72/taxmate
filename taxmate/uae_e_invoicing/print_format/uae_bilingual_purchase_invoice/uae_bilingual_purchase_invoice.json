@@ -1,12 +1,12 @@
 {
  "absolute_value": 0,
  "align_labels_right": 0,
- "creation": "2026-08-27 16:55:00.000000",
+ "creation": "2026-09-11 06:10:00.000000",
  "css": "",
  "custom_format": 1,
  "default_print_language": "en",
  "disabled": 0,
- "doc_type": "Sales Invoice",
+ "doc_type": "Purchase Invoice",
  "docstatus": 0,
  "doctype": "Print Format",
  "font_size": 14,
@@ -17,10 +17,10 @@
  "margin_left": 15.0,
  "margin_right": 15.0,
  "margin_top": 15.0,
- "modified": "2026-09-11 05:40:00.000000",
+ "modified": "2026-09-11 06:10:00.000000",
  "modified_by": "Administrator",
  "module": "UAE E-Invoicing",
- "name": "UAE Bilingual Tax Invoice",
+ "name": "UAE Bilingual Purchase Invoice",
  "owner": "Administrator",
  "page_number": "Hide",
  "print_format_builder": 0,
@@ -28,6 +28,5 @@
  "print_format_type": "Jinja",
  "raw_printing": 0,
  "show_section_headings": 0,
- "standard": "Yes",
- "font": "Default"
+ "standard": "Yes"
 }

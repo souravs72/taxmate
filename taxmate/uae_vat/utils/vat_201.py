@@ -388,12 +388,18 @@ def _reverse_charge_recoverable_input(filters: dict) -> dict[str, float]:
 	return {"amount": r2(amount), "vat_amount": r2(vat_amount)}
 
 
+def include_in_box_9(recoverable: float) -> bool:
+	"""Purchase invoices with non-zero recoverable VAT enter Box 9 (including credit notes)."""
+	return flt(recoverable) != 0
+
+
 def _standard_rated_expenses(filters: dict) -> dict[str, float]:
 	"""Box 9: recoverable standard-rated expenses (FTA worksheet).
 
 	VAT amount comes from Purchase Invoice.recoverable_standard_rated_expenses
 	(ERPNext UAE regional field — operators / TaxMate auto-fill set this).
-	Amount uses base_net_total (taxable base), not base_total.
+	Amount uses uae_box_9_taxable_amount (recoverable lines only), else base_net_total.
+	Includes negatives so purchase credit notes net Box 9 (``!= 0``, not ``> 0``).
 	"""
 	row = frappe.db.get_all(
 		"Purchase Invoice",
@@ -401,9 +407,14 @@ def _standard_rated_expenses(filters: dict) -> dict[str, float]:
 			"company": filters["company"],
 			"posting_date": ["between", [filters["from_date"], filters["to_date"]]],
 			"docstatus": 1,
-			"recoverable_standard_rated_expenses": [">", 0],
+			"recoverable_standard_rated_expenses": ["!=", 0],
 		},
-		fields=["sum(base_net_total) as amount", "sum(recoverable_standard_rated_expenses) as vat_amount"],
+		fields=[
+			"sum(uae_box_9_taxable_amount) as amount"
+			if frappe.db.has_column("Purchase Invoice", "uae_box_9_taxable_amount")
+			else "sum(base_net_total) as amount",
+			"sum(recoverable_standard_rated_expenses) as vat_amount",
+		],
 	)
 	data = row[0] if row else {}
 	return {"amount": r2(data.get("amount") or 0), "vat_amount": r2(data.get("vat_amount") or 0)}

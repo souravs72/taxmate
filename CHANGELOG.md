@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Phase 1 VAT operations:** bilingual Tax Invoice / Credit Note / Purchase Invoice print (AR/EN, VAT rate, tax summary, QR/hash placeholder, B2C ≤ AED 10,000 simplified); Item Tax Template blocked/partial recovery applied to line VAT for Box 9 (recompute unless Manual Box 9; purchase credit notes net); Designated Zone matrix (item type required, Out of Scope enforced for in-zone goods); credit-note reference on SI/PI; readiness gate on SI and self-billed PI; Peppol Verify on Company/Customer/Supplier.
+
 - **New `UAE Compliance` module** — UBO (Ultimate Beneficial Owner) register and change-reporting tracker, and ESR (Economic Substance Regulations) notification/report filing tracker, with a shared `UAE Compliance Settings` doctype for the configurable deadlines (Cabinet Decision 109/2023's 15-day UBO change-reporting rule; ESR's notification/report deadlines, which vary by regulatory authority). Ships with:
   - `UAE UBO Register` (one per UAE company, auto-created on company creation) with a `UAE UBO Owner` child table (25%+ ownership/voting, control-basis tests, Senior Management Official fallback, ID expiry tracking) and a `UAE UBO Change Log` child table that computes each change's 15-day reporting deadline and status.
   - `UAE ESR Filing` (one per company per financial year) with a `UAE ESR Activity Row` child table for the 9 official Relevant Activities, exemption handling, and auto-computed (but manually overridable) notification/report due dates and status.

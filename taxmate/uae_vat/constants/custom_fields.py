@@ -59,6 +59,17 @@ PARTY_LEGAL_FIELDS = [
 	},
 ]
 
+PARTY_ZONE_FIELDS = [
+	{
+		"fieldname": "uae_in_designated_zone",
+		"label": "In Designated Zone",
+		"fieldtype": "Check",
+		"insert_after": "uae_fz_beneficiary_id",
+		"description": "Party is in a UAE Designated Zone. Goods remaining in-zone may be out of scope of VAT.",
+		"default": "0",
+	},
+]
+
 INVOICE_E_INVOICE_FIELDS = [
 	{
 		"fieldname": "uae_e_invoice_section",
@@ -163,6 +174,43 @@ INVOICE_E_INVOICE_FIELDS = [
 		"read_only": 1,
 		"allow_on_submit": 1,
 		"no_copy": 1,
+	},
+]
+
+PURCHASE_VAT_OPS_FIELDS = [
+	{
+		"fieldname": "uae_box_9_manual",
+		"label": "Manual Box 9 Amount",
+		"fieldtype": "Check",
+		"insert_after": "recoverable_standard_rated_expenses",
+		"description": "When checked, TaxMate will not recalculate Recoverable Standard Rated Expenses.",
+		"default": "0",
+	},
+	{
+		"fieldname": "uae_box_9_taxable_amount",
+		"label": "Box 9 Taxable Amount (AED)",
+		"fieldtype": "Currency",
+		"insert_after": "uae_box_9_manual",
+		"description": "Taxable consideration for VAT 201 Box 9 (lines with recoverable input tax only).",
+		"read_only_depends_on": "eval:!doc.uae_box_9_manual",
+	},
+	{
+		"fieldname": "uae_credit_note_reason",
+		"label": "UAE Credit Note Reason",
+		"fieldtype": "Small Text",
+		"insert_after": "uae_box_9_taxable_amount",
+		"depends_on": "eval:doc.is_return",
+		"mandatory_depends_on": "eval:doc.is_return",
+	},
+	{
+		"fieldname": "uae_return_against_external",
+		"label": "External Return Against",
+		"fieldtype": "Data",
+		"insert_after": "uae_credit_note_reason",
+		"depends_on": "eval:doc.is_return && !doc.return_against",
+		"description": "Number of the original invoice when it was issued outside this system.",
+		"no_copy": 1,
+		"translatable": 0,
 	},
 ]
 
@@ -321,9 +369,17 @@ CUSTOM_FIELDS = {
 			"description": "BTAE-01: Free Zone beneficiary identifier for the seller company",
 			"translatable": 0,
 		},
+		{
+			"fieldname": "uae_in_designated_zone",
+			"label": "In Designated Zone",
+			"fieldtype": "Check",
+			"insert_after": "uae_fz_beneficiary_id",
+			"description": "Company establishment is in a UAE Designated Zone for VAT place-of-supply rules.",
+			"default": "0",
+		},
 	],
-	"Customer": PARTY_LEGAL_FIELDS,
-	"Supplier": PARTY_LEGAL_FIELDS,
+	"Customer": PARTY_LEGAL_FIELDS + PARTY_ZONE_FIELDS,
+	"Supplier": PARTY_LEGAL_FIELDS + PARTY_ZONE_FIELDS,
 	"Item": [
 		{
 			"fieldname": "uae_classification_section",
@@ -388,6 +444,33 @@ CUSTOM_FIELDS = {
 			"depends_on": "eval:doc.uae_vat_category=='Reverse Charge'",
 			"translatable": 0,
 		},
+		{
+			"fieldname": "uae_blocked_input_tax",
+			"label": "Blocked Input Tax",
+			"fieldtype": "Check",
+			"insert_after": "uae_rcm_nature",
+			"description": "When checked, VAT on purchases using this template is not recoverable (Box 9 = 0 for those lines). Use for entertainment, motor vehicles, and non-business spend.",
+			"default": "0",
+		},
+		{
+			"fieldname": "uae_input_tax_block_reason",
+			"label": "Blocked Input Tax Reason",
+			"fieldtype": "Select",
+			"options": "\nEntertainment\nMotor Vehicle\nNon-business\nOther",
+			"insert_after": "uae_blocked_input_tax",
+			"depends_on": "eval:doc.uae_blocked_input_tax || doc.uae_input_tax_block_reason",
+			"description": "FTA blocked categories: entertainment, motor vehicles, non-business use.",
+			"translatable": 0,
+		},
+		{
+			"fieldname": "uae_input_tax_recovery_percent",
+			"label": "Input Tax Recovery %",
+			"fieldtype": "Percent",
+			"insert_after": "uae_input_tax_block_reason",
+			"description": "Share of input VAT recoverable on this template (100 = full recovery). Ignored when Blocked Input Tax is set.",
+			"default": "100",
+			"depends_on": "eval:!doc.uae_blocked_input_tax && !doc.uae_input_tax_block_reason",
+		},
 	],
 	"Mode of Payment": [
 		{
@@ -401,7 +484,7 @@ CUSTOM_FIELDS = {
 		},
 	],
 	"Sales Invoice": INVOICE_E_INVOICE_FIELDS,
-	"Purchase Invoice": PURCHASE_INVOICE_E_INVOICE_FIELDS,
+	"Purchase Invoice": PURCHASE_VAT_OPS_FIELDS + PURCHASE_INVOICE_E_INVOICE_FIELDS,
 	"Sales Invoice Item": INVOICE_ITEM_FIELDS,
 	"Purchase Invoice Item": INVOICE_ITEM_FIELDS,
 }
