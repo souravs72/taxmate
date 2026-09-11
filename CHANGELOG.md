@@ -19,6 +19,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Phase 8 statutory operations:** submitted filings cannot be hard-deleted (keep 5+ years; cancel/amend instead); `UAE Late Filing Notice` is a due/overdue reminder (not a penalty calculator); `UAE FTA Audit Pack` exports a private zip of invoices, VAT 201 boxes, UBO snapshot, and e-invoice XML/PDF; TaxMate Settings records UAE-hosted File preference. Arabic Desk labels added. Portals still file.
+
 - **Phase 7 multi-entity tenancy:** `UAE VAT Group` election (representative + members, VAT Group TIN); `UAE Establishment` (mainland / free zone / designated zone); VAT 201 amounts convert to tax currency AED; `UAE Tax Manager` role on filings; `UAE VAT Audit Event` records who changed Box 9 recoverability or Boxes 6/7. `UAE Group VAT Status` lists each UAE company. Portals still file.
 
 - **Phase 6 excise, customs, capital goods:** opt-in `UAE Excise Settings` + submittable `UAE Excise Filing Log`; customs bills link to Purchase Invoice and Landed Cost Voucher; capital-goods scheme records and annual Box 9 adjustments; bad-debt relief (6-month wait + evidence); margin-scheme lines report VAT on the margin in Box 1. `UAE Import VAT Explanation` lists Boxes 6, 7 and 9 without a spreadsheet. Trackers only — FTA portals still file.

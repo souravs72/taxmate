@@ -75,6 +75,8 @@ ALLOWED_SEARCH_DOCTYPES = frozenset(
 		"UAE VAT Group",
 		"UAE Establishment",
 		"UAE VAT Audit Event",
+		"UAE FTA Audit Pack",
+		"UAE Late Filing Notice",
 		"UAE Compliance Settings",
 		"UAE UBO Register",
 		"UAE ESR Filing",

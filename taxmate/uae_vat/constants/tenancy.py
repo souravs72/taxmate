@@ -33,4 +33,6 @@ TAX_MANAGER_FILING_DOCTYPES = (
 	"UAE Capital Goods Adjustment",
 	"UAE CT Filing Log",
 	"UAE ESR Filing",
+	"UAE FTA Audit Pack",
+	"UAE Late Filing Notice",
 )

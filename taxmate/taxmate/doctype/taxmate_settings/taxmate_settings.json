@@ -14,6 +14,9 @@
   "enforce_credit_note_reference",
   "block_invoices_in_filed_vat_period",
   "vat_201_reminder_days",
+  "statutory_section",
+  "prefer_uae_hosted_files",
+  "data_residency_note",
   "guidance_section",
   "onboarding_notes"
  ],
@@ -85,6 +88,24 @@
    "label": "VAT 201 Reminder Lead Days"
   },
   {
+   "fieldname": "statutory_section",
+   "fieldtype": "Section Break",
+   "label": "Statutory records"
+  },
+  {
+   "default": "1",
+   "description": "Keep File attachments on this site. Host the site in the UAE for FTA record-keeping. TaxMate does not upload archives to a foreign CDN.",
+   "fieldname": "prefer_uae_hosted_files",
+   "fieldtype": "Check",
+   "label": "Prefer UAE-hosted File storage"
+  },
+  {
+   "default": "FTA record-keeping is 5+ years. Host this site in the UAE. Signed XML/PDF stay as private File records. TaxMate does not e-file.",
+   "fieldname": "data_residency_note",
+   "fieldtype": "Small Text",
+   "label": "Data Residency Note"
+  },
+  {
    "fieldname": "guidance_section",
    "fieldtype": "Section Break",
    "label": "Operator Guidance"
@@ -99,7 +120,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-11 06:40:00.000000",
+ "modified": "2026-09-11 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "TaxMate",
  "name": "TaxMate Settings",

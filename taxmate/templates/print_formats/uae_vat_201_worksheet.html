@@ -11,18 +11,18 @@
 <div class="tm-201">
   <h1>{{ _("UAE VAT 201 Worksheet") }} / إقرار ضريبة القيمة المضافة</h1>
   <p>
-    <strong>{{ _("Company") }}:</strong> {{ doc.company }}
-    {% if doc.company_trn %} · <strong>TRN:</strong> {{ doc.company_trn }}{% endif %}<br>
-    <strong>{{ _("Period") }}:</strong> {{ doc.get_formatted("period_start") }} – {{ doc.get_formatted("period_end") }}
-    · <strong>{{ _("Due") }}:</strong> {{ doc.get_formatted("filing_due_date") }}
+    <strong>{{ _("Company") }} / الشركة:</strong> {{ doc.company }}
+    {% if doc.company_trn %} · <strong>TRN / الرقم الضريبي:</strong> {{ doc.company_trn }}{% endif %}<br>
+    <strong>{{ _("Period") }} / الفترة:</strong> {{ doc.get_formatted("period_start") }} – {{ doc.get_formatted("period_end") }}
+    · <strong>{{ _("Due") }} / الاستحقاق:</strong> {{ doc.get_formatted("filing_due_date") }}
   </p>
   <table>
     <thead>
       <tr>
-        <th>{{ _("Box") }}</th>
-        <th>{{ _("Legend") }}</th>
-        <th class="num">{{ _("Amount") }}</th>
-        <th class="num">{{ _("VAT") }}</th>
+        <th>{{ _("Box") }} / البند</th>
+        <th>{{ _("Legend") }} / البيان</th>
+        <th class="num">{{ _("Amount") }} / المبلغ</th>
+        <th class="num">{{ _("VAT") }} / الضريبة</th>
       </tr>
     </thead>
     <tbody>

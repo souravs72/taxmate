@@ -202,6 +202,20 @@ doc_events = {
 	},
 }
 
+for _retained in (
+	"UAE VAT 201 Filing Log",
+	"UAE CT Filing Log",
+	"UAE ESR Filing",
+	"UAE Excise Filing Log",
+	"UAE Customs Declaration",
+	"UAE Bad Debt Relief",
+	"UAE Capital Goods Adjustment",
+	"UAE VAT Group",
+	"UAE FTA Audit Pack",
+):
+	doc_events.setdefault(_retained, {})
+	doc_events[_retained]["on_trash"] = "taxmate.uae.retention.on_trash"
+
 # Scheduled Tasks
 # ---------------
 
@@ -216,6 +230,7 @@ scheduler_events = {
 		"taxmate.uae_vat.notifications.send_vat_201_reminders",
 		"taxmate.uae_e_invoicing.notifications.send_e_invoice_reminders",
 		"taxmate.uae_corporate_tax.notifications.send_ct_reminders",
+		"taxmate.uae_vat.utils.late_filing.sync_late_filing_notices",
 	],
 }
 
