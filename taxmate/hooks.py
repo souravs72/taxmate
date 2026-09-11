@@ -157,6 +157,7 @@ doc_events = {
 		"after_insert": [
 			"taxmate.uae.company.after_insert",
 			"taxmate.uae_compliance.company.after_insert",
+			"taxmate.uae_corporate_tax.company.after_insert",
 		],
 		"on_update": "taxmate.uae.company.on_update",
 	},
@@ -176,6 +177,7 @@ doc_events = {
 		"validate": [
 			"taxmate.uae_vat.overrides.sales_invoice.validate",
 			"taxmate.uae_e_invoicing.overrides.sales_invoice.validate",
+			"taxmate.uae_corporate_tax.overrides.sales_invoice.validate",
 		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_submit",
@@ -186,7 +188,10 @@ doc_events = {
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_cancel",
 	},
 	"Purchase Invoice": {
-		"validate": "taxmate.uae_vat.overrides.purchase_invoice.validate",
+		"validate": [
+			"taxmate.uae_vat.overrides.purchase_invoice.validate",
+			"taxmate.uae_corporate_tax.overrides.purchase_invoice.validate",
+		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_submit",
 		"before_cancel": [
@@ -210,6 +215,7 @@ scheduler_events = {
 		"taxmate.uae_compliance.notifications.send_deadline_reminders",
 		"taxmate.uae_vat.notifications.send_vat_201_reminders",
 		"taxmate.uae_e_invoicing.notifications.send_e_invoice_reminders",
+		"taxmate.uae_corporate_tax.notifications.send_ct_reminders",
 	],
 }
 

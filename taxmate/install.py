@@ -15,6 +15,7 @@ def after_install():
 	ensure_uae_regional_setup()
 	_setup_vat_uae()
 	_setup_e_invoicing_uae()
+	_setup_ct_uae()
 	bootstrap_existing_uae_companies()
 	_setup_compliance_uae()
 	_ensure_taxmate_settings_defaults()
@@ -51,6 +52,18 @@ def _setup_e_invoicing_uae():
 	except Exception:
 		frappe.log_error(
 			title="TaxMate UAE E-Invoicing setup failed",
+			message=frappe.get_traceback(),
+		)
+
+
+def _setup_ct_uae():
+	try:
+		from taxmate.uae_corporate_tax.setup import setup as ct_uae_setup
+
+		ct_uae_setup()
+	except Exception:
+		frappe.log_error(
+			title="TaxMate UAE Corporate Tax setup failed",
 			message=frappe.get_traceback(),
 		)
 

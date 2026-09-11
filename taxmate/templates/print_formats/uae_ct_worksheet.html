@@ -1,0 +1,73 @@
+{# Corporate Tax worksheet — print from UAE CT Filing Log. PackageLoader path is templates/... #}
+<style>
+.tm-ct { font-family: sans-serif; font-size: 11pt; color: #111; }
+.tm-ct h1 { color: #0b3d2e; font-size: 16pt; margin: 0 0 8px; }
+.tm-ct table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+.tm-ct td, .tm-ct th { border: 1px solid #ccc; padding: 5px 7px; }
+.tm-ct th { background: #0b3d2e; color: #fff; }
+.tm-ct .num { text-align: right; }
+.tm-ct .note { margin-top: 12px; font-size: 8.5pt; color: #444; }
+</style>
+<div class="tm-ct">
+  <h1>{{ _("UAE Corporate Tax Worksheet") }} / ورقة ضريبة الشركات</h1>
+  <p>
+    <strong>{{ _("Company") }}:</strong> {{ doc.company }}
+    {% if doc.company_trn %} · <strong>TRN:</strong> {{ doc.company_trn }}{% endif %}<br>
+    <strong>{{ _("Period") }}:</strong> {{ doc.get_formatted("period_start") }} – {{ doc.get_formatted("period_end") }}
+    · <strong>{{ _("Due") }}:</strong> {{ doc.get_formatted("filing_due_date") }}<br>
+    <strong>{{ _("Regime") }}:</strong> {{ doc.regime or "" }}
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ _("Line") }}</th>
+        <th class="num">{{ _("Amount (AED)") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>{{ _("Revenue") }}</td><td class="num">{{ frappe.format(doc.revenue, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("Expenses") }}</td><td class="num">{{ frappe.format(doc.expenses, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("Accounting Profit") }}</td><td class="num">{{ frappe.format(doc.accounting_profit, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("Taxable Profit") }}</td><td class="num">{{ frappe.format(doc.taxable_profit, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td><strong>{{ _("Tax Payable") }}</strong></td><td class="num"><strong>{{ frappe.format(doc.tax_payable, {"fieldtype": "Currency", "currency": "AED"}) }}</strong></td></tr>
+    </tbody>
+  </table>
+  {% if doc.elect_qfzp %}
+  <p><strong>{{ _("QFZP split") }}</strong></p>
+  <table>
+    <tbody>
+      <tr><td>{{ _("Qualifying Revenue") }}</td><td class="num">{{ frappe.format(doc.qualifying_revenue, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("Non-Qualifying Revenue") }}</td><td class="num">{{ frappe.format(doc.non_qualifying_revenue, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("Unclassified Revenue") }}</td><td class="num">{{ frappe.format(doc.unclassified_revenue, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("De Minimis Limit") }}</td><td class="num">{{ frappe.format(doc.de_minimis_limit, {"fieldtype": "Currency", "currency": "AED"}) }}</td></tr>
+      <tr><td>{{ _("De Minimis Passed") }}</td><td class="num">{% if doc.de_minimis_passed %}{{ _("Yes") }}{% else %}{{ _("No") }}{% endif %}</td></tr>
+    </tbody>
+  </table>
+  {% endif %}
+  {% if doc.adjustments %}
+  <p><strong>{{ _("Adjustments") }}</strong></p>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ _("Type") }}</th>
+        <th>{{ _("Category") }}</th>
+        <th class="num">{{ _("Amount (AED)") }}</th>
+        <th>{{ _("Notes") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in doc.adjustments %}
+      <tr>
+        <td>{{ row.adjustment_type }}</td>
+        <td>{{ row.category }}</td>
+        <td class="num">{{ frappe.format(row.amount, {"fieldtype": "Currency", "currency": "AED"}) }}</td>
+        <td>{{ row.notes or "" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+  <p class="note">
+    {{ _("This worksheet does not file the Corporate Tax return. There is no public FTA CT e-file API as of 2026-09. File on the FTA portal and keep this log as the audit record.") }}
+  </p>
+</div>

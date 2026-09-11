@@ -15,6 +15,8 @@ ALLOWED_SEARCH_MODULES = frozenset(
 		"Regional",
 		"UAE VAT",
 		"UAE E-Invoicing",
+		"UAE Corporate Tax",
+		"UAE Compliance",
 		"TaxMate",
 		"Contacts",
 		"Payments",
@@ -59,6 +61,10 @@ ALLOWED_SEARCH_DOCTYPES = frozenset(
 		"UAE VAT Settings",
 		"UAE E-Invoice Settings",
 		"UAE E-Invoice Log",
+		"UAE CT Settings",
+		"UAE CT Filing Log",
+		"UAE Related Party",
+		"UAE CT Withholding Entry",
 		# Email / Automation / Notifications
 		"Email Account",
 		"Email Domain",
@@ -136,6 +142,7 @@ GLOBAL_SEARCH_DOCTYPES = [
 	"Serial No",
 	"Batch",
 	"UAE E-Invoice Log",
+	"UAE CT Filing Log",
 ]
 
 

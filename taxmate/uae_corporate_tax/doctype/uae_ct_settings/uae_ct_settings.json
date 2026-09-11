@@ -1,0 +1,180 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:company",
+ "creation": "2026-09-11 07:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "column_break_main",
+  "reminder_days",
+  "rates_section",
+  "zero_rate_band",
+  "standard_rate",
+  "column_break_rates",
+  "sbr_revenue_threshold",
+  "elections_section",
+  "elect_small_business_relief",
+  "elect_qfzp",
+  "column_break_elections",
+  "de_minimis_percent",
+  "de_minimis_amount",
+  "withholding_section",
+  "enable_withholding",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "30",
+   "description": "Days before the 9-month filing due date to raise a ToDo.",
+   "fieldname": "reminder_days",
+   "fieldtype": "Int",
+   "label": "Reminder Lead Days"
+  },
+  {
+   "fieldname": "rates_section",
+   "fieldtype": "Section Break",
+   "label": "Rates and Thresholds"
+  },
+  {
+   "default": "375000",
+   "description": "0% band for standard (non-QFZP) taxable income. Cabinet Decision 116/2022.",
+   "fieldname": "zero_rate_band",
+   "fieldtype": "Currency",
+   "label": "0% Band (AED)",
+   "options": "AED"
+  },
+  {
+   "default": "9",
+   "fieldname": "standard_rate",
+   "fieldtype": "Percent",
+   "label": "Standard Rate (%)"
+  },
+  {
+   "fieldname": "column_break_rates",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "3000000",
+   "description": "SBR: revenue at or below this amount in the current and every previous tax period.",
+   "fieldname": "sbr_revenue_threshold",
+   "fieldtype": "Currency",
+   "label": "SBR Revenue Threshold (AED)",
+   "options": "AED"
+  },
+  {
+   "fieldname": "elections_section",
+   "fieldtype": "Section Break",
+   "label": "Elections"
+  },
+  {
+   "default": "0",
+   "description": "Treat taxable income as nil if revenue stays within the SBR threshold. Not available with QFZP. Periods ending after 31 Dec 2026 are ineligible.",
+   "fieldname": "elect_small_business_relief",
+   "fieldtype": "Check",
+   "label": "Elect Small Business Relief"
+  },
+  {
+   "default": "0",
+   "description": "Qualifying Free Zone Person: 0% on qualifying income, 9% on the rest. No 0% AED 375,000 band. Cannot combine with SBR.",
+   "fieldname": "elect_qfzp",
+   "fieldtype": "Check",
+   "label": "Elect Qualifying Free Zone Person"
+  },
+  {
+   "fieldname": "column_break_elections",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "5",
+   "fieldname": "de_minimis_percent",
+   "fieldtype": "Percent",
+   "label": "De Minimis (% of revenue)"
+  },
+  {
+   "default": "5000000",
+   "description": "De minimis is the lower of this amount and the percent of total revenue.",
+   "fieldname": "de_minimis_amount",
+   "fieldtype": "Currency",
+   "label": "De Minimis Cap (AED)",
+   "options": "AED"
+  },
+  {
+   "fieldname": "withholding_section",
+   "fieldtype": "Section Break",
+   "label": "Withholding"
+  },
+  {
+   "default": "0",
+   "description": "UAE generally has no broad CT withholding. Enable only if this tenant must track a specific WHT obligation.",
+   "fieldname": "enable_withholding",
+   "fieldtype": "Check",
+   "label": "Enable Withholding Tracker"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-11 07:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Corporate Tax",
+ "name": "UAE CT Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
