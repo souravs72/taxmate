@@ -15,6 +15,8 @@
   "column_break_esr",
   "enable_esr_reminders",
   "esr_reminder_window_days",
+  "authorities_section",
+  "licence_authorities",
   "guidance_section",
   "onboarding_notes"
  ],
@@ -91,6 +93,18 @@
    "fieldtype": "Int",
    "label": "Reminder Window (Days)",
    "non_negative": 1
+  },
+  {
+   "fieldname": "authorities_section",
+   "fieldtype": "Section Break",
+   "label": "Licence Authority Variants"
+  },
+  {
+   "description": "Optional per-authority deadline overrides (DED, ADGM, DIFC, RAKEZ, …). Blank cells use the defaults above.",
+   "fieldname": "licence_authorities",
+   "fieldtype": "Table",
+   "label": "Licence Authorities",
+   "options": "UAE Licence Authority Rule"
   },
   {
    "fieldname": "guidance_section",

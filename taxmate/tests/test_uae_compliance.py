@@ -2,9 +2,8 @@
 
 Run: bench --site <site> run-tests --module taxmate.tests.test_uae_compliance
 
-Only ``taxmate.uae_compliance.utils.deadlines`` is tested here -- the
-doctype controllers query the database (UAE Compliance Settings, Company)
-and need a live site with fixtures for a meaningful integration test.
+Pure helpers only (deadlines, ownership, authorities, substance). DocType
+controllers query UAE Compliance Settings / Company and need a live site.
 """
 
 import datetime
@@ -21,6 +20,7 @@ from taxmate.uae_compliance.constants import (
 	UBO_STATUS_OVERDUE,
 	UBO_STATUS_UPDATE_DUE,
 )
+from taxmate.uae_compliance.utils.authorities import resolve_authority_deadlines
 from taxmate.uae_compliance.utils.deadlines import (
 	add_months,
 	esr_filing_status,
@@ -30,6 +30,13 @@ from taxmate.uae_compliance.utils.deadlines import (
 	ubo_change_status,
 	ubo_register_status,
 )
+from taxmate.uae_compliance.utils.ownership import (
+	chain_resolves_to_natural_person,
+	nominee_named,
+	registers_complete,
+	shareholder_register_status,
+)
+from taxmate.uae_compliance.utils.substance import activity_substance_complete, board_minutes_attached
 
 
 def d(year, month, day):
@@ -210,6 +217,70 @@ class TestESRFilingStatus(unittest.TestCase):
 			reminder_window_days=30,
 		)
 		self.assertEqual(status, ESR_STATUS_COMPLETE)
+
+
+class TestOwnershipChain(unittest.TestCase):
+	def test_natural_person_needs_no_chain(self):
+		self.assertTrue(chain_resolves_to_natural_person("Natural Person", None))
+
+	def test_legal_entity_requires_natural_person(self):
+		self.assertFalse(chain_resolves_to_natural_person("Legal Entity", ""))
+		self.assertTrue(chain_resolves_to_natural_person("Legal Entity", "Jane Doe"))
+
+	def test_nominee_must_name_principal(self):
+		self.assertFalse(nominee_named(1, ""))
+		self.assertTrue(nominee_named(1, "Real Owner"))
+		self.assertTrue(nominee_named(0, None))
+
+
+class TestShareholderRegisterStatus(unittest.TestCase):
+	def test_missing_empty_on_file(self):
+		self.assertEqual(shareholder_register_status(0, register_exists=False), "No Register")
+		self.assertEqual(shareholder_register_status(0, register_exists=True), "Empty")
+		self.assertEqual(shareholder_register_status(2, register_exists=True), "On File")
+
+	def test_both_registers_required(self):
+		self.assertFalse(registers_complete(True, False))
+		self.assertTrue(registers_complete(True, True))
+
+
+class TestLicenceAuthorities(unittest.TestCase):
+	def test_override_for_named_authority(self):
+		windows = resolve_authority_deadlines(
+			"ADGM",
+			[{"authority": "ADGM", "esr_report_deadline_months": 10}],
+			{"esr_report_deadline_months": 12, "esr_notification_deadline_months": 6},
+		)
+		self.assertEqual(windows["esr_report_deadline_months"], 10)
+		self.assertEqual(windows["esr_notification_deadline_months"], 6)
+
+	def test_unknown_authority_uses_defaults(self):
+		windows = resolve_authority_deadlines("Other", [], {"ubo_change_report_deadline_days": 15})
+		self.assertEqual(windows["ubo_change_report_deadline_days"], 15)
+
+	def test_blank_or_zero_cells_keep_defaults(self):
+		windows = resolve_authority_deadlines(
+			"ADGM",
+			[{"authority": "ADGM", "esr_report_deadline_months": 10, "ubo_change_report_deadline_days": 0}],
+			{"ubo_change_report_deadline_days": 15, "esr_report_deadline_months": 12},
+		)
+		self.assertEqual(windows["esr_report_deadline_months"], 10)
+		self.assertEqual(windows["ubo_change_report_deadline_days"], 15)
+
+
+class TestSubstanceEvidence(unittest.TestCase):
+	def test_zero_headcount_is_ok_if_recorded(self):
+		self.assertTrue(activity_substance_complete(0, 0, "Holding company — no staff", 0))
+
+	def test_blank_count_is_not_ok(self):
+		self.assertFalse(activity_substance_complete(None, 1000, "note", 2))
+
+	def test_blank_board_meetings_is_not_ok(self):
+		self.assertFalse(activity_substance_complete(2, 1000, "note", None))
+
+	def test_board_minutes_required(self):
+		self.assertFalse(board_minutes_attached(None))
+		self.assertTrue(board_minutes_attached("/private/files/minutes.pdf"))
 
 
 if __name__ == "__main__":

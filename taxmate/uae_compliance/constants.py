@@ -67,6 +67,23 @@ ESR_EXEMPTION_REASONS = (
 DEFAULT_ESR_NOTIFICATION_DEADLINE_MONTHS = 6
 DEFAULT_ESR_REPORT_DEADLINE_MONTHS = 12
 
+# Licensing / regulatory authorities that receive UBO and ESR filings.
+# Deadlines can differ; override per authority on UAE Compliance Settings.
+LICENCE_AUTHORITIES = (
+	"DED (Dubai)",
+	"ADGM",
+	"DIFC",
+	"RAKEZ",
+	"DMCC",
+	"JAFZA",
+	"Ministry of Economy",
+	"Other",
+)
+
+SHAREHOLDER_STATUS_ON_FILE = "On File"
+SHAREHOLDER_STATUS_EMPTY = "Empty"
+SHAREHOLDER_STATUS_MISSING = "No Register"
+
 UBO_STATUS_COMPLIANT = "Compliant"
 UBO_STATUS_UPDATE_DUE = "Update Reporting Due"
 UBO_STATUS_OVERDUE = "Overdue"

@@ -10,3 +10,4 @@ taxmate.patches.v0_1.apply_phase2_taxmate_settings
 taxmate.patches.v0_1.apply_phase3_taxmate_settings
 taxmate.patches.v0_1.backfill_e_invoice_sla
 taxmate.patches.v0_1.apply_phase4_ct_settings
+taxmate.patches.v0_1.apply_phase5_compliance

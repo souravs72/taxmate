@@ -8,7 +8,10 @@ from __future__ import annotations
 import frappe
 from frappe import _
 
+from frappe.utils import cint
+
 from taxmate.uae.constants import UAE_COUNTRY
+from taxmate.uae_compliance.utils.ownership import registers_complete, shareholder_register_status
 
 
 def execute(filters=None):
@@ -29,6 +32,15 @@ def get_columns():
 			"options": "UAE UBO Register",
 			"width": 160,
 		},
+		{"label": _("Shareholders"), "fieldname": "shareholder_status", "fieldtype": "Data", "width": 130},
+		{
+			"label": _("Shareholder Register"),
+			"fieldname": "shareholder_register",
+			"fieldtype": "Link",
+			"options": "UAE Shareholder Register",
+			"width": 180,
+		},
+		{"label": _("Registers Complete"), "fieldname": "registers_complete", "fieldtype": "Data", "width": 140},
 		{"label": _("Open ESR Filings"), "fieldname": "esr_open_count", "fieldtype": "Int", "width": 130},
 		{"label": _("Worst ESR Status"), "fieldname": "esr_worst_status", "fieldtype": "Data", "width": 160},
 		{
@@ -55,12 +67,16 @@ def get_data(filters):
 
 	for company in companies:
 		ubo_status, ubo_register = _ubo_row(company)
+		share_status, share_register = _shareholder_row(company)
 		esr_open_count, esr_worst_status, esr_latest = _esr_summary(company)
 		rows.append(
 			{
 				"company": company,
 				"ubo_status": ubo_status,
 				"ubo_register": ubo_register,
+				"shareholder_status": share_status,
+				"shareholder_register": share_register,
+				"registers_complete": _("Yes") if registers_complete(bool(ubo_register), bool(share_register)) else _("No"),
 				"esr_open_count": esr_open_count,
 				"esr_worst_status": esr_worst_status,
 				"esr_latest": esr_latest,
@@ -75,6 +91,19 @@ def _ubo_row(company: str):
 	if not register:
 		return _("No Register"), None
 	return register.status, register.name
+
+
+def _shareholder_row(company: str):
+	if not frappe.db.exists("DocType", "UAE Shareholder Register"):
+		return shareholder_register_status(0, register_exists=False), None
+	name = frappe.db.get_value("UAE Shareholder Register", {"company": company}, "name")
+	if not name:
+		return shareholder_register_status(0, register_exists=False), None
+	active = frappe.db.count(
+		"UAE Shareholder",
+		{"parent": name, "parenttype": "UAE Shareholder Register", "is_active": 1},
+	)
+	return shareholder_register_status(cint(active), register_exists=True), name
 
 
 def _esr_summary(company: str):

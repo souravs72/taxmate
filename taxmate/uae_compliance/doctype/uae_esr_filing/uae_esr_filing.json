@@ -10,6 +10,7 @@
   "financial_year_start",
   "financial_year_end",
   "column_break_header",
+  "licence_authority",
   "regulatory_authority",
   "status",
   "activity_section",
@@ -30,6 +31,9 @@
   "column_break_report",
   "report_reference",
   "report_file",
+  "substance_evidence_section",
+  "board_minutes",
+  "directed_managed_evidence",
   "amended_from",
   "notes_section",
   "notes"
@@ -60,6 +64,14 @@
   {
    "fieldname": "column_break_header",
    "fieldtype": "Column Break"
+  },
+  {
+   "description": "The Free Zone Authority / Ministry of Economy this entity files ESR with (e.g. DMCC, JAFZA, ADGM, DIFC, Ministry of Economy).",
+   "fieldname": "licence_authority",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Licence Authority",
+   "options": "\nDED (Dubai)\nADGM\nDIFC\nRAKEZ\nDMCC\nJAFZA\nMinistry of Economy\nOther"
   },
   {
    "description": "The Free Zone Authority / Ministry of Economy this entity files ESR with (e.g. DMCC, JAFZA, ADGM, DIFC, Ministry of Economy).",
@@ -176,6 +188,23 @@
    "fieldname": "report_file",
    "fieldtype": "Attach",
    "label": "Report Copy"
+  },
+  {
+   "depends_on": "eval:doc.has_relevant_activity && !doc.is_exempt",
+   "fieldname": "substance_evidence_section",
+   "fieldtype": "Section Break",
+   "label": "Board / Substance Evidence"
+  },
+  {
+   "description": "Required before submit when a Relevant Activity is in scope and the entity is not exempt.",
+   "fieldname": "board_minutes",
+   "fieldtype": "Attach",
+   "label": "Board Minutes"
+  },
+  {
+   "fieldname": "directed_managed_evidence",
+   "fieldtype": "Attach",
+   "label": "Directed and Managed Evidence"
   },
   {
    "fieldname": "amended_from",

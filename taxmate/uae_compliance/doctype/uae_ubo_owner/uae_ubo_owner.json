@@ -6,6 +6,11 @@
  "engine": "InnoDB",
  "field_order": [
   "full_name",
+  "person_type",
+  "legal_entity_name",
+  "ultimate_natural_person",
+  "is_nominee",
+  "nominee_for",
   "date_of_birth",
   "nationality",
   "country_of_residence",
@@ -32,6 +37,42 @@
    "in_list_view": 1,
    "label": "Full Name",
    "reqd": 1
+  },
+  {
+   "default": "Natural Person",
+   "description": "Cabinet Decision 109 requires the UBO to be a natural person. If the immediate owner is a company, name the natural person the chain resolves to.",
+   "fieldname": "person_type",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Person Type",
+   "options": "Natural Person\nLegal Entity"
+  },
+  {
+   "depends_on": "eval:doc.person_type=='Legal Entity'",
+   "fieldname": "legal_entity_name",
+   "fieldtype": "Data",
+   "label": "Legal Entity Name"
+  },
+  {
+   "depends_on": "eval:doc.person_type=='Legal Entity'",
+   "description": "Natural person at the end of the ownership / control chain.",
+   "fieldname": "ultimate_natural_person",
+   "fieldtype": "Data",
+   "label": "Chain Resolves To (Natural Person)",
+   "mandatory_depends_on": "eval:doc.person_type=='Legal Entity'"
+  },
+  {
+   "default": "0",
+   "fieldname": "is_nominee",
+   "fieldtype": "Check",
+   "label": "Nominee / On Behalf Of Another"
+  },
+  {
+   "depends_on": "eval:doc.is_nominee",
+   "fieldname": "nominee_for",
+   "fieldtype": "Data",
+   "label": "Nominee For",
+   "mandatory_depends_on": "eval:doc.is_nominee"
   },
   {
    "fieldname": "date_of_birth",

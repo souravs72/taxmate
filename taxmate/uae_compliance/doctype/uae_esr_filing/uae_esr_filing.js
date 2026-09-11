@@ -34,6 +34,11 @@ frappe.ui.form.on("UAE ESR Filing", {
 				__("Everything required is filed. Submit this record to lock it in as your audit trail."),
 				"blue"
 			);
+		} else if (frm.doc.has_relevant_activity && !frm.doc.is_exempt && !frm.doc.board_minutes) {
+			frm.dashboard.set_headline_alert(
+				__("Attach Board Minutes before submitting — ESR substance tests need minutes, not just a ticked activity."),
+				"orange"
+			);
 		}
 	},
 });

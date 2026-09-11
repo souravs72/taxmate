@@ -65,6 +65,10 @@ ALLOWED_SEARCH_DOCTYPES = frozenset(
 		"UAE CT Filing Log",
 		"UAE Related Party",
 		"UAE CT Withholding Entry",
+		"UAE Shareholder Register",
+		"UAE Compliance Settings",
+		"UAE UBO Register",
+		"UAE ESR Filing",
 		# Email / Automation / Notifications
 		"Email Account",
 		"Email Domain",

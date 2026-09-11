@@ -8,6 +8,14 @@
   "activity",
   "is_core_income_generating_activity_in_uae",
   "income_from_activity",
+  "substance_section",
+  "directed_and_managed_in_uae",
+  "board_meetings_in_uae",
+  "premises_in_uae",
+  "column_break_substance",
+  "employee_count",
+  "operating_expenditure_aed",
+  "substance_evidence",
   "notes"
  ],
  "fields": [
@@ -32,6 +40,54 @@
    "fieldtype": "Currency",
    "label": "Income from this Activity (AED)",
    "options": "AED"
+  },
+  {
+   "fieldname": "substance_section",
+   "fieldtype": "Section Break",
+   "label": "Substance Tests"
+  },
+  {
+   "default": "0",
+   "description": "Directed and managed in the UAE (board meetings, strategic decisions).",
+   "fieldname": "directed_and_managed_in_uae",
+   "fieldtype": "Check",
+   "label": "Directed and Managed in UAE"
+  },
+  {
+   "fieldname": "board_meetings_in_uae",
+   "fieldtype": "Int",
+   "label": "Board Meetings in UAE",
+   "non_negative": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "premises_in_uae",
+   "fieldtype": "Check",
+   "label": "Premises in UAE"
+  },
+  {
+   "fieldname": "column_break_substance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Zero is allowed (e.g. holding company). Blank is not — record the count.",
+   "fieldname": "employee_count",
+   "fieldtype": "Int",
+   "label": "Adequate Employees (count)",
+   "non_negative": 1
+  },
+  {
+   "description": "Operating expenditure in the UAE for this activity. Zero is allowed; blank is not.",
+   "fieldname": "operating_expenditure_aed",
+   "fieldtype": "Currency",
+   "label": "Adequate Expenditure (AED)",
+   "options": "AED"
+  },
+  {
+   "description": "Evidence note: minutes, payroll, invoices, premises. Required before submit when this activity is in scope.",
+   "fieldname": "substance_evidence",
+   "fieldtype": "Small Text",
+   "label": "Substance Evidence"
   },
   {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"}
  ],

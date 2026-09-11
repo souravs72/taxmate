@@ -17,11 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Sales/Purchase Invoice cancel is blocked while an e-invoice is Queued or Generated, not only after ASP Submitted/Accepted.
 - Company UAE readiness no longer runs twice on insert (`after_insert` + `on_update`).
 
-### Known gap (not yet built)
-
-- Cabinet Decision 109/2023 also requires a separate **Register of Partners or Shareholders** (direct legal ownership, distinct from the beneficial-ownership test in `UAE UBO Register`). Not implemented -- flagging this explicitly rather than letting `UAE UBO Register` be mistaken for full Cabinet Decision 109 coverage.
-
 ### Added
+
+- **Phase 5 beneficial-ownership and substance:** `UAE Shareholder Register` (legal ownership, distinct from UBO); nominee / legal-entity chain must resolve to a natural person; licence-authority variants (DED, ADGM, DIFC, RAKEZ, …) override UBO/ESR windows; ESR activity rows require directed-and-managed / employees / spend evidence; board minutes required before submitting an in-scope ESR filing. Compliance Status shows UBO + shareholders + ESR and whether both registers exist. Still a tracker — portals file.
 
 - **Phase 4 UAE Corporate Tax:** `UAE CT Settings` (FY elections, 0%/9% bands, SBR, QFZP de minimis), taxable-profit bridge on `UAE CT Filing Log` (GL profit + add-backs/deductions), QFZP qualifying vs non-qualifying split (unclassified counts as non-qualifying; fail de minimis → all at 9%), related-party flag on SI/PI plus documentation pack, optional withholding tracker, worksheet report/print, and daily ToDos for the 9-month due date. Submitting the log is the audit lock — there is no FTA CT e-file API.
 
@@ -36,7 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   - `UAE ESR Filing` (one per company per financial year) with a `UAE ESR Activity Row` child table for the 9 official Relevant Activities, exemption handling, and auto-computed (but manually overridable) notification/report due dates and status.
   - `UAE Compliance Status` report — one row per UAE company, UBO + ESR status side by side.
   - Daily scheduled jobs: refresh computed statuses so they reflect today's date even on untouched records, and raise a `ToDo` (Frappe's own reminder primitive — no bespoke notification engine) for anything approaching or past a deadline.
-  - 20 unit tests for the deadline/status arithmetic (`tests/test_uae_compliance.py`).
+  - Unit tests for deadline/status, ownership chain, licence-authority windows, and substance evidence (`tests/test_uae_compliance.py`).
 
   This module tracks and reminds — it does not file anything with the UBO registrar or a regulatory authority on your behalf; record the filing here after submitting it through the authority's own portal.
 

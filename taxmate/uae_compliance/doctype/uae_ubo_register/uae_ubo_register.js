@@ -64,6 +64,26 @@ function render_alerts(frm) {
 		});
 	}
 
+	const unresolved = (frm.doc.beneficial_owners || []).filter(
+		(row) => row.person_type === "Legal Entity" && !(row.ultimate_natural_person || "").trim()
+	);
+	if (unresolved.length) {
+		messages.push({
+			text: __("Legal-entity UBO rows must name the natural person the control chain resolves to."),
+			indicator: "orange",
+		});
+	}
+
+	const unnamed_nominees = (frm.doc.beneficial_owners || []).filter(
+		(row) => row.is_nominee && !(row.nominee_for || "").trim()
+	);
+	if (unnamed_nominees.length) {
+		messages.push({
+			text: __("Nominee UBO rows must name who they hold for."),
+			indicator: "orange",
+		});
+	}
+
 	const today = frappe.datetime.get_today();
 	const expired = (frm.doc.beneficial_owners || []).filter(
 		(row) => row.is_active && row.identification_expiry_date && row.identification_expiry_date < today
