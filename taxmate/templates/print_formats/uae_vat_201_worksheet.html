@@ -1,0 +1,42 @@
+{# VAT 201 worksheet — print from UAE VAT 201 Filing Log. PackageLoader path is templates/... #}
+<style>
+.tm-201 { font-family: sans-serif; font-size: 11pt; color: #111; }
+.tm-201 h1 { color: #0b3d2e; font-size: 16pt; margin: 0 0 8px; }
+.tm-201 table { width: 100%; border-collapse: collapse; }
+.tm-201 td, .tm-201 th { border: 1px solid #ccc; padding: 5px 7px; }
+.tm-201 th { background: #0b3d2e; color: #fff; }
+.tm-201 .num { text-align: right; }
+.tm-201 .note { margin-top: 12px; font-size: 8.5pt; color: #444; }
+</style>
+<div class="tm-201">
+  <h1>{{ _("UAE VAT 201 Worksheet") }} / إقرار ضريبة القيمة المضافة</h1>
+  <p>
+    <strong>{{ _("Company") }}:</strong> {{ doc.company }}
+    {% if doc.company_trn %} · <strong>TRN:</strong> {{ doc.company_trn }}{% endif %}<br>
+    <strong>{{ _("Period") }}:</strong> {{ doc.get_formatted("period_start") }} – {{ doc.get_formatted("period_end") }}
+    · <strong>{{ _("Due") }}:</strong> {{ doc.get_formatted("filing_due_date") }}
+  </p>
+  <table>
+    <thead>
+      <tr>
+        <th>{{ _("Box") }}</th>
+        <th>{{ _("Legend") }}</th>
+        <th class="num">{{ _("Amount") }}</th>
+        <th class="num">{{ _("VAT") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in doc.boxes %}
+      <tr>
+        <td>{{ row.box_no }}</td>
+        <td>{{ row.legend }}</td>
+        <td class="num">{{ frappe.format(row.amount, {"fieldtype": "Currency", "currency": "AED"}) }}</td>
+        <td class="num">{{ frappe.format(row.vat_amount, {"fieldtype": "Currency", "currency": "AED"}) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <p class="note">
+    {{ _("This worksheet does not file the return. There is no public EmaraTax VAT 201 API as of 2026-09. File in the portal and keep this log as the audit record.") }}
+  </p>
+</div>

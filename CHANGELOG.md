@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Phase 2 filing-grade VAT 201:** Box 1 VAT from UAE VAT accounts only (not every item tax); Boxes 6–7 auto-fill from submitted `UAE Customs Declaration` (still overridable); period lock on SI/PI after a Filing Log is submitted; Company TRN snapshot so one entity’s books are not filed under another TRN; due date = period end + 28 with ToDo reminders; accountant pack (box CSV, invoice listing, worksheet print/PDF). EmaraTax remains research-only — there is no public VAT 201 filing API as of 2026-09.
+
 - **Phase 1 VAT operations:** bilingual Tax Invoice / Credit Note / Purchase Invoice print (AR/EN, VAT rate, tax summary, QR/hash placeholder, B2C ≤ AED 10,000 simplified); Item Tax Template blocked/partial recovery applied to line VAT for Box 9 (recompute unless Manual Box 9; purchase credit notes net); Designated Zone matrix (item type required, Out of Scope enforced for in-zone goods); credit-note reference on SI/PI; readiness gate on SI and self-billed PI; Peppol Verify on Company/Customer/Supplier.
 
 - **New `UAE Compliance` module** — UBO (Ultimate Beneficial Owner) register and change-reporting tracker, and ESR (Economic Substance Regulations) notification/report filing tracker, with a shared `UAE Compliance Settings` doctype for the configurable deadlines (Cabinet Decision 109/2023's 15-day UBO change-reporting rule; ESR's notification/report deadlines, which vary by regulatory authority). Ships with:
@@ -34,7 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
   This module tracks and reminds — it does not file anything with the UBO registrar or a regulatory authority on your behalf; record the filing here after submitting it through the authority's own portal.
 
-- `UAE VAT 201 Filing Log` doctype and `taxmate.uae_vat.utils.vat_201` — computes all 14 boxes of the FTA VAT 201 return from ledger data (reusing ERPNext's own emirate-wise/RCM/tourist-refund queries) plus the totals (Boxes 8, 11-14) ERPNext's regional report never calculated. Boxes 6/7 (goods imported through Customs) are explicit manual-entry fields, since ERPNext has no customs-declaration doctype to compute them from.
+- `UAE VAT 201 Filing Log` doctype and `taxmate.uae_vat.utils.vat_201` — computes all 14 boxes of the FTA VAT 201 return from ledger data (reusing ERPNext's own emirate-wise/RCM/tourist-refund queries) plus the totals (Boxes 8, 11-14) ERPNext's regional report never calculated. Boxes 6/7 default from submitted UAE Customs Declarations and remain overridable.
 - `UAE VAT 201 Box Detail` child doctype for the per-box breakdown shown on the Filing Log and in the report below.
 - Unit tests for the Box 8/11/12/13/14 arithmetic (`tests/test_uae_vat_201.py`).
 

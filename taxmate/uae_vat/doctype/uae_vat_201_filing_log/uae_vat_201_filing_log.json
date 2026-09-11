@@ -1,8 +1,9 @@
 {
  "actions": [],
  "allow_rename": 0,
- "autoname": "format:VAT201-{company}-{period_start}",
+ "autoname": "format:VAT201-{company}-{period_start}-{#####}",
  "creation": "2026-09-10 00:00:00.000000",
+ "default_print_format": "UAE VAT 201 Worksheet",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -12,12 +13,15 @@
   "column_break_period",
   "filing_due_date",
   "status",
+  "deadline_status",
+  "company_trn",
   "manual_section",
   "box_6_amount",
   "box_6_vat_amount",
   "column_break_manual",
   "box_7_amount",
   "box_7_vat_amount",
+  "boxes_6_7_manual",
   "manual_help",
   "boxes_section",
   "boxes",
@@ -77,9 +81,25 @@
    "reqd": 1
   },
   {
+   "default": "Upcoming",
+   "fieldname": "deadline_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Deadline Status",
+   "options": "Upcoming\nDue\nOverdue\nFiled",
+   "read_only": 1
+  },
+  {
+   "description": "Snapshot of the Company TRN this return is prepared for. Do not file another entity's TRN.",
+   "fieldname": "company_trn",
+   "fieldtype": "Data",
+   "label": "Filed TRN",
+   "read_only": 1
+  },
+  {
    "fieldname": "manual_section",
    "fieldtype": "Section Break",
-   "label": "Boxes 6 & 7 \u2014 Goods Imported (Manual Entry Required)"
+   "label": "Boxes 6 & 7 \u2014 Goods Imported"
   },
   {
    "fieldname": "box_6_amount",
@@ -110,9 +130,16 @@
    "options": "AED"
   },
   {
+   "default": "0",
+   "description": "When checked, Generate keeps the Box 6/7 figures you typed. When unchecked, they come from submitted UAE Customs Declarations.",
+   "fieldname": "boxes_6_7_manual",
+   "fieldtype": "Check",
+   "label": "Override Customs Totals"
+  },
+  {
    "fieldname": "manual_help",
    "fieldtype": "HTML",
-   "options": "<div class=\"text-muted small\">ERPNext has no UAE Customs declaration doctype, so Boxes 6 and 7 can't be computed from ledger data \u2014 take these from your customs / import declarations (e.g. the FTA's own import records shown in EmaraTax) and enter them here before generating the boxes below.</div>"
+   "options": "<div class=\"text-muted small\">Boxes 6 and 7 default from submitted UAE Customs Declaration rows in this period. Tick Override Customs Totals to type EmaraTax import figures instead. There is no EmaraTax filing API as of 2026-09 \u2014 export the accountant pack and file in the portal.</div>"
   },
   {
    "fieldname": "boxes_section",
@@ -185,7 +212,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-09-10 00:00:00.000000",
+ "modified": "2026-09-11 06:40:00.000000",
  "modified_by": "Administrator",
  "module": "UAE VAT",
  "name": "UAE VAT 201 Filing Log",

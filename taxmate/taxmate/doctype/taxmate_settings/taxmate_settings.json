@@ -12,6 +12,8 @@
   "block_e_invoice_until_ready",
   "require_vat_emirate_on_invoice",
   "enforce_credit_note_reference",
+  "block_invoices_in_filed_vat_period",
+  "vat_201_reminder_days",
   "guidance_section",
   "onboarding_notes"
  ],
@@ -69,6 +71,20 @@
    "label": "Enforce Credit Note Reference"
   },
   {
+   "default": "1",
+   "description": "Block Sales/Purchase Invoices posted into a period that already has a submitted VAT 201 Filing Log.",
+   "fieldname": "block_invoices_in_filed_vat_period",
+   "fieldtype": "Check",
+   "label": "Lock Invoices After VAT 201 Filed"
+  },
+  {
+   "default": "7",
+   "description": "Days before the VAT 201 due date (period end + 28) to raise a ToDo.",
+   "fieldname": "vat_201_reminder_days",
+   "fieldtype": "Int",
+   "label": "VAT 201 Reminder Lead Days"
+  },
+  {
    "fieldname": "guidance_section",
    "fieldtype": "Section Break",
    "label": "Operator Guidance"
@@ -83,7 +99,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-11 05:40:00.000000",
+ "modified": "2026-09-11 06:40:00.000000",
  "modified_by": "Administrator",
  "module": "TaxMate",
  "name": "TaxMate Settings",

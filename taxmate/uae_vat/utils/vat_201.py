@@ -12,11 +12,9 @@ supplies, zero-rated/exempt supplies, standard-rated expenses, and
 recoverable reverse-charge input). ERPNext's report stops there -- it never
 totals the return.
 
-Boxes 6 and 7 (value of goods imported through UAE Customs, and adjustments
-to previously-declared imports) are **always manual input**. ERPNext has no
-doctype for a customs import declaration, so guessing these from ledger data
-would silently produce a wrong VAT 201 -- a manual-entry box that is
-obviously blank is safer than an auto-computed box that is quietly wrong.
+Boxes 6 and 7 come from submitted ``UAE Customs Declaration`` rows for the
+period (still overridable on the Filing Log). Do not infer imports from
+Purchase Invoice VAT -- that is not a customs bill.
 
 Boxes 8, 11, 12, 13 and 14 are the totals ERPNext's report never computes;
 :func:`compute_totals` does that arithmetic as a pure function so it can be
@@ -29,7 +27,7 @@ from typing import Any
 
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate
+from frappe.utils import cint, flt, getdate
 
 from taxmate.uae.constants import UAE_COUNTRY
 
@@ -49,6 +47,37 @@ VAT_201_EMIRATE_ORDER = (
 )
 
 
+def reminder_lead_days() -> int:
+	"""Days before the FTA due date (period end + 28) to mark a draft as Due."""
+	from taxmate.uae.validation import get_taxmate_settings, singles_field_is_set
+
+	settings = get_taxmate_settings()
+	if (
+		settings
+		and settings.meta.has_field("vat_201_reminder_days")
+		and singles_field_is_set("vat_201_reminder_days")
+	):
+		return int(settings.vat_201_reminder_days)
+	return 7
+
+
+def filing_deadline_status(due_date, docstatus: int, today=None, lead_days: int = 7) -> str:
+	"""Upcoming / Due / Overdue / Filed for a VAT 201 log."""
+	if docstatus == 1:
+		return "Filed"
+	if not due_date:
+		return "Upcoming"
+	from frappe.utils import add_days, nowdate
+
+	today = getdate(today or nowdate())
+	due = getdate(due_date)
+	if today > due:
+		return "Overdue"
+	if today >= add_days(due, -lead_days):
+		return "Due"
+	return "Upcoming"
+
+
 def r2(value) -> float:
 	"""Round to AED's 2 decimal places, the precision VAT 201 is filed at."""
 	return flt(value, CURRENCY_PRECISION)
@@ -65,11 +94,10 @@ def compute_vat_201(
 ) -> dict[str, Any]:
 	"""Return every box of VAT Form 201 for ``company`` for the given period.
 
-	``box_6_*`` / ``box_7_*`` are manual inputs -- see module docstring.
-	Pass them from a ``UAE VAT 201 Filing Log`` once one exists for the
-	period, or leave at 0 for a first draft.
+	``box_6_*`` / ``box_7_*`` are customs totals (or operator overrides).
 	"""
 	_validate_company(company)
+	_validate_uae_vat_accounts(company)
 	period_start, period_end = getdate(period_start), getdate(period_end)
 	if period_end < period_start:
 		frappe.throw(_("Period end date cannot be before period start date."))
@@ -128,7 +156,7 @@ def compute_vat_201(
 	boxes.append(
 		{
 			"box_no": "6",
-			"legend": _("Goods imported into the UAE (manual entry -- see note)"),
+			"legend": _("Goods imported into the UAE"),
 			"amount": r2(box_6_amount),
 			"vat_amount": r2(box_6_vat_amount),
 		}
@@ -136,7 +164,7 @@ def compute_vat_201(
 	boxes.append(
 		{
 			"box_no": "7",
-			"legend": _("Adjustments to goods imported into the UAE (manual entry -- see note)"),
+			"legend": _("Adjustments to goods imported into the UAE"),
 			"amount": r2(box_7_amount),
 			"vat_amount": r2(box_7_vat_amount),
 		}
@@ -212,7 +240,7 @@ def compute_vat_201(
 		"period_end": period_end,
 		"boxes": boxes,
 		**totals,
-		"requires_manual_box_6_7": True,
+		"requires_manual_box_6_7": False,
 	}
 
 
@@ -269,50 +297,253 @@ def _validate_company(company: str) -> None:
 		)
 
 
+def _validate_uae_vat_accounts(company: str) -> None:
+	if not frappe.db.exists("UAE VAT Account", {"parent": company}):
+		frappe.throw(
+			_("Link VAT accounts in UAE VAT Settings for {0} before computing VAT 201.").format(
+				frappe.bold(company)
+			),
+			title=_("UAE VAT Accounts Missing"),
+		)
+
+
+BOX_1_EXCLUDED_CATEGORIES = (
+	"Out of Scope",
+	"Exempt",
+	"Zero Rated",
+	"Reverse Charge",
+	"Margin Scheme",
+)
+
+
 def _standard_rated_emiratewise(filters: dict) -> list[dict[str, Any]]:
 	"""Box 1a-g: standard-rated supplies by Emirate (FTA print order).
 
-	Mirrors ERPNext regional UAE VAT 201 item aggregation, with NULL-safe
-	exempt/zero-rated flags so legacy rows are not silently dropped.
-	``tax_amount`` is ERPNext's per-line allocated tax (UAE templates are VAT-only).
+	Consideration is item net (excluding exempt / zero / out-of-scope / RCM /
+	margin). VAT is taken only from Sales Taxes whose account is listed on
+	UAE VAT Settings — extra invoice taxes must not inflate Box 1.
 	"""
-	rows = frappe.db.sql(
-		"""
-		select s.vat_emirate as emirate, sum(i.base_net_amount) as amount, sum(i.tax_amount) as vat_amount
-		from `tabSales Invoice Item` i
-		inner join `tabSales Invoice` s on i.parent = s.name
-		where
-			s.docstatus = 1 and s.company = %(company)s
-			and s.posting_date between %(from_date)s and %(to_date)s
-			and ifnull(i.is_exempt, 0) != 1
-			and ifnull(i.is_zero_rated, 0) != 1
-		group by s.vat_emirate
-		""",
-		filters,
-		as_dict=True,
-	)
-	by_emirate = {row.emirate: row for row in rows if row.emirate}
+	amount_rows = frappe.db.sql(_box_1_amount_sql(), filters, as_dict=True)
+	vat_rows = frappe.db.sql(_box_1_vat_sql(), filters, as_dict=True)
+	by_amount = {row.emirate: row.amount for row in amount_rows}
+	by_vat = {row.emirate: row.vat_amount for row in vat_rows}
+	unknown = []
+	for emirate, amount in by_amount.items():
+		if emirate not in VAT_201_EMIRATE_ORDER and flt(amount):
+			unknown.append(emirate or _("(blank)"))
+	for emirate, vat_amount in by_vat.items():
+		if emirate not in VAT_201_EMIRATE_ORDER and flt(vat_amount):
+			unknown.append(emirate or _("(blank)"))
+	if unknown:
+		frappe.throw(
+			_(
+				"VAT 201 Box 1 includes invoices whose Place of Supply is not a UAE Emirate: {0}. "
+				"Set vat_emirate before filing."
+			).format(", ".join(sorted(set(unknown)))),
+			title=_("Place of Supply Missing"),
+		)
 	return [
 		{
 			"emirate": emirate,
-			"amount": r2(by_emirate[emirate].amount) if emirate in by_emirate else 0,
-			"vat_amount": r2(by_emirate[emirate].vat_amount) if emirate in by_emirate else 0,
+			"amount": r2(by_amount.get(emirate) or 0),
+			"vat_amount": r2(by_vat.get(emirate) or 0),
 		}
 		for emirate in VAT_201_EMIRATE_ORDER
 	]
 
 
-def _tourist_refund(filters: dict) -> dict[str, float]:
-	row = frappe.db.get_all(
+def _box_1_item_predicates() -> tuple[str, str]:
+	category_join = ""
+	category_filter = ""
+	if frappe.db.has_column("Item Tax Template", "uae_vat_category"):
+		excluded = ", ".join(frappe.db.escape(c) for c in BOX_1_EXCLUDED_CATEGORIES)
+		category_join = "left join `tabItem Tax Template` t on t.name = i.item_tax_template"
+		category_filter = f"and ifnull(t.uae_vat_category, '') not in ({excluded})"
+	return category_join, category_filter
+
+
+def _box_1_amount_sql() -> str:
+	category_join, category_filter = _box_1_item_predicates()
+	return f"""
+		select s.vat_emirate as emirate, sum(i.base_net_amount) as amount
+		from `tabSales Invoice Item` i
+		inner join `tabSales Invoice` s on i.parent = s.name
+		{category_join}
+		where
+			s.docstatus = 1 and s.company = %(company)s
+			and s.posting_date between %(from_date)s and %(to_date)s
+			and ifnull(i.is_exempt, 0) != 1
+			and ifnull(i.is_zero_rated, 0) != 1
+			{category_filter}
+		group by s.vat_emirate
+	"""
+
+
+def _box_1_vat_sql() -> str:
+	category_join, category_filter = _box_1_item_predicates()
+	return f"""
+		select s.vat_emirate as emirate, sum(tax.base_tax_amount) as vat_amount
+		from `tabSales Taxes and Charges` tax
+		inner join `tabSales Invoice` s on tax.parent = s.name
+		where
+			s.docstatus = 1
+			and tax.parenttype = 'Sales Invoice'
+			and s.company = %(company)s
+			and s.posting_date between %(from_date)s and %(to_date)s
+			and tax.account_head in (
+				select account from `tabUAE VAT Account` where parent = %(company)s
+			)
+			and exists (
+				select 1 from `tabSales Invoice Item` i
+				{category_join}
+				where i.parent = s.name
+					and ifnull(i.is_exempt, 0) != 1
+					and ifnull(i.is_zero_rated, 0) != 1
+					{category_filter}
+			)
+		group by s.vat_emirate
+	"""
+
+
+def sum_customs_declarations(company: str, period_start, period_end) -> dict[str, float]:
+	"""Box 6 (imports) and Box 7 (adjustments) from submitted customs bills."""
+	empty = {"box_6_amount": 0.0, "box_6_vat_amount": 0.0, "box_7_amount": 0.0, "box_7_vat_amount": 0.0}
+	if not frappe.db.exists("DocType", "UAE Customs Declaration"):
+		return empty
+	rows = frappe.db.sql(
+		"""
+		select is_adjustment, sum(taxable_amount) as amount, sum(vat_amount) as vat_amount
+		from `tabUAE Customs Declaration`
+		where company = %(company)s and docstatus = 1
+			and posting_date between %(from_date)s and %(to_date)s
+		group by is_adjustment
+		""",
+		{"company": company, "from_date": period_start, "to_date": period_end},
+		as_dict=True,
+	)
+	out = dict(empty)
+	for row in rows:
+		prefix = "box_7" if cint(row.is_adjustment) else "box_6"
+		out[f"{prefix}_amount"] = r2(row.amount or 0)
+		out[f"{prefix}_vat_amount"] = r2(row.vat_amount or 0)
+	return out
+
+
+def list_period_invoices(company: str, period_start, period_end) -> list[dict[str, Any]]:
+	"""SI/PI listing for the accountant pack (this company and TRN only)."""
+	sales = frappe.get_all(
 		"Sales Invoice",
 		filters={
-			"company": filters["company"],
-			"posting_date": ["between", [filters["from_date"], filters["to_date"]]],
+			"company": company,
 			"docstatus": 1,
-			"tourist_tax_return": [">", 0],
+			"posting_date": ["between", [period_start, period_end]],
 		},
-		fields=["sum(base_total) as amount", "sum(tourist_tax_return) as vat_amount"],
-		as_list=False,
+		fields=[
+			"name",
+			"posting_date",
+			"customer as party",
+			"vat_emirate",
+			"base_net_total",
+			"base_total_taxes_and_charges",
+			"is_return",
+		],
+		order_by="posting_date, name",
+	)
+	purchases = frappe.get_all(
+		"Purchase Invoice",
+		filters={
+			"company": company,
+			"docstatus": 1,
+			"posting_date": ["between", [period_start, period_end]],
+		},
+		fields=[
+			"name",
+			"posting_date",
+			"supplier as party",
+			"base_net_total",
+			"base_total_taxes_and_charges",
+			"recoverable_standard_rated_expenses",
+			"is_return",
+		],
+		order_by="posting_date, name",
+	)
+	sales_vat = _uae_vat_by_voucher("Sales Invoice", company, period_start, period_end)
+	purchase_vat = _uae_vat_by_voucher("Purchase Invoice", company, period_start, period_end)
+	rows = []
+	for row in sales:
+		rows.append({**row, "doctype": "Sales Invoice", "uae_vat_amount": r2(sales_vat.get(row.name) or 0)})
+	for row in purchases:
+		rows.append(
+			{
+				**row,
+				"doctype": "Purchase Invoice",
+				"vat_emirate": "",
+				"uae_vat_amount": r2(purchase_vat.get(row.name) or 0),
+			}
+		)
+	return rows
+
+
+def _uae_vat_by_voucher(doctype: str, company: str, period_start, period_end) -> dict[str, float]:
+	"""Header UAE VAT per submitted voucher (accountant pack, not all invoice taxes)."""
+	if doctype == "Sales Invoice":
+		tax_table = "tabSales Taxes and Charges"
+	elif doctype == "Purchase Invoice":
+		tax_table = "tabPurchase Taxes and Charges"
+	else:
+		return {}
+	parent_table = f"tab{doctype}"
+	rows = frappe.db.sql(
+		f"""
+		select tax.parent as name, sum(tax.base_tax_amount) as uae_vat
+		from `{tax_table}` tax
+		inner join `{parent_table}` p on tax.parent = p.name
+		where p.docstatus = 1 and tax.parenttype = %(doctype)s
+			and p.company = %(company)s
+			and p.posting_date between %(from_date)s and %(to_date)s
+			and tax.account_head in (
+				select account from `tabUAE VAT Account` where parent = %(company)s
+			)
+		group by tax.parent
+		""",
+		{
+			"doctype": doctype,
+			"company": company,
+			"from_date": period_start,
+			"to_date": period_end,
+		},
+		as_dict=True,
+	)
+	return {row.name: row.uae_vat or 0 for row in rows}
+
+
+def list_period_customs(company: str, period_start, period_end) -> list[dict[str, Any]]:
+	"""Submitted customs bills in the period (accountant pack)."""
+	if not frappe.db.exists("DocType", "UAE Customs Declaration"):
+		return []
+	return frappe.get_all(
+		"UAE Customs Declaration",
+		filters={
+			"company": company,
+			"docstatus": 1,
+			"posting_date": ["between", [period_start, period_end]],
+		},
+		fields=["name", "posting_date", "declaration_number", "is_adjustment", "taxable_amount", "vat_amount"],
+		order_by="posting_date, name",
+	)
+
+
+def _tourist_refund(filters: dict) -> dict[str, float]:
+	row = frappe.db.sql(
+		"""
+		select sum(base_total) as amount, sum(tourist_tax_return) as vat_amount
+		from `tabSales Invoice`
+		where docstatus = 1 and tourist_tax_return > 0
+			and company = %(company)s
+			and posting_date between %(from_date)s and %(to_date)s
+		""",
+		filters,
+		as_dict=True,
 	)
 	data = row[0] if row else {}
 	return {"amount": r2(data.get("amount") or 0), "vat_amount": r2(data.get("vat_amount") or 0)}
@@ -320,16 +551,16 @@ def _tourist_refund(filters: dict) -> dict[str, float]:
 
 def _reverse_charge_output(filters: dict) -> dict[str, float]:
 	amount = (
-		frappe.db.get_all(
-			"Purchase Invoice",
-			filters={
-				"company": filters["company"],
-				"posting_date": ["between", [filters["from_date"], filters["to_date"]]],
-				"docstatus": 1,
-				"reverse_charge": "Y",
-			},
-			fields=["sum(base_total) as amount"],
-		)[0].amount
+		frappe.db.sql(
+			"""
+			select sum(base_total)
+			from `tabPurchase Invoice`
+			where docstatus = 1 and reverse_charge = 'Y'
+				and company = %(company)s
+				and posting_date between %(from_date)s and %(to_date)s
+			""",
+			filters,
+		)[0][0]
 		or 0
 	)
 	vat_amount = (
@@ -340,6 +571,7 @@ def _reverse_charge_output(filters: dict) -> dict[str, float]:
 			inner join `tabGL Entry` gl on gl.voucher_no = p.name
 			where
 				p.reverse_charge = 'Y' and p.docstatus = 1 and gl.docstatus = 1
+				and gl.voucher_type = 'Purchase Invoice'
 				and ifnull(gl.is_cancelled, 0) = 0
 				and p.company = %(company)s
 				and p.posting_date between %(from_date)s and %(to_date)s
@@ -354,17 +586,17 @@ def _reverse_charge_output(filters: dict) -> dict[str, float]:
 
 def _reverse_charge_recoverable_input(filters: dict) -> dict[str, float]:
 	amount = (
-		frappe.db.get_all(
-			"Purchase Invoice",
-			filters={
-				"company": filters["company"],
-				"posting_date": ["between", [filters["from_date"], filters["to_date"]]],
-				"docstatus": 1,
-				"reverse_charge": "Y",
-				"recoverable_reverse_charge": [">", 0],
-			},
-			fields=["sum(base_total) as amount"],
-		)[0].amount
+		frappe.db.sql(
+			"""
+			select sum(base_total)
+			from `tabPurchase Invoice`
+			where docstatus = 1 and reverse_charge = 'Y'
+				and recoverable_reverse_charge > 0
+				and company = %(company)s
+				and posting_date between %(from_date)s and %(to_date)s
+			""",
+			filters,
+		)[0][0]
 		or 0
 	)
 	vat_amount = (
@@ -375,6 +607,7 @@ def _reverse_charge_recoverable_input(filters: dict) -> dict[str, float]:
 			inner join `tabGL Entry` gl on gl.voucher_no = p.name
 			where
 				p.reverse_charge = 'Y' and p.docstatus = 1 and gl.docstatus = 1
+				and gl.voucher_type = 'Purchase Invoice'
 				and ifnull(gl.is_cancelled, 0) = 0
 				and p.recoverable_reverse_charge > 0
 				and p.company = %(company)s
@@ -401,20 +634,21 @@ def _standard_rated_expenses(filters: dict) -> dict[str, float]:
 	Amount uses uae_box_9_taxable_amount (recoverable lines only), else base_net_total.
 	Includes negatives so purchase credit notes net Box 9 (``!= 0``, not ``> 0``).
 	"""
-	row = frappe.db.get_all(
-		"Purchase Invoice",
-		filters={
-			"company": filters["company"],
-			"posting_date": ["between", [filters["from_date"], filters["to_date"]]],
-			"docstatus": 1,
-			"recoverable_standard_rated_expenses": ["!=", 0],
-		},
-		fields=[
-			"sum(uae_box_9_taxable_amount) as amount"
-			if frappe.db.has_column("Purchase Invoice", "uae_box_9_taxable_amount")
-			else "sum(base_net_total) as amount",
-			"sum(recoverable_standard_rated_expenses) as vat_amount",
-		],
+	amount_col = (
+		"uae_box_9_taxable_amount"
+		if frappe.db.has_column("Purchase Invoice", "uae_box_9_taxable_amount")
+		else "base_net_total"
+	)
+	row = frappe.db.sql(
+		f"""
+		select sum(`{amount_col}`) as amount, sum(recoverable_standard_rated_expenses) as vat_amount
+		from `tabPurchase Invoice`
+		where docstatus = 1 and recoverable_standard_rated_expenses != 0
+			and company = %(company)s
+			and posting_date between %(from_date)s and %(to_date)s
+		""",
+		filters,
+		as_dict=True,
 	)
 	data = row[0] if row else {}
 	return {"amount": r2(data.get("amount") or 0), "vat_amount": r2(data.get("vat_amount") or 0)}

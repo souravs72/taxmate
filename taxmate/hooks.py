@@ -179,14 +179,20 @@ doc_events = {
 		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_submit",
-		"before_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_cancel",
+		"before_cancel": [
+			"taxmate.uae_vat.overrides.sales_invoice.before_cancel",
+			"taxmate.uae_e_invoicing.overrides.sales_invoice.before_cancel",
+		],
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_cancel",
 	},
 	"Purchase Invoice": {
 		"validate": "taxmate.uae_vat.overrides.purchase_invoice.validate",
 		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_submit",
-		"before_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_cancel",
+		"before_cancel": [
+			"taxmate.uae_vat.overrides.purchase_invoice.before_cancel",
+			"taxmate.uae_e_invoicing.overrides.purchase_invoice.before_cancel",
+		],
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_cancel",
 	},
 }
@@ -202,6 +208,7 @@ scheduler_events = {
 	"daily": [
 		"taxmate.uae_compliance.notifications.refresh_all_statuses",
 		"taxmate.uae_compliance.notifications.send_deadline_reminders",
+		"taxmate.uae_vat.notifications.send_vat_201_reminders",
 	],
 }
 

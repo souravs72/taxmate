@@ -39,6 +39,29 @@ frappe.ui.form.on("UAE VAT 201 Filing Log", {
 			});
 		}
 
+		if (!frm.is_new()) {
+			frm.add_custom_button(__("Export Accountant Pack"), () => {
+				frappe.call({
+					doc: frm.doc,
+					method: "export_accountant_pack",
+					freeze: true,
+					freeze_message: __("Building accountant pack..."),
+					callback(r) {
+						if (!r.exc && r.message) {
+							frappe.msgprint({
+								title: __("Accountant Pack"),
+								indicator: "green",
+								message: `${r.message.message || ""}<br><br><span class="text-muted">${
+									r.message.emaratax_api || ""
+								}</span>`,
+							});
+							frm.reload_doc();
+						}
+					},
+				});
+			});
+		}
+
 		if (frm.doc.docstatus === 0 && (!frm.doc.boxes || !frm.doc.boxes.length)) {
 			frm.dashboard.add_comment(
 				__("Generate the boxes before you can submit (file) this log."),
@@ -46,5 +69,17 @@ frappe.ui.form.on("UAE VAT 201 Filing Log", {
 				true
 			);
 		}
+	},
+	box_6_amount(frm) {
+		frm.set_value("boxes_6_7_manual", 1);
+	},
+	box_6_vat_amount(frm) {
+		frm.set_value("boxes_6_7_manual", 1);
+	},
+	box_7_amount(frm) {
+		frm.set_value("boxes_6_7_manual", 1);
+	},
+	box_7_vat_amount(frm) {
+		frm.set_value("boxes_6_7_manual", 1);
 	},
 });

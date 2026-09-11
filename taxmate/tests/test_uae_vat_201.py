@@ -11,7 +11,12 @@ bench site rather than faked here.
 
 import unittest
 
-from taxmate.uae_vat.utils.vat_201 import VAT_201_EMIRATE_ORDER, compute_totals
+from taxmate.uae_vat.utils.vat_201 import (
+	BOX_1_EXCLUDED_CATEGORIES,
+	VAT_201_EMIRATE_ORDER,
+	compute_totals,
+	filing_deadline_status,
+)
 
 
 class TestComputeTotals(unittest.TestCase):
@@ -134,6 +139,30 @@ class TestEmirateOrder(unittest.TestCase):
 	def test_seven_emirates_no_duplicates(self):
 		self.assertEqual(len(VAT_201_EMIRATE_ORDER), 7)
 		self.assertEqual(len(set(VAT_201_EMIRATE_ORDER)), 7)
+
+
+class TestDeadlineStatus(unittest.TestCase):
+	def test_filed_wins(self):
+		self.assertEqual(filing_deadline_status("2026-01-28", 1, today="2026-02-01"), "Filed")
+
+	def test_overdue(self):
+		self.assertEqual(filing_deadline_status("2026-01-28", 0, today="2026-01-29"), "Overdue")
+
+	def test_due_inside_lead(self):
+		self.assertEqual(filing_deadline_status("2026-01-28", 0, today="2026-01-22"), "Due")
+
+	def test_upcoming(self):
+		self.assertEqual(filing_deadline_status("2026-01-28", 0, today="2026-01-01"), "Upcoming")
+
+	def test_custom_lead_days(self):
+		self.assertEqual(filing_deadline_status("2026-01-28", 0, today="2026-01-10", lead_days=20), "Due")
+		self.assertEqual(filing_deadline_status("2026-01-28", 0, today="2026-01-10", lead_days=7), "Upcoming")
+
+
+class TestBox1Categories(unittest.TestCase):
+	def test_excluded_non_standard_categories(self):
+		self.assertIn("Out of Scope", BOX_1_EXCLUDED_CATEGORIES)
+		self.assertIn("Reverse Charge", BOX_1_EXCLUDED_CATEGORIES)
 
 
 if __name__ == "__main__":

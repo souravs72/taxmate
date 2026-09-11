@@ -29,25 +29,21 @@ frappe.query_reports["EmaraTax Export"] = {
 			fieldname: "box_6_amount",
 			label: __("Box 6: Goods Imported — Amount (AED)"),
 			fieldtype: "Currency",
-			default: 0,
 		},
 		{
 			fieldname: "box_6_vat_amount",
 			label: __("Box 6: Goods Imported — VAT (AED)"),
 			fieldtype: "Currency",
-			default: 0,
 		},
 		{
 			fieldname: "box_7_amount",
 			label: __("Box 7: Import Adjustments — Amount (AED)"),
 			fieldtype: "Currency",
-			default: 0,
 		},
 		{
 			fieldname: "box_7_vat_amount",
 			label: __("Box 7: Import Adjustments — VAT (AED)"),
 			fieldtype: "Currency",
-			default: 0,
 		},
 	],
 

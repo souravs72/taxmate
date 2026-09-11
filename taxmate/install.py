@@ -93,10 +93,14 @@ def _ensure_taxmate_settings_defaults():
 		("enforce_credit_note_reference", 1),
 		("require_vat_emirate_on_invoice", 1),
 		("block_e_invoice_until_ready", 1),
+		("block_invoices_in_filed_vat_period", 1),
 	):
 		if hasattr(settings, field) and not singles_field_is_set(field):
 			setattr(settings, field, default)
 			changed = True
+	if hasattr(settings, "vat_201_reminder_days") and not singles_field_is_set("vat_201_reminder_days"):
+		settings.vat_201_reminder_days = 7
+		changed = True
 	notes = settings.onboarding_notes or ""
 	if "ERPNext" in notes:
 		settings.onboarding_notes = notes.replace("ERPNext", "TaxMate")

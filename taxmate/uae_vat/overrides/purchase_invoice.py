@@ -5,6 +5,7 @@ Called from hooks.py Purchase Invoice.validate.
 
 from __future__ import annotations
 
+from taxmate.uae_vat.utils.period_lock import validate_period_lock
 from taxmate.uae_vat.utils.place_of_supply import validate_purchase_invoice
 from taxmate.uae_vat.utils.recoverability import apply_box_9_recoverable
 
@@ -12,6 +13,11 @@ from taxmate.uae_vat.utils.recoverability import apply_box_9_recoverable
 def validate(doc, method=None):
 	apply_box_9_recoverable(doc)
 	validate_purchase_invoice(doc)
+	validate_period_lock(doc)
+
+
+def before_cancel(doc, method=None):
+	validate_period_lock(doc)
 
 
 def default_recoverable_standard_rated_expenses(doc) -> None:

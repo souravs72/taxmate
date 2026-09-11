@@ -5,11 +5,8 @@
 
 Computes every box of the FTA's VAT 201 return for the selected Company and
 period so it can be checked and then typed into the EmaraTax portal (or
-attached as the backup for a return already filed). Boxes 6 and 7 (goods
-imported through UAE Customs) are always manual entry -- see
-``taxmate.uae_vat.utils.vat_201`` for why -- and can be typed into this
-report's filters to see the effect on the net position before saving a
-``UAE VAT 201 Filing Log`` as the permanent audit record.
+attached as the backup for a return already filed). Boxes 6 and 7 default
+from submitted UAE Customs Declarations; report filters still override.
 
 This report does not submit anything to the FTA. As of 2026-09 there is no
 confirmed EmaraTax filing API to integrate against (see the TaxMate UAE Gap
@@ -38,14 +35,33 @@ def execute(filters=None):
 			}
 		]
 
+	from taxmate.uae_vat.utils.vat_201 import sum_customs_declarations
+
+	box_6_amount = filters.get("box_6_amount")
+	box_6_vat_amount = filters.get("box_6_vat_amount")
+	box_7_amount = filters.get("box_7_amount")
+	box_7_vat_amount = filters.get("box_7_vat_amount")
+	override = any(_filter_was_set(filters, key) for key in (
+		"box_6_amount",
+		"box_6_vat_amount",
+		"box_7_amount",
+		"box_7_vat_amount",
+	))
+	if not override:
+		customs = sum_customs_declarations(filters["company"], filters["from_date"], filters["to_date"])
+		box_6_amount = customs["box_6_amount"]
+		box_6_vat_amount = customs["box_6_vat_amount"]
+		box_7_amount = customs["box_7_amount"]
+		box_7_vat_amount = customs["box_7_vat_amount"]
+
 	result = compute_vat_201(
 		company=filters["company"],
 		period_start=filters["from_date"],
 		period_end=filters["to_date"],
-		box_6_amount=filters.get("box_6_amount") or 0,
-		box_6_vat_amount=filters.get("box_6_vat_amount") or 0,
-		box_7_amount=filters.get("box_7_amount") or 0,
-		box_7_vat_amount=filters.get("box_7_vat_amount") or 0,
+		box_6_amount=box_6_amount or 0,
+		box_6_vat_amount=box_6_vat_amount or 0,
+		box_7_amount=box_7_amount or 0,
+		box_7_vat_amount=box_7_vat_amount or 0,
 	)
 
 	data = [
@@ -60,6 +76,14 @@ def execute(filters=None):
 	]
 
 	return columns, data
+
+
+def _filter_was_set(filters: dict, key: str) -> bool:
+	"""True when the operator typed a Box 6/7 override (empty/None means use customs)."""
+	if key not in filters:
+		return False
+	value = filters.get(key)
+	return value not in (None, "")
 
 
 def get_columns():

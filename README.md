@@ -23,7 +23,7 @@ TaxMate also tracks two UAE compliance obligations that sit alongside VAT/Corpor
 
 Configure deadline defaults and reminders in **UAE Compliance Settings**; see the **UAE Compliance Status** report for a one-page view across all UAE companies. This module tracks and reminds — it does not submit anything to the UBO registrar or a regulatory authority on your behalf.
 
-- The **EmaraTax Export** report (Sales Invoice-scoped Script Report) computes all 14 VAT 201 boxes for a company/period, including the totals (Boxes 8, 11-14) ERPNext's own regional report doesn't calculate. Boxes 6/7 (goods imported through Customs) are manual entry — see `taxmate.uae_vat.utils.vat_201` for why. "Save as Filing Log" turns a reviewed worksheet into a permanent **UAE VAT 201 Filing Log** audit record. This is a worksheet for manual EmaraTax filing, not an automated e-filing integration.
+- The **EmaraTax Export** report and **UAE VAT 201 Filing Log** compute all 14 VAT 201 boxes for one company/TRN and period, including the totals (Boxes 8, 11-14) ERPNext's own regional report doesn't calculate. Boxes 6/7 default from submitted **UAE Customs Declaration** rows and can still be overridden. Export the accountant pack (CSV + worksheet print) and file in the EmaraTax portal — TaxMate does not e-file. Submitting the log locks the period for new Sales/Purchase Invoices.
 
 ### Installation
 
