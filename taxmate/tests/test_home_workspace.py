@@ -111,6 +111,8 @@ class TestHomeWorkspaceSite(FrappeTestCase):
 		shortcut_labels = {row.label for row in home.shortcuts}
 		for label in ("Sales Invoice", "Purchase Invoice", "VAT 201", "E-Invoices"):
 			self.assertIn(label, shortcut_labels, label)
+		if frappe.db.exists("DocType", "IDP Conversation"):
+			self.assertIn("Invoice OCR", shortcut_labels)
 
 		card_labels = {row.label for row in home.links if row.type == "Card Break"}
 		for label in ("UAE VAT", "E-Invoicing", "Corporate Tax"):
@@ -130,3 +132,50 @@ class TestHomeWorkspaceSite(FrappeTestCase):
 		self.assertIn("docstatus", overdue.filters_json or "")
 		draft = frappe.get_doc("Number Card", "Draft VAT 201")
 		self.assertIn("docstatus", draft.filters_json or "")
+
+	def test_users_workspace_and_idp_role_are_available(self):
+		if not getattr(frappe, "local", None) or not getattr(frappe.local, "site", None):
+			self.skipTest("No Frappe site")
+		if not frappe.db.exists("Workspace", "Users"):
+			self.skipTest("Workspace Users is missing")
+
+		from taxmate.setup.workspaces import (
+			_ensure_users_workspace,
+			ensure_idp_user_access,
+		)
+
+		_ensure_users_workspace()
+		ensure_idp_user_access()
+
+		users = frappe.get_doc("Workspace", "Users")
+		self.assertEqual(int(users.is_hidden or 0), 0)
+		self.assertIn("User", {row.label for row in users.shortcuts})
+		if frappe.db.exists("Role", "IDP User"):
+			self.assertTrue(
+				frappe.db.exists(
+					"Has Role",
+					{"parent": "Administrator", "parenttype": "User", "role": "IDP User"},
+				)
+			)
+
+	def test_invoice_ocr_workspace_is_clerk_surface(self):
+		if not getattr(frappe, "local", None) or not getattr(frappe.local, "site", None):
+			self.skipTest("No Frappe site")
+		if not frappe.db.exists("Workspace", "IDP"):
+			self.skipTest("Workspace IDP is missing")
+
+		from taxmate.setup.workspaces import _ensure_invoice_ocr_workspace, _ensure_idp_clerk_defaults
+
+		_ensure_invoice_ocr_workspace()
+		_ensure_idp_clerk_defaults()
+
+		ws = frappe.get_doc("Workspace", "IDP")
+		self.assertEqual(ws.title, "Invoice OCR")
+		self.assertEqual(int(ws.is_hidden or 0), 0)
+		labels = [row.label for row in ws.shortcuts]
+		self.assertEqual(labels, ["Scan bill", "Draft Purchase Invoices", "Items"])
+		scan = next(row for row in ws.shortcuts if row.label == "Scan bill")
+		self.assertEqual(scan.type, "URL")
+		self.assertEqual(scan.url, "/idp/chat")
+		if frappe.db.exists("DocType", "IDP Settings"):
+			self.assertEqual(frappe.db.get_single_value("IDP Settings", "auto_create_missing_masters"), 0)

@@ -249,11 +249,11 @@ scheduler_events = {
 
 # Overriding Methods
 # ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "taxmate.event.get_events"
-# }
-#
+override_whitelisted_methods = {
+	"idp.api.settings.get_settings": "taxmate.idp.clerk.get_settings",
+	"idp.api.conversation.confirm_card": "taxmate.idp.clerk.confirm_card",
+}
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps

@@ -18,6 +18,7 @@ ALLOWED_SEARCH_MODULES = frozenset(
 		"UAE Corporate Tax",
 		"UAE Compliance",
 		"TaxMate",
+		"IDP",
 		"Contacts",
 		"Payments",
 		"Email",
@@ -100,6 +101,42 @@ ALLOWED_SEARCH_DOCTYPES = frozenset(
 		"Workflow Action",
 		"ToDo",
 		"Event",
+		# Core / Setup operators (User lives in Core, so it is not in the module list)
+		"User",
+		"Role",
+		"Role Profile",
+		"Module Profile",
+		"User Permission",
+		"System Settings",
+		"Navbar Settings",
+		"Print Settings",
+		"Accounts Settings",
+		"Buying Settings",
+		"Selling Settings",
+		"Stock Settings",
+		"Global Defaults",
+		"Data Import",
+		"Data Export",
+		"Bulk Update",
+		"Deleted Document",
+		"Activity Log",
+		"Access Log",
+		"Error Log",
+		"Workspace",
+		# Invoice OCR (IDP)
+		"IDP Conversation",
+		"IDP Message",
+		"IDP Settings",
+		"IDP Document Log",
+		"IDP Batch Job",
+		"IDP Extraction Template",
+		"IDP Extraction Correction",
+		"IDP Prompt Template",
+		"IDP Prompt Library",
+		"IDP Skill",
+		"IDP Tool Configuration",
+		"IDP Plugin Configuration",
+		"IDP Tool Call Log",
 	}
 )
 
@@ -171,15 +208,24 @@ def boot_session(bootinfo) -> None:
 	if not is_taxmate_product_site():
 		return
 
+	from taxmate.idp.clerk import IDP_ADMIN_SEARCH_DOCTYPES, is_idp_manager
+
 	module_map = {
 		row.name: row.module
 		for row in frappe.get_all("DocType", filters={"istable": 0}, fields=["name", "module"])
 	}
+	doctypes = set(ALLOWED_SEARCH_DOCTYPES)
+	modules = set(ALLOWED_SEARCH_MODULES)
+	denied = set(DENIED_SEARCH_DOCTYPES)
+	if not is_idp_manager():
+		doctypes -= IDP_ADMIN_SEARCH_DOCTYPES
+		modules.discard("IDP")
+		denied |= IDP_ADMIN_SEARCH_DOCTYPES
 	bootinfo.taxmate_search = {
 		"enabled": True,
-		"modules": sorted(ALLOWED_SEARCH_MODULES),
-		"doctypes": sorted(ALLOWED_SEARCH_DOCTYPES),
-		"denied_doctypes": sorted(DENIED_SEARCH_DOCTYPES),
+		"modules": sorted(modules),
+		"doctypes": sorted(doctypes),
+		"denied_doctypes": sorted(denied),
 		"doctype_module": module_map,
 	}
 

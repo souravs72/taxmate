@@ -126,6 +126,12 @@ DAILY_SHORTCUTS: tuple[dict[str, Any], ...] = (
 		"format": "{} Draft",
 		"color": "#f39c12",
 	},
+	{
+		"label": "Invoice OCR",
+		"type": "URL",
+		"url": "/idp/chat",
+		"color": "#12715B",
+	},
 	{"label": "Payment Entry", "type": "DocType", "link_to": "Payment Entry"},
 	{"label": "Journal Entry", "type": "DocType", "link_to": "Journal Entry"},
 	{"label": "Customer", "type": "DocType", "link_to": "Customer"},
@@ -495,6 +501,13 @@ def _save_workspace(doc) -> None:
 
 
 def _shortcut_target_exists(row: dict[str, Any]) -> bool:
+	if (row.get("type") or "") == "URL":
+		url = (row.get("url") or row.get("link_to") or "").strip()
+		if not url:
+			return False
+		if url.startswith("/idp"):
+			return bool(frappe.db.exists("DocType", "IDP Conversation"))
+		return True
 	return _target_exists(row.get("type") or "DocType", row.get("link_to"))
 
 
