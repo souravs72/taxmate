@@ -221,6 +221,7 @@ def _ensure_workspace_link_cards() -> None:
 	try:
 		ws.flags.ignore_permissions = True
 		ws.flags.ignore_mandatory = True
+		ws.flags.ignore_links = True
 		ws.save()
 	finally:
 		frappe.flags.in_patch = was
