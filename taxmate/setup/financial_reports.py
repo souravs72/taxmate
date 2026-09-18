@@ -196,14 +196,17 @@ def _ensure_workspace_link_cards() -> None:
 		(link.type or "") == "Card Break" and (link.label or "") == "UAE Tax Reports"
 		for link in (ws.links or [])
 	)
+	changed = False
 	if not has_uae_card:
 		ws.append("links", {"type": "Card Break", "label": "UAE Tax Reports", "hidden": 0})
+		changed = True
 
+	taxmate_targets = {r for _, r in TAXMATE_REPORT_LINKS} | {"UAE VAT 201"}
 	for report in missing:
 		if report in existing:
 			continue
 		# Only append TaxMate / VAT reports to the UAE card; core already on cards.
-		if report not in {r for _, r in TAXMATE_REPORT_LINKS} and report != "UAE VAT 201":
+		if report not in taxmate_targets:
 			continue
 		ws.append(
 			"links",
@@ -215,6 +218,11 @@ def _ensure_workspace_link_cards() -> None:
 				"hidden": 0,
 			},
 		)
+		existing.add(report)
+		changed = True
+
+	if not changed:
+		return
 
 	was = frappe.flags.in_patch
 	frappe.flags.in_patch = True
