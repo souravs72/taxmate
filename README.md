@@ -14,6 +14,10 @@ TaxMate is UAE-first. It **orchestrates** ERPNext’s built-in UAE VAT features 
 
 See [UAE VAT setup](https://docs.frappe.io/erpnext/UAE-vat-setup) and [UAE VAT 201](https://docs.frappe.io/erpnext/uae-vat-201-report).
 
+### Accounts API (custom frontend)
+
+TaxMate exposes authenticated RPC methods under `taxmate.api.*` so a custom frontend can run books: parties, invoices, payments, journals, chart of accounts, financial reports, and UAE tax actions. Start with `taxmate.api.get_catalog`. See [docs/api.md](docs/api.md).
+
 ### UAE UBO & ESR compliance tracking
 
 TaxMate also tracks two UAE compliance obligations that sit alongside VAT/Corporate Tax:

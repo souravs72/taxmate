@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **Accounts API for a custom frontend:** `taxmate.api.get_catalog` / `get_session`, allowlisted resource CRUD + submit/cancel/amend, party/item/COA/payment helpers, financial reports, and home KPIs. UAE e-invoice and VAT 201 methods stay on their existing whitelist paths and are listed in the catalog. See `docs/api.md`.
+
 - **Phase 9 prove-it:** fixture invoices on the UAE company cover standard, zero-rated, exempt, reverse-charge, import, tourist refund, and credit note; golden VAT 201 boxes must match `compute_vat_201`, the filing log, and the accountant-pack CSVs; e-invoice reject / retry / cancel / credit-note billing reference is covered as an integration matrix; migrate inventory asserts phases 1–8 DocTypes, reports, and `UAE Tax Manager`. Still track-and-file — no FTA APIs.
 
 - **Phase 8 statutory operations:** submitted filings cannot be hard-deleted (keep 5+ years; cancel/amend instead); `UAE Late Filing Notice` is a due/overdue reminder (not a penalty calculator); `UAE FTA Audit Pack` exports a private zip of invoices, VAT 201 boxes, UBO snapshot, and e-invoice XML/PDF; TaxMate Settings records UAE-hosted File preference. Arabic Desk labels added. Portals still file.

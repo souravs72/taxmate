@@ -1,0 +1,198 @@
+"""Party, item, chart of accounts, and payment helpers."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import frappe
+from frappe import _
+
+from taxmate.api.resource import _parse, assert_allowed_doctype, assert_company_read
+
+
+def _as_data(value):
+	if hasattr(value, "as_dict"):
+		return value.as_dict()
+	return value
+
+
+@frappe.whitelist()
+def get_defaults(company: str | None = None) -> dict[str, Any]:
+	"""Company, currency, and fiscal year for new vouchers."""
+	company = company or frappe.defaults.get_user_default("Company")
+	if not company:
+		return {"company": None}
+
+	if not frappe.has_permission("Company", "read", company):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	row = frappe.db.get_value(
+		"Company",
+		company,
+		["name", "default_currency", "country", "tax_id"],
+		as_dict=True,
+	)
+	out = {
+		"company": row.name,
+		"currency": row.default_currency,
+		"country": row.country,
+		"tax_id": row.tax_id,
+		"fiscal_year": None,
+	}
+	from erpnext.accounts.utils import get_fiscal_year
+
+	try:
+		fiscal = get_fiscal_year(company=company, as_dict=True)
+		if fiscal:
+			out["fiscal_year"] = fiscal.name
+	except Exception:
+		pass
+	return out
+
+
+@frappe.whitelist()
+def get_party_details(
+	party=None,
+	party_type="Customer",
+	company=None,
+	doctype=None,
+	posting_date=None,
+	price_list=None,
+	currency=None,
+):
+	if not party:
+		frappe.throw(_("party is required"))
+	assert_allowed_doctype(party_type)
+	assert_company_read(company or frappe.defaults.get_user_default("Company"))
+	if not frappe.has_permission(party_type, "read", party):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	from erpnext.accounts.party import get_party_details as erp_get_party_details
+
+	return erp_get_party_details(
+		party=party,
+		party_type=party_type,
+		company=company or frappe.defaults.get_user_default("Company"),
+		doctype=doctype,
+		posting_date=posting_date,
+		price_list=price_list,
+		currency=currency,
+	)
+
+
+@frappe.whitelist()
+def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse=True):
+	ctx = _parse(ctx) or {}
+	if not ctx.get("item_code"):
+		frappe.throw(_("item_code is required"))
+	assert_allowed_doctype("Item")
+	assert_company_read(ctx.get("company"))
+
+	if ctx.get("company") and not ctx.get("currency"):
+		ctx["currency"] = frappe.get_cached_value("Company", ctx["company"], "default_currency")
+	if not ctx.get("conversion_rate"):
+		ctx["conversion_rate"] = 1.0
+
+	from erpnext.stock.get_item_details import get_item_details as erp_get_item_details
+
+	return erp_get_item_details(
+		ctx,
+		doc=doc,
+		for_validate=for_validate,
+		overwrite_warehouse=overwrite_warehouse,
+	)
+
+
+@frappe.whitelist()
+def get_account_tree(company: str | None = None, parent: str | None = None, include_disabled: bool = False):
+	assert_allowed_doctype("Account")
+	if not frappe.has_permission("Account", "read"):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	company = company or frappe.defaults.get_user_default("Company")
+	if not company:
+		frappe.throw(_("Company is required"))
+	assert_company_read(company)
+
+	from erpnext.accounts.utils import get_children
+
+	is_root = not parent
+	return get_children(
+		"Account",
+		parent or company,
+		company,
+		is_root=is_root,
+		include_disabled=include_disabled,
+	)
+
+
+@frappe.whitelist()
+def get_outstanding_invoices(company, party_type, party, party_account=None):
+	assert_allowed_doctype("Payment Entry")
+	assert_allowed_doctype(party_type)
+	if not company:
+		frappe.throw(_("Company is required"))
+	assert_company_read(company)
+	frappe.has_permission(party_type, "read", party, throw=True)
+	if not frappe.has_permission("Payment Entry", "read"):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	if not party_account:
+		from erpnext.accounts.party import get_party_account
+
+		party_account = get_party_account(party_type, party, company)
+
+	from erpnext.accounts.doctype.payment_entry.payment_entry import (
+		get_outstanding_reference_documents,
+	)
+
+	return get_outstanding_reference_documents(
+		{
+			"company": company,
+			"party_type": party_type,
+			"party": party,
+			"party_account": party_account,
+			"get_outstanding_invoices": True,
+		}
+	)
+
+
+@frappe.whitelist(methods=["POST"])
+def get_payment_entry(dt, dn, party_amount=None, bank_account=None, payment_type=None):
+	assert_allowed_doctype(dt)
+	assert_allowed_doctype("Payment Entry")
+	doc = frappe.get_doc(dt, dn)
+	doc.check_permission("read")
+
+	from erpnext.accounts.doctype.payment_entry.payment_entry import (
+		get_payment_entry as erp_get_payment_entry,
+	)
+
+	return _as_data(
+		erp_get_payment_entry(
+			dt,
+			dn,
+			party_amount=party_amount,
+			bank_account=bank_account,
+			payment_type=payment_type,
+		)
+	)
+
+
+@frappe.whitelist(methods=["POST"])
+def make_sales_return(source_name: str):
+	assert_allowed_doctype("Sales Invoice")
+	doc = frappe.get_doc("Sales Invoice", source_name)
+	doc.check_permission("read")
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return as erp_make
+
+	return _as_data(erp_make(source_name))
+
+
+@frappe.whitelist(methods=["POST"])
+def make_purchase_return(source_name: str):
+	assert_allowed_doctype("Purchase Invoice")
+	doc = frappe.get_doc("Purchase Invoice", source_name)
+	doc.check_permission("read")
+	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import make_debit_note
+
+	return _as_data(make_debit_note(source_name))

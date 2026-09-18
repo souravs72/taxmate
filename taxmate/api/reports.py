@@ -1,0 +1,43 @@
+"""Run TaxMate financial and UAE reports."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import frappe
+from frappe import _
+
+from taxmate.api import catalog_reports
+from taxmate.api.resource import _parse, assert_company_read
+
+
+def assert_allowed_report(report_name: str) -> None:
+	allowed = {row["report"] for row in catalog_reports()}
+	if report_name not in allowed:
+		frappe.throw(
+			_("Report {0} is not part of the TaxMate accounts API").format(report_name),
+			frappe.PermissionError,
+		)
+
+
+@frappe.whitelist()
+def list_reports() -> list[dict[str, str]]:
+	if frappe.session.user == "Guest":
+		frappe.throw(_("Login required"), frappe.AuthenticationError)
+	return catalog_reports()
+
+
+@frappe.whitelist()
+def run_report(report_name: str, filters=None, ignore_prepared_report: bool = True) -> dict[str, Any]:
+	assert_allowed_report(report_name)
+	filters = _parse(filters)
+	if isinstance(filters, dict):
+		assert_company_read(filters.get("company"))
+	from frappe.desk.query_report import run
+
+	return run(
+		report_name,
+		filters=filters,
+		ignore_prepared_report=ignore_prepared_report,
+		are_default_filters=False,
+	)
