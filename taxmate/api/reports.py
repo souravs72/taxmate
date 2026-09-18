@@ -30,9 +30,8 @@ def list_reports() -> list[dict[str, str]]:
 @frappe.whitelist()
 def run_report(report_name: str, filters=None, ignore_prepared_report: bool = True) -> dict[str, Any]:
 	assert_allowed_report(report_name)
-	filters = _parse(filters)
-	if isinstance(filters, dict):
-		assert_company_read(filters.get("company"))
+	filters = _as_filter_dict(filters)
+	assert_company_read(filters.get("company"))
 	from frappe.desk.query_report import run
 
 	return run(
@@ -41,3 +40,12 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 		ignore_prepared_report=ignore_prepared_report,
 		are_default_filters=False,
 	)
+
+
+def _as_filter_dict(filters) -> dict:
+	filters = _parse(filters)
+	if filters is None:
+		return {}
+	if isinstance(filters, dict):
+		return filters
+	frappe.throw(_("filters must be a JSON object"), frappe.ValidationError)

@@ -20,7 +20,7 @@ def submit(doc):
 	if not name:
 		frappe.throw(_("name is required"))
 	loaded = frappe.get_doc(doc["doctype"], name)
-	loaded.check_permission("write")
+	loaded.check_permission("submit")
 	loaded.submit()
 	return loaded.as_dict()
 
@@ -36,11 +36,11 @@ def amend(doctype: str, name: str):
 	"""Insert a draft copy of a cancelled document (Frappe amend)."""
 	assert_allowed_doctype(doctype)
 	source = frappe.get_doc(doctype, name)
-	source.check_permission("write")
+	source.check_permission("amend")
 	if source.docstatus != 2:
 		frappe.throw(_("Only cancelled documents can be amended"))
 
-	new_doc = frappe.copy_doc(source)
+	new_doc = frappe.copy_doc(source, ignore_no_copy=False)
 	new_doc.docstatus = 0
 	new_doc.amended_from = source.name
 	new_doc.insert()

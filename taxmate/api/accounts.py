@@ -39,13 +39,13 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 		"tax_id": row.tax_id,
 		"fiscal_year": None,
 	}
-	from erpnext.accounts.utils import get_fiscal_year
+	from erpnext.accounts.utils import FiscalYearError, get_fiscal_year
 
 	try:
 		fiscal = get_fiscal_year(company=company, as_dict=True)
 		if fiscal:
 			out["fiscal_year"] = fiscal.name
-	except Exception:
+	except FiscalYearError:
 		pass
 	return out
 
@@ -90,7 +90,12 @@ def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse
 
 	if ctx.get("company") and not ctx.get("currency"):
 		ctx["currency"] = frappe.get_cached_value("Company", ctx["company"], "default_currency")
-	if not ctx.get("conversion_rate"):
+	if ctx.get("conversion_rate") in (None, ""):
+		company_currency = (
+			frappe.get_cached_value("Company", ctx["company"], "default_currency") if ctx.get("company") else None
+		)
+		if ctx.get("currency") and company_currency and ctx["currency"] != company_currency:
+			frappe.throw(_("conversion_rate is required when currency differs from company currency"))
 		ctx["conversion_rate"] = 1.0
 
 	from erpnext.stock.get_item_details import get_item_details as erp_get_item_details

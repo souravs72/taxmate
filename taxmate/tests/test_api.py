@@ -92,6 +92,45 @@ class TestApiResource(FrappeTestCase):
 		self.assertFalse(get_meta("ToDo")["is_submittable"])
 		self.assertTrue(get_meta("Sales Invoice")["is_submittable"])
 
+	def test_meta_nests_child_table_fields(self):
+		meta = get_meta("Sales Invoice")
+		items = next(row for row in meta["fields"] if row["fieldname"] == "items")
+		self.assertEqual(items["fieldtype"], "Table")
+		self.assertEqual(items["options"], "Sales Invoice Item")
+		child_names = {row["fieldname"] for row in items["fields"]}
+		self.assertIn("item_code", child_names)
+		self.assertIn("qty", child_names)
+
+	def test_guest_catalog_requires_login(self):
+		frappe.set_user("Guest")
+		try:
+			with self.assertRaises(frappe.AuthenticationError):
+				get_catalog()
+			with self.assertRaises(frappe.AuthenticationError):
+				get_home()
+			with self.assertRaises(frappe.AuthenticationError):
+				list_reports()
+		finally:
+			frappe.set_user("Administrator")
+
+	def test_restricted_user_cannot_list_invoices(self):
+		email = f"tm-api-{uuid.uuid4().hex[:8]}@example.com"
+		frappe.get_doc(
+			{
+				"doctype": "User",
+				"email": email,
+				"first_name": "API Restricted",
+				"send_welcome_email": 0,
+				"user_type": "Website User",
+			}
+		).insert(ignore_permissions=True)
+		frappe.set_user(email)
+		try:
+			with self.assertRaises(frappe.PermissionError):
+				get_list("Sales Invoice")
+		finally:
+			frappe.set_user("Administrator")
+
 
 class TestApiReportsAndHome(FrappeTestCase):
 	def test_list_reports_includes_core_books(self):
@@ -107,6 +146,19 @@ class TestApiReportsAndHome(FrappeTestCase):
 		self.assertIn("Draft Sales Invoices", names)
 		for row in home["kpis"]:
 			self.assertIsInstance(row["value"], int)
+
+	def test_home_kpis_ignore_form_dict_company(self):
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company")
+		frappe.form_dict.company = company
+		try:
+			home = get_home(company=company)
+			self.assertIn("kpis", home)
+			for row in home["kpis"]:
+				self.assertIsInstance(row["value"], int)
+		finally:
+			frappe.form_dict.pop("company", None)
 
 	def test_trial_balance_runs(self):
 		from taxmate.api.reports import run_report
@@ -127,6 +179,12 @@ class TestApiReportsAndHome(FrappeTestCase):
 			},
 		)
 		self.assertIn("result", result)
+
+	def test_run_report_rejects_list_filters(self):
+		from taxmate.api.reports import run_report
+
+		with self.assertRaises(frappe.ValidationError):
+			run_report("Trial Balance", [["company", "=", "X"]])
 
 
 class TestApiMastersHappyPath(FrappeTestCase):
@@ -240,3 +298,19 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 
 		cancelled = cancel("Sales Invoice", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
+
+		if not frappe.get_meta("Sales Invoice").has_field("uae_e_invoice_status"):
+			self.skipTest("uae_e_invoice_status custom field missing")
+		frappe.db.set_value(
+			"Sales Invoice",
+			doc["name"],
+			"uae_e_invoice_status",
+			"Accepted",
+			update_modified=False,
+		)
+		from taxmate.api.workflow import amend
+
+		amended = amend("Sales Invoice", doc["name"])
+		self.assertEqual(amended["docstatus"], 0)
+		self.assertEqual(amended["amended_from"], doc["name"])
+		self.assertFalse(amended.get("uae_e_invoice_status"))

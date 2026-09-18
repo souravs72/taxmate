@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Accounts API: amend strips `no_copy` fields, `get_meta` nests child tables, home KPIs count without `form_dict`, and report `filters` must be a JSON object.
 - Deemed supply now requires a full IBG-14 invoice period (billing frequency, start, end), same as summary and continuous supply. A Payment Due Date on an ordinary invoice still does not force frequency. Self-billed Purchase Invoices now have BTAE-02 and billing-frequency fields so those checks can run.
 - FZ Beneficiary ID (BTAE-01 / IBR-007-ae) is validated on the buyer: Customer on sales invoices, Company on self-billed purchase invoices. Desk designated-zone guidance names that buyer instead of always the Company.
 - **`UAE VAT 201 Filing Log` and `UAE ESR Filing` are now submittable (`is_submittable`).** Previously "marking as filed" was just a Select field anyone with write access could quietly re-edit afterwards -- not a real audit record despite being described as one. Submitting is now what locks a filing: Frappe's own docstatus mechanism (not a custom status flag) makes the boxes, dates and figures immutable once filed, and correcting a filed return requires Cancel + Amend, which is itself an audit trail. `generate()` on the VAT 201 log now refuses to run once submitted (previously it only blocked on a status string that nothing enforced).

@@ -123,28 +123,16 @@ def delete(doctype, name):
 
 @frappe.whitelist()
 def get_meta(doctype: str) -> dict[str, Any]:
-	"""Field metadata a custom frontend needs to render a form or list."""
+	"""Field metadata a custom frontend needs to render a form or list.
+
+	Child tables stay nested under Table fields so the parent form can render
+	lines without exposing child-table list/get/insert.
+	"""
 	assert_allowed_doctype(doctype)
 	if not frappe.has_permission(doctype, "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	meta = frappe.get_meta(doctype)
-	fields = []
-	for field in meta.fields:
-		fields.append(
-			{
-				"fieldname": field.fieldname,
-				"label": field.label,
-				"fieldtype": field.fieldtype,
-				"options": field.options,
-				"reqd": field.reqd,
-				"hidden": field.hidden,
-				"read_only": field.read_only,
-				"default": field.default,
-				"in_list_view": field.in_list_view,
-				"in_standard_filter": field.in_standard_filter,
-			}
-		)
 	return {
 		"name": meta.name,
 		"module": meta.module,
@@ -154,8 +142,31 @@ def get_meta(doctype: str) -> dict[str, Any]:
 		"autoname": meta.autoname,
 		"title_field": meta.title_field,
 		"search_fields": meta.search_fields,
-		"fields": fields,
+		"fields": [_field_meta(field, nest_children=True) for field in meta.fields],
 	}
+
+
+def _field_meta(field, nest_children: bool = False) -> dict[str, Any]:
+	row = {
+		"fieldname": field.fieldname,
+		"label": field.label,
+		"fieldtype": field.fieldtype,
+		"options": field.options,
+		"reqd": field.reqd,
+		"hidden": field.hidden,
+		"read_only": field.read_only,
+		"default": field.default,
+		"in_list_view": field.in_list_view,
+		"in_standard_filter": field.in_standard_filter,
+		"permlevel": field.permlevel,
+		"depends_on": field.depends_on,
+		"fetch_from": field.fetch_from,
+	}
+	if nest_children and field.fieldtype == "Table" and field.options:
+		child = frappe.get_meta(field.options)
+		if child.istable:
+			row["fields"] = [_field_meta(f) for f in child.fields]
+	return row
 
 
 @frappe.whitelist()

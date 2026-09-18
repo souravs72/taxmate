@@ -18,7 +18,7 @@ POST /api/method/taxmate.api.get_session
 POST /api/method/taxmate.api.dashboard.get_home
 ```
 
-`get_catalog` returns product DocTypes (invoices, parties, COA, UAE filings), financial reports, and RPC method names. DocTypes outside the TaxMate product surface (HR, manufacturing, CRM) are rejected.
+`get_catalog` returns product DocTypes (invoices, parties, COA, UAE filings), financial reports, and RPC method names. DocTypes outside the TaxMate product surface (HR, manufacturing, CRM) are rejected. `get_meta` nests child-table fields under each Table field so a form can render invoice lines without listing child DocTypes.
 
 ## Documents
 
@@ -83,7 +83,7 @@ POST /api/method/taxmate.api.reports.run_report
 {"report_name": "General Ledger", "filters": {"company": "Tax Mate", "from_date": "2026-01-01", "to_date": "2026-12-31"}}
 ```
 
-Reports are the Financial Reports workspace set (P&L, Balance Sheet, GL, AR/AP, UAE VAT 201, …).
+`filters` must be a JSON object. List-of-lists filters are rejected. Reports are the Financial Reports workspace set (P&L, Balance Sheet, GL, AR/AP, UAE VAT 201, …).
 
 ## UAE actions already on TaxMate
 
