@@ -124,7 +124,7 @@ export function BarRow({ label, value, amount, colour }: {
     <div className="bar">
       <div className="lab">
         <span className="l"><i className="sw" style={{ background: colour }} />{label}</span>
-        <span className="r">{pct(value)}<small>AED {money(amount)}</small></span>
+        <span className="r">{pct(value)}<small>{money(amount)}</small></span>
       </div>
       <div className="track"><i style={{ width: `${value}%`, background: colour }} /></div>
     </div>
@@ -209,11 +209,11 @@ export function ReadRow({ k, v, sub, link }: {
   );
 }
 
-export function SumRow({ k, v, cls }: { k: string; v: React.ReactNode; cls?: string }) {
+export function SumRow({ k, v, cls, currency }: { k: string; v: React.ReactNode; cls?: string; currency?: string }) {
   return (
     <div className={`srow${cls ? ` ${cls}` : ""}`}>
       <span className="k">{k}</span>
-      <span className="v"><span className="cur">AED</span>{v}</span>
+      <span className="v">{currency ? <span className="cur">{currency}</span> : null}{v}</span>
     </div>
   );
 }

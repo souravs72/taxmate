@@ -70,6 +70,8 @@ export default function SalesOrderCreate() {
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.itemDetails);
 
   const create = useFrappeCreateDoc();
+  const submitCall = useFrappePostCall<{ message: { name: string } }>(METHOD.submit);
+  const busy = create.loading || submitCall.loading;
 
   useEffect(() => {
     if (!customer) return;
@@ -95,7 +97,7 @@ export default function SalesOrderCreate() {
       i === idx ? { ...l, item_code, item_name: meta?.item_name, uom: meta?.stock_uom } : l));
     try {
       const r = await itemCall.call({
-        args: {
+        ctx: {
           item_code,
           customer,
           doctype: DT.salesOrder,
@@ -127,7 +129,9 @@ export default function SalesOrderCreate() {
   ] as const;
   const done = checks.filter(([, ok]) => ok).length;
 
-  async function save(submit: boolean) {
+  async function save(shouldSubmit: boolean) {
+    /* Always insert as draft. Confirm Order then calls workflow.submit so
+       ERPNext runs set_status (insert with docstatus:1 leaves status=Draft). */
     const doc = {
       customer,
       transaction_date: orderDate,
@@ -138,8 +142,6 @@ export default function SalesOrderCreate() {
       customer_address: party.customer_address,
       selling_price_list: party.selling_price_list,
       payment_terms_template: party.payment_terms_template,
-      /* delivery_date is required per line; ERPNext syncs it from the parent
-         in validate_delivery_date, but setting it avoids the round trip.  */
       items: lines.map((l) => ({
         item_code: l.item_code,
         qty: l.qty,
@@ -147,10 +149,12 @@ export default function SalesOrderCreate() {
         uom: l.uom,
         delivery_date: deliveryDate,
       })),
-      docstatus: submit ? 1 : 0,
     };
-    const created = await create.createDoc(DT.salesOrder, doc);
-    nav(`/orders/${encodeURIComponent((created as { name: string }).name)}`);
+    const created = await create.createDoc(DT.salesOrder, doc) as { name: string };
+    if (shouldSubmit) {
+      await submitCall.call({ doc: { doctype: DT.salesOrder, name: created.name } });
+    }
+    nav(`/orders/${encodeURIComponent(created.name)}`);
   }
 
   return (
@@ -161,10 +165,10 @@ export default function SalesOrderCreate() {
         actions={
           <>
             <button className="btn quiet" onClick={() => nav("/orders")}>{t("soc.discard")}</button>
-            <button className="btn ghost" disabled={create.loading || done < 5} onClick={() => save(false)}>
-              {create.loading ? t("soc.saving") : t("soc.save")}
+            <button className="btn ghost" disabled={busy || done < 5} onClick={() => save(false)}>
+              {busy ? t("soc.saving") : t("soc.save")}
             </button>
-            <button className="btn" disabled={create.loading || done < 5} onClick={() => save(true)}>
+            <button className="btn" disabled={busy || done < 5} onClick={() => save(true)}>
               {t("soc.submit")}
             </button>
           </>
@@ -177,6 +181,7 @@ export default function SalesOrderCreate() {
       </PageHead>
 
       {create.error && <ErrorBox error={create.error} />}
+      {submitCall.error && <ErrorBox error={submitCall.error} />}
       {partyCall.error && <ErrorBox error={partyCall.error} />}
 
       <div className="body2">

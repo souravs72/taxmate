@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useFrappeAuth } from "frappe-react-sdk";
 
 import { getLang, setLang } from "../lib/i18n";
 import { toggleTheme } from "../lib/theme";
 import { t } from "../i18n/strings";
+import GlobalSearch from "./GlobalSearch";
 
 type NavItem = { to: string; key: string; icon: JSX.Element } | { section: string };
 
@@ -34,7 +35,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   });
   const [, force] = useState(0);
   const { currentUser } = useFrappeAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     try { localStorage.setItem(RAIL_KEY, collapsed ? "1" : "0"); } catch { /* ignore */ }
@@ -87,19 +87,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </svg>
           </button>
 
-          <div className="tsearch">
-            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7">
-              <circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" />
-            </svg>
-            <input
-              type="search"
-              placeholder={t("search.placeholder")}
-              onKeyDown={(e) => {
-                const v = (e.target as HTMLInputElement).value.trim();
-                if (e.key === "Enter" && v) navigate(`/orders?q=${encodeURIComponent(v)}`);
-              }}
-            />
-          </div>
+          <GlobalSearch />
 
           <div className="tright">
             <button
