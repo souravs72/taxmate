@@ -1,0 +1,114 @@
+/* ─────────────────────────────────────────────────────────────────────
+   TaxMate design tokens — single source of truth.
+   Mirrors claude/ui-design-system.md in the project.
+   Chart colours are deliberately NOT the brand hue: paired with the
+   cyan "Delivered" the brand blue fails the colour-blind separation
+   floor (ΔE 14, floor 15). Do not "fix" that by unifying them.
+   ───────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --sunk: #f9fafb;
+  --hover: #f4f7ff;
+  --input: #ffffff;
+
+  --text: #111827;
+  --muted: #6b7280;
+  --faint: #9ca3af;
+
+  --border: #e5e7eb;
+  --border-2: #d1d5db;
+
+  --brand: #487fff;
+  --brand-hover: #2f6bf5;
+  --brand-ink: #ffffff;
+  --brand-soft: #e8f0ff;
+  --brand-line: #b9d0ff;
+
+  --ok: #16a34a;
+  --ok-bg: #dcfce7;
+  --warn: #d97706;
+  --warn-bg: #fdf0d9;
+  --bad: #dc2626;
+  --bad-bg: #fee2e2;
+  --info: #0284c7;
+  --info-bg: #e0f2fe;
+
+  --c-draft: #d97706;
+  --c-confirmed: #4f46e5;
+  --c-delivered: #0891b2;
+  --c-billed: #16a34a;
+  --track: #eef0f4;
+
+  --r: 10px;
+  --r-sm: 8px;
+  --railw: 264px;
+
+  --ui: "Inter", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f18;
+    --surface: #141a25;
+    --sunk: #10151f;
+    --hover: #1a2233;
+    --input: #1a2130;
+    --text: #e8ecf4;
+    --muted: #98a2b6;
+    --faint: #6b768c;
+    --border: #222a39;
+    --border-2: #2e3849;
+    --brand: #6e9bff;
+    --brand-hover: #85adff;
+    --brand-ink: #0b0f18;
+    --brand-soft: #17233d;
+    --brand-line: #2c3f68;
+    --ok: #4ade80;
+    --ok-bg: #10281a;
+    --warn: #f0b429;
+    --warn-bg: #2c2312;
+    --bad: #f87171;
+    --bad-bg: #2d1416;
+    --info: #38bdf8;
+    --info-bg: #0c2839;
+    --c-draft: #c97a06;
+    --c-confirmed: #6f6cf0;
+    --c-delivered: #0f93b0;
+    --c-billed: #1f9e4a;
+    --track: #1d2534;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0b0f18;
+  --surface: #141a25;
+  --sunk: #10151f;
+  --hover: #1a2233;
+  --input: #1a2130;
+  --text: #e8ecf4;
+  --muted: #98a2b6;
+  --faint: #6b768c;
+  --border: #222a39;
+  --border-2: #2e3849;
+  --brand: #6e9bff;
+  --brand-hover: #85adff;
+  --brand-ink: #0b0f18;
+  --brand-soft: #17233d;
+  --brand-line: #2c3f68;
+  --ok: #4ade80;
+  --ok-bg: #10281a;
+  --warn: #f0b429;
+  --warn-bg: #2c2312;
+  --bad: #f87171;
+  --bad-bg: #2d1416;
+  --info: #38bdf8;
+  --info-bg: #0c2839;
+  --c-draft: #c97a06;
+  --c-confirmed: #6f6cf0;
+  --c-delivered: #0f93b0;
+  --c-billed: #1f9e4a;
+  --track: #1d2534;
+}

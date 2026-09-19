@@ -1,0 +1,54 @@
+/**
+ * Locale + direction. Arabic is a v1 constraint, so `dir` is set on <html>
+ * and every layout rule is logical-first.
+ *
+ * Strings live in flat dictionaries keyed identically, so a missing Arabic
+ * key silently falls back to English rather than rendering blank.
+ */
+
+export type Lang = "en" | "ar";
+
+const STORE_KEY = "taxmate-lang";
+let current: Lang = "en";
+
+try {
+  const saved = localStorage.getItem(STORE_KEY);
+  if (saved === "ar" || saved === "en") current = saved;
+} catch {
+  /* private window or blocked storage — English it is */
+}
+
+export function getLang(): Lang {
+  return current;
+}
+
+export function getLocale(): string {
+  return current === "ar" ? "ar-AE" : "en-GB";
+}
+
+export function setLang(lang: Lang): void {
+  current = lang;
+  try {
+    localStorage.setItem(STORE_KEY, lang);
+  } catch {
+    /* ignore */
+  }
+  applyDir();
+}
+
+export function applyDir(): void {
+  const root = document.documentElement;
+  root.setAttribute("dir", current === "ar" ? "rtl" : "ltr");
+  root.setAttribute("lang", current);
+}
+
+type Dict = Record<string, string>;
+
+export function makeT(en: Dict, ar: Dict) {
+  return (key: string): string => (current === "ar" ? (ar[key] ?? en[key] ?? key) : (en[key] ?? key));
+}
+
+/** Pick the localised field off a record, e.g. customer_name vs its Arabic twin. */
+export function pick<T>(enVal: T, arVal?: T): T {
+  return current === "ar" && arVal != null ? arVal : enVal;
+}

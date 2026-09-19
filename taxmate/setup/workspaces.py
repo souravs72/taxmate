@@ -75,7 +75,7 @@ def ensure_product_workspaces() -> None:
 def _retire_colliding_taxmate_settings_workspace() -> None:
 	"""Remove Workspace named like the TaxMate Settings DocType (route collision).
 
-	Clicking a DocType shortcut builds ``/desk/taxmate-settings/...``; if a
+	Clicking a DocType shortcut builds ``/app/taxmate-settings/...``; if a
 	Workspace owns that slug, the router opens the Workspace instead of Form.
 	"""
 	if not frappe.db.exists("Workspace", "TaxMate Settings"):

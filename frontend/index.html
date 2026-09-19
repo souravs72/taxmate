@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>TaxMate</title>
+
+    <!--
+      Injected by taxmate/www/taxmate.py get_context().
+      frappe-js-sdk reads window.csrf_token and attaches X-Frappe-CSRF-Token
+      (frappe-js-sdk/lib/utils/axios.js:25). It ignores the unsubstituted
+      literal, so if this page is ever served statically you get a clean
+      failure rather than a silent one.
+      The site name comes from the server — never hardcode it.
+    -->
+    <script>
+      window.csrf_token = "{{ csrf_token }}";
+      window.site_name = "{{ site_name }}";
+      window.taxmate_boot = {
+        user: "{{ frappe_user }}",
+        socket_port: "{{ socket_port }}"
+      };
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

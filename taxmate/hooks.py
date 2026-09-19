@@ -82,6 +82,12 @@ doctype_list_js = {
 # automatically create page for each record of this doctype
 # website_generators = ["Web Page"]
 
+# React SPA at /taxmate (frappe-react-sdk). Nested routes stay on the same page.
+# Do not add the bundle to app_include_js — this is not a Desk extension.
+website_route_rules = [
+	{"from_route": "/taxmate/<path:app_path>", "to_route": "taxmate"},
+]
+
 # automatically load and sync documents of this doctype from downstream apps
 # importable_doctypes = [doctype_1]
 

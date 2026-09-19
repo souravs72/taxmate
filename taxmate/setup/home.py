@@ -1,7 +1,7 @@
 """Make Desk Home the UAE accounting landing page for TaxMate.
 
 ERPNext ships a generic Home (Item / Customer / Stock / CRM). TaxMate
-reuses that Workspace — it is the `/desk/home` route — and fills it with
+reuses that Workspace — it is the `/app/home` route — and fills it with
 daily books work, UAE tax queues, and KPI number cards.
 
 Full compliance catalogues stay on the UAE Compliance workspace. Home shows
