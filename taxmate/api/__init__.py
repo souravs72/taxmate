@@ -173,6 +173,7 @@ def get_catalog() -> dict[str, Any]:
 				"name": "fulfilment_summary",
 				"method": "taxmate.api.sales_order.fulfilment_summary",
 			},
+			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
 			*_EXISTING_ACTIONS,

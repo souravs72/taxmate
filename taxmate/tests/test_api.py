@@ -45,6 +45,7 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
 		self.assertIn("taxmate.api.sales_order.fulfilment_summary", methods)
+		self.assertIn("taxmate.api.search.awesome", methods)
 		self.assertIn("taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice", methods)
 
 		reports = {row["report"] for row in catalog["reports"]}
@@ -113,6 +114,10 @@ class TestApiResource(FrappeTestCase):
 				get_home()
 			with self.assertRaises(frappe.AuthenticationError):
 				list_reports()
+			from taxmate.api.search import awesome
+
+			with self.assertRaises(frappe.AuthenticationError):
+				awesome(text="invoice")
 		finally:
 			frappe.set_user("Administrator")
 
@@ -324,6 +329,18 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(amended["docstatus"], 0)
 		self.assertEqual(amended["amended_from"], doc["name"])
 		self.assertFalse(amended.get("uae_e_invoice_status"))
+
+
+class TestApiSearch(FrappeTestCase):
+	def test_awesome_search_returns_wave1_pages(self):
+		from taxmate.api.search import awesome
+
+		result = awesome(text="invoice", limit=10)
+		self.assertEqual(result["query"], "invoice")
+		self.assertTrue(result["groups"])
+		routes = [hit["route"] for group in result["groups"] for hit in group["results"]]
+		self.assertTrue(any(route.startswith("/invoices") for route in routes))
+		self.assertFalse(any(route.startswith("/app/") for route in routes))
 
 
 class TestSalesOrderApi(FrappeTestCase):

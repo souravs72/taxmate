@@ -74,7 +74,6 @@ export const METHOD = {
   getHome: "taxmate.api.dashboard.get_home",
   getDefaults: "taxmate.api.accounts.get_defaults",
   getPartyDetails: "taxmate.api.accounts.get_party_details",
-  /** Alias used by Sales Order create — same allowlisted wrapper. */
   partyDetails: "taxmate.api.accounts.get_party_details",
   getItemDetails: "taxmate.api.accounts.get_item_details",
   itemDetails: "taxmate.api.accounts.get_item_details",
@@ -87,6 +86,7 @@ export const METHOD = {
   searchLink: "taxmate.api.resource.search_link",
   runReport: "taxmate.api.reports.run_report",
   fulfilmentSummary: "taxmate.api.sales_order.fulfilment_summary",
+  awesomeSearch: "taxmate.api.search.awesome",
   generateEInvoice: "taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice",
   /** Mapper returns an unsaved doc — caller must insert. */
   makeDeliveryNote: "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",

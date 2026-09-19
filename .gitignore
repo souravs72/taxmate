@@ -56,6 +56,12 @@ jspm_packages/
 brag-output/
 uv.lock
 
-# React SPA build output (source lives in frontend/)
+# React SPA build output
 taxmate/public/frontend/
 taxmate/www/taxmate.html
+
+# Installed agent skills/plugins (local copies; restore with `npx skills experimental_install`)
+.agents/
+.claude/
+.cursor/skills/
+.cursor/agents/
