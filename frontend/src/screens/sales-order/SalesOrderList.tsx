@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 import { useFrappeGetCall, useFrappeGetDocCount, useFrappeGetDocList } from "frappe-react-sdk";
 
@@ -29,10 +29,17 @@ type GroupCount = { name: string; count: number };
 
 export default function SalesOrderList() {
   const nav = useNavigate();
-  const [q, setQ] = useState("");
+  const [params] = useSearchParams();
+  const [q, setQ] = useState(() => params.get("q") ?? "");
   const [customer, setCustomer] = useState("");
   const [uiStatus, setUiStatus] = useState<"" | SoUiStatus>("");
   const [page, setPage] = useState(0);
+
+  /* Keep list filter in sync when AwesomeBar lands on /orders?q=… */
+  useEffect(() => {
+    setQ(params.get("q") ?? "");
+    setPage(0);
+  }, [params]);
 
   /* Server-side filters. Status filters expand to the ERPNext values —
      see lib/status.ts for why the mapping is client-side.               */
@@ -101,26 +108,26 @@ export default function SalesOrderList() {
         actions={
           <>
             <button className="btn ghost">{t("so.export")}</button>
-            <button className="btn" onClick={() => nav("/orders/new")}>＋ {t("so.new")}</button>
+            <button className="btn" onClick={() => nav("/orders/new")}>{t("so.new")}</button>
           </>
         }
       />
 
       {s && (
         <div className="tiles">
-          <StatTile colour="var(--brand)" tint="rgba(72,127,255,.14)"
+          <StatTile colour="var(--brand)" tint="rgba(72,127,255,.08)"
             icon='<path d="M3.5 2.5h11v13h-11z"/><path d="M6 6h6M6 9h6"/>'
             label={t("so.tile.open")} value={s.open_count}
             foot={`AED ${money(s.committed)} ${t("so.tile.openFoot")}`} />
-          <StatTile colour="var(--c-billed)" tint="rgba(22,163,74,.13)"
+          <StatTile colour="var(--c-billed)" tint="rgba(22,163,74,.08)"
             icon='<path d="M2 5.5h11.5a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/><circle cx="12.4" cy="10" r="1"/>'
             label={t("so.tile.committed")} value={money(s.committed)} unit="AED"
             foot={t("so.tile.committedFoot")} />
-          <StatTile colour="var(--c-delivered)" tint="rgba(8,145,178,.13)"
+          <StatTile colour="var(--c-delivered)" tint="rgba(8,145,178,.08)"
             icon='<path d="M2 6h8v6H2zM10 8h2.5L15.5 10.5v1.5H10z"/><circle cx="4.5" cy="13.5" r="1.3"/>'
             label={t("so.tile.unbilled")} value={money(s.unbilled_delivered)} unit="AED"
             foot={t("so.tile.unbilledFoot")} />
-          <StatTile colour="var(--bad)" tint="rgba(220,38,38,.12)"
+          <StatTile colour="var(--bad)" tint="rgba(220,38,38,.08)"
             icon='<path d="M9 2.5 16 15H2z"/><path d="M9 7v3.5M9 12.2v.6"/>'
             label={t("so.tile.late")} value={s.overdue_count} foot={t("so.tile.lateFoot")} />
         </div>
