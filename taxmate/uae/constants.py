@@ -26,4 +26,9 @@ UAE_TAX_PRINT_FORMATS = (
 	"Simplified Tax Invoice",
 	"Detailed Tax Invoice",
 	"Tax Invoice",
+	"UAE Bilingual Tax Invoice",
+	"UAE Bilingual Purchase Invoice",
 )
+
+# FTA Executive Regulations: simplified tax invoice allowed for B2C ≤ AED 10,000
+SIMPLIFIED_TAX_INVOICE_THRESHOLD_AED = 10000.0

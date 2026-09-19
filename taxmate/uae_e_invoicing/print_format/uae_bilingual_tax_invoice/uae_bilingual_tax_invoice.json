@@ -10,14 +10,14 @@
  "docstatus": 0,
  "doctype": "Print Format",
  "font_size": 14,
- "html": "<div style=\"font-family: sans-serif; direction: ltr;\">\n  <h2>Tax Invoice / فاتورة ضريبية</h2>\n  <p><strong>{{ doc.name }}</strong> &mdash; {{ doc.posting_date }}</p>\n  <p>TRN: {{ doc.company_trn or \"\" }} | Emirate: {{ doc.vat_emirate or \"\" }}</p>\n  <p>Customer: {{ doc.customer_name }}</p>\n  <hr/>\n  <p><em>Stub bilingual format — replace with full AR/EN layout.</em></p>\n  <p>E-Invoice Status: {{ doc.uae_e_invoice_status or \"N/A\" }}</p>\n</div>",
+ "html": "{% include \"templates/print_formats/uae_bilingual_tax_invoice.html\" %}",
  "idx": 0,
  "line_breaks": 0,
  "margin_bottom": 15.0,
  "margin_left": 15.0,
  "margin_right": 15.0,
  "margin_top": 15.0,
- "modified": "2026-08-27 16:55:00.000000",
+ "modified": "2026-09-11 05:40:00.000000",
  "modified_by": "Administrator",
  "module": "UAE E-Invoicing",
  "name": "UAE Bilingual Tax Invoice",
@@ -28,5 +28,6 @@
  "print_format_type": "Jinja",
  "raw_printing": 0,
  "show_section_headings": 0,
- "standard": "Yes"
+ "standard": "Yes",
+ "font": "Default"
 }

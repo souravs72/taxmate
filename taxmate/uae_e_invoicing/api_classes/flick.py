@@ -194,9 +194,19 @@ def _party(party: dict[str, Any], fz_beneficiary_id: str | None) -> dict[str, An
 		"fz_beneficiary_id": fz_beneficiary_id,
 	}
 
+	identifiers = []
+	party_ids = party.get("PartyIdentification") or []
+	if not isinstance(party_ids, list):
+		party_ids = [party_ids]
+	for entry in party_ids:
+		ident = (entry or {}).get("ID") or {}
+		if ident.get("schemeID") == "AE:VAT-GROUP" and ident.get("value"):
+			identifiers.append({"type": "VAT-GROUP", "value": ident["value"]})
 	legal_id = legal_entity.get("CompanyID")
-	if legal_id:
-		result["identifiers"] = [{"type": "TL", "value": legal_id.get("value")}]
+	if legal_id and legal_id.get("value"):
+		identifiers.append({"type": "TL", "value": legal_id.get("value")})
+	if identifiers:
+		result["identifiers"] = identifiers
 
 	return _prune(result)
 

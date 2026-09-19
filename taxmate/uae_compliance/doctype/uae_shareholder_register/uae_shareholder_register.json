@@ -1,0 +1,124 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:company",
+ "creation": "2026-09-11 08:20:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "licence_authority",
+  "column_break_header",
+  "status",
+  "last_reviewed_on",
+  "shareholders_section",
+  "shareholders",
+  "notes_section",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "licence_authority",
+   "fieldtype": "Select",
+   "in_standard_filter": 1,
+   "label": "Licence Authority",
+   "options": "\nDED (Dubai)\nADGM\nDIFC\nRAKEZ\nDMCC\nJAFZA\nMinistry of Economy\nOther"
+  },
+  {
+   "fieldname": "column_break_header",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "Empty",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "On File\nEmpty",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_reviewed_on",
+   "fieldtype": "Date",
+   "label": "Last Reviewed On"
+  },
+  {
+   "fieldname": "shareholders_section",
+   "fieldtype": "Section Break",
+   "label": "Partners / Shareholders"
+  },
+  {
+   "description": "Legal ownership on the Register of Partners or Shareholders (Cabinet Decision 109/2023). This is not the beneficial-ownership test on the UBO Register.",
+   "fieldname": "shareholders",
+   "fieldtype": "Table",
+   "label": "Shareholders",
+   "options": "UAE Shareholder"
+  },
+  {
+   "fieldname": "notes_section",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-11 08:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Compliance",
+ "name": "UAE Shareholder Register",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1
+}

@@ -5,12 +5,22 @@
 
 (function () {
 	function add_verify_button(frm) {
-		if (!frm.doc.uae_peppol_id || frm.is_new()) {
+		if (frm.is_new()) {
 			return;
 		}
 		frm.add_custom_button(
 			__("Verify Peppol ID"),
 			() => {
+				if (!frm.doc.uae_peppol_id) {
+					frappe.msgprint({
+						title: __("Peppol Participant ID"),
+						indicator: "orange",
+						message: __(
+							"Set Peppol Participant ID on this party first. E-invoice routing to UAE buyers requires it."
+						),
+					});
+					return;
+				}
 				frappe.call({
 					method: "taxmate.uae_e_invoicing.utils.participant.lookup_peppol_participant",
 					args: { peppol_id: frm.doc.uae_peppol_id },

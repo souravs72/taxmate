@@ -16,7 +16,12 @@
   "asp_section",
   "asp_document_id",
   "submitted_on",
+  "issued_on",
   "column_break_asp",
+  "accepted_on",
+  "sla_due",
+  "taxable_amount",
+  "vat_amount",
   "retry_count",
   "error_message",
   "payload_section",
@@ -97,8 +102,42 @@
    "read_only": 1
   },
   {
+   "fieldname": "issued_on",
+   "fieldtype": "Datetime",
+   "label": "Issued On",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_asp",
    "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "accepted_on",
+   "fieldtype": "Datetime",
+   "label": "Accepted On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "sla_due",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "SLA Due",
+   "read_only": 1
+  },
+  {
+   "fieldname": "taxable_amount",
+   "fieldtype": "Currency",
+   "label": "Taxable Amount (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_amount",
+   "fieldtype": "Currency",
+   "label": "VAT Amount (AED)",
+   "options": "AED",
+   "read_only": 1
   },
   {
    "default": "0",
@@ -138,7 +177,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-08-27 16:50:00.000000",
+ "modified": "2026-09-11 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "UAE E-Invoicing",
  "name": "UAE E-Invoice Log",

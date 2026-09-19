@@ -1,0 +1,315 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:VAT201-{company}-{period_start}-{#####}",
+ "creation": "2026-09-10 00:00:00.000000",
+ "default_print_format": "UAE VAT 201 Worksheet",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "period_start",
+  "period_end",
+  "column_break_period",
+  "filing_due_date",
+  "status",
+  "deadline_status",
+  "company_trn",
+  "vat_group",
+  "include_group_members",
+  "tax_currency",
+  "tax_currency_rate",
+  "manual_section",
+  "box_6_amount",
+  "box_6_vat_amount",
+  "column_break_manual",
+  "box_7_amount",
+  "box_7_vat_amount",
+  "boxes_6_7_manual",
+  "manual_help",
+  "boxes_section",
+  "boxes",
+  "net_section",
+  "net_vat_due",
+  "column_break_net",
+  "generated_on",
+  "filing_section",
+  "notes",
+  "filed_on",
+  "filed_by",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Period Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Period End",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "28 calendar days after Period End, per FTA VAT 201 rules.",
+   "fieldname": "filing_due_date",
+   "fieldtype": "Date",
+   "label": "Filing Due Date",
+   "read_only": 1
+  },
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Status",
+   "options": "Draft\nReviewed",
+   "reqd": 1
+  },
+  {
+   "default": "Upcoming",
+   "fieldname": "deadline_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Deadline Status",
+   "options": "Upcoming\nDue\nOverdue\nFiled",
+   "read_only": 1
+  },
+  {
+   "description": "Snapshot of the Company TRN this return is prepared for. Do not file another entity's TRN.",
+   "fieldname": "company_trn",
+   "fieldtype": "Data",
+   "label": "Filed TRN",
+   "read_only": 1
+  },
+  {
+   "fieldname": "vat_group",
+   "fieldtype": "Link",
+   "label": "VAT Group",
+   "options": "UAE VAT Group",
+   "description": "Optional. The representative files one return for all members still in the group this period."
+  },
+  {
+   "default": "0",
+   "depends_on": "eval:doc.vat_group",
+   "description": "Sum member companies into this return. Members should not file a separate VAT 201 for the same period.",
+   "fieldname": "include_group_members",
+   "fieldtype": "Check",
+   "label": "Include Group Members"
+  },
+  {
+   "default": "AED",
+   "fieldname": "tax_currency",
+   "fieldtype": "Data",
+   "label": "Tax Currency",
+   "read_only": 1
+  },
+  {
+   "default": "1",
+   "description": "Company currency to AED. 1.0 when books are already in AED.",
+   "fieldname": "tax_currency_rate",
+   "fieldtype": "Float",
+   "label": "AED Rate",
+   "precision": "6",
+   "read_only": 1
+  },
+  {
+   "fieldname": "manual_section",
+   "fieldtype": "Section Break",
+   "label": "Boxes 6 & 7 \u2014 Goods Imported"
+  },
+  {
+   "fieldname": "box_6_amount",
+   "fieldtype": "Currency",
+   "label": "Box 6: Value of Goods Imported (AED)",
+   "options": "AED"
+  },
+  {
+   "fieldname": "box_6_vat_amount",
+   "fieldtype": "Currency",
+   "label": "Box 6: VAT on Goods Imported (AED)",
+   "options": "AED"
+  },
+  {
+   "fieldname": "column_break_manual",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "box_7_amount",
+   "fieldtype": "Currency",
+   "label": "Box 7: Adjustments to Imports (AED)",
+   "options": "AED"
+  },
+  {
+   "fieldname": "box_7_vat_amount",
+   "fieldtype": "Currency",
+   "label": "Box 7: VAT Adjustment (AED)",
+   "options": "AED"
+  },
+  {
+   "default": "0",
+   "description": "When checked, Generate keeps the Box 6/7 figures you typed. When unchecked, they come from submitted UAE Customs Declarations.",
+   "fieldname": "boxes_6_7_manual",
+   "fieldtype": "Check",
+   "label": "Override Customs Totals"
+  },
+  {
+   "fieldname": "manual_help",
+   "fieldtype": "HTML",
+   "options": "<div class=\"text-muted small\">Boxes 6 and 7 default from submitted UAE Customs Declaration rows in this period. Tick Override Customs Totals to type EmaraTax import figures instead. There is no EmaraTax filing API as of 2026-09 \u2014 export the accountant pack and file in the portal.</div>"
+  },
+  {
+   "fieldname": "boxes_section",
+   "fieldtype": "Section Break",
+   "label": "VAT 201 Boxes"
+  },
+  {
+   "fieldname": "boxes",
+   "fieldtype": "Table",
+   "label": "Boxes",
+   "options": "UAE VAT 201 Box Detail"
+  },
+  {
+   "fieldname": "net_section",
+   "fieldtype": "Section Break",
+   "label": "Net Position"
+  },
+  {
+   "description": "Box 14. Positive = payable to the FTA. Negative = reclaimable / carried forward.",
+   "fieldname": "net_vat_due",
+   "fieldtype": "Currency",
+   "label": "Net VAT Due (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_net",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "generated_on",
+   "fieldtype": "Datetime",
+   "label": "Boxes Last Generated On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "filing_section",
+   "fieldtype": "Section Break",
+   "label": "Filing"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "filed_on",
+   "fieldtype": "Datetime",
+   "label": "Filed On",
+   "read_only": 1,
+   "description": "Set automatically when this filing is submitted (locked as the audit record)."
+  },
+  {
+   "fieldname": "filed_by",
+   "fieldtype": "Link",
+   "label": "Filed By",
+   "options": "User",
+   "read_only": 1,
+   "description": "Set automatically when this filing is submitted (locked as the audit record)."
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "UAE VAT 201 Filing Log",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-09-11 06:40:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE VAT 201 Filing Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "UAE Tax Manager",
+   "share": 1,
+   "write": 1,
+   "submit": 1,
+   "cancel": 1,
+   "amend": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1,
+ "is_submittable": 1
+}

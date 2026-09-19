@@ -54,8 +54,22 @@ PARTY_LEGAL_FIELDS = [
 		"label": "FZ Beneficiary ID",
 		"fieldtype": "Data",
 		"insert_after": "uae_peppol_id",
-		"description": "BTAE-01: mandatory for Free Trade Zone transactions",
+		"description": (
+			"BTAE-01 / IBR-007-ae: Free Zone beneficiary identifier for this party. "
+			"E-invoice requires it on the buyer (Customer on sales; Company on self-billed purchases)."
+		),
 		"translatable": 0,
+	},
+]
+
+PARTY_ZONE_FIELDS = [
+	{
+		"fieldname": "uae_in_designated_zone",
+		"label": "In Designated Zone",
+		"fieldtype": "Check",
+		"insert_after": "uae_fz_beneficiary_id",
+		"description": "Party is in a UAE Designated Zone. Goods remaining in-zone may be out of scope of VAT.",
+		"default": "0",
 	},
 ]
 
@@ -100,8 +114,8 @@ INVOICE_E_INVOICE_FIELDS = [
 		"options": BILLING_FREQUENCY_SELECT_OPTIONS,
 		"insert_after": "uae_transaction_type_code",
 		"description": (
-			"IBG-14 InvoicePeriod description code. Required for Summary / Continuous Supply "
-			"transactions (transaction type flags)."
+			"IBG-14 InvoicePeriod description code. Required for Deemed Supply, Summary Invoice, "
+			"or Continuous Supply (BTAE-02). Not required merely because a Payment Due Date is set."
 		),
 		"translatable": 0,
 	},
@@ -166,6 +180,43 @@ INVOICE_E_INVOICE_FIELDS = [
 	},
 ]
 
+PURCHASE_VAT_OPS_FIELDS = [
+	{
+		"fieldname": "uae_box_9_manual",
+		"label": "Manual Box 9 Amount",
+		"fieldtype": "Check",
+		"insert_after": "recoverable_standard_rated_expenses",
+		"description": "When checked, TaxMate will not recalculate Recoverable Standard Rated Expenses.",
+		"default": "0",
+	},
+	{
+		"fieldname": "uae_box_9_taxable_amount",
+		"label": "Box 9 Taxable Amount (AED)",
+		"fieldtype": "Currency",
+		"insert_after": "uae_box_9_manual",
+		"description": "Taxable consideration for VAT 201 Box 9 (lines with recoverable input tax only).",
+		"read_only_depends_on": "eval:!doc.uae_box_9_manual",
+	},
+	{
+		"fieldname": "uae_credit_note_reason",
+		"label": "UAE Credit Note Reason",
+		"fieldtype": "Small Text",
+		"insert_after": "uae_box_9_taxable_amount",
+		"depends_on": "eval:doc.is_return",
+		"mandatory_depends_on": "eval:doc.is_return",
+	},
+	{
+		"fieldname": "uae_return_against_external",
+		"label": "External Return Against",
+		"fieldtype": "Data",
+		"insert_after": "uae_credit_note_reason",
+		"depends_on": "eval:doc.is_return && !doc.return_against",
+		"description": "Number of the original invoice when it was issued outside this system.",
+		"no_copy": 1,
+		"translatable": 0,
+	},
+]
+
 PURCHASE_INVOICE_E_INVOICE_FIELDS = [
 	{
 		"fieldname": "uae_e_invoice_section",
@@ -193,12 +244,39 @@ PURCHASE_INVOICE_E_INVOICE_FIELDS = [
 		"translatable": 0,
 	},
 	{
+		"fieldname": "uae_transaction_type_code",
+		"label": "UAE Transaction Type Code",
+		"fieldtype": "Data",
+		"default": "00000000",
+		"insert_after": "uae_document_type_code",
+		"depends_on": "uae_submit_to_fta",
+		"description": (
+			"BTAE-02: 8-digit flag string — positions: 1 Free Trade Zone, 2 Deemed supply, "
+			"3 Margin scheme, 4 Summary invoice, 5 Continuous supply, "
+			"6 Disclosed agent billing, 7 E-commerce, 8 Export"
+		),
+		"translatable": 0,
+	},
+	{
+		"fieldname": "uae_billing_frequency",
+		"label": "Billing Frequency",
+		"fieldtype": "Select",
+		"options": BILLING_FREQUENCY_SELECT_OPTIONS,
+		"insert_after": "uae_transaction_type_code",
+		"depends_on": "uae_submit_to_fta",
+		"description": (
+			"IBG-14 InvoicePeriod description code. Required for Deemed Supply, Summary Invoice, "
+			"or Continuous Supply (BTAE-02). Not required merely because a Payment Due Date is set."
+		),
+		"translatable": 0,
+	},
+	{
 		"fieldname": "uae_payment_means_code",
 		"label": "UAE Payment Means",
 		"fieldtype": "Select",
 		"options": PAYMENT_MEANS_SELECT_OPTIONS,
 		"default": "30 - Credit transfer",
-		"insert_after": "uae_document_type_code",
+		"insert_after": "uae_billing_frequency",
 		"depends_on": "uae_submit_to_fta",
 		"translatable": 0,
 	},
@@ -254,18 +332,69 @@ INVOICE_ITEM_FIELDS = [
 		"print_hide": 1,
 		"translatable": 0,
 	},
-	{
-		"fieldname": "sac_code",
-		"label": "SAC Code",
-		"fieldtype": "Data",
-		"insert_after": "hs_code",
-		"fetch_from": "item_code.sac_code",
-		"fetch_if_empty": 1,
-		"depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
-		"print_hide": 1,
-		"translatable": 0,
-	},
-]
+		{
+			"fieldname": "sac_code",
+			"label": "SAC Code",
+			"fieldtype": "Data",
+			"insert_after": "hs_code",
+			"fetch_from": "item_code.sac_code",
+			"fetch_if_empty": 1,
+			"depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
+			"print_hide": 1,
+			"translatable": 0,
+		},
+		{
+			"fieldname": "uae_excise_category",
+			"label": "UAE Excise Category",
+			"fieldtype": "Select",
+			"options": "\nTobacco and tobacco products\nCarbonated drinks\nEnergy drinks\nSweetened drinks\nElectronic smoking devices\nLiquids used in electronic smoking devices",
+			"insert_after": "sac_code",
+			"fetch_from": "item_code.uae_excise_category",
+			"fetch_if_empty": 1,
+			"print_hide": 1,
+			"translatable": 0,
+		},
+		{
+			"fieldname": "uae_is_margin_scheme",
+			"label": "Margin Scheme",
+			"fieldtype": "Check",
+			"insert_after": "uae_excise_category",
+			"fetch_from": "item_code.uae_is_margin_scheme",
+			"fetch_if_empty": 1,
+			"default": "0",
+			"print_hide": 1,
+		},
+		{
+			"fieldname": "uae_purchase_price",
+			"label": "Margin Scheme Purchase Price (AED)",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"insert_after": "uae_is_margin_scheme",
+			"depends_on": "eval:doc.uae_is_margin_scheme",
+			"description": "Line purchase consideration. On a credit note, scale this to the returned quantity.",
+			"print_hide": 1,
+		},
+		{
+			"fieldname": "uae_margin_amount",
+			"label": "Taxable Margin (AED)",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"insert_after": "uae_purchase_price",
+			"read_only": 1,
+			"depends_on": "eval:doc.uae_is_margin_scheme",
+			"print_hide": 1,
+		},
+		{
+			"fieldname": "uae_margin_vat",
+			"label": "VAT on Margin (AED)",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"insert_after": "uae_margin_amount",
+			"read_only": 1,
+			"depends_on": "eval:doc.uae_is_margin_scheme",
+			"print_hide": 1,
+		},
+	]
 
 CUSTOM_FIELDS = {
 	"Company": [
@@ -318,12 +447,23 @@ CUSTOM_FIELDS = {
 			"label": "FZ Beneficiary ID",
 			"fieldtype": "Data",
 			"insert_after": "uae_peppol_id",
-			"description": "BTAE-01: Free Zone beneficiary identifier for the seller company",
+			"description": (
+				"BTAE-01 / IBR-007-ae: buyer FZ identifier when this company is the "
+				"AccountingCustomerParty (self-billed Purchase Invoice)."
+			),
 			"translatable": 0,
 		},
+		{
+			"fieldname": "uae_in_designated_zone",
+			"label": "In Designated Zone",
+			"fieldtype": "Check",
+			"insert_after": "uae_fz_beneficiary_id",
+			"description": "Company establishment is in a UAE Designated Zone for VAT place-of-supply rules.",
+			"default": "0",
+		},
 	],
-	"Customer": PARTY_LEGAL_FIELDS,
-	"Supplier": PARTY_LEGAL_FIELDS,
+	"Customer": PARTY_LEGAL_FIELDS + PARTY_ZONE_FIELDS,
+	"Supplier": PARTY_LEGAL_FIELDS + PARTY_ZONE_FIELDS,
 	"Item": [
 		{
 			"fieldname": "uae_classification_section",
@@ -355,6 +495,23 @@ CUSTOM_FIELDS = {
 			"insert_after": "hs_code",
 			"depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
 			"translatable": 0,
+		},
+		{
+			"fieldname": "uae_excise_category",
+			"label": "UAE Excise Category",
+			"fieldtype": "Select",
+			"options": "\nTobacco and tobacco products\nCarbonated drinks\nEnergy drinks\nSweetened drinks\nElectronic smoking devices\nLiquids used in electronic smoking devices",
+			"insert_after": "sac_code",
+			"description": "Set only if this item is an excise good. Leave blank if the tenant does not sell excise products.",
+			"translatable": 0,
+		},
+		{
+			"fieldname": "uae_is_margin_scheme",
+			"label": "Margin Scheme Item",
+			"fieldtype": "Check",
+			"insert_after": "uae_excise_category",
+			"default": "0",
+			"description": "Used goods sold under the VAT margin scheme. VAT 201 reports the margin, not full consideration.",
 		},
 	],
 	"Item Tax Template": [
@@ -388,6 +545,33 @@ CUSTOM_FIELDS = {
 			"depends_on": "eval:doc.uae_vat_category=='Reverse Charge'",
 			"translatable": 0,
 		},
+		{
+			"fieldname": "uae_blocked_input_tax",
+			"label": "Blocked Input Tax",
+			"fieldtype": "Check",
+			"insert_after": "uae_rcm_nature",
+			"description": "When checked, VAT on purchases using this template is not recoverable (Box 9 = 0 for those lines). Use for entertainment, motor vehicles, and non-business spend.",
+			"default": "0",
+		},
+		{
+			"fieldname": "uae_input_tax_block_reason",
+			"label": "Blocked Input Tax Reason",
+			"fieldtype": "Select",
+			"options": "\nEntertainment\nMotor Vehicle\nNon-business\nOther",
+			"insert_after": "uae_blocked_input_tax",
+			"depends_on": "eval:doc.uae_blocked_input_tax || doc.uae_input_tax_block_reason",
+			"description": "FTA blocked categories: entertainment, motor vehicles, non-business use.",
+			"translatable": 0,
+		},
+		{
+			"fieldname": "uae_input_tax_recovery_percent",
+			"label": "Input Tax Recovery %",
+			"fieldtype": "Percent",
+			"insert_after": "uae_input_tax_block_reason",
+			"description": "Share of input VAT recoverable on this template (100 = full recovery). Ignored when Blocked Input Tax is set.",
+			"default": "100",
+			"depends_on": "eval:!doc.uae_blocked_input_tax && !doc.uae_input_tax_block_reason",
+		},
 	],
 	"Mode of Payment": [
 		{
@@ -400,8 +584,46 @@ CUSTOM_FIELDS = {
 			"translatable": 0,
 		},
 	],
-	"Sales Invoice": INVOICE_E_INVOICE_FIELDS,
-	"Purchase Invoice": PURCHASE_INVOICE_E_INVOICE_FIELDS,
+	"Sales Invoice": INVOICE_E_INVOICE_FIELDS
+	+ [
+		{
+			"fieldname": "uae_establishment",
+			"label": "UAE Establishment",
+			"fieldtype": "Link",
+			"options": "UAE Establishment",
+			"insert_after": "company",
+			"description": "Mainland / Free Zone / Designated Zone establishment that made this supply.",
+		},
+	],
+	"Purchase Invoice": PURCHASE_VAT_OPS_FIELDS
+	+ PURCHASE_INVOICE_E_INVOICE_FIELDS
+	+ [
+		{
+			"fieldname": "uae_customs_declaration",
+			"label": "UAE Customs Declaration",
+			"fieldtype": "Link",
+			"options": "UAE Customs Declaration",
+			"insert_after": "bill_no",
+			"description": "Import bill that feeds VAT 201 Box 6/7 for this purchase.",
+		},
+		{
+			"fieldname": "uae_establishment",
+			"label": "UAE Establishment",
+			"fieldtype": "Link",
+			"options": "UAE Establishment",
+			"insert_after": "company",
+			"description": "Mainland / Free Zone / Designated Zone establishment that received this purchase.",
+		},
+	],
 	"Sales Invoice Item": INVOICE_ITEM_FIELDS,
 	"Purchase Invoice Item": INVOICE_ITEM_FIELDS,
+	"Landed Cost Voucher": [
+		{
+			"fieldname": "uae_customs_declaration",
+			"label": "UAE Customs Declaration",
+			"fieldtype": "Link",
+			"options": "UAE Customs Declaration",
+			"insert_after": "company",
+		},
+	],
 }

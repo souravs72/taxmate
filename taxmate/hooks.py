@@ -26,7 +26,10 @@ required_apps = ["erpnext"]
 
 # include js, css files in header of desk.html
 # app_include_css = "/assets/taxmate/css/taxmate.css"
-app_include_js = "/assets/taxmate/js/taxmate_e_invoice.js"
+app_include_js = [
+	"/assets/taxmate/js/taxmate_e_invoice.js",
+	"/assets/taxmate/js/taxmate_search.js",
+]
 
 # include js, css files in header of web template
 # web_include_css = "/assets/taxmate/css/taxmate.css"
@@ -151,7 +154,11 @@ after_migrate = "taxmate.install.after_migrate"
 doc_events = {
 	"Company": {
 		"validate": "taxmate.uae.company.validate",
-		"after_insert": "taxmate.uae.company.after_insert",
+		"after_insert": [
+			"taxmate.uae.company.after_insert",
+			"taxmate.uae_compliance.company.after_insert",
+			"taxmate.uae_corporate_tax.company.after_insert",
+		],
 		"on_update": "taxmate.uae.company.on_update",
 	},
 	"Customer": {
@@ -167,19 +174,47 @@ doc_events = {
 		"validate": "taxmate.uae_vat.overrides.item.validate",
 	},
 	"Sales Invoice": {
-		"validate": "taxmate.uae_e_invoicing.overrides.sales_invoice.validate",
+		"validate": [
+			"taxmate.uae_vat.overrides.sales_invoice.validate",
+			"taxmate.uae_e_invoicing.overrides.sales_invoice.validate",
+			"taxmate.uae_corporate_tax.overrides.sales_invoice.validate",
+		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_submit",
-		"before_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.before_cancel",
+		"before_cancel": [
+			"taxmate.uae_vat.overrides.sales_invoice.before_cancel",
+			"taxmate.uae_e_invoicing.overrides.sales_invoice.before_cancel",
+		],
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.sales_invoice.on_cancel",
 	},
 	"Purchase Invoice": {
+		"validate": [
+			"taxmate.uae_vat.overrides.purchase_invoice.validate",
+			"taxmate.uae_corporate_tax.overrides.purchase_invoice.validate",
+		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",
 		"on_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_submit",
-		"before_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_cancel",
+		"before_cancel": [
+			"taxmate.uae_vat.overrides.purchase_invoice.before_cancel",
+			"taxmate.uae_e_invoicing.overrides.purchase_invoice.before_cancel",
+		],
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_cancel",
 	},
 }
+
+for _retained in (
+	"UAE VAT 201 Filing Log",
+	"UAE CT Filing Log",
+	"UAE ESR Filing",
+	"UAE Excise Filing Log",
+	"UAE Customs Declaration",
+	"UAE Bad Debt Relief",
+	"UAE Capital Goods Adjustment",
+	"UAE VAT Group",
+	"UAE FTA Audit Pack",
+):
+	doc_events.setdefault(_retained, {})
+	doc_events[_retained]["on_trash"] = "taxmate.uae.retention.on_trash"
 
 # Scheduled Tasks
 # ---------------
@@ -188,6 +223,14 @@ scheduler_events = {
 	"hourly": [
 		"taxmate.uae_e_invoicing.background_jobs.retry.retry_failed_e_invoices",
 		"taxmate.uae_e_invoicing.background_jobs.status_poll.poll_submitted_e_invoices",
+	],
+	"daily": [
+		"taxmate.uae_compliance.notifications.refresh_all_statuses",
+		"taxmate.uae_compliance.notifications.send_deadline_reminders",
+		"taxmate.uae_vat.notifications.send_vat_201_reminders",
+		"taxmate.uae_e_invoicing.notifications.send_e_invoice_reminders",
+		"taxmate.uae_corporate_tax.notifications.send_ct_reminders",
+		"taxmate.uae_vat.utils.late_filing.sync_late_filing_notices",
 	],
 }
 
@@ -206,11 +249,11 @@ scheduler_events = {
 
 # Overriding Methods
 # ------------------------------
-#
-# override_whitelisted_methods = {
-# 	"frappe.desk.doctype.event.event.get_events": "taxmate.event.get_events"
-# }
-#
+override_whitelisted_methods = {
+	"idp.api.settings.get_settings": "taxmate.idp.clerk.get_settings",
+	"idp.api.conversation.confirm_card": "taxmate.idp.clerk.confirm_card",
+}
+
 # each overriding function accepts a `data` argument;
 # generated from the base implementation of the doctype dashboard,
 # along with any modifications made in other Frappe apps
@@ -267,6 +310,8 @@ scheduler_events = {
 # auth_hooks = [
 # 	"taxmate.auth.validate"
 # ]
+
+extend_bootinfo = "taxmate.search.boot_session"
 
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True

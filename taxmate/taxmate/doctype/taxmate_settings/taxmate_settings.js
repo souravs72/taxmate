@@ -5,7 +5,7 @@ frappe.ui.form.on("TaxMate Settings", {
 	refresh(frm) {
 		frm.set_intro(
 			__(
-				"TaxMate orchestrates ERPNext UAE VAT localization. Configure enforcement flags here; regional fields and the UAE VAT 201 report remain in ERPNext."
+				"Configure TaxMate UAE localization enforcement here. Regional VAT fields, tax templates, and the UAE VAT 201 report live under UAE Compliance."
 			)
 		);
 	},

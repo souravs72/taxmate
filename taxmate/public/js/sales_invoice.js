@@ -4,6 +4,11 @@
 /* global taxmate */
 
 frappe.ui.form.on("Sales Invoice", {
+	setup(frm) {
+		frm.set_query("uae_establishment", () => ({
+			filters: { company: frm.doc.company },
+		}));
+	},
 	refresh(frm) {
 		if (frm.doc.docstatus !== 1) {
 			return;

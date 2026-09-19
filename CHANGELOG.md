@@ -4,6 +4,62 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Accounts API: amend strips `no_copy` fields, `get_meta` nests child tables, home KPIs count without `form_dict`, and report `filters` must be a JSON object.
+- Deemed supply now requires a full IBG-14 invoice period (billing frequency, start, end), same as summary and continuous supply. A Payment Due Date on an ordinary invoice still does not force frequency. Self-billed Purchase Invoices now have BTAE-02 and billing-frequency fields so those checks can run.
+- FZ Beneficiary ID (BTAE-01 / IBR-007-ae) is validated on the buyer: Customer on sales invoices, Company on self-billed purchase invoices. Desk designated-zone guidance names that buyer instead of always the Company.
+- **`UAE VAT 201 Filing Log` and `UAE ESR Filing` are now submittable (`is_submittable`).** Previously "marking as filed" was just a Select field anyone with write access could quietly re-edit afterwards -- not a real audit record despite being described as one. Submitting is now what locks a filing: Frappe's own docstatus mechanism (not a custom status flag) makes the boxes, dates and figures immutable once filed, and correcting a filed return requires Cancel + Amend, which is itself an audit trail. `generate()` on the VAT 201 log now refuses to run once submitted (previously it only blocked on a status string that nothing enforced).
+- `UAE ESR Filing.regulatory_authority` is now required -- a filing record without knowing which authority it was filed with isn't a complete record.
+- Added `Position / Title` to `UAE UBO Owner`, required when Basis of Control is the Senior Management Official fallback (Cabinet Decision 109/2023 requires this, not just the fallback flag itself).
+- The daily status-refresh job now skips submitted ESR filings (they're intentionally locked) instead of resaving them pointlessly every night.
+- VAT 201 Boxes 3/10 now exclude cancelled GL entries (`is_cancelled = 0`); Boxes 1/4/5 treat NULL exempt/zero-rated flags as 0 so legacy invoice lines are not dropped.
+- Box 9 taxable amount uses `base_net_total`. Purchase Invoices for UAE companies now default `recoverable_standard_rated_expenses` from UAE VAT tax rows when blank, so Box 9 is not silently empty.
+- Sales/Purchase Invoice cancel is blocked while an e-invoice is Queued or Generated, not only after ASP Submitted/Accepted.
+- Company UAE readiness no longer runs twice on insert (`after_insert` + `on_update`).
+- Filing tests reset `docstatus` before deleting cancelled VAT 201 / customs rows so Phase 8 retention does not break cleanup.
+
+### Added
+
+- **Accounts API for a custom frontend:** `taxmate.api.get_catalog` / `get_session`, allowlisted resource CRUD + submit/cancel/amend, party/item/COA/payment helpers, financial reports, and home KPIs. UAE e-invoice and VAT 201 methods stay on their existing whitelist paths and are listed in the catalog. See `docs/api.md`.
+
+- **Phase 9 prove-it:** fixture invoices on the UAE company cover standard, zero-rated, exempt, reverse-charge, import, tourist refund, and credit note; golden VAT 201 boxes must match `compute_vat_201`, the filing log, and the accountant-pack CSVs; e-invoice reject / retry / cancel / credit-note billing reference is covered as an integration matrix; migrate inventory asserts phases 1–8 DocTypes, reports, and `UAE Tax Manager`. Still track-and-file — no FTA APIs.
+
+- **Phase 8 statutory operations:** submitted filings cannot be hard-deleted (keep 5+ years; cancel/amend instead); `UAE Late Filing Notice` is a due/overdue reminder (not a penalty calculator); `UAE FTA Audit Pack` exports a private zip of invoices, VAT 201 boxes, UBO snapshot, and e-invoice XML/PDF; TaxMate Settings records UAE-hosted File preference. Arabic Desk labels added. Portals still file.
+
+- **Phase 7 multi-entity tenancy:** `UAE VAT Group` election (representative + members, VAT Group TIN); `UAE Establishment` (mainland / free zone / designated zone); VAT 201 amounts convert to tax currency AED; `UAE Tax Manager` role on filings; `UAE VAT Audit Event` records who changed Box 9 recoverability or Boxes 6/7. `UAE Group VAT Status` lists each UAE company. Portals still file.
+
+- **Phase 6 excise, customs, capital goods:** opt-in `UAE Excise Settings` + submittable `UAE Excise Filing Log`; customs bills link to Purchase Invoice and Landed Cost Voucher; capital-goods scheme records and annual Box 9 adjustments; bad-debt relief (6-month wait + evidence); margin-scheme lines report VAT on the margin in Box 1. `UAE Import VAT Explanation` lists Boxes 6, 7 and 9 without a spreadsheet. Trackers only — FTA portals still file.
+
+- **Phase 5 beneficial-ownership and substance:** `UAE Shareholder Register` (legal ownership, distinct from UBO); nominee / legal-entity chain must resolve to a natural person; licence-authority variants (DED, ADGM, DIFC, RAKEZ, …) override UBO/ESR windows; ESR activity rows require directed-and-managed / employees / spend evidence; board minutes required before submitting an in-scope ESR filing. Compliance Status shows UBO + shareholders + ESR and whether both registers exist. Still a tracker — portals file.
+
+- **Phase 4 UAE Corporate Tax:** `UAE CT Settings` (FY elections, 0%/9% bands, SBR, QFZP de minimis), taxable-profit bridge on `UAE CT Filing Log` (GL profit + add-backs/deductions), QFZP qualifying vs non-qualifying split (unclassified counts as non-qualifying; fail de minimis → all at 9%), related-party flag on SI/PI plus documentation pack, optional withholding tracker, worksheet report/print, and daily ToDos for the 9-month due date. Submitting the log is the audit lock — there is no FTA CT e-file API.
+
+- **Phase 3 e-invoicing mandate:** B2C excluded until FTA requires it; VAT-group TIN (first 10 of TRN) on the PINT payload; 14-day transmission SLA on the e-invoice log/status report with daily ToDos; signed XML/PDF attached to the log as well as the invoice; accepted/submitted logs cannot be deleted (5-year retention note); `UAE E-Invoice Contingency` for downtime + 2-day FTA report checklist; inbound Corner-4 PI drafts match buyer TRN (no silent wrong company) and can auto-draft; **UAE E-Invoice VAT 201 Reconciliation** compares Accepted e-invoices to Box 1.
+
+- **Phase 2 filing-grade VAT 201:** Box 1 VAT from UAE VAT accounts only (not every item tax); Boxes 6–7 auto-fill from submitted `UAE Customs Declaration` (still overridable); period lock on SI/PI after a Filing Log is submitted; Company TRN snapshot so one entity’s books are not filed under another TRN; due date = period end + 28 with ToDo reminders; accountant pack (box CSV, invoice listing, worksheet print/PDF). EmaraTax remains research-only — there is no public VAT 201 filing API as of 2026-09.
+
+- **Phase 1 VAT operations:** bilingual Tax Invoice / Credit Note / Purchase Invoice print (AR/EN, VAT rate, tax summary, QR/hash placeholder, B2C ≤ AED 10,000 simplified); Item Tax Template blocked/partial recovery applied to line VAT for Box 9 (recompute unless Manual Box 9; purchase credit notes net); Designated Zone matrix (item type required, Out of Scope enforced for in-zone goods); credit-note reference on SI/PI; readiness gate on SI and self-billed PI; Peppol Verify on Company/Customer/Supplier.
+
+- **New `UAE Compliance` module** — UBO (Ultimate Beneficial Owner) register and change-reporting tracker, and ESR (Economic Substance Regulations) notification/report filing tracker, with a shared `UAE Compliance Settings` doctype for the configurable deadlines (Cabinet Decision 109/2023's 15-day UBO change-reporting rule; ESR's notification/report deadlines, which vary by regulatory authority). Ships with:
+  - `UAE UBO Register` (one per UAE company, auto-created on company creation) with a `UAE UBO Owner` child table (25%+ ownership/voting, control-basis tests, Senior Management Official fallback, ID expiry tracking) and a `UAE UBO Change Log` child table that computes each change's 15-day reporting deadline and status.
+  - `UAE ESR Filing` (one per company per financial year) with a `UAE ESR Activity Row` child table for the 9 official Relevant Activities, exemption handling, and auto-computed (but manually overridable) notification/report due dates and status.
+  - `UAE Compliance Status` report — one row per UAE company, UBO + ESR status side by side.
+  - Daily scheduled jobs: refresh computed statuses so they reflect today's date even on untouched records, and raise a `ToDo` (Frappe's own reminder primitive — no bespoke notification engine) for anything approaching or past a deadline.
+  - Unit tests for deadline/status, ownership chain, licence-authority windows, and substance evidence (`tests/test_uae_compliance.py`).
+
+  This module tracks and reminds — it does not file anything with the UBO registrar or a regulatory authority on your behalf; record the filing here after submitting it through the authority's own portal.
+
+- `UAE VAT 201 Filing Log` doctype and `taxmate.uae_vat.utils.vat_201` — computes all 14 boxes of the FTA VAT 201 return from ledger data (reusing ERPNext's own emirate-wise/RCM/tourist-refund queries) plus the totals (Boxes 8, 11-14) ERPNext's regional report never calculated. Boxes 6/7 default from submitted UAE Customs Declarations and remain overridable.
+- `UAE VAT 201 Box Detail` child doctype for the per-box breakdown shown on the Filing Log and in the report below.
+- Unit tests for the Box 8/11/12/13/14 arithmetic (`tests/test_uae_vat_201.py`).
+
+### Changed
+
+- **`EmaraTax Export` report is no longer a stub.** It now renders the full VAT 201 worksheet (all 14 boxes, company/period filters, optional live Box 6/7 what-if inputs) and can save itself as a `UAE VAT 201 Filing Log` for an audit trail. It still does not submit anything to the FTA — no EmaraTax filing API has been confirmed to exist; see the TaxMate UAE Gap Analysis & Build Plan for the research spike needed before that's attempted.
+
 ## [0.1.0.0] - 2026-08-27
 
 ### Added

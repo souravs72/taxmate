@@ -9,6 +9,14 @@
   "column_break_uae",
   "enforce_trn_validation",
   "require_emirate_on_address",
+  "block_e_invoice_until_ready",
+  "require_vat_emirate_on_invoice",
+  "enforce_credit_note_reference",
+  "block_invoices_in_filed_vat_period",
+  "vat_201_reminder_days",
+  "statutory_section",
+  "prefer_uae_hosted_files",
+  "data_residency_note",
   "guidance_section",
   "onboarding_notes"
  ],
@@ -20,7 +28,7 @@
   },
   {
    "default": "United Arab Emirates",
-   "description": "Default country for TaxMate SaaS tenants. ERPNext UAE regional features activate when Company country matches this value.",
+   "description": "Default country for TaxMate SaaS tenants. UAE regional features activate when Company country matches this value.",
    "fieldname": "default_country",
    "fieldtype": "Link",
    "label": "Default Country",
@@ -45,12 +53,65 @@
    "label": "Require Emirate on UAE Address"
   },
   {
+   "default": "1",
+   "description": "When enabled, block submitting e-invoices until the Company UAE readiness checklist is complete.",
+   "fieldname": "block_e_invoice_until_ready",
+   "fieldtype": "Check",
+   "label": "Block E-Invoice Until Company Ready"
+  },
+  {
+   "default": "1",
+   "description": "Require Place of Supply (Emirate) on Sales Invoices for UAE companies (VAT 201 Box 1).",
+   "fieldname": "require_vat_emirate_on_invoice",
+   "fieldtype": "Check",
+   "label": "Require Emirate on Sales Invoice"
+  },
+  {
+   "default": "1",
+   "description": "Require Return Against or External Return Against (and a reason) on UAE Credit Notes.",
+   "fieldname": "enforce_credit_note_reference",
+   "fieldtype": "Check",
+   "label": "Enforce Credit Note Reference"
+  },
+  {
+   "default": "1",
+   "description": "Block Sales/Purchase Invoices posted into a period that already has a submitted VAT 201 Filing Log.",
+   "fieldname": "block_invoices_in_filed_vat_period",
+   "fieldtype": "Check",
+   "label": "Lock Invoices After VAT 201 Filed"
+  },
+  {
+   "default": "7",
+   "description": "Days before the VAT 201 due date (period end + 28) to raise a ToDo.",
+   "fieldname": "vat_201_reminder_days",
+   "fieldtype": "Int",
+   "label": "VAT 201 Reminder Lead Days"
+  },
+  {
+   "fieldname": "statutory_section",
+   "fieldtype": "Section Break",
+   "label": "Statutory records"
+  },
+  {
+   "default": "1",
+   "description": "Keep File attachments on this site. Host the site in the UAE for FTA record-keeping. TaxMate does not upload archives to a foreign CDN.",
+   "fieldname": "prefer_uae_hosted_files",
+   "fieldtype": "Check",
+   "label": "Prefer UAE-hosted File storage"
+  },
+  {
+   "default": "FTA record-keeping is 5+ years. Host this site in the UAE. Signed XML/PDF stay as private File records. TaxMate does not e-file.",
+   "fieldname": "data_residency_note",
+   "fieldtype": "Small Text",
+   "label": "Data Residency Note"
+  },
+  {
    "fieldname": "guidance_section",
    "fieldtype": "Section Break",
    "label": "Operator Guidance"
   },
   {
-   "default": "TaxMate reuses ERPNext UAE VAT features. After creating a Company with country United Arab Emirates:\n\n1. Set Company Tax ID (TRN).\n2. Confirm UAE VAT 5% / Zero / Exempted tax templates.\n3. Link VAT accounts in UAE VAT Settings.\n4. Set Emirate on the company Address.\n5. Use Simplified or Detailed Tax Invoice print formats.\n6. File returns via the UAE VAT 201 report.\n\nDocs: https://docs.frappe.io/erpnext/UAE-vat-setup",
+   "default": "TaxMate UAE VAT setup checklist. After creating a Company with country United Arab Emirates:\n\n1. Set Company Tax ID (TRN).\n2. Confirm UAE VAT 5% / Zero / Exempted tax templates.\n3. Link VAT accounts in UAE VAT Settings.\n4. Set Emirate on the company Address.\n5. Use Simplified or Detailed Tax Invoice print formats.\n6. File returns via the UAE VAT 201 report.",
    "fieldname": "onboarding_notes",
    "fieldtype": "Text",
    "label": "Onboarding Notes"
@@ -59,7 +120,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-27 15:30:00.000000",
+ "modified": "2026-09-11 13:00:00.000000",
  "modified_by": "Administrator",
  "module": "TaxMate",
  "name": "TaxMate Settings",

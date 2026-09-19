@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:VG-{representative_company}-{#####}",
+ "creation": "2026-09-11 12:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "representative_company",
+  "group_trn",
+  "election_date",
+  "column_break_header",
+  "title",
+  "members_section",
+  "members",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {"fieldname": "representative_company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Representative Company", "options": "Company", "reqd": 1},
+  {"description": "First 10 digits of the representative TRN (VAT Group TIN). Tracker only — EmaraTax still files the group.", "fieldname": "group_trn", "fieldtype": "Data", "in_list_view": 1, "label": "VAT Group TIN", "read_only": 1},
+  {"fieldname": "election_date", "fieldtype": "Date", "in_list_view": 1, "label": "Election Date", "reqd": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "title", "fieldtype": "Data", "label": "Group Title"},
+  {"fieldname": "members_section", "fieldtype": "Section Break", "label": "Members"},
+  {"fieldname": "members", "fieldtype": "Table", "label": "Members", "options": "UAE VAT Group Member", "reqd": 1},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"},
+  {"fieldname": "amended_from", "fieldtype": "Link", "label": "Amended From", "no_copy": 1, "options": "UAE VAT Group", "print_hide": 1, "read_only": 1}
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 12:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE VAT Group",
+ "owner": "Administrator",
+ "permissions": [
+  {"amend": 1, "cancel": 1, "create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "UAE Tax Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "submit": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

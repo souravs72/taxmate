@@ -1,0 +1,25 @@
+{
+ "actions": [],
+ "creation": "2026-09-11 12:30:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": ["company", "from_date", "to_date", "is_representative"],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "from_date", "fieldtype": "Date", "in_list_view": 1, "label": "Member From", "reqd": 1},
+  {"fieldname": "to_date", "fieldtype": "Date", "in_list_view": 1, "label": "Member To"},
+  {"default": "0", "fieldname": "is_representative", "fieldtype": "Check", "in_list_view": 1, "label": "Representative"}
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-11 12:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE VAT Group Member",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

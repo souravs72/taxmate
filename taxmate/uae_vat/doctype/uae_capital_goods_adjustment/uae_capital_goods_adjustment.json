@@ -1,0 +1,48 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:CGA-{company}-{period_end}-{#####}",
+ "creation": "2026-09-11 10:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "period_start",
+  "period_end",
+  "column_break_header",
+  "adjustment_amount",
+  "adjustment_vat",
+  "rows_section",
+  "rows",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "period_start", "fieldtype": "Date", "label": "Period Start", "reqd": 1},
+  {"fieldname": "period_end", "fieldtype": "Date", "in_list_view": 1, "label": "Period End", "reqd": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "adjustment_amount", "fieldtype": "Currency", "label": "Total Adjustment (cost)", "options": "AED", "read_only": 1},
+  {"fieldname": "adjustment_vat", "fieldtype": "Currency", "in_list_view": 1, "label": "Total Adjustment VAT (Box 9)", "options": "AED", "read_only": 1},
+  {"fieldname": "rows_section", "fieldtype": "Section Break", "label": "Assets in Adjustment Period"},
+  {"description": "Positive VAT increases Box 9 recovery; negative is a clawback.", "fieldname": "rows", "fieldtype": "Table", "label": "Adjustments", "options": "UAE Capital Goods Adjustment Row"},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"},
+  {"fieldname": "amended_from", "fieldtype": "Link", "label": "Amended From", "no_copy": 1, "options": "UAE Capital Goods Adjustment", "print_hide": 1, "read_only": 1}
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 10:50:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE Capital Goods Adjustment",
+ "owner": "Administrator",
+ "permissions": [
+  {"amend": 1, "cancel": 1, "create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "submit": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

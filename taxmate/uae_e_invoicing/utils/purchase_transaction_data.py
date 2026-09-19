@@ -15,7 +15,10 @@ from frappe import _
 
 from taxmate.uae.validation import is_valid_uae_trn
 from taxmate.uae_e_invoicing.utils.pint_ae import build_payload_from_data
-from taxmate.uae_e_invoicing.utils.transaction_data import UAETransactionData
+from taxmate.uae_e_invoicing.utils.transaction_data import (
+	UAETransactionData,
+	buyer_fz_validation_messages,
+)
 
 
 class UAEPurchaseTransactionData(UAETransactionData):
@@ -42,9 +45,12 @@ class UAEPurchaseTransactionData(UAETransactionData):
 		if not address:
 			address = self._get_linked_address("Supplier", self.doc.supplier)
 
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
 		return {
 			"name": self.doc.supplier_name or self.doc.supplier,
 			"trn": party.tax_id if party else None,
+			"vat_group_tin": vat_group_tin(party.tax_id) if party else None,
 			"peppol_id": party.get("uae_peppol_id") if party else None,
 			"trade_license_number": party.get("trade_license_number") if party else None,
 			"legal_registration_identifier_type": (
@@ -64,11 +70,14 @@ class UAEPurchaseTransactionData(UAETransactionData):
 		address = self._get_address(self.doc.get("billing_address")) or self._get_linked_address(
 			"Company", self.doc.company
 		)
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
 		return {
 			"name": self.company.company_name or self.company.name,
 			"trn": self.company.tax_id,
+			"vat_group_tin": vat_group_tin(self.company.tax_id),
 			"peppol_id": self.company.get("uae_peppol_id"),
-			"fz_beneficiary_id": None,
+			"fz_beneficiary_id": self.company.get("uae_fz_beneficiary_id"),
 			"trade_license_number": self.company.get("trade_license_number"),
 			"legal_registration_identifier_type": self.company.get("legal_registration_identifier_type"),
 			"legal_registration_identifier": self.company.get("legal_registration_identifier"),
@@ -119,6 +128,12 @@ class UAEPurchaseTransactionData(UAETransactionData):
 		else:
 			self._check_address(customer["address"], _("Company address"))
 
+		self.errors.extend(
+			buyer_fz_validation_messages(
+				self.get_transaction_flags(), customer.get("fz_beneficiary_id")
+			)
+		)
+
 	def _check_credit_note(self):
 		if not self.doc.get("is_return"):
 			return
@@ -147,9 +162,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 def build_purchase_pint_ae_payload(doc, doc_uuid: str | None = None) -> tuple[str, dict[str, Any]]:
 	"""Return (uuid, payload_dict) for a self-billed Purchase Invoice.
 
-	Callers: ``generate_and_submit`` in e_invoice.py (retry reuses ``doc_uuid``).
 	API: same PINT-AE dict as sales; UUID preserved on Failed->retry.
-	User: 1A-4A review fixes - item 3A reuse UUID on retry.
 	"""
 	data = UAEPurchaseTransactionData(doc).get_data()
 	return build_payload_from_data(data, doc_uuid=doc_uuid)

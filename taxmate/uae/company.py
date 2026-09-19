@@ -10,7 +10,8 @@ from taxmate.uae.validation import validate_company_trn
 
 
 def after_insert(doc, method=None):
-	_handle_company(doc)
+	"""Kept for hook compatibility; readiness runs on on_update (also fires after insert)."""
+	return
 
 
 def on_update(doc, method=None):

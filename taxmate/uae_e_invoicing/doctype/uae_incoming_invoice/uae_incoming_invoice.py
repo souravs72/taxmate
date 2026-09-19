@@ -50,6 +50,11 @@ def create_from_webhook(payload: dict[str, Any]) -> str | None:
 		}
 	)
 	record.insert(ignore_permissions=True)
+	if record.company and record.supplier_trn and _auto_draft_enabled():
+		try:
+			_draft_purchase_invoice(record, ignore_permissions=True)
+		except Exception:
+			frappe.log_error(title=f"Auto-draft PI failed for incoming {record.name}")
 	return record.name
 
 
@@ -58,6 +63,14 @@ def create_purchase_invoice(name: str) -> str:
 	"""Draft a Purchase Invoice from a received e-invoice."""
 	record = frappe.get_doc("UAE Incoming Invoice", name)
 	record.check_permission("write")
+	return _draft_purchase_invoice(record)
+
+
+def _draft_purchase_invoice(record, ignore_permissions: bool = False) -> str:
+	if not record.company:
+		frappe.throw(
+			_("Match this inbound invoice to a Company (buyer TRN) before drafting the Purchase Invoice.")
+		)
 
 	if record.purchase_invoice:
 		frappe.throw(
@@ -106,7 +119,7 @@ def create_purchase_invoice(name: str) -> str:
 	_append_received_vat(invoice, record)
 
 	invoice.flags.ignore_mandatory = True
-	invoice.insert()
+	invoice.insert(ignore_permissions=ignore_permissions)
 
 	record.db_set({"status": "Drafted", "purchase_invoice": invoice.name})
 	return invoice.name
@@ -137,22 +150,38 @@ def _append_received_vat(invoice, record) -> None:
 	)
 
 
+def _auto_draft_enabled() -> bool:
+	from taxmate.uae_e_invoicing.utils.mandate import setting_on
+
+	return setting_on("auto_draft_incoming_pi", default=0)
+
+
+def _party_by_trn(doctype: str, trn: str | None) -> str | None:
+	"""Match a Company/Supplier by normalized TRN (spaces ignored)."""
+	from taxmate.uae.validation import normalize_trn
+
+	cleaned = normalize_trn(trn)
+	if not cleaned:
+		return None
+	if doctype not in ("Company", "Supplier"):
+		return None
+	row = frappe.db.sql(
+		f"select name from `tab{doctype}` where replace(ifnull(tax_id, ''), ' ', '') = %s limit 1",
+		cleaned,
+	)
+	return row[0][0] if row else None
+
+
 def _resolve_company(document: dict[str, Any]) -> str | None:
-	"""Match the buyer TRN against local companies; fall back to default."""
+	"""Match the buyer TRN to a local company. Missing or unmatched TRN is not the default company."""
 	buyer_party = (document.get("AccountingCustomerParty") or {}).get("Party") or {}
 	buyer_trn = (buyer_party.get("PartyTaxScheme") or {}).get("CompanyID")
-	if buyer_trn:
-		company = frappe.db.get_value("Company", {"tax_id": buyer_trn}, "name")
-		if company:
-			return company
-	return frappe.defaults.get_global_default("company")
+	return _party_by_trn("Company", buyer_trn)
 
 
 def _resolve_supplier(record) -> str | None:
 	if record.supplier_trn:
-		supplier = frappe.db.get_value("Supplier", {"tax_id": record.supplier_trn}, "name")
-		if supplier:
-			return supplier
+		return _party_by_trn("Supplier", record.supplier_trn)
 	if record.supplier_name:
 		return frappe.db.get_value("Supplier", {"supplier_name": record.supplier_name}, "name")
 	return None

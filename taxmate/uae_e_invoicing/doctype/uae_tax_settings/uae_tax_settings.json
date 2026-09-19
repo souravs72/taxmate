@@ -19,6 +19,13 @@
   "webhook_section",
   "webhook_secret",
   "webhook_subscription_id",
+  "mandate_section",
+  "exclude_b2c_e_invoices",
+  "auto_draft_incoming_pi",
+  "column_break_mandate",
+  "sla_days",
+  "archive_retention_years",
+  "uae_storage_note",
   "participant_section",
   "participant_details"
  ],
@@ -112,6 +119,49 @@
    "translatable": 0
   },
   {
+   "fieldname": "mandate_section",
+   "fieldtype": "Section Break",
+   "label": "2026–27 Mandate"
+  },
+  {
+   "default": "1",
+   "description": "Do not generate PINT-AE for customers without a 15-digit TRN until the FTA requires B2C e-invoices.",
+   "fieldname": "exclude_b2c_e_invoices",
+   "fieldtype": "Check",
+   "label": "Exclude B2C From E-Invoicing"
+  },
+  {
+   "default": "0",
+   "description": "When a Corner-4 inbound invoice matches a Supplier TRN, draft the Purchase Invoice automatically.",
+   "fieldname": "auto_draft_incoming_pi",
+   "fieldtype": "Check",
+   "label": "Auto-Draft Incoming Purchase Invoice"
+  },
+  {
+   "fieldname": "column_break_mandate",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "14",
+   "description": "Calendar days from issue to Accepted (FTA transmission window).",
+   "fieldname": "sla_days",
+   "fieldtype": "Int",
+   "label": "Transmission SLA Days"
+  },
+  {
+   "default": "5",
+   "description": "Keep signed XML/PDF and accepted logs at least this long. Store files in the UAE when the tenant is UAE-hosted.",
+   "fieldname": "archive_retention_years",
+   "fieldtype": "Int",
+   "label": "Archive Retention (Years)"
+  },
+  {
+   "default": "Prefer UAE-hosted File storage for signed e-invoice XML/PDF. TaxMate does not move files off-site.",
+   "fieldname": "uae_storage_note",
+   "fieldtype": "Small Text",
+   "label": "UAE Storage Note"
+  },
+  {
    "fieldname": "participant_section",
    "fieldtype": "Section Break",
    "label": "Peppol Participant"
@@ -128,7 +178,7 @@
  "index_web_pages_for_search": 0,
  "issingle": 1,
  "links": [],
- "modified": "2026-08-27 19:40:00.000000",
+ "modified": "2026-09-11 07:00:00.000000",
  "modified_by": "Administrator",
  "module": "UAE E-Invoicing",
  "name": "UAE Tax Settings",

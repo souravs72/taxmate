@@ -1,3 +1,5 @@
 TaxMate
 UAE VAT
 UAE E-Invoicing
+UAE Corporate Tax
+UAE Compliance

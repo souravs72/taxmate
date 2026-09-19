@@ -1,0 +1,327 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:CT-{company}-{period_end}-{#####}",
+ "creation": "2026-09-11 07:45:00.000000",
+ "default_print_format": "UAE CT Worksheet",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "period_start",
+  "period_end",
+  "column_break_period",
+  "filing_due_date",
+  "deadline_status",
+  "company_trn",
+  "elections_section",
+  "elect_small_business_relief",
+  "column_break_elections",
+  "elect_qfzp",
+  "worksheet_section",
+  "regime",
+  "revenue",
+  "expenses",
+  "accounting_profit",
+  "adjustments_section",
+  "adjustments",
+  "tax_section",
+  "taxable_profit",
+  "column_break_tax",
+  "tax_payable",
+  "qfzp_section",
+  "qualifying_revenue",
+  "non_qualifying_revenue",
+  "unclassified_revenue",
+  "column_break_qfzp",
+  "de_minimis_limit",
+  "de_minimis_passed",
+  "filing_section",
+  "generated_on",
+  "notes",
+  "filed_on",
+  "filed_by",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_start",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Period Start",
+   "reqd": 1
+  },
+  {
+   "fieldname": "period_end",
+   "fieldtype": "Date",
+   "in_list_view": 1,
+   "label": "Period End",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_period",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Nine months after Period End, per Federal Decree-Law No. 47 of 2022.",
+   "fieldname": "filing_due_date",
+   "fieldtype": "Date",
+   "label": "Filing Due Date",
+   "read_only": 1
+  },
+  {
+   "default": "Upcoming",
+   "fieldname": "deadline_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Deadline Status",
+   "options": "Upcoming\nDue\nOverdue\nFiled",
+   "read_only": 1
+  },
+  {
+   "description": "Snapshot of the Company TRN this return is prepared for. Do not file another entity's TRN.",
+   "fieldname": "company_trn",
+   "fieldtype": "Data",
+   "label": "Filed TRN",
+   "read_only": 1
+  },
+  {
+   "fieldname": "elections_section",
+   "fieldtype": "Section Break",
+   "label": "Elections"
+  },
+  {
+   "default": "0",
+   "description": "Treat taxable income as nil if revenue stays within the SBR threshold. Not available with QFZP.",
+   "fieldname": "elect_small_business_relief",
+   "fieldtype": "Check",
+   "label": "Elect Small Business Relief"
+  },
+  {
+   "fieldname": "column_break_elections",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0",
+   "description": "Qualifying Free Zone Person: 0% on qualifying income, 9% on the rest. Cannot combine with SBR.",
+   "fieldname": "elect_qfzp",
+   "fieldtype": "Check",
+   "label": "Elect Qualifying Free Zone Person"
+  },
+  {
+   "fieldname": "worksheet_section",
+   "fieldtype": "Section Break",
+   "label": "Accounting Profit"
+  },
+  {
+   "fieldname": "regime",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Regime",
+   "read_only": 1
+  },
+  {
+   "fieldname": "revenue",
+   "fieldtype": "Currency",
+   "label": "Revenue (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "expenses",
+   "fieldtype": "Currency",
+   "label": "Expenses (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "accounting_profit",
+   "fieldtype": "Currency",
+   "label": "Accounting Profit (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "adjustments_section",
+   "fieldtype": "Section Break",
+   "label": "Adjustments"
+  },
+  {
+   "fieldname": "adjustments",
+   "fieldtype": "Table",
+   "label": "Adjustments",
+   "options": "UAE CT Adjustment Row"
+  },
+  {
+   "fieldname": "tax_section",
+   "fieldtype": "Section Break",
+   "label": "Tax"
+  },
+  {
+   "fieldname": "taxable_profit",
+   "fieldtype": "Currency",
+   "label": "Taxable Profit (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_tax",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "tax_payable",
+   "fieldtype": "Currency",
+   "in_list_view": 1,
+   "label": "Tax Payable (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.elect_qfzp",
+   "fieldname": "qfzp_section",
+   "fieldtype": "Section Break",
+   "label": "QFZP Split"
+  },
+  {
+   "fieldname": "qualifying_revenue",
+   "fieldtype": "Currency",
+   "label": "Qualifying Revenue (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "non_qualifying_revenue",
+   "fieldtype": "Currency",
+   "label": "Non-Qualifying Revenue (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "unclassified_revenue",
+   "fieldtype": "Currency",
+   "label": "Unclassified Revenue (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_qfzp",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "de_minimis_limit",
+   "fieldtype": "Currency",
+   "label": "De Minimis Limit (AED)",
+   "options": "AED",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "fieldname": "de_minimis_passed",
+   "fieldtype": "Check",
+   "label": "De Minimis Passed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "filing_section",
+   "fieldtype": "Section Break",
+   "label": "Filing"
+  },
+  {
+   "fieldname": "generated_on",
+   "fieldtype": "Datetime",
+   "label": "Worksheet Last Generated On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "description": "Set automatically when this filing is submitted (locked as the audit record).",
+   "fieldname": "filed_on",
+   "fieldtype": "Datetime",
+   "label": "Filed On",
+   "read_only": 1
+  },
+  {
+   "description": "Set automatically when this filing is submitted (locked as the audit record).",
+   "fieldname": "filed_by",
+   "fieldtype": "Link",
+   "label": "Filed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "no_copy": 1,
+   "options": "UAE CT Filing Log",
+   "print_hide": 1,
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 07:45:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Corporate Tax",
+ "name": "UAE CT Filing Log",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "amend": 1,
+   "cancel": 1,
+   "create": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts Manager",
+   "share": 1,
+   "submit": 1,
+   "write": 1
+  },
+  {
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "Accounts User",
+   "share": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1
+}

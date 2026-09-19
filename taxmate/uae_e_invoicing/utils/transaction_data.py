@@ -8,6 +8,7 @@ business rule (IBR-*) so users can fix an invoice in one pass.
 from __future__ import annotations
 
 import json
+from datetime import date
 from decimal import Decimal
 from typing import Any
 
@@ -25,6 +26,7 @@ from taxmate.uae_e_invoicing.constants import (
 	CARD_PAYMENT_CODES,
 	DEFAULT_TRANSACTION_TYPE_CODE,
 	EMIRATE_SUBDIVISION_CODES,
+	INVOICE_PERIOD_REQUIRED_FLAGS,
 	ITEM_TYPE_BOTH,
 	ITEM_TYPE_GOODS,
 	ITEM_TYPE_SERVICE,
@@ -32,6 +34,63 @@ from taxmate.uae_e_invoicing.constants import (
 	VAT_CATEGORY_CODES,
 )
 from taxmate.uae_e_invoicing.utils.rounding import r2, r6, to_decimal
+
+
+def _needs_full_invoice_period(flags: dict[str, bool]) -> bool:
+	return any(flags.get(name) for name in INVOICE_PERIOD_REQUIRED_FLAGS)
+
+
+def invoice_period_is_required(flags: dict[str, bool], frequency: str | None) -> bool:
+	"""True when IBG-14 must appear: explicit frequency or deemed / summary / continuous."""
+	if (frequency or "").strip():
+		return True
+	return _needs_full_invoice_period(flags)
+
+
+def invoice_period_validation_messages(
+	flags: dict[str, bool],
+	frequency: str | None,
+	posting_date: date | str | None,
+	due_date: date | str | None,
+	has_notes: bool,
+) -> list[str]:
+	"""IBG-14 / IBT-022 checks. Does not require frequency merely because a due date exists."""
+	msgs: list[str] = []
+	freq = (frequency or "").strip()
+	if freq and freq not in BILLING_FREQUENCY_CODES:
+		msgs.append(_("Billing Frequency {0} is not a valid IBG-14 description code.").format(freq))
+	if _needs_full_invoice_period(flags):
+		if not freq:
+			msgs.append(
+				_(
+					"Billing Frequency is required for Deemed Supply, Summary Invoice, or "
+					"Continuous Supply (IBG-14)."
+				)
+			)
+		if not posting_date:
+			msgs.append(_("Invoice Period start date (posting date) is required (IBG-14)."))
+		if not due_date:
+			msgs.append(
+				_(
+					"Invoice Period end date (Payment Due Date) is required for Deemed Supply, "
+					"Summary Invoice, or Continuous Supply (IBG-14)."
+				)
+			)
+	if freq == "OTH" and not has_notes:
+		msgs.append(_("Invoice Note / Remarks (IBT-022) is required when Billing Frequency is OTH."))
+	return msgs
+
+
+def buyer_fz_validation_messages(flags: dict[str, bool], fz_beneficiary_id: str | None) -> list[str]:
+	"""BTAE-01 / IBR-007-ae: FZ ID lives on the buyer (Customer, or Company when self-billed)."""
+	if flags.get("free_trade_zone") and not (fz_beneficiary_id or "").strip():
+		return [
+			_(
+				"FZ Beneficiary ID (BTAE-01 / IBR-007-ae) is mandatory on the buyer "
+				"for Free Trade Zone transactions."
+			)
+		]
+	return []
 
 
 class UAETransactionData:
@@ -213,11 +272,10 @@ class UAETransactionData:
 		return self._get_document_allowance() is not None
 
 	def _get_invoice_period(self) -> dict[str, Any] | None:
-		"""IBG-14 InvoicePeriod — only for summary / continuous / explicit frequency."""
+		"""IBG-14 InvoicePeriod — deemed / summary / continuous, or explicit frequency."""
 		flags = self.get_transaction_flags()
 		frequency = (self.doc.get("uae_billing_frequency") or "").strip() or None
-		needs_period = bool(frequency or flags.get("summary_invoice") or flags.get("continuous_supply"))
-		if not needs_period:
+		if not invoice_period_is_required(flags, frequency):
 			return None
 
 		start = getdate(self.doc.posting_date) if self.doc.posting_date else None
@@ -239,9 +297,12 @@ class UAETransactionData:
 		address = self._get_address(self.doc.get("company_address")) or self._get_linked_address(
 			"Company", self.doc.company
 		)
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
 		return {
 			"name": self.company.company_name or self.company.name,
 			"trn": self.company.tax_id,
+			"vat_group_tin": vat_group_tin(self.company.tax_id),
 			"peppol_id": self.company.get("uae_peppol_id"),
 			"trade_license_number": self.company.get("trade_license_number"),
 			"legal_registration_identifier_type": self.company.get("legal_registration_identifier_type"),
@@ -262,9 +323,12 @@ class UAETransactionData:
 		if not address:
 			address = self._get_linked_address("Customer", self.doc.customer)
 
+		from taxmate.uae_e_invoicing.utils.mandate import vat_group_tin
+
 		return {
 			"name": self.doc.customer_name or self.doc.customer,
 			"trn": party.tax_id if party else None,
+			"vat_group_tin": vat_group_tin(party.tax_id) if party else None,
 			"peppol_id": party.get("uae_peppol_id") if party else None,
 			"fz_beneficiary_id": party.get("uae_fz_beneficiary_id") if party else None,
 			"trade_license_number": party.get("trade_license_number") if party else None,
@@ -729,10 +793,7 @@ class UAETransactionData:
 			elif customer["trn"] and not is_valid_uae_trn(customer["trn"]):
 				self.errors.append(_("Customer TRN must be a valid 15-digit UAE TRN."))
 
-		if flags["free_trade_zone"] and not customer["fz_beneficiary_id"]:
-			self.errors.append(
-				_("FZ Beneficiary ID (BTAE-01) is mandatory for Free Trade Zone transactions.")
-			)
+		self.errors.extend(buyer_fz_validation_messages(flags, customer.get("fz_beneficiary_id")))
 
 		if self.doc.get("is_return") and not customer["trade_license_number"] and not customer["trn"]:
 			self.errors.append(_("Customer legal identifier is mandatory for Credit Notes (IBR-136-ae)."))
@@ -826,34 +887,15 @@ class UAETransactionData:
 			)
 
 	def _check_invoice_period(self):
-		flags = self.get_transaction_flags()
-		frequency = (self.doc.get("uae_billing_frequency") or "").strip()
-		if frequency and frequency not in BILLING_FREQUENCY_CODES:
-			self.errors.append(
-				_("Billing Frequency {0} is not a valid IBG-14 description code.").format(frequency)
+		self.errors.extend(
+			invoice_period_validation_messages(
+				self.get_transaction_flags(),
+				self.doc.get("uae_billing_frequency"),
+				self.doc.posting_date,
+				self.doc.get("due_date"),
+				bool(self._get_notes()),
 			)
-		# Summary / continuous supply invoices must carry a full period + frequency
-		if flags.get("summary_invoice") or flags.get("continuous_supply"):
-			if not frequency:
-				self.errors.append(
-					_(
-						"Billing Frequency is required for Summary Invoice / Continuous Supply "
-						"transactions (IBG-14)."
-					)
-				)
-			if not self.doc.posting_date:
-				self.errors.append(_("Invoice Period start date (posting date) is required."))
-			if not self.doc.get("due_date"):
-				self.errors.append(
-					_(
-						"Invoice Period end date (Payment Due Date) is required for Summary / "
-						"Continuous Supply."
-					)
-				)
-		if frequency == "OTH" and not self._get_notes():
-			self.errors.append(
-				_("Invoice Note / Remarks (IBT-022) is required when Billing Frequency is OTH.")
-			)
+		)
 
 	def _check_margin_scheme(self):
 		"""BTAE-02 bit 3 (margin scheme) must agree with N-category lines."""

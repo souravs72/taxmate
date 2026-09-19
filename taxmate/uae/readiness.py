@@ -7,7 +7,7 @@ from frappe import _
 
 from taxmate.uae.constants import UAE_COUNTRY, UAE_TAX_PRINT_FORMATS
 from taxmate.uae.setup import company_has_uae_tax_templates
-from taxmate.uae.validation import is_valid_uae_trn
+from taxmate.uae.validation import is_valid_uae_trn, setting_enabled
 
 
 @frappe.whitelist()
@@ -37,63 +37,70 @@ def get_uae_readiness_checklist(company: str) -> dict:
 			_("Company Tax ID (TRN)"),
 			bool(tax_id) and is_valid_uae_trn(tax_id),
 			_("Set a 15-digit Tax Registration Number on the Company."),
-			"/app/company/" + company,
+			"/desk/company/" + company,
 		),
 		_item(
 			"tax_templates",
 			_("UAE VAT tax templates"),
 			company_has_uae_tax_templates(company),
 			_("Expected templates: UAE VAT 5%, Zero, and Exempted for this company."),
-			"/app/sales-taxes-and-charges-template",
+			"/desk/sales-taxes-and-charges-template",
 		),
 		_item(
 			"vat_settings",
 			_("UAE VAT Settings"),
 			_has_vat_settings_with_accounts(company),
 			_("Create UAE VAT Settings and link VAT accounts for this company."),
-			"/app/uae-vat-settings",
+			"/desk/uae-vat-settings",
 		),
 		_item(
 			"address_emirate",
 			_("Company address with Emirate"),
 			_has_company_address_with_emirate(company),
 			_("Add a company address and set the Emirate (Place of Supply)."),
-			"/app/address",
+			"/desk/address",
 		),
 		_item(
 			"print_formats",
 			_("Tax invoice print formats enabled"),
 			_print_formats_enabled(),
 			_("Enable Simplified Tax Invoice / Detailed Tax Invoice print formats."),
-			"/app/print-format",
+			"/desk/print-format",
 		),
 		_item(
 			"trade_license",
 			_("Trade License Number"),
 			_has_company_field(company, "trade_license_number"),
 			_("Set Trade License Number on the Company (required for e-invoicing)."),
-			"/app/company/" + company,
+			"/desk/company/" + company,
+		),
+		_item(
+			"legal_id",
+			_("Legal Registration Identifier"),
+			_has_company_field(company, "legal_registration_identifier"),
+			_("Set Legal Registration Identifier (CRN / OTH) on the Company for e-invoicing."),
+			"/desk/company/" + company,
 		),
 		_item(
 			"peppol_id",
 			_("Peppol Participant ID"),
 			_has_company_field(company, "uae_peppol_id"),
 			_("Set the company's Peppol Participant ID (IBT-034) for e-invoice exchange."),
-			"/app/company/" + company,
+			"/desk/company/" + company,
 		),
 		_item(
 			"e_invoice_enabled",
 			_("UAE E-Invoicing enabled"),
 			_has_company_check(company, "uae_e_invoice_enabled"),
 			_("Enable UAE E-Invoicing on the Company when ready to generate PINT-AE documents."),
-			"/app/company/" + company,
+			"/desk/company/" + company,
 		),
 		_item(
 			"uae_tax_settings",
 			_("UAE Tax Settings configured"),
 			_has_uae_tax_settings(),
 			_("Configure ASP provider / sandbox in UAE Tax Settings."),
-			"/app/uae-tax-settings",
+			"/desk/uae-tax-settings",
 		),
 	]
 
@@ -107,7 +114,22 @@ def get_uae_readiness_checklist(company: str) -> dict:
 		"message": _("UAE VAT setup is complete.")
 		if ready
 		else _("Complete the remaining UAE VAT setup items below."),
+		# Informational only — does not affect `ready` above. A company can be
+		# fully VAT-ready today and still not yet be in scope for e-invoicing;
+		# this just tells them which cohort/deadlines apply when they are.
+		"e_invoice_mandate": _e_invoice_mandate_status(company),
 	}
+
+
+def _e_invoice_mandate_status(company: str) -> dict | None:
+	"""Best-effort e-invoicing mandate cohort/dates; never blocks the checklist."""
+	try:
+		from taxmate.uae_e_invoicing.utils.mandate import mandate_status
+
+		return mandate_status(company)
+	except Exception:
+		frappe.log_error(title="TaxMate e-invoice mandate status lookup failed")
+		return None
 
 
 def _item(key: str, label: str, ok: bool, help_text: str, route: str) -> dict:
@@ -147,12 +169,28 @@ def _has_company_address_with_emirate(company: str) -> bool:
 
 
 def _print_formats_enabled() -> bool:
+	"""Ready when at least one FTA tax-invoice print format is enabled."""
 	for name in UAE_TAX_PRINT_FORMATS:
 		if not frappe.db.exists("Print Format", name):
-			return False
-		if frappe.db.get_value("Print Format", name, "disabled"):
-			return False
-	return True
+			continue
+		if not frappe.db.get_value("Print Format", name, "disabled"):
+			return True
+	return False
+
+
+def enforce_e_invoice_readiness(company: str) -> None:
+	"""Block e-invoice submit when TaxMate Settings requires a complete checklist."""
+	if not setting_enabled("block_e_invoice_until_ready", default=1):
+		return
+	checklist = get_uae_readiness_checklist(company)
+	if checklist.get("applicable") and not checklist.get("ready"):
+		missing = ", ".join(i.get("label") for i in checklist.get("items") or [] if not i.get("ok"))
+		frappe.throw(
+			_("UAE e-invoicing is blocked until company readiness is complete: {0}").format(
+				missing or _("see Company readiness checklist")
+			),
+			title=_("Company Not Ready"),
+		)
 
 
 def _has_company_field(company: str, fieldname: str) -> bool:

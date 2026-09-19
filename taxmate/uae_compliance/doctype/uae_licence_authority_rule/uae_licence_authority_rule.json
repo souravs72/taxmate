@@ -1,0 +1,61 @@
+{
+ "actions": [],
+ "creation": "2026-09-11 08:20:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "authority",
+  "ubo_change_report_deadline_days",
+  "esr_notification_deadline_months",
+  "esr_report_deadline_months",
+  "notes"
+ ],
+ "fields": [
+  {
+   "fieldname": "authority",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Authority",
+   "options": "DED (Dubai)\nADGM\nDIFC\nRAKEZ\nDMCC\nJAFZA\nMinistry of Economy\nOther",
+   "reqd": 1
+  },
+  {
+   "fieldname": "ubo_change_report_deadline_days",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "UBO Change Days",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "esr_notification_deadline_months",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "ESR Notification Months",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "esr_report_deadline_months",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "ESR Report Months",
+   "non_negative": 1
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Portal / Notes"
+  }
+ ],
+ "istable": 1,
+ "links": [],
+ "modified": "2026-09-11 08:20:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE Compliance",
+ "name": "UAE Licence Authority Rule",
+ "owner": "Administrator",
+ "permissions": [],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}

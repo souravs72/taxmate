@@ -1,0 +1,46 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:LFN-{company}-{#####}",
+ "creation": "2026-09-11 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "obligation",
+  "status",
+  "column_break_header",
+  "source_doctype",
+  "source_name",
+  "due_date",
+  "days_late",
+  "guidance"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "obligation", "fieldtype": "Select", "in_list_view": 1, "in_standard_filter": 1, "label": "Obligation", "options": "VAT 201\nCorporate Tax\nESR Notification\nESR Report", "reqd": 1},
+  {"default": "Upcoming", "fieldname": "status", "fieldtype": "Select", "in_list_view": 1, "in_standard_filter": 1, "label": "Status", "options": "Upcoming\nDue\nOverdue\nCleared", "reqd": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "source_doctype", "fieldtype": "Link", "label": "Source Type", "options": "DocType", "reqd": 1},
+  {"fieldname": "source_name", "fieldtype": "Dynamic Link", "in_list_view": 1, "label": "Source", "options": "source_doctype", "reqd": 1},
+  {"fieldname": "due_date", "fieldtype": "Date", "in_list_view": 1, "label": "Due Date", "reqd": 1},
+  {"default": "0", "fieldname": "days_late", "fieldtype": "Int", "label": "Days Late", "read_only": 1},
+  {"fieldname": "guidance", "fieldtype": "Small Text", "label": "Guidance", "read_only": 1}
+ ],
+ "links": [],
+ "modified": "2026-09-11 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE Late Filing Notice",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "UAE Tax Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

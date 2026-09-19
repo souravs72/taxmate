@@ -1,0 +1,53 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:CGR-{company}-{#####}",
+ "creation": "2026-09-11 10:30:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "asset",
+  "purchase_invoice",
+  "column_break_header",
+  "acquisition_date",
+  "asset_class",
+  "adjustment_years",
+  "cost_section",
+  "cost_excluding_vat",
+  "vat_amount",
+  "intended_taxable_use_percent",
+  "below_threshold",
+  "notes"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "asset", "fieldtype": "Link", "in_list_view": 1, "label": "Asset", "options": "Asset"},
+  {"fieldname": "purchase_invoice", "fieldtype": "Link", "label": "Purchase Invoice", "options": "Purchase Invoice"},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"fieldname": "acquisition_date", "fieldtype": "Date", "in_list_view": 1, "label": "Acquisition Date", "reqd": 1},
+  {"default": "Other", "fieldname": "asset_class", "fieldtype": "Select", "in_list_view": 1, "label": "Asset Class", "options": "Immovable\nOther", "reqd": 1},
+  {"fieldname": "adjustment_years", "fieldtype": "Int", "label": "Adjustment Years", "read_only": 1},
+  {"fieldname": "cost_section", "fieldtype": "Section Break", "label": "Cost and First-Year Use"},
+  {"fieldname": "cost_excluding_vat", "fieldtype": "Currency", "in_list_view": 1, "label": "Cost Excluding VAT", "options": "AED", "reqd": 1},
+  {"fieldname": "vat_amount", "fieldtype": "Currency", "label": "VAT Amount", "options": "AED", "reqd": 1},
+  {"default": "100", "fieldname": "intended_taxable_use_percent", "fieldtype": "Percent", "label": "Intended Taxable Use %", "reqd": 1},
+  {"default": "0", "description": "FTA scheme applies at AED 5,000,000+. Check only to keep a below-threshold memo.", "fieldname": "below_threshold", "fieldtype": "Check", "label": "Below Threshold (memo only)"},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"}
+ ],
+ "links": [],
+ "modified": "2026-09-11 10:30:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE Capital Goods Record",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

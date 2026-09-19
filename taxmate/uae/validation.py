@@ -19,6 +19,29 @@ def get_taxmate_settings():
 	return frappe.get_single("TaxMate Settings")
 
 
+def setting_enabled(fieldname: str, default: int = 0) -> bool:
+	"""Read a TaxMate Settings Check, using ``default`` when the row is missing.
+
+	Frappe Check values are 0/1, never None, after the first Singles save. New
+	Checks on an existing Single stay 0 until a patch writes the intended default.
+	"""
+	settings = get_taxmate_settings()
+	if not settings or not settings.meta.has_field(fieldname):
+		return bool(default)
+	if not singles_field_is_set(fieldname):
+		return bool(default)
+	return bool(settings.get(fieldname))
+
+
+def singles_field_is_set(fieldname: str) -> bool:
+	"""True when TaxMate Settings already has a tabSingles row for ``fieldname``."""
+	if not frappe.db.exists("DocType", "TaxMate Settings"):
+		return False
+	return bool(
+		frappe.db.exists("Singles", {"doctype": "TaxMate Settings", "field": fieldname})
+	)
+
+
 def normalize_trn(trn: str | None) -> str | None:
 	if trn is None:
 		return None

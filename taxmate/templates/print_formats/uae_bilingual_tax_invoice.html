@@ -1,0 +1,195 @@
+{# UAE bilingual Tax Invoice / فاتورة ضريبية — Sales Invoice and Purchase Invoice #}
+{% set is_return = doc.is_return %}
+{% set base_total = doc.base_grand_total or doc.grand_total or 0 %}
+{% set seller_name = doc.company %}
+{% set seller_trn = doc.company_trn %}
+{% set seller_addr = doc.company_address_display %}
+{% if doc.doctype == "Purchase Invoice" %}
+  {% set buyer_name = doc.company %}
+  {% set buyer_trn = doc.company_trn %}
+  {% set buyer_addr = doc.company_address_display %}
+  {% set seller_name = doc.supplier_name %}
+  {% set seller_trn = doc.tax_id %}
+  {% set seller_addr = doc.address_display %}
+{% else %}
+  {% set buyer_name = doc.customer_name %}
+  {% set buyer_trn = doc.tax_id %}
+  {% set buyer_addr = doc.address_display %}
+{% endif %}
+{% set is_simplified = (not buyer_trn) and (base_total|abs <= 10000) %}
+{% set title_en = "Credit Note" if is_return else ("Simplified Tax Invoice" if is_simplified else "Tax Invoice") %}
+{% set title_ar = "إشعار دائن" if is_return else ("فاتورة ضريبية مبسطة" if is_simplified else "فاتورة ضريبية") %}
+{% set einv_log = None %}
+{% if doc.uae_e_invoice_log %}
+  {% set einv_log = frappe.db.get_value("UAE E-Invoice Log", doc.uae_e_invoice_log, ["uuid", "status"], as_dict=True) %}
+{% endif %}
+<style>
+.tm-inv { font-family: "Noto Naskh Arabic", "Noto Sans", "DejaVu Sans", sans-serif; color: #111; font-size: 11pt; }
+.tm-inv table { border-collapse: collapse; }
+.tm-inv .hdr { width: 100%; margin-bottom: 12px; border-bottom: 2px solid #0b3d2e; }
+.tm-inv .hdr td { vertical-align: top; padding-bottom: 10px; }
+.tm-inv .titles h1 { margin: 0; font-size: 18pt; color: #0b3d2e; }
+.tm-inv .titles .ar { direction: rtl; font-size: 16pt; margin-top: 2px; }
+.tm-inv .meta { text-align: right; font-size: 10pt; }
+.tm-inv .parties { width: 100%; margin: 10px 0 14px; }
+.tm-inv .parties td { width: 50%; vertical-align: top; padding: 8px 10px; border: 1px solid #ddd; }
+.tm-inv .parties h3 { margin: 0 0 6px; font-size: 10pt; color: #0b3d2e; }
+.tm-inv table.items { width: 100%; margin-top: 8px; }
+.tm-inv table.items th, .tm-inv table.items td { border: 1px solid #ccc; padding: 5px 6px; }
+.tm-inv table.items th { background: #0b3d2e; color: #fff; font-size: 9pt; }
+.tm-inv .num { text-align: right; white-space: nowrap; }
+.tm-inv .totals { width: 46%; margin-left: auto; margin-top: 10px; }
+.tm-inv .totals td { padding: 4px 8px; border: 1px solid #ddd; }
+.tm-inv .totals tr.grand td { font-weight: 700; background: #f3f7f5; }
+.tm-inv .legal { width: 100%; margin-top: 16px; font-size: 8.5pt; color: #333; }
+.tm-inv .legal td { width: 50%; padding: 6px 8px; vertical-align: top; }
+.tm-inv .legal .ar { direction: rtl; text-align: right; }
+.tm-inv .qr { margin-top: 12px; padding: 8px; border: 1px dashed #888; font-size: 8.5pt; }
+.tm-inv .status { margin-top: 8px; font-size: 9pt; }
+</style>
+<div class="tm-inv">
+  <table class="hdr">
+    <tr>
+      <td class="titles">
+        <h1>{{ title_en }}</h1>
+        <div class="ar">{{ title_ar }}</div>
+      </td>
+      <td class="meta">
+        <div><strong>{{ _("Invoice No.") }} / {{ _("رقم الفاتورة") }}:</strong> {{ doc.name }}</div>
+        <div><strong>{{ _("Date") }} / {{ _("التاريخ") }}:</strong> {{ doc.get_formatted("posting_date") }}</div>
+        {% if doc.due_date and not is_return %}
+        <div><strong>{{ _("Due Date") }}:</strong> {{ doc.get_formatted("due_date") }}</div>
+        {% endif %}
+        {% if doc.vat_emirate %}
+        <div><strong>{{ _("Place of Supply") }} / {{ _("مكان التوريد") }}:</strong> {{ doc.vat_emirate }}</div>
+        {% endif %}
+        {% if is_return and (doc.return_against or doc.uae_return_against_external) %}
+        <div><strong>{{ _("Original Invoice") }}:</strong> {{ doc.return_against or doc.uae_return_against_external }}</div>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <table class="parties">
+    <tr>
+      <td>
+        <h3>{{ _("Supplier") }} / المورد</h3>
+        <div>{{ seller_name }}</div>
+        {% if seller_addr %}<div>{{ seller_addr }}</div>{% endif %}
+        {% if seller_trn %}<div><strong>TRN / الرقم الضريبي:</strong> {{ seller_trn }}</div>{% endif %}
+      </td>
+      <td>
+        <h3>{{ _("Customer") }} / العميل</h3>
+        <div>{{ buyer_name }}</div>
+        {% if buyer_addr %}<div>{{ buyer_addr }}</div>{% endif %}
+        {% if buyer_trn %}<div><strong>TRN / الرقم الضريبي:</strong> {{ buyer_trn }}</div>{% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>{{ _("Description") }} / الوصف</th>
+        <th class="num">{{ _("Qty") }}</th>
+        <th class="num">{{ _("Rate") }}</th>
+        <th class="num">{{ _("Net") }} / الصافي</th>
+        <th class="num">{{ _("VAT %") }}</th>
+        <th class="num">{{ _("VAT") }} / الضريبة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in doc.items %}
+      {% set item_net = item.net_amount or 0 %}
+      {% set item_vat = item.tax_amount or 0 %}
+      {% set item_rate = item.tax_rate if item.tax_rate is not none else (item_vat / item_net * 100 if item_net else 0) %}
+      <tr>
+        <td>{{ item.idx }}</td>
+        <td>
+          {{ item.item_name or item.description }}
+          {% if item.hs_code %}<div style="font-size:8pt;color:#555">HS: {{ item.hs_code }}</div>{% endif %}
+          {% if item.sac_code %}<div style="font-size:8pt;color:#555">SAC: {{ item.sac_code }}</div>{% endif %}
+        </td>
+        <td class="num">{{ frappe.format(item.qty, {"fieldtype": "Float"}) }}</td>
+        <td class="num">{{ frappe.format(item.rate, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+        <td class="num">{{ frappe.format(item_net, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+        <td class="num">{{ frappe.format(item_rate, {"fieldtype": "Percent"}) }}</td>
+        <td class="num">{{ frappe.format(item_vat, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if doc.taxes %}
+  <table class="items" style="margin-top:12px;width:60%;margin-left:auto;">
+    <thead>
+      <tr>
+        <th>{{ _("Tax Summary") }} / ملخص الضريبة</th>
+        <th class="num">{{ _("Rate") }}</th>
+        <th class="num">{{ _("Amount") }}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tax in doc.taxes %}
+      <tr>
+        <td>{{ tax.description }}</td>
+        <td class="num">{% if tax.rate %}{{ frappe.format(tax.rate, {"fieldtype": "Percent"}) }}{% endif %}</td>
+        <td class="num">{{ frappe.format(tax.tax_amount, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <table class="totals">
+    <tr>
+      <td>{{ _("Net Total") }} / الإجمالي قبل الضريبة</td>
+      <td class="num">{{ frappe.format(doc.net_total, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+    </tr>
+    <tr>
+      <td>{{ _("VAT") }} / ضريبة القيمة المضافة</td>
+      <td class="num">{{ frappe.format(doc.total_taxes_and_charges, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+    </tr>
+    <tr class="grand">
+      <td>{{ _("Grand Total") }} / الإجمالي شامل الضريبة</td>
+      <td class="num">{{ frappe.format(doc.grand_total, {"fieldtype": "Currency", "currency": doc.currency}) }}</td>
+    </tr>
+  </table>
+
+  {% if doc.uae_credit_note_reason %}
+  <p><strong>{{ _("Credit Note Reason") }}:</strong> {{ doc.uae_credit_note_reason }}</p>
+  {% endif %}
+
+  <div class="qr">
+    <strong>{{ _("QR / Document hash") }} / رمز الاستجابة:</strong>
+    {% if einv_log and einv_log.uuid %}
+      UUID {{ einv_log.uuid }} · {{ einv_log.status }}
+    {% else %}
+      {{ _("Pending ASP signature") }} / في انتظار توقيع مزود الخدمة
+    {% endif %}
+  </div>
+
+  <div class="status">
+    {% if doc.uae_e_invoice_status %}
+    <strong>{{ _("E-Invoice Status") }}:</strong> {{ doc.uae_e_invoice_status }}
+    {% endif %}
+    {% if doc.currency and doc.currency != "AED" %}
+    &nbsp;·&nbsp; {{ _("Currency") }}: {{ doc.currency }}
+    {% if doc.conversion_rate %} ({{ _("Rate") }} {{ doc.conversion_rate }}){% endif %}
+    {% endif %}
+  </div>
+
+  <table class="legal">
+    <tr>
+      <td>
+        This is a tax invoice issued in accordance with Federal Decree-Law No. 8 of 2017 on Value Added Tax.
+        Keep this document for your records.
+      </td>
+      <td class="ar">
+        هذه فاتورة ضريبية صادرة وفقاً للمرسوم بقانون اتحادي رقم (8) لسنة 2017 في شأن ضريبة القيمة المضافة.
+        يُرجى الاحتفاظ بهذه الوثيقة.
+      </td>
+    </tr>
+  </table>
+</div>

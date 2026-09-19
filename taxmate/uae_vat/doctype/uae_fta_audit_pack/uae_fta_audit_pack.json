@@ -1,0 +1,47 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "format:FTA-{company}-{period_start}-{#####}",
+ "creation": "2026-09-11 13:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "period_start",
+  "period_end",
+  "column_break_header",
+  "pack_file",
+  "generated_on",
+  "notes",
+  "guidance",
+  "amended_from"
+ ],
+ "fields": [
+  {"fieldname": "company", "fieldtype": "Link", "in_list_view": 1, "in_standard_filter": 1, "label": "Company", "options": "Company", "reqd": 1},
+  {"fieldname": "period_start", "fieldtype": "Date", "in_list_view": 1, "label": "Period Start", "reqd": 1},
+  {"fieldname": "period_end", "fieldtype": "Date", "in_list_view": 1, "label": "Period End", "reqd": 1},
+  {"fieldname": "column_break_header", "fieldtype": "Column Break"},
+  {"description": "Last zip attached to this document (private File).", "fieldname": "pack_file", "fieldtype": "Data", "label": "Pack File", "read_only": 1},
+  {"fieldname": "generated_on", "fieldtype": "Datetime", "label": "Generated On", "read_only": 1},
+  {"fieldname": "notes", "fieldtype": "Small Text", "label": "Notes"},
+  {"fieldname": "guidance", "fieldtype": "HTML", "options": "<div class=\"text-muted small\">Export attaches a private zip: invoice listing, VAT 201 boxes, UBO snapshot, e-invoice XML/PDF, and a residency note. This does not file with the FTA. Keep it 5+ years.</div>"},
+  {"fieldname": "amended_from", "fieldtype": "Link", "label": "Amended From", "no_copy": 1, "options": "UAE FTA Audit Pack", "print_hide": 1, "read_only": 1}
+ ],
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-09-11 13:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "UAE VAT",
+ "name": "UAE FTA Audit Pack",
+ "owner": "Administrator",
+ "permissions": [
+  {"amend": 1, "cancel": 1, "create": 1, "delete": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "UAE Tax Manager", "share": 1, "submit": 1, "write": 1},
+  {"amend": 1, "cancel": 1, "create": 1, "email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts Manager", "share": 1, "submit": 1, "write": 1},
+  {"email": 1, "export": 1, "print": 1, "read": 1, "report": 1, "role": "Accounts User", "share": 1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

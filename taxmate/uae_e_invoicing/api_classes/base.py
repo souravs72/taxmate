@@ -140,6 +140,22 @@ class BaseAPI:
 	def get(self, path: str, params: dict | None = None) -> Any:
 		return self._make_request("GET", path, params=params)
 
+	def submit_invoice(self, payload: dict[str, Any]) -> dict[str, Any]:
+		"""Submit a PINT-AE (or mapped) document. Providers must implement this."""
+		raise NotImplementedError
+
+	def get_document_status(self, document_id: str) -> dict[str, Any]:
+		"""Poll ASP status for a previously submitted document."""
+		raise NotImplementedError
+
+	def get_document_xml(self, document_id: str) -> bytes:
+		"""Fetch the signed XML archive for a document."""
+		raise NotImplementedError
+
+	def get_document_pdf(self, document_id: str) -> bytes:
+		"""Fetch the rendered PDF archive for a document."""
+		raise NotImplementedError
+
 	def get_binary(self, path: str) -> bytes:
 		"""Fetch binary content (XML / PDF) without JSON decoding."""
 		headers = {**self.default_headers, **self.get_auth_headers()}
