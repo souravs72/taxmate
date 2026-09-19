@@ -76,11 +76,11 @@ taxmate.show_uae_readiness = function (frm) {
 						.join("<br>")}</div>
 					${mandateHtml}
 					<div style="margin-top: 6px;">
-						<a href="/desk/taxmate-settings">${__("TaxMate Settings")}</a>
+						<a href="/app/taxmate-settings">${__("TaxMate Settings")}</a>
 						&nbsp;|&nbsp;
-						<a href="/desk/uae-vat-settings">${__("UAE VAT Settings")}</a>
+						<a href="/app/uae-vat-settings">${__("UAE VAT Settings")}</a>
 						&nbsp;|&nbsp;
-						<a href="/desk/query-report/UAE%20VAT%20201">${__("UAE VAT 201")}</a>
+						<a href="/app/query-report/UAE%20VAT%20201">${__("UAE VAT 201")}</a>
 					</div>
 				</div>`,
 				color
