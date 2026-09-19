@@ -53,3 +53,9 @@ jspm_packages/
 
 # Aider AI Chat
 .aider*
+brag-output/
+uv.lock
+
+# React SPA build output (source lives in frontend/)
+taxmate/public/frontend/
+taxmate/www/taxmate.html
