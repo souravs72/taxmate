@@ -43,34 +43,56 @@ export function hasCsrfToken(): boolean {
 export const DT = {
   salesOrder: "Sales Order",
   salesOrderItem: "Sales Order Item",
-  customer: "Customer",
-  item: "Item",
-  address: "Address",
-  deliveryNote: "Delivery Note",
-  deliveryNoteItem: "Delivery Note Item",
   salesInvoice: "Sales Invoice",
   salesInvoiceItem: "Sales Invoice Item",
+  deliveryNote: "Delivery Note",
+  deliveryNoteItem: "Delivery Note Item",
+  customer: "Customer",
+  item: "Item",
+  itemPrice: "Item Price",
+  address: "Address",
+  contact: "Contact",
+  paymentEntry: "Payment Entry",
   paymentEntryRef: "Payment Entry Reference",
+  modeOfPayment: "Mode of Payment",
+  taxTemplate: "Sales Taxes and Charges Template",
+  paymentTerms: "Payment Terms Template",
+  sellingSettings: "Selling Settings",
+  itemGroup: "Item Group",
+  customerGroup: "Customer Group",
+  uom: "UOM",
+  eInvoiceLog: "UAE E-Invoice Log",
 } as const;
 
-/* ── Whitelisted methods, verified against ERPNext v16 source ─────────── */
+/**
+ * RPC names from taxmate.api.get_catalog() where available.
+ * Prefer taxmate.api.* over raw erpnext.* / frappe.desk.*.
+ */
 export const METHOD = {
-  /** erpnext/accounts/party.py:77 — pass doctype so the right branch runs */
-  partyDetails: "erpnext.accounts.party.get_party_details",
-  /** erpnext/stock/get_item_details.py:85 — takes a ctx dict, not flat kwargs */
-  itemDetails: "erpnext.stock.get_item_details.get_item_details",
-  /** sales_order.py:1172 — returns an UNSAVED doc; caller must insert */
-  makeDeliveryNote: "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",
-  /** sales_order.py:1356 — returns an UNSAVED doc; caller must insert */
-  makeSalesInvoice: "erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice",
-  /** frappe/desk/form/load.py:92 — timeline, comments, attachments */
-  docinfo: "frappe.desk.form.load.get_docinfo",
-  /** frappe/desk/listview.py:34 — [{name, count}], used for the stage donut */
-  groupByCount: "frappe.desk.listview.get_group_by_count",
-  /** frappe/desk/reportview.py:30 — group_by + aggregate_function (one column per call) */
-  reportview: "frappe.desk.reportview.get",
-  /** Backend track — see claude/build-plan-decisions.md. Frontend degrades if absent. */
+  getCatalog: "taxmate.api.get_catalog",
+  getSession: "taxmate.api.get_session",
+  getHome: "taxmate.api.dashboard.get_home",
+  getDefaults: "taxmate.api.accounts.get_defaults",
+  getPartyDetails: "taxmate.api.accounts.get_party_details",
+  /** Alias used by Sales Order create — same allowlisted wrapper. */
+  partyDetails: "taxmate.api.accounts.get_party_details",
+  getItemDetails: "taxmate.api.accounts.get_item_details",
+  itemDetails: "taxmate.api.accounts.get_item_details",
+  getOutstandingInvoices: "taxmate.api.accounts.get_outstanding_invoices",
+  getPaymentEntry: "taxmate.api.accounts.get_payment_entry",
+  makeSalesReturn: "taxmate.api.accounts.make_sales_return",
+  submit: "taxmate.api.workflow.submit",
+  cancel: "taxmate.api.workflow.cancel",
+  amend: "taxmate.api.workflow.amend",
+  searchLink: "taxmate.api.resource.search_link",
+  runReport: "taxmate.api.reports.run_report",
   fulfilmentSummary: "taxmate.api.sales_order.fulfilment_summary",
+  generateEInvoice: "taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice",
+  /** Mapper returns an unsaved doc — caller must insert. */
+  makeDeliveryNote: "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",
+  makeSalesInvoice: "erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice",
+  /** Stage donut — until a TaxMate wrapper exists. */
+  groupByCount: "frappe.desk.listview.get_group_by_count",
 } as const;
 
 /** Frappe error payloads are HTML and often several messages joined by <br>. */

@@ -64,7 +64,8 @@ export function stageOf(o: {
   per_delivered?: number;
   per_billed?: number;
 }): Stage {
-  if (o.docstatus === 0 || o.status === "Draft") return "draft";
+  /* Prefer docstatus — insert-with-docstatus:1 can leave status stuck on Draft. */
+  if (o.docstatus === 0) return "draft";
   if ((o.per_billed ?? 0) >= 100) return "billed";
   if ((o.per_delivered ?? 0) >= 100) return "delivered";
   return "confirmed";
@@ -86,3 +87,41 @@ export function isLate(o: { delivery_date?: string; per_delivered?: number; stat
   today.setHours(0, 0, 0, 0);
   return due < today;
 }
+
+/* ── Sales Invoice — spec §5.2 ───────────────────────────────────────── */
+
+export const INV_UI_STATUSES = ["Draft", "Unpaid", "Part", "Paid", "Return", "Cancelled"] as const;
+export type InvUiStatus = (typeof INV_UI_STATUSES)[number];
+
+export function invoiceUiStatus(row: {
+  docstatus?: number;
+  status?: string;
+  is_return?: number;
+}): InvUiStatus {
+  if (row.docstatus === 2 || row.status === "Cancelled") return "Cancelled";
+  if (row.docstatus === 0) return "Draft";
+  if (row.is_return || row.status === "Return" || row.status === "Credit Note Issued") return "Return";
+  if (row.status === "Paid") return "Paid";
+  if (row.status === "Partly Paid") return "Part";
+  return "Unpaid";
+}
+
+export const INV_PILL_CLASS: Record<InvUiStatus, string> = {
+  Draft: "p-draft",
+  Unpaid: "p-warn",
+  Part: "p-open",
+  Paid: "p-done",
+  Return: "p-flat",
+  Cancelled: "p-cxl",
+};
+
+export const EINVOICE_PILL: Record<string, string> = {
+  Draft: "p-draft",
+  Generated: "p-open",
+  Queued: "p-warn",
+  Submitted: "p-open",
+  Accepted: "p-done",
+  Rejected: "p-overdue",
+  Failed: "p-overdue",
+  Cancelled: "p-cxl",
+};

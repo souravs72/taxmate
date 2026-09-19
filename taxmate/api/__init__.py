@@ -169,6 +169,10 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "run_report", "method": "taxmate.api.reports.run_report"},
 			{"name": "list_reports", "method": "taxmate.api.reports.list_reports"},
 			{"name": "get_home", "method": "taxmate.api.dashboard.get_home"},
+			{
+				"name": "fulfilment_summary",
+				"method": "taxmate.api.sales_order.fulfilment_summary",
+			},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
 			*_EXISTING_ACTIONS,
@@ -195,4 +199,5 @@ def get_session() -> dict[str, Any]:
 		"company": company,
 		"currency": currency,
 		"country": country,
+		"roles": frappe.get_roles(),
 	}

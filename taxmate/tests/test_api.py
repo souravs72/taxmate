@@ -44,6 +44,7 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.resource.get_list", methods)
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
+		self.assertIn("taxmate.api.sales_order.fulfilment_summary", methods)
 		self.assertIn("taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice", methods)
 
 		reports = {row["report"] for row in catalog["reports"]}
@@ -54,6 +55,8 @@ class TestApiCatalog(FrappeTestCase):
 		session = get_session()
 		self.assertEqual(session["user"], frappe.session.user)
 		self.assertIn("company", session)
+		self.assertIn("roles", session)
+		self.assertTrue(session["roles"])
 
 
 class TestApiResource(FrappeTestCase):
@@ -287,6 +290,13 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		submitted = submit({"doctype": "Sales Invoice", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
 
+		from taxmate.api.accounts import make_sales_return
+
+		credit = make_sales_return(doc["name"])
+		self.assertTrue(credit.get("is_return"))
+		self.assertEqual(credit.get("return_against"), doc["name"])
+		self.assertEqual(credit.get("docstatus"), 0)
+
 		outstanding = get_outstanding_invoices(company, "Customer", WALK_IN)
 		self.assertTrue(outstanding is None or isinstance(outstanding, list))
 
@@ -314,3 +324,69 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(amended["docstatus"], 0)
 		self.assertEqual(amended["amended_from"], doc["name"])
 		self.assertFalse(amended.get("uae_e_invoice_status"))
+
+
+class TestSalesOrderApi(FrappeTestCase):
+	def test_fulfilment_summary_shape(self):
+		from taxmate.api.sales_order import fulfilment_summary
+
+		summary = fulfilment_summary()
+		for key in (
+			"committed",
+			"delivered_value",
+			"billed_value",
+			"unbilled_delivered",
+			"open_count",
+			"overdue_count",
+		):
+			self.assertIn(key, summary)
+
+	def test_sales_order_insert_then_submit_sets_status(self):
+		from taxmate.tests.uae_prove_fixtures import (
+			SERVICE_ITEM,
+			WALK_IN,
+			_ensure_walk_in,
+			require_prove_site,
+		)
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+		_ensure_walk_in()
+
+		from taxmate.api.workflow import cancel, submit
+
+		doc = insert(
+			{
+				"doctype": "Sales Order",
+				"company": company,
+				"customer": WALK_IN,
+				"order_type": "Sales",
+				"transaction_date": "2026-11-15",
+				"delivery_date": "2026-11-30",
+				"currency": "AED",
+				"conversion_rate": 1,
+				"selling_price_list": "Standard Selling",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"taxes_and_charges": "UAE VAT 5% - TM",
+				"items": [
+					{
+						"item_code": SERVICE_ITEM,
+						"qty": 1,
+						"rate": 100,
+						"delivery_date": "2026-11-30",
+					}
+				],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		self.assertEqual(doc["status"], "Draft")
+
+		submitted = submit({"doctype": "Sales Order", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+		self.assertNotEqual(submitted["status"], "Draft")
+
+		cancelled = cancel("Sales Order", doc["name"])
+		self.assertEqual(cancelled["docstatus"], 2)
