@@ -8,7 +8,7 @@ import frappe
 from frappe import _
 
 from taxmate.api import catalog_reports
-from taxmate.api.resource import _parse, assert_company_read
+from taxmate.api.resource import _parse, assert_company_read, require_login
 
 
 def assert_allowed_report(report_name: str) -> None:
@@ -22,8 +22,7 @@ def assert_allowed_report(report_name: str) -> None:
 
 @frappe.whitelist()
 def list_reports() -> list[dict[str, str]]:
-	if frappe.session.user == "Guest":
-		frappe.throw(_("Login required"), frappe.AuthenticationError)
+	require_login()
 	return catalog_reports()
 
 

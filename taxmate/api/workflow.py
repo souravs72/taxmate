@@ -6,16 +6,13 @@ import frappe
 from frappe import _
 from frappe.client import cancel as client_cancel
 
-from taxmate.api.resource import _parse, assert_allowed_doctype
+from taxmate.api.resource import _require_doc, assert_allowed_doctype
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def submit(doc):
-	"""Submit by name. Reloads from the database so clients need not send `modified`."""
-	doc = _parse(doc)
-	if not doc or not doc.get("doctype"):
-		frappe.throw(_("doctype is required"))
-	assert_allowed_doctype(doc["doctype"])
+	"""Submit by name. Reloads so clients need not send `modified`."""
+	doc = _require_doc(doc)
 	name = doc.get("name")
 	if not name:
 		frappe.throw(_("name is required"))
@@ -33,7 +30,6 @@ def cancel(doctype, name):
 
 @frappe.whitelist(methods=["POST"])
 def amend(doctype: str, name: str):
-	"""Insert a draft copy of a cancelled document (Frappe amend)."""
 	assert_allowed_doctype(doctype)
 	source = frappe.get_doc(doctype, name)
 	source.check_permission("amend")

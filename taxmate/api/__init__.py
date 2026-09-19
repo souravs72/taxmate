@@ -1,21 +1,12 @@
-"""TaxMate accounts API for a custom frontend.
-
-CRUD and document lifecycle go through ``taxmate.api.resource`` and
-``taxmate.api.workflow`` (allowlisted DocTypes, then ``frappe.client``).
-Party/item/payment helpers live in ``taxmate.api.accounts``. Reports and
-home KPIs are ``taxmate.api.reports`` and ``taxmate.api.dashboard``.
-
-UAE filing and e-invoice actions already exist as whitelist methods; they
-are listed in ``get_catalog`` instead of being wrapped again.
-"""
+"""TaxMate accounts API. UAE methods are catalogued, not wrapped again."""
 
 from __future__ import annotations
 
 from typing import Any
 
 import frappe
-from frappe import _
 
+from taxmate.api.resource import require_login
 from taxmate.search import ALLOWED_SEARCH_DOCTYPES, DENIED_SEARCH_DOCTYPES, GLOBAL_SEARCH_DOCTYPES
 from taxmate.setup.financial_reports import CORE_REPORT_LINKS, TAXMATE_REPORT_LINKS
 from taxmate.setup.home import DAILY_SHORTCUTS, HOME_LINKS, UAE_SHORTCUTS
@@ -97,7 +88,6 @@ _EXISTING_ACTIONS: tuple[dict[str, str], ...] = (
 
 
 def catalog_doctypes() -> list[str]:
-	"""Product DocTypes a custom frontend should present."""
 	names = set(GLOBAL_SEARCH_DOCTYPES)
 	names.update(_CORE_MASTERS)
 	for doctype in ALLOWED_SEARCH_DOCTYPES:
@@ -132,9 +122,7 @@ def catalog_reports() -> list[dict[str, str]]:
 
 @frappe.whitelist()
 def get_catalog() -> dict[str, Any]:
-	"""Discovery document for a custom frontend: resources, reports, actions."""
-	if frappe.session.user == "Guest":
-		frappe.throw(_("Login required"), frappe.AuthenticationError)
+	require_login()
 
 	resources = []
 	for doctype in catalog_doctypes():
@@ -183,16 +171,14 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "get_home", "method": "taxmate.api.dashboard.get_home"},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
-			*[dict(row) for row in _EXISTING_ACTIONS],
+			*_EXISTING_ACTIONS,
 		],
 	}
 
 
 @frappe.whitelist()
 def get_session() -> dict[str, Any]:
-	"""Current user, default company, and currency for a custom frontend."""
-	if frappe.session.user == "Guest":
-		frappe.throw(_("Login required"), frappe.AuthenticationError)
+	require_login()
 
 	company = frappe.defaults.get_user_default("Company")
 	currency = None

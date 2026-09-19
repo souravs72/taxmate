@@ -18,7 +18,7 @@ POST /api/method/taxmate.api.get_session
 POST /api/method/taxmate.api.dashboard.get_home
 ```
 
-`get_catalog` returns product DocTypes (invoices, parties, COA, UAE filings), financial reports, and RPC method names. DocTypes outside the TaxMate product surface (HR, manufacturing, CRM) are rejected. `get_meta` nests child-table fields under each Table field so a form can render invoice lines without listing child DocTypes.
+`get_catalog` lists product DocTypes, reports, and RPC names. HR, manufacturing, and CRM DocTypes are rejected. `get_meta` nests child-table fields under Table fields.
 
 ## Documents
 

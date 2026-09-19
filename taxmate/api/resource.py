@@ -1,9 +1,4 @@
-"""Allowlisted DocType CRUD for a custom frontend.
-
-Delegates to ``frappe.client`` so Desk permissions still apply. The allowlist
-is the TaxMate product surface from ``taxmate.search`` (Desk search + denied
-HR/manufacturing doctypes).
-"""
+"""Allowlisted CRUD over ``frappe.client``."""
 
 from __future__ import annotations
 
@@ -55,10 +50,23 @@ def assert_company_read(company: str | None) -> None:
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 
+def require_login() -> None:
+	if frappe.session.user == "Guest":
+		frappe.throw(_("Login required"), frappe.AuthenticationError)
+
+
 def _parse(value):
 	if isinstance(value, str):
 		return frappe.parse_json(value)
 	return value
+
+
+def _require_doc(doc):
+	doc = _parse(doc)
+	if not doc or not doc.get("doctype"):
+		frappe.throw(_("doctype is required"))
+	assert_allowed_doctype(doc["doctype"])
+	return doc
 
 
 @frappe.whitelist()
@@ -99,20 +107,12 @@ def get(doctype, name=None, filters=None, parent=None):
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def insert(doc=None):
-	doc = _parse(doc)
-	if not doc or not doc.get("doctype"):
-		frappe.throw(_("doctype is required"))
-	assert_allowed_doctype(doc["doctype"])
-	return client_insert(doc)
+	return client_insert(_require_doc(doc))
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def save(doc):
-	doc = _parse(doc)
-	if not doc or not doc.get("doctype"):
-		frappe.throw(_("doctype is required"))
-	assert_allowed_doctype(doc["doctype"])
-	return client_save(doc)
+	return client_save(_require_doc(doc))
 
 
 @frappe.whitelist(methods=["DELETE", "POST"])
@@ -123,11 +123,6 @@ def delete(doctype, name):
 
 @frappe.whitelist()
 def get_meta(doctype: str) -> dict[str, Any]:
-	"""Field metadata a custom frontend needs to render a form or list.
-
-	Child tables stay nested under Table fields so the parent form can render
-	lines without exposing child-table list/get/insert.
-	"""
 	assert_allowed_doctype(doctype)
 	if not frappe.has_permission(doctype, "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)

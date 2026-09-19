@@ -63,7 +63,8 @@ def get_party_details(
 	if not party:
 		frappe.throw(_("party is required"))
 	assert_allowed_doctype(party_type)
-	assert_company_read(company or frappe.defaults.get_user_default("Company"))
+	company = company or frappe.defaults.get_user_default("Company")
+	assert_company_read(company)
 	if not frappe.has_permission(party_type, "read", party):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
@@ -72,7 +73,7 @@ def get_party_details(
 	return erp_get_party_details(
 		party=party,
 		party_type=party_type,
-		company=company or frappe.defaults.get_user_default("Company"),
+		company=company,
 		doctype=doctype,
 		posting_date=posting_date,
 		price_list=price_list,
