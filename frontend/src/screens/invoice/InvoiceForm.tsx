@@ -1,15 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappeCreateDoc, useFrappeGetDoc, useFrappeGetDocList, useFrappePostCall, useFrappeUpdateDoc } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
-import { canCancelSales, canSubmitSales, eInvoiceLocked } from "../../lib/roles";
+import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { EINVOICE_PILL, INV_PILL_CLASS, invoiceUiStatus } from "../../lib/status";
+import { INV_PILL_CLASS, invoiceUiStatus } from "../../lib/status";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, SumRow } from "../../components/ui";
+import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
 type Line = {
@@ -77,8 +78,6 @@ export default function InvoiceForm() {
   const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const submitCall = useFrappePostCall<{ message: InvoiceDoc }>(METHOD.submit);
-  const cancelCall = useFrappePostCall(METHOD.cancel);
-  const einvoiceCall = useFrappePostCall(METHOD.generateEInvoice);
   const create = useFrappeCreateDoc();
   const update = useFrappeUpdateDoc();
   const templates = useFrappeGetDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
@@ -177,11 +176,10 @@ export default function InvoiceForm() {
 
   const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
   const doc = existing.data;
-  const submitted = doc?.docstatus === 1;
-  const cancelled = doc?.docstatus === 2;
-  const locked = submitted || cancelled;
+  /* Only a draft reaches the render path — the guard above sends anything
+     submitted or cancelled to the read-only detail screen.              */
+  const locked = false;
   const canSubmit = canSubmitSales(session.roles);
-  const canCancel = canCancelSales(session.roles) && !eInvoiceLocked(doc?.uae_e_invoice_status);
   const ready = !!customer && !!postingDate && !!emirate && lines.length > 0 && lines.every((l) => l.item_code);
   const currency = doc?.currency || party.currency || companyDefaults.currency || session.currency || undefined;
 
@@ -217,13 +215,10 @@ export default function InvoiceForm() {
   async function save() {
     setBusy(true); setSaveError(null);
     try {
-      if (isNew) {
-        const created = await create.createDoc(DT.salesInvoice, payload());
-        nav(`/invoices/${encodeURIComponent((created as { name: string }).name)}`);
-      } else {
-        await update.updateDoc(DT.salesInvoice, name, payload());
-        await existing.mutate();
-      }
+      const docname = isNew
+        ? (await create.createDoc(DT.salesInvoice, payload()) as { name: string }).name
+        : (await update.updateDoc(DT.salesInvoice, name, payload()), name);
+      nav(`/invoices/${encodeURIComponent(docname)}`);
     } catch (err) { setSaveError(err); }
     finally { setBusy(false); }
   }
@@ -239,11 +234,7 @@ export default function InvoiceForm() {
         await update.updateDoc(DT.salesInvoice, name, payload());
       }
       await submitCall.call({ doc: { doctype: DT.salesInvoice, name: docname } });
-      if (isNew) {
-        nav(`/invoices/${encodeURIComponent(docname)}`);
-      } else {
-        await existing.mutate();
-      }
+      nav(`/invoices/${encodeURIComponent(docname)}`);
     } catch (err) {
       setSaveError(err);
       if (!isNew) await existing.mutate();
@@ -252,6 +243,12 @@ export default function InvoiceForm() {
 
   if (!isNew && existing.isLoading) return <Loading />;
   if (!isNew && existing.error) return <ErrorBox error={existing.error} onRetry={() => existing.mutate()} />;
+  /* A submitted invoice has posted to the ledger. It is not editable, and
+     every post-submission action lives on the detail screen — so send the
+     user there rather than showing a form full of disabled fields.      */
+  if (!isNew && existing.data && existing.data.docstatus !== 0) {
+    return <Navigate to={`/invoices/${encodeURIComponent(name)}`} replace />;
+  }
 
   const ui = invoiceUiStatus(doc ?? { docstatus: 0 });
 
@@ -271,48 +268,29 @@ export default function InvoiceForm() {
             {!locked && canSubmit && (
               <button className="btn" disabled={busy || !ready} onClick={() => void submitDoc()}>{t("inv.submit")}</button>
             )}
-            {submitted && canSubmit && (
-              <button className="btn ghost" onClick={() => nav(`/payments/new?invoice=${encodeURIComponent(name)}`)}>
-                {t("inv.receive")}
-              </button>
-            )}
-            {submitted && canSubmit && !doc?.is_return && (
-              <button className="btn ghost" onClick={() => nav(`/invoices/${encodeURIComponent(name)}/return`)}>
-                {t("inv.credit")}
-              </button>
-            )}
-            {submitted && canSubmit && (
-              <button className="btn ghost" disabled={einvoiceCall.loading}
-                onClick={() => void einvoiceCall.call({ docname: name, doctype: DT.salesInvoice }).then(() => existing.mutate())}>
-                {t("inv.einvoice")}
-              </button>
-            )}
-            {submitted && canCancel && (
-              <button className="btn quiet" onClick={() => void cancelCall.call({ doctype: DT.salesInvoice, name }).then(() => existing.mutate())}>
-                {t("inv.cancel")}
-              </button>
-            )}
           </>
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <Pill cls={INV_PILL_CLASS[ui]}>{t(`inv.status.${ui}`)}</Pill>
-          {doc?.uae_e_invoice_status && (
-            <Pill cls={EINVOICE_PILL[doc.uae_e_invoice_status] || "p-flat"}>{doc.uae_e_invoice_status}</Pill>
-          )}
         </p>
       </PageHead>
 
-      {(saveError || partyCall.error || submitCall.error || einvoiceCall.error || cancelCall.error) && (
-        <ErrorBox error={saveError || partyCall.error || submitCall.error || einvoiceCall.error || cancelCall.error} />
+      {(saveError || partyCall.error || submitCall.error) && (
+        <ErrorBox error={saveError || partyCall.error || submitCall.error} />
       )}
 
-      {submitted && doc?.uae_e_invoice_status && (
-        <div className="alert"><b>{t("inv.eBanner")}</b><span>{doc.uae_e_invoice_status}</span></div>
-      )}
 
-      <div className="body2">
-        <div>
+      <FormLayout aside={
+        <>
+          <Card bodyClass="cbody">
+            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("inv.totals")}</h2>
+            <SumRow k={t("sod.net")} v={money(doc?.net_total ?? net)} currency={currency} />
+            <SumRow k={t("sod.vat")} v={money(doc?.total_taxes_and_charges ?? 0)} currency={currency} />
+            <SumRow k={t("sod.grand")} v={money(doc?.grand_total ?? net)} cls="rule total" currency={currency} />
+          </Card>
+        </>
+      }>
           <Card num={1} title={t("inv.who")} hint={t("inv.whoHint")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
@@ -414,17 +392,7 @@ export default function InvoiceForm() {
               </div>
             )}
           </Card>
-        </div>
-        <aside className="side">
-          <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("inv.totals")}</h2>
-            <SumRow k={t("sod.net")} v={money(doc?.net_total ?? net)} currency={currency} />
-            <SumRow k={t("sod.vat")} v={money(doc?.total_taxes_and_charges ?? 0)} currency={currency} />
-            <SumRow k={t("sod.grand")} v={money(doc?.grand_total ?? net)} cls="rule total" currency={currency} />
-            {submitted && <SumRow k={t("inv.col.outstanding")} v={money(doc?.outstanding_amount)} cls="rule" currency={currency} />}
-          </Card>
-        </aside>
-      </div>
+      </FormLayout>
     </>
   );
 }

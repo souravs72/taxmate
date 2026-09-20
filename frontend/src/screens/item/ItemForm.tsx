@@ -37,6 +37,43 @@ export default function ItemForm() {
   const create = useFrappeCreateDoc();
   const update = useFrappeUpdateDoc();
 
+  /* ERPNext's own fallback when Selling Settings has no default
+     (erpnext/stock/doctype/item/item.py:274) — without it, editing an item
+     whose price ERPNext put on Standard Selling would refuse to save.    */
+  const priceList = settings.data?.selling_price_list || (settings.data ? "Standard Selling" : undefined);
+
+  /* The selling rate lives on Item Price, not on Item.
+     On INSERT, ERPNext's Item.after_insert creates the Item Price from
+     standard_rate (erpnext/stock/doctype/item/item.py:178) — so a second
+     create here would collide. On UPDATE it does nothing at all, which is why
+     an edited rate has to be written to the Item Price explicitly.
+
+     The filter matches Item Price's own uniqueness key as far as this form
+     models it: a customer- or supplier-specific row is a different price and
+     must never be overwritten by the general rate (check_duplicates,
+     erpnext/stock/doctype/item_price/item_price.py:105).                 */
+  const priceReady = !isNew && !!priceList;
+  const existingPrice = useFrappeGetDocList<{
+    name: string; price_list_rate: number; uom?: string; customer?: string; supplier?: string;
+  }>(
+    DT.itemPrice,
+    {
+      fields: ["name", "price_list_rate", "uom", "customer", "supplier"],
+      filters: [
+        ["item_code", "=", name],
+        ["price_list", "=", priceList ?? ""],
+        ["selling", "=", 1],
+      ],
+      orderBy: { field: "modified", order: "desc" },
+      limit: 20,
+    },
+    priceReady ? `item-price-${name}-${priceList}` : null,
+  );
+  /* A null-key SWR hook reports isLoading:false with data:undefined, so
+     "resolved" has to be tracked explicitly — otherwise a save that lands
+     before the lookup returns would create a duplicate Item Price.       */
+  const priceResolved = priceReady && existingPrice.data !== undefined;
+
   const [form, setForm] = useState({
     item_code: "",
     item_name: "",
@@ -54,6 +91,16 @@ export default function ItemForm() {
   const [saveError, setSaveError] = useState<unknown>(null);
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
 
+  /* One effect, not two.
+     Item.standard_rate is only read at insert; once an Item Price exists that
+     row is the real selling rate and Item.standard_rate can be stale. Two
+     separate effects let a background SWR revalidation of the Item re-run the
+     first one alone and quietly put the stale rate back in the field — so the
+     rate is resolved here, in the same pass that loads the document.     */
+  /* Only the general rate. A customer- or supplier-specific Item Price in the
+     same price list is a different price and must never be overwritten with
+     the item's headline rate.                                             */
+  const priceRow = existingPrice.data?.find((r) => !r.customer && !r.supplier);
   useEffect(() => {
     const d = existing.data;
     if (!d) return;
@@ -68,11 +115,15 @@ export default function ItemForm() {
       is_exempt: (d.is_exempt || 0) as 0 | 1,
       hs_code: d.hs_code || "",
       sac_code: d.sac_code || "",
-      standard_rate: d.standard_rate || 0,
+      standard_rate: priceRow ? Number(priceRow.price_list_rate) || 0 : d.standard_rate || 0,
     });
-  }, [existing.data]);
+  }, [existing.data, priceRow]);
 
-  const ready = !!form.item_code && !!form.item_name && !!form.item_group && !!form.stock_uom && !!form.uae_item_type;
+  const ready =
+    !!form.item_code && !!form.item_name && !!form.item_group && !!form.stock_uom &&
+    !!form.uae_item_type &&
+    // On edit, hold Save until the Item Price lookup has answered.
+    (isNew || priceResolved);
 
   async function save() {
     setBusy(true);
@@ -96,14 +147,33 @@ export default function ItemForm() {
         ? await create.createDoc(DT.item, payload)
         : await update.updateDoc(DT.item, name, payload);
       const code = (doc as { name: string }).name;
-      const priceList = settings.data?.selling_price_list;
-      if (priceList && form.standard_rate) {
-        await create.createDoc(DT.itemPrice, {
-          item_code: code,
-          price_list: priceList,
-          price_list_rate: form.standard_rate,
-          selling: 1,
-        }).catch(() => undefined);
+
+      /* New item: ERPNext already created the Item Price from standard_rate.
+         Existing item: push the rate onto the Item Price ourselves, because
+         nothing on the server does. Failures are NOT swallowed — a price that
+         silently does not save is worse than an error message.            */
+      if (!isNew) {
+        if (!priceResolved || !priceList) {
+          /* Guarded by the disabled Save button; this is the belt-and-braces
+             so a race can never create a second Item Price.              */
+          throw new Error("Still loading the price list — try again in a moment.");
+        }
+        if (priceRow) {
+          if (Number(priceRow.price_list_rate) !== Number(form.standard_rate)) {
+            await update.updateDoc(DT.itemPrice, priceRow.name, {
+              price_list_rate: form.standard_rate,
+            });
+          }
+        } else if (form.standard_rate) {
+          await create.createDoc(DT.itemPrice, {
+            item_code: code,
+            price_list: priceList,
+            price_list_rate: form.standard_rate,
+            uom: form.stock_uom,
+            selling: 1,
+          });
+        }
+        await existingPrice.mutate();
       }
       nav(`/catalogue/items/${encodeURIComponent(code)}`);
     } catch (err) {
@@ -184,7 +254,7 @@ export default function ItemForm() {
               <input className="ctl" value={form.sac_code} onChange={(e) => set("sac_code", e.target.value)} />
             </Field>
           )}
-          <Field label={t("item.col.rate")}>
+          <Field label={t("item.col.rate")} hint={priceList ? `${t("item.rateHint")} ${priceList}` : undefined}>
             <input className="ctl" value={form.standard_rate} onChange={(e) => set("standard_rate", parseNum(e.target.value))} />
           </Field>
         </div>

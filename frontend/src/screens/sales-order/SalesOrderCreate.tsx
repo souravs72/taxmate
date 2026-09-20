@@ -7,6 +7,7 @@ import { money, parseNum, toIsoDate } from "../../lib/format";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, PageHead, SumRow } from "../../components/ui";
+import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 
 type Line = {
   item_code: string;
@@ -164,13 +165,11 @@ export default function SalesOrderCreate() {
         title={t("soc.title")}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/orders")}>{t("soc.discard")}</button>
-            <button className="btn ghost" disabled={busy || done < 5} onClick={() => save(false)}>
-              {busy ? t("soc.saving") : t("soc.save")}
-            </button>
-            <button className="btn" disabled={busy || done < 5} onClick={() => save(true)}>
-              {t("soc.submit")}
-            </button>
+            <FormActions
+              onDiscard={() => nav("/orders")}
+              onSave={() => save(false)}
+              onSubmit={() => save(true)}
+              busy={busy} ready={done >= 5} submitLabel={t("soc.submit")} />
           </>
         }
       >
@@ -184,8 +183,28 @@ export default function SalesOrderCreate() {
       {submitCall.error && <ErrorBox error={submitCall.error} />}
       {partyCall.error && <ErrorBox error={partyCall.error} />}
 
-      <div className="body2">
-        <div>
+      <FormLayout aside={
+        <>
+          <Card bodyClass="cbody">
+            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("soc.summary")}</h2>
+            <SumRow k={t("sod.net")} v={money(net)} />
+            <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--faint)" }}>
+              VAT and grand total are calculated by the server on save.
+            </p>
+          </Card>
+
+          <ReadinessCard
+            checks={checks.map(([label, ok]) => ({ label, ok }))}
+            title={t("soc.ready")} caption={t("soc.readyCap")} />
+
+          <div className="note">
+            <svg className="ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
+              <circle cx="8" cy="8" r="6.5" /><path d="M8 7.5v4M8 4.8v.6" />
+            </svg>
+            <span><b>{t("soc.noteTitle")}</b><span>{t("soc.noteBody")}</span></span>
+          </div>
+        </>
+      }>
           <Card num={1} title={t("soc.b1")} hint={t("soc.b1hint")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
@@ -284,39 +303,7 @@ export default function SalesOrderCreate() {
               </button>
             </div>
           </Card>
-        </div>
-
-        <aside className="side">
-          <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("soc.summary")}</h2>
-            <SumRow k={t("sod.net")} v={money(net)} />
-            <p style={{ margin: "10px 0 0", fontSize: 11.5, color: "var(--faint)" }}>
-              VAT and grand total are calculated by the server on save.
-            </p>
-          </Card>
-
-          <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 4px", fontSize: 13, fontWeight: 600 }}>{t("soc.ready")}</h2>
-            <p style={{ margin: "0 0 11px", fontSize: 11.5, color: "var(--faint)" }}>{t("soc.readyCap")}</p>
-            <div className="rlist">
-              {checks.map(([label, ok]) => (
-                <div key={label} className={`ri ${ok ? "ok" : "no"}`}>
-                  <span className="mk">{ok ? "✓" : "○"}</span>
-                  <span>{label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="meter"><i style={{ width: `${(done / 5) * 100}%` }} /></div>
-          </Card>
-
-          <div className="note">
-            <svg className="ic" width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6">
-              <circle cx="8" cy="8" r="6.5" /><path d="M8 7.5v4M8 4.8v.6" />
-            </svg>
-            <span><b>{t("soc.noteTitle")}</b><span>{t("soc.noteBody")}</span></span>
-          </div>
-        </aside>
-      </div>
+      </FormLayout>
     </>
   );
 }

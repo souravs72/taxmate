@@ -53,7 +53,7 @@ export function Loading({ label }: { label?: string }) {
 }
 
 export function Empty({ label }: { label: string }) {
-  return <div style={{ padding: 34, textAlign: "center", color: "var(--faint)", fontSize: 13 }}>{label}</div>;
+  return <div className="empty">{label}</div>;
 }
 
 /**
@@ -117,14 +117,14 @@ export function MiniBar({ value, colour }: { value: number; colour: string }) {
   );
 }
 
-export function BarRow({ label, value, amount, colour }: {
-  label: string; value: number; amount: number; colour: string;
+export function BarRow({ label, value, amount, colour, currency }: {
+  label: string; value: number; amount: number; colour: string; currency?: string;
 }) {
   return (
     <div className="bar">
       <div className="lab">
         <span className="l"><i className="sw" style={{ background: colour }} />{label}</span>
-        <span className="r">{pct(value)}<small>{money(amount)}</small></span>
+        <span className="r">{pct(value)}<small>{currency ? `${currency} ` : ""}{money(amount)}</small></span>
       </div>
       <div className="track"><i style={{ width: `${value}%`, background: colour }} /></div>
     </div>

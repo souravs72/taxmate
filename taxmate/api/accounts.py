@@ -7,13 +7,13 @@ from typing import Any
 import frappe
 from frappe import _
 
-from taxmate.api.resource import _parse, assert_allowed_doctype, assert_company_read
-
-
-def _as_data(value):
-	if hasattr(value, "as_dict"):
-		return value.as_dict()
-	return value
+from taxmate.api.resource import (
+	_as_data,
+	_parse,
+	assert_allowed_doctype,
+	assert_company_read,
+	require_login,
+)
 
 
 @frappe.whitelist()
@@ -202,3 +202,66 @@ def make_purchase_return(source_name: str):
 	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import make_debit_note
 
 	return _as_data(make_debit_note(source_name))
+
+
+@frappe.whitelist()
+def resolve_payment_accounts(company: str, payment_type: str, mode_of_payment: str, party_type: str, party: str):
+	"""Both legs of a Payment Entry, without the user ever seeing an account.
+
+	The Payment Entry controller never reads ``mode_of_payment`` -- ``paid_from``
+	and ``paid_to`` are mandatory and nothing server-side fills them, so the
+	client has to send them. In Desk that resolution is client-side
+	(payment_entry.js:472). This does it on the server instead, so the
+	Receive -> paid_to / Pay -> paid_from mapping lives in one place.
+
+	It also closes two gaps in the underlying ERPNext helpers:
+
+	* ``get_default_bank_cash_account`` has no permission check and accepts any
+	  company, so a user could read another company's default bank account.
+	  ``assert_company_read`` fixes that.
+	* the same helper computes an account balance by default. The form does not
+	  need it, so ``fetch_balance=False`` keeps it off the wire.
+	"""
+	require_login()
+	if payment_type not in ("Receive", "Pay"):
+		frappe.throw(_("Payment Type must be Receive or Pay"))
+	assert_allowed_doctype("Payment Entry")
+	assert_allowed_doctype(party_type)
+	assert_company_read(company)
+	if not frappe.has_permission("Payment Entry", "create"):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	from erpnext.accounts.doctype.journal_entry.journal_entry import get_default_bank_cash_account
+	from erpnext.accounts.doctype.payment_entry.payment_entry import (
+		get_party_details as pe_party_details,
+	)
+
+	# Party leg. This helper does its own has_permission on the party.
+	party_details = pe_party_details(company, party_type, party, frappe.utils.today())
+
+	# Bank / cash leg.
+	bank = get_default_bank_cash_account(
+		company, mode_of_payment=mode_of_payment, fetch_balance=False
+	) or {}
+	bank_account = bank.get("account")
+	if not bank_account:
+		frappe.throw(
+			_("Set a default account for Mode of Payment {0} in company {1}.").format(
+				mode_of_payment, company
+			),
+			title=_("Mode of Payment"),
+		)
+
+	bank_leg = "paid_to" if payment_type == "Receive" else "paid_from"
+	party_leg = "paid_from" if payment_type == "Receive" else "paid_to"
+
+	return {
+		bank_leg: bank_account,
+		party_leg: party_details.get("party_account"),
+		f"{bank_leg}_account_currency": bank.get("account_currency"),
+		f"{party_leg}_account_currency": party_details.get("party_account_currency"),
+		# What decides whether Reference No. is mandatory
+		# (payment_entry.py:1248) -- the UI mirrors that rule.
+		"bank_account_type": bank.get("account_type"),
+		"party_name": party_details.get("party_name"),
+	}

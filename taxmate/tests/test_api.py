@@ -382,6 +382,10 @@ class TestSalesOrderApi(FrappeTestCase):
 				"order_type": "Sales",
 				"transaction_date": "2026-11-15",
 				"delivery_date": "2026-11-30",
+				# Place of Supply: the Desk fetch_from does not fire on a
+				# server-side insert, and the prove company has no Address to
+				# resolve it from, so set it the way an operator would.
+				"vat_emirate": "Dubai",
 				"currency": "AED",
 				"conversion_rate": 1,
 				"selling_price_list": "Standard Selling",

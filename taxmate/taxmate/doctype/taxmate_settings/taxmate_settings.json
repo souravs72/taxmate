@@ -11,6 +11,7 @@
   "require_emirate_on_address",
   "block_e_invoice_until_ready",
   "require_vat_emirate_on_invoice",
+  "require_vat_emirate_on_sales_order",
   "enforce_credit_note_reference",
   "block_invoices_in_filed_vat_period",
   "vat_201_reminder_days",
@@ -68,6 +69,13 @@
   },
   {
    "default": "1",
+   "description": "Require Place of Supply (Emirate) on Sales Orders for UAE companies. Warns on a draft order and blocks submit; the value carries through to the Sales Invoice.",
+   "fieldname": "require_vat_emirate_on_sales_order",
+   "fieldtype": "Check",
+   "label": "Require Emirate on Sales Order"
+  },
+  {
+   "default": "1",
    "description": "Require Return Against or External Return Against (and a reason) on UAE Credit Notes.",
    "fieldname": "enforce_credit_note_reference",
    "fieldtype": "Check",
@@ -120,7 +128,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-11 13:00:00.000000",
+ "modified": "2026-09-19 10:00:00.000000",
  "modified_by": "Administrator",
  "module": "TaxMate",
  "name": "TaxMate Settings",

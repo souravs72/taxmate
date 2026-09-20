@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeGetDoc, useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk";
+import {
+  useFrappeCreateDoc, useFrappeGetCall, useFrappeGetDoc, useFrappePostCall,
+} from "frappe-react-sdk";
 
 import type { SalesOrder, SalesOrderItem } from "../../types/erpnext";
 import { DT, METHOD } from "../../lib/frappe";
@@ -7,6 +10,7 @@ import { date, money, pct, qty } from "../../lib/format";
 import { SO_PILL_CLASS, isLate, toUiStatus } from "../../lib/status";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, MiniBar, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
+import { FormLayout } from "../../components/form";
 
 type Doc = SalesOrder & { items: SalesOrderItem[] };
 
@@ -16,23 +20,53 @@ export default function SalesOrderDetail() {
 
   const { data, error, isLoading, mutate } = useFrappeGetDoc<Doc>(DT.salesOrder, name);
 
-  /* Delivery notes that reference this order. The link lives on the child
-     table, so filter the child doctype and read its parent.               */
-  const dns = useFrappeGetDocList<{ parent: string; qty: number }>(DT.deliveryNoteItem, {
-    fields: ["parent", "qty"],
-    filters: [["against_sales_order", "=", name]],
-    limit: 50,
-  });
-  const invs = useFrappeGetDocList<{ parent: string; amount: number }>(DT.salesInvoiceItem, {
-    fields: ["parent", "amount"],
-    filters: [["sales_order", "=", name]],
-    limit: 50,
-  });
+  /* Delivery notes and invoices raised against this order. The link lives on
+     the child rows, but listing a child doctype straight from the client is
+     refused by has_child_permission (frappe/permissions.py:837) — it came
+     back 403 and the panel rendered empty, which reads as "none". The server
+     method filters the parent doctypes instead.                          */
+  const links = useFrappeGetCall<{ message: { delivery_notes: string[]; sales_invoices: string[] } }>(
+    METHOD.salesOrderLinks,
+    { sales_order: name },
+    name ? `so-links-${name}` : null,
+  );
 
   /* Both mappers return an UNSAVED document — verified in ERPNext v16
-     (sales_order.py:1345, :1561). We take it and create it in a second step. */
+     (sales_order.py:1356, :1172). Mapping alone leaves nothing behind, so
+     each button maps, inserts the draft, then opens it.                   */
   const makeDn = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeDeliveryNote);
   const makeSi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeSalesInvoice);
+  const create = useFrappeCreateDoc();
+  const [busy, setBusy] = useState<"" | "dn" | "si">("");
+  const [mapError, setMapError] = useState<unknown>(null);
+
+  async function createDownstream(kind: "dn" | "si") {
+    setBusy(kind);
+    setMapError(null);
+    try {
+      const call = kind === "dn" ? makeDn.call : makeSi.call;
+      const doctype = kind === "dn" ? DT.deliveryNote : DT.salesInvoice;
+      const res = await call({ source_name: name });
+      const mapped = res?.message;
+      if (!mapped) throw new Error("The mapper returned nothing.");
+      /* The mapped doc carries a placeholder name and local-only flags — drop
+         them so the insert autonames instead of colliding.                 */
+      const body: Record<string, unknown> = { ...(mapped as Record<string, unknown>) };
+      delete body.name;
+      delete body.doctype;
+      delete body.__islocal;
+      delete body.__unsaved;
+      const created = await create.createDoc(doctype, body);
+      const newName = (created as { name: string }).name;
+      if (kind === "si") nav(`/invoices/${encodeURIComponent(newName)}`);
+      // The SPA has no Delivery Note screen yet, so open the Desk form.
+      else window.location.assign(`/app/delivery-note/${encodeURIComponent(newName)}`);
+    } catch (err) {
+      setMapError(err);
+    } finally {
+      setBusy("");
+    }
+  }
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
@@ -45,8 +79,10 @@ export default function SalesOrderDetail() {
   const grand = data.grand_total ?? 0;
   const advance = data.advance_paid ?? 0;
 
-  const parents = (rows: { parent: string }[] | undefined) =>
-    Array.from(new Set((rows ?? []).map((r) => r.parent)));
+  const linked: { name: string; kind: "dn" | "si" }[] = [
+    ...(links.data?.message?.delivery_notes ?? []).map((n) => ({ name: n, kind: "dn" as const })),
+    ...(links.data?.message?.sales_invoices ?? []).map((n) => ({ name: n, kind: "si" as const })),
+  ];
 
   return (
     <>
@@ -61,13 +97,17 @@ export default function SalesOrderDetail() {
         title={data.customer_name || data.customer}
         actions={
           <>
-            <button className="btn ghost" disabled={makeDn.loading}
-              onClick={() => makeDn.call({ source_name: name })}>
-              {t("sod.createDn")}
+            {/* Same gate ERPNext's own buttons use: at 100% every row's
+                mapper condition is false and the result has no items.   */}
+            <button className="btn ghost"
+              disabled={!!busy || data.docstatus !== 1 || (data.per_delivered ?? 0) >= 100}
+              onClick={() => void createDownstream("dn")}>
+              {busy === "dn" ? t("soc.saving") : t("sod.createDn")}
             </button>
-            <button className="btn" disabled={makeSi.loading}
-              onClick={() => makeSi.call({ source_name: name })}>
-              {t("sod.createSi")}
+            <button className="btn"
+              disabled={!!busy || data.docstatus !== 1 || (data.per_billed ?? 0) >= 100}
+              onClick={() => void createDownstream("si")}>
+              {busy === "si" ? t("soc.saving") : t("sod.createSi")}
             </button>
           </>
         }
@@ -79,7 +119,9 @@ export default function SalesOrderDetail() {
         </p>
       </PageHead>
 
-      {(makeDn.error || makeSi.error) && <ErrorBox error={makeDn.error ?? makeSi.error} />}
+      {(mapError || makeDn.error || makeSi.error) && (
+        <ErrorBox error={mapError ?? makeDn.error ?? makeSi.error} />
+      )}
 
       <Card bodyClass="steps">
         <Step colour="var(--c-draft)" mark="✓" name={t("stage.draft")} value={date(data.transaction_date)} pctv={100} />
@@ -91,8 +133,36 @@ export default function SalesOrderDetail() {
           value={pct(data.per_billed)} pctv={data.per_billed ?? 0} />
       </Card>
 
-      <div className="body2">
-        <div>
+      <FormLayout aside={
+        <>
+          <Card bodyClass="cbody">
+            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("sod.value")}</h2>
+            <SumRow k={t("sod.net")} v={money(net)} />
+            <SumRow k={t("sod.vat")} v={money(vat)} />
+            <SumRow k={t("sod.grand")} v={money(grand)} cls="rule total" />
+            {advance > 0 && <SumRow k={t("sod.advance")} v={money(advance)} cls="rule" />}
+          </Card>
+
+          <Card title={t("sod.linked")} bodyClass="cbody">
+            {links.error ? (
+              <ErrorBox error={links.error} onRetry={() => links.mutate()} />
+            ) : links.isLoading ? (
+              <Loading />
+            ) : linked.length === 0 ? (
+              <span style={{ fontSize: 12.5, color: "var(--faint)" }}>—</span>
+            ) : (
+              linked.map((p) => (
+                <div key={p.name} className="mono" style={{ fontSize: 12 }}>
+                  {p.kind === "si" ? (
+                    <a style={{ color: "var(--brand)", cursor: "pointer" }}
+                       onClick={() => nav(`/invoices/${encodeURIComponent(p.name)}`)}>{p.name}</a>
+                  ) : p.name}
+                </div>
+              ))
+            )}
+          </Card>
+        </>
+      }>
           <Card title={t("sod.details")} hint={t("sod.detailsHint")}>
             <div className="fg">
               <ReadRow k={t("f.customer")} v={data.customer_name || data.customer} link />
@@ -162,26 +232,7 @@ export default function SalesOrderDetail() {
               </tfoot>
             </table>
           </Card>
-        </div>
-
-        <aside className="side">
-          <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("sod.value")}</h2>
-            <SumRow k={t("sod.net")} v={money(net)} />
-            <SumRow k={t("sod.vat")} v={money(vat)} />
-            <SumRow k={t("sod.grand")} v={money(grand)} cls="rule total" />
-            {advance > 0 && <SumRow k={t("sod.advance")} v={money(advance)} cls="rule" />}
-          </Card>
-
-          <Card title={t("sod.linked")} bodyClass="cbody">
-            {parents(dns.data).map((p) => <div key={p} className="mono" style={{ fontSize: 12 }}>{p}</div>)}
-            {parents(invs.data).map((p) => <div key={p} className="mono" style={{ fontSize: 12 }}>{p}</div>)}
-            {parents(dns.data).length + parents(invs.data).length === 0 && (
-              <span style={{ fontSize: 12.5, color: "var(--faint)" }}>—</span>
-            )}
-          </Card>
-        </aside>
-      </div>
+      </FormLayout>
     </>
   );
 }

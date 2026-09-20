@@ -1,0 +1,38 @@
+---
+description: Audit and implement TaxMate React/frontend using Vercel React best practices, Web Interface Guidelines, Superpowers, Anthropic frontend-design, and code-simplifier. Use when writing, reviewing, or auditing SPA/UI code.
+globs: frontend/**/*.{ts,tsx,css,html}
+alwaysApply: false
+---
+
+# TaxMate React frontend
+
+This app is React + Vite + `frappe-react-sdk`, served at `/taxmate`. Official Frappe Vue UI does not apply here.
+
+Skill packages are gitignored. They still apply to every React/frontend write, review, and audit. Resolve each skill from the first path that exists:
+
+1. `.cursor/skills/<name>/`
+2. `.agents/skills/<name>/`
+3. `~/.claude/plugins/cache/**/skills/<name>/`
+
+If those directories are missing, restore with `npx --yes skills experimental_install` (uses `skills-lock.json`) before continuing.
+
+Every React/frontend audit must also follow `.cursor/rules/frappe-react-audit.mdc` and the Frappe skills listed there. Do not pass a SPA change that bypasses `taxmate.api.get_catalog()`.
+
+Before writing, reviewing, or auditing SPA code, read:
+
+1. `using-superpowers` then `brainstorming` / `writing-plans` / `test-driven-development` / `systematic-debugging` as the task requires.
+2. `vercel-react-best-practices/SKILL.md` — performance, data fetching, re-renders. Open the matching `rules/*.md` file, not the whole set.
+3. `vercel-composition-patterns/SKILL.md` — compound components, avoid boolean-prop APIs.
+4. `web-design-guidelines/guidelines.md` — accessibility, forms, focus, URL state. Audit output uses `file:line`.
+5. `frontend-design/SKILL.md` — visual identity; do not genericize TaxMate’s existing tokens.
+6. After a non-trivial edit, run the `code-simplifier` agent. Verify UI behaviour with `webapp-testing` when the change is user-visible.
+
+TaxMate constraints that override generic Next.js rules:
+
+- Same-origin Frappe session: no `url` on `FrappeProvider`; CSRF and `siteName` come from `taxmate/www/taxmate.py`.
+- Use `frappe-react-sdk` (SWR) for documents and whitelist methods. Do not add a second data library.
+- Writes that submit a DocType must insert, then `taxmate.api.workflow.submit`. Mapper methods return unsaved docs and need `createDoc`.
+- Prefer `taxmate.api.*` over raw child-table `get_list` and unwrapped ERPNext methods.
+- Do not put the SPA bundle in `app_include_js`.
+- Locale is `en` / `ar-AE` via `dir`; put language in React context so the tree re-renders.
+- Currency formatting uses `Intl.NumberFormat`, not hardcoded `AED` strings.

@@ -1,24 +1,27 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocCount, useFrappeGetDocList } from "frappe-react-sdk";
+import { useFrappeGetDocList } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, Empty, ErrorBox, Loading, PageHead } from "../../components/ui";
+import { Card, PageHead } from "../../components/ui";
+import { DataTable, ListFooter, type Column } from "../../components/DataTable";
+import { FilterBar, SearchFilter } from "../../components/filters";
 
 const PAGE = 20;
 type Row = { name: string; customer_name?: string; tax_id?: string; customer_group?: string; primary_address?: string };
 
 export default function CustomerList() {
   const nav = useNavigate();
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(0);
+  const { get, set, page, setPage, start } = useListParams(PAGE);
+  const q = get("q");
 
   const filters = useMemo(() => {
-    const f: Filter<Row>[] = [];
+    const f: FilterTuple[] = [];
     if (q.trim()) f.push(["customer_name", "like", `%${q.trim()}%`]);
-    return f;
+    return f as unknown as Filter<Row>[];
   }, [q]);
 
   const list = useFrappeGetDocList<Row>(DT.customer, {
@@ -26,11 +29,17 @@ export default function CustomerList() {
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
-    limit_start: page * PAGE,
+    limit_start: start,
   });
-  const count = useFrappeGetDocCount(DT.customer, filters);
+  const { total } = useFilteredCount(DT.customer, filters as unknown as FilterTuple[]);
   const rows = list.data ?? [];
-  const total = count.data ?? 0;
+
+  const columns: Column<Row>[] = [
+    { key: "name", header: t("cust.col.name"), className: "cust", cell: (c) => c.customer_name || c.name },
+    { key: "trn", header: t("cust.col.trn"), className: "mono", cell: (c) => c.tax_id || "—" },
+    { key: "group", header: t("cust.col.group"), cell: (c) => c.customer_group || "—" },
+    { key: "city", header: t("cust.col.city"), className: "dt", cell: (c) => cityOf(c.primary_address) },
+  ];
 
   return (
     <>
@@ -40,56 +49,26 @@ export default function CustomerList() {
         actions={<button className="btn" onClick={() => nav("/customers/new")}>＋ {t("cust.new")}</button>}
       />
       <Card bodyClass={null as unknown as string}>
-        <div className="filters">
-          <div className="fsearch">
-            <input className="ctl" type="search" value={q} placeholder={t("cust.search")}
-              onChange={(e) => { setQ(e.target.value); setPage(0); }} />
-          </div>
-        </div>
-        {list.error ? <ErrorBox error={list.error} onRetry={() => list.mutate()} />
-          : list.isLoading ? <Loading />
-          : rows.length === 0 ? <Empty label={t("cust.empty")} />
-          : (
-            <div className="twrap">
-              <table className="clickable">
-                <thead>
-                  <tr>
-                    <th>{t("cust.col.name")}</th>
-                    <th>{t("cust.col.trn")}</th>
-                    <th>{t("cust.col.group")}</th>
-                    <th>{t("cust.col.city")}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((c) => (
-                    <tr key={c.name} tabIndex={0}
-                      onClick={() => nav(`/customers/${encodeURIComponent(c.name)}`)}
-                      onKeyDown={(e) => e.key === "Enter" && nav(`/customers/${encodeURIComponent(c.name)}`)}>
-                      <td className="cust">{c.customer_name || c.name}</td>
-                      <td className="mono">{c.tax_id || "—"}</td>
-                      <td>{c.customer_group || "—"}</td>
-                      <td className="dt">{cityOf(c.primary_address)}</td>
-                      <td />
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        <div className="foot">
-          <span>{t("list.showing")} {rows.length} {t("list.of")} {total}</span>
-          <div className="pager">
-            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>‹</button>
-            <button aria-current="true">{page + 1}</button>
-            <button disabled={(page + 1) * PAGE >= total} onClick={() => setPage((p) => p + 1)}>›</button>
-          </div>
-        </div>
+        <FilterBar>
+          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("cust.search")} />
+        </FilterBar>
+
+        <DataTable<Row>
+          rows={rows}
+          rowKey={(c) => c.name}
+          onOpen={(c) => nav(`/customers/${encodeURIComponent(c.name)}`)}
+          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
+          emptyLabel={t("cust.empty")}
+          columns={columns}
+        />
+
+        <ListFooter shown={rows.length} total={total} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
     </>
   );
 }
 
+/** Addresses arrive as one formatted string; the second line is the city. */
 function cityOf(addr?: string): string {
   if (!addr) return "—";
   const parts = addr.split(/[,\n]/).map((s) => s.trim()).filter(Boolean);

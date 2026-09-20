@@ -61,6 +61,19 @@ def _parse(value):
 	return value
 
 
+def _as_data(value):
+	"""Unwrap a Document into a plain dict for the JSON response.
+
+	``callable(getattr(...))``, not ``hasattr``: frappe._dict sets
+	``__getattr__ = dict.get`` (frappe/types/frappedict.py:22), so hasattr is
+	True for every key name and ``value.as_dict()`` would raise TypeError on a
+	plain _dict.
+	"""
+	if callable(getattr(value, "as_dict", None)):
+		return value.as_dict()
+	return value
+
+
 def _require_doc(doc):
 	doc = _parse(doc)
 	if not doc or not doc.get("doctype"):

@@ -328,3 +328,104 @@ tfoot td{background:var(--sunk); font-weight:600; border-block-start:1px solid v
 #tip b{display:flex; align-items:center; gap:6px; font-size:12.5px; margin-block-end:3px}
 #tip i{width:8px; height:8px; border-radius:3px; display:block; flex:none}
 #tip .r{color:var(--muted); font-variant-numeric:tabular-nums}
+
+/* ── Sales Invoice ─────────────────────────────────────────────────── */
+/* Naming rule: modifiers on a block are prefixed with the block, never a
+   bare adjective. `.alert` is a component; a `.row.alert` would inherit its
+   background and display. Hence .sb-alert, .pay-*, .pipe-* below.        */
+.p-unpaid{background:var(--brand-soft); color:var(--brand)}
+.p-partly{background:var(--warn-bg); color:var(--warn)}
+.p-paid{background:var(--ok-bg); color:var(--ok)}
+
+/* E-invoice state — a separate axis from document status, so a chip not a pill */
+.echip{display:inline-flex; align-items:center; gap:5px; font-size:11px; font-weight:600; padding:2.5px 8px; border-radius:6px; white-space:nowrap; border:1px solid transparent}
+.echip::before{content:""; width:5px; height:5px; border-radius:50%; background:currentColor; flex:none}
+.e-accepted{background:var(--ok-bg); color:var(--ok)}
+.e-queued,.e-generated{background:var(--warn-bg); color:var(--warn)}
+.e-submitted{background:var(--brand-soft); color:var(--brand)}
+.e-rejected,.e-failed{background:var(--bad-bg); color:var(--bad)}
+.e-cancelled{background:var(--sunk); color:var(--muted); border-color:var(--border)}
+.e-none{background:var(--sunk); color:var(--faint); border-color:var(--border)}
+.e-none::before{display:none}
+
+/* E-invoice pipeline */
+.pipe{display:flex; align-items:stretch; gap:0; padding:14px 16px; flex-wrap:wrap}
+.pstep{flex:1 1 130px; display:flex; flex-direction:column; gap:6px; padding-inline-end:14px; min-width:0}
+.pstep .ph{display:flex; align-items:center; gap:8px}
+.pstep .pd{width:18px; height:18px; border-radius:50%; flex:none; display:grid; place-items:center; font-size:10px; font-weight:700}
+.pstep .pn{font-size:12.5px; font-weight:600; white-space:nowrap}
+.pstep .pt{font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums}
+.pstep .pl{height:4px; border-radius:2px; background:var(--track)}
+.pstep.done .pd{background:var(--ok); color:#fff}
+.pstep.done .pl{background:var(--ok)}
+.pstep.now .pd{background:var(--brand); color:#fff}
+.pstep.now .pl{background:var(--brand)}
+.pstep.todo .pd{background:var(--track); color:var(--faint); border:1px solid var(--border-2)}
+.pstep.todo .pn,.pstep.todo .pt{color:var(--faint)}
+.pstep.bad .pd{background:var(--bad); color:#fff}
+.pstep.bad .pl{background:var(--bad)}
+
+/* Payment meter */
+.paybar{display:flex; height:12px; border-radius:7px; overflow:hidden; background:var(--track); gap:2px}
+.paybar i{display:block; height:100%}
+.paylegend{display:flex; flex-wrap:wrap; gap:14px; margin-block-start:10px; font-size:12px}
+.paylegend span{display:inline-flex; align-items:center; gap:6px; color:var(--muted)}
+.paylegend i{width:9px; height:9px; border-radius:3px; display:block; flex:none}
+.paylegend b{color:var(--text); font-variant-numeric:tabular-nums; font-weight:600}
+
+/* Selection + bulk bar */
+th.sel,td.sel{width:38px; padding-inline-end:0}
+input[type=checkbox]{width:15px; height:15px; accent-color:var(--brand); cursor:pointer}
+.bulkbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; justify-content:space-between; padding:11px 16px; background:var(--brand-soft); border-block-end:1px solid var(--brand-line)}
+.bulkbar .msg{font-size:12.5px; font-weight:600; color:var(--brand)}
+.bulkbar .grp{display:flex; gap:8px; flex-wrap:wrap}
+tr.picked,tr.picked:hover{background:var(--brand-soft)}
+
+.bigfig{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:13px 14px; border-radius:var(--r); background:var(--sunk); border:1px solid var(--border)}
+.bigfig .k{font-size:12.5px; color:var(--muted); font-weight:500}
+.bigfig .v{font-size:22px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums}
+.bigfig.ok .v{color:var(--ok)}
+.bigfig.warn .v{color:var(--warn)}
+
+
+/* Receive / Pay segmented control — direction is this module's main axis */
+.seg{display:inline-flex; background:var(--sunk); border:1px solid var(--border-2); border-radius:var(--r-sm); padding:3px; gap:3px}
+.seg button{border:0; background:transparent; color:var(--muted); font-size:13px; font-weight:600; padding:7px 15px; border-radius:6px; cursor:pointer; display:inline-flex; align-items:center; gap:7px; white-space:nowrap}
+.seg button:hover{color:var(--text)}
+.seg button[aria-pressed="true"]{background:var(--surface); color:var(--text); box-shadow:0 1px 2px rgba(17,24,39,.09)}
+.seg button[aria-pressed="true"] .dot{opacity:1}
+.seg .dot{width:7px; height:7px; border-radius:50%; flex:none; opacity:.35}
+.seg .dot.in{background:var(--ok)} .seg .dot.out{background:var(--info)}
+
+/* Direction chip */
+.dir{display:inline-flex; align-items:center; gap:6px; font-size:11.5px; font-weight:600; white-space:nowrap}
+.dir .ar{width:17px; height:17px; border-radius:6px; display:grid; place-items:center; flex:none; font-size:11px; line-height:1}
+.dir.in .ar{background:var(--ok-bg); color:var(--ok)}
+.dir.out .ar{background:var(--info-bg); color:var(--info)}
+.dir.in{color:var(--ok)} .dir.out{color:var(--info)}
+
+/* Allocation coverage meter */
+.cov{display:grid; gap:4px; min-width:104px}
+.covtop{display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-size:11.5px}
+.covtop b{font-weight:600; font-variant-numeric:tabular-nums}
+.covtop .lbl{color:var(--muted)}
+.covtrack{height:5px; border-radius:3px; background:var(--track); overflow:hidden}
+.covtrack i{display:block; height:100%; border-radius:3px}
+
+/* Allocated vs unallocated, as one bar */
+.allocbar{display:flex; height:10px; border-radius:6px; overflow:hidden; background:var(--track); gap:2px; margin-block-start:12px}
+.allocbar i{display:block; height:100%}
+
+.daterange{display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); flex-wrap:wrap}
+.stack{display:flex; flex-direction:column; gap:16px}
+.empty{padding:34px 16px; text-align:center; color:var(--faint); font-size:13px}
+.specnote{font-size:11.5px; color:var(--faint); margin:0}
+td.pick{width:38px; padding-inline-end:0}
+.inv b{display:block; font-family:var(--mono); font-size:12px; font-weight:500}
+.inv span{font-size:11.5px; color:var(--muted)}
+.srow.left .v{color:var(--warn); font-weight:700}
+.srow.left.zero .v{color:var(--ok)}
+.srow.over .v{color:var(--bad); font-weight:700}
+.alert.bad{background:var(--bad-bg)}
+.alert.bad .ic{color:var(--bad)}
+.cust small{display:block; font-size:11px; color:var(--faint); font-weight:400}

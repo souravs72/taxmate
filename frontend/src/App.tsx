@@ -20,9 +20,11 @@ import CustomerList from "./screens/customer/CustomerList";
 import CustomerForm from "./screens/customer/CustomerForm";
 import InvoiceList from "./screens/invoice/InvoiceList";
 import InvoiceForm from "./screens/invoice/InvoiceForm";
+import InvoiceDetail from "./screens/invoice/InvoiceDetail";
 import CreditNoteForm from "./screens/invoice/CreditNoteForm";
 import PaymentList from "./screens/payment/PaymentList";
 import PaymentForm from "./screens/payment/PaymentForm";
+import PaymentDetail from "./screens/payment/PaymentDetail";
 import Receivables from "./screens/receivables/Receivables";
 import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
@@ -59,10 +61,17 @@ export default function App() {
           <Route path="/customers" element={<CustomerList />} />
           <Route path="/customers/:name" element={<CustomerForm />} />
           <Route path="/invoices" element={<InvoiceList />} />
+          <Route path="/invoices/new" element={<InvoiceForm />} />
           <Route path="/invoices/:name/return" element={<CreditNoteForm />} />
-          <Route path="/invoices/:name" element={<InvoiceForm />} />
+          {/* A submitted invoice is a tax document, so the default view is
+              read-only; /edit is reachable only while it is a draft. */}
+          <Route path="/invoices/:name/edit" element={<InvoiceForm />} />
+          <Route path="/invoices/:name" element={<InvoiceDetail />} />
           <Route path="/payments" element={<PaymentList />} />
-          <Route path="/payments/:name" element={<PaymentForm />} />
+          <Route path="/payments/new" element={<PaymentForm />} />
+          {/* A submitted payment has posted to the ledger — read-only. */}
+          <Route path="/payments/:name/edit" element={<PaymentForm />} />
+          <Route path="/payments/:name" element={<PaymentDetail />} />
           <Route path="/receivables" element={<Receivables />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
