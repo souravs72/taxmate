@@ -26,6 +26,8 @@ class TestApiAllowlist(unittest.TestCase):
 		self.assertTrue(is_allowed_doctype("Purchase Order"))
 		self.assertTrue(is_allowed_doctype("Purchase Receipt"))
 		self.assertTrue(is_allowed_doctype("UAE Incoming Invoice"))
+		self.assertTrue(is_allowed_doctype("Journal Entry"))
+		self.assertTrue(is_allowed_doctype("Account"))
 		self.assertTrue(is_allowed_doctype("Buying Settings"))
 		self.assertTrue(is_allowed_doctype("ToDo"))
 		self.assertFalse(is_allowed_doctype("Employee"))
@@ -452,6 +454,50 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		submitted = submit({"doctype": "Purchase Invoice", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
 		cancelled = cancel("Purchase Invoice", doc["name"])
+		self.assertEqual(cancelled["docstatus"], 2)
+
+	def test_journal_entry_insert_then_submit(self):
+		from taxmate.tests.uae_prove_fixtures import require_prove_site
+		from taxmate.api.workflow import cancel, submit
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		leaves = frappe.get_all(
+			"Account",
+			filters={
+				"company": company,
+				"is_group": 0,
+				"disabled": 0,
+				"account_type": ["not in", ["Receivable", "Payable"]],
+			},
+			pluck="name",
+			limit=10,
+		)
+		if len(leaves) < 2:
+			self.skipTest("need two non-party leaf accounts for the company")
+
+		cost_center = frappe.db.get_value("Company", company, "cost_center")
+		line = {"cost_center": cost_center} if cost_center else {}
+		doc = insert(
+			{
+				"doctype": "Journal Entry",
+				"company": company,
+				"posting_date": "2026-11-15",
+				"voucher_type": "Journal Entry",
+				"user_remark": "TaxMate SPA journal entry write-path test",
+				"accounts": [
+					{**line, "account": leaves[0], "debit_in_account_currency": 25, "credit_in_account_currency": 0},
+					{**line, "account": leaves[1], "debit_in_account_currency": 0, "credit_in_account_currency": 25},
+				],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		submitted = submit({"doctype": "Journal Entry", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+		cancelled = cancel("Journal Entry", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
 
 	def test_draft_purchase_invoice_from_incoming(self):

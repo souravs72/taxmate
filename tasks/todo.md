@@ -135,6 +135,13 @@ Plan: `tasks/plan.md`
 
 ## Task 10: Journal Entry list + detail + form
 
+- [x] `/journals` lists via `taxmate.api.resource.get_list` (company-scoped)
+- [x] Detail uses parent `get` + nested `accounts`; status from `docstatus`
+- [x] Form insert then `taxmate.api.workflow.submit`; leaf Account link filters
+- [x] Search routes `/journals` and `/journals/{name}`; no `/app/`
+- [x] Rail Accounting group includes Journal Entries
+- [x] Write-path API test for insert then submit
+
 ## Task 11: Chart of Accounts (Account list/tree from catalog)
 
 ## Task 12: Report runner for TB / GL / P&amp;L / BS / Cash Flow using `list_reports` + `run_report` only with documented filters

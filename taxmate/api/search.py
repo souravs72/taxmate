@@ -32,6 +32,7 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Purchase Order": "/purchase-orders/{name}",
 	"Purchase Receipt": "/purchase-receipts/{name}",
 	"UAE Incoming Invoice": "/incoming-invoices/{name}",
+	"Journal Entry": "/journals/{name}",
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
 }
@@ -46,6 +47,7 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Purchase Order": "/purchase-orders",
 	"Purchase Receipt": "/purchase-receipts",
 	"UAE Incoming Invoice": "/incoming-invoices",
+	"Journal Entry": "/journals",
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
 }
@@ -65,6 +67,7 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Payments", "route": "/payments", "keywords": "payment receipt"},
 	{"label": "Receivables", "route": "/receivables", "keywords": "ar outstanding"},
 	{"label": "Payables", "route": "/payables", "keywords": "ap aged payable supplier outstanding"},
+	{"label": "Journal Entries", "route": "/journals", "keywords": "journal entry je voucher books ledger posting"},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},

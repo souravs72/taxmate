@@ -43,11 +43,11 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | Incoming e-invoices → draft PI | UAE Incoming Invoice + `draft_purchase_invoice_from_incoming` | List + detail + draft | 3 shipped |
 | Purchase orders / receipts | Purchase Order, Purchase Receipt | List + detail | 3 shipped |
 
-### Accounting (not shipped)
+### Accounting (Journal Entry shipped)
 
 | Need | Catalog | Phase |
 |---|---|---|
-| Journal Entry | Journal Entry | 4 |
+| Journal Entry | Journal Entry | 4 shipped |
 | Chart of accounts | Account | 4 (tree or filtered list, not a fake tree) |
 | Bank / modes | Bank Account, Mode of Payment | 4 |
 | Trial Balance, GL, P&amp;L, Balance Sheet, Cash Flow | catalog reports via `run_report` | 4 |

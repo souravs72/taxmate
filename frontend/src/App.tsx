@@ -44,6 +44,9 @@ import PurchaseOrderList from "./screens/purchase-order/PurchaseOrderList";
 import PurchaseOrderDetail from "./screens/purchase-order/PurchaseOrderDetail";
 import PurchaseReceiptList from "./screens/purchase-receipt/PurchaseReceiptList";
 import PurchaseReceiptDetail from "./screens/purchase-receipt/PurchaseReceiptDetail";
+import JournalEntryList from "./screens/journal-entry/JournalEntryList";
+import JournalEntryDetail from "./screens/journal-entry/JournalEntryDetail";
+import JournalEntryForm from "./screens/journal-entry/JournalEntryForm";
 import EInvoiceLog from "./screens/compliance/EInvoiceLog";
 import TaxSettings from "./screens/compliance/TaxSettings";
 import NotFound from "./screens/NotFound";
@@ -102,6 +105,10 @@ export default function App() {
           <Route path="/payments/:name" element={<PaymentDetail />} />
           <Route path="/receivables" element={<Receivables />} />
           <Route path="/payables" element={<Payables />} />
+          <Route path="/journals" element={<JournalEntryList />} />
+          <Route path="/journals/new" element={<JournalEntryForm />} />
+          <Route path="/journals/:name/edit" element={<JournalEntryForm />} />
+          <Route path="/journals/:name" element={<JournalEntryDetail />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
           <Route path="/e-invoice-log" element={<EInvoiceLog />} />

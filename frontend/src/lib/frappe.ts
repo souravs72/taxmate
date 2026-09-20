@@ -53,6 +53,7 @@ export const DT = {
   address: "Address",
   contact: "Contact",
   account: "Account",
+  journalEntry: "Journal Entry",
   paymentEntry: "Payment Entry",
   supplier: "Supplier",
   purchaseInvoice: "Purchase Invoice",
