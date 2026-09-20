@@ -23,6 +23,7 @@ const ICONS: Record<string, JSX.Element> = {
   "/payments": <Icon><path d="M2.5 5h13v8h-13z" /><path d="M2.5 8h13" /></Icon>,
   "/receivables": <Icon><path d="M3 15V8.5M7.5 15V3.5M12 15V10M15.5 15h-13" /></Icon>,
   "/suppliers": <Icon><path d="M4 15.5V8l5-3 5 3v7.5"/><path d="M4 8l5 3 5-3M9 11v4.5" /></Icon>,
+  "/incoming-invoices": <Icon><path d="M3 4.5h12v11H3z"/><path d="M6 2.5v4M12 2.5v4M6 9h6"/></Icon>,
   "/purchase-invoices": <Icon><path d="M3.5 2.5h8l3 3v10h-11z"/><path d="M6 9h6M6 12h4"/></Icon>,
   "/payables": <Icon><path d="M3 15V8.5M7.5 15V3.5M12 15V10M15.5 15h-13"/></Icon>,
   "/catalogue/items": <Icon><path d="M3 4.5h12v9H3z" /><path d="M6 8h6" /></Icon>,

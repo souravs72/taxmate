@@ -23,6 +23,7 @@ class TestApiAllowlist(unittest.TestCase):
 		self.assertTrue(is_allowed_doctype("Customer"))
 		self.assertTrue(is_allowed_doctype("Supplier"))
 		self.assertTrue(is_allowed_doctype("Purchase Invoice"))
+		self.assertTrue(is_allowed_doctype("UAE Incoming Invoice"))
 		self.assertTrue(is_allowed_doctype("Buying Settings"))
 		self.assertTrue(is_allowed_doctype("ToDo"))
 		self.assertFalse(is_allowed_doctype("Employee"))
@@ -52,6 +53,10 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.sales_order.fulfilment_summary", methods)
 		self.assertIn("taxmate.api.search.awesome", methods)
 		self.assertIn("taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice", methods)
+		self.assertIn(
+			"taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",
+			methods,
+		)
 		self.assertIn("taxmate.api.accounts.resolve_payment_accounts", methods)
 		self.assertIn("taxmate.api.sales_order.linked_documents", methods)
 		self.assertIn("taxmate.api.sales_order.make_delivery_note", methods)
@@ -444,6 +449,55 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(submitted["docstatus"], 1)
 		cancelled = cancel("Purchase Invoice", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
+
+	def test_draft_purchase_invoice_from_incoming(self):
+		import json
+
+		from taxmate.tests.uae_prove_fixtures import require_prove_site
+		from taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice import (
+			create_purchase_invoice,
+		)
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		incoming = insert(
+			{
+				"doctype": "UAE Incoming Invoice",
+				"company": company,
+				"status": "Received",
+				"asp_document_id": f"tm-in-{uuid.uuid4().hex[:12]}",
+				"issue_date": "2026-11-15",
+				"currency": "AED",
+				"supplier_name": supplier,
+				"total_amount": 105,
+				"tax_amount": 5,
+				"payload": json.dumps(
+					{
+						"ID": "SUP-BILL-1",
+						"InvoiceLine": [
+							{
+								"Item": {"Name": "Received service"},
+								"InvoicedQuantity": {"value": 1, "unitCode": "Nos"},
+								"Price": {"PriceAmount": {"value": 100}},
+								"LineExtensionAmount": {"value": 100},
+							}
+						],
+						"TaxTotal": [{"TaxAmount": {"value": 5}}],
+					}
+				),
+			}
+		)
+		invoice_name = create_purchase_invoice(incoming["name"])
+		self.assertTrue(frappe.db.exists("Purchase Invoice", invoice_name))
+		refreshed = get("UAE Incoming Invoice", incoming["name"])
+		self.assertEqual(refreshed["status"], "Drafted")
+		self.assertEqual(refreshed["purchase_invoice"], invoice_name)
+		frappe.delete_doc("Purchase Invoice", invoice_name, force=True)
+		frappe.delete_doc("UAE Incoming Invoice", incoming["name"], force=True)
 
 
 class TestApiSearch(FrappeTestCase):

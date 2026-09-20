@@ -88,6 +88,10 @@ def _draft_purchase_invoice(record, ignore_permissions: bool = False) -> str:
 	invoice.posting_date = record.issue_date
 	invoice.bill_no = document.get("ID")
 	invoice.bill_date = record.issue_date
+	invoice.update_stock = 0
+	expense_account = frappe.get_cached_value("Company", record.company, "default_expense_account")
+	if invoice.meta.has_field("vat_emirate"):
+		invoice.vat_emirate = _company_emirate(record.company)
 
 	for line in document.get("InvoiceLine") or []:
 		item = line.get("Item") or {}
@@ -97,16 +101,19 @@ def _draft_purchase_invoice(record, ignore_permissions: bool = False) -> str:
 		rate = price.get("value")
 		if rate is None:
 			rate = _amount(line.get("LineExtensionAmount")) / qty
-		invoice.append(
-			"items",
-			{
-				"item_name": item.get("Name") or _("Received Item"),
-				"description": item.get("Description") or item.get("Name"),
-				"qty": qty,
-				"uom": quantity.get("unitCode") or "Nos",
-				"rate": rate,
-			},
-		)
+		row = {
+			"item_name": item.get("Name") or _("Received Item"),
+			"description": item.get("Description") or item.get("Name"),
+			"qty": qty,
+			"uom": quantity.get("unitCode") or "Nos",
+			"rate": rate,
+		}
+		item_code = item.get("SellersItemIdentification") or item.get("Name")
+		if item_code and frappe.db.exists("Item", item_code):
+			row["item_code"] = item_code
+		if expense_account:
+			row["expense_account"] = expense_account
+		invoice.append("items", row)
 
 	if not invoice.items:
 		frappe.throw(_("The received document has no invoice lines."))
@@ -165,6 +172,22 @@ def _party_by_trn(doctype: str, trn: str | None) -> str | None:
 		cleaned,
 	)
 	return row[0][0] if row else None
+
+
+def _company_emirate(company: str | None) -> str | None:
+	"""Place of supply from the company's billing address (TaxMate `emirate`)."""
+	if not company:
+		return None
+	address = frappe.db.get_value(
+		"Dynamic Link",
+		{"link_doctype": "Company", "link_name": company, "parenttype": "Address"},
+		"parent",
+	)
+	if not address:
+		return None
+	if frappe.get_meta("Address").has_field("emirate"):
+		return frappe.db.get_value("Address", address, "emirate")
+	return frappe.db.get_value("Address", address, "state")
 
 
 def _resolve_company(document: dict[str, Any]) -> str | None:

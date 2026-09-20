@@ -18,6 +18,7 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/receivables", key: "nav.receivables" },
   { type: "section", key: "nav.purchase" },
   { type: "link", to: "/suppliers", key: "nav.suppliers" },
+  { type: "link", to: "/incoming-invoices", key: "nav.incomingInvoices" },
   { type: "link", to: "/purchase-invoices", key: "nav.purchaseInvoices" },
   { type: "link", to: "/payables", key: "nav.payables" },
   { type: "section", key: "nav.masters" },

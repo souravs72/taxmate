@@ -118,6 +118,12 @@ Plan: `tasks/plan.md`
 
 ## Task 8: Incoming e-invoice list and draft-PI action
 
+- [x] `/incoming-invoices` lists via `taxmate.api.resource.get_list` (company-scoped)
+- [x] Status tiles/charts from catalog `get_list` group-by; currency never invented
+- [x] Detail drafts PI via catalog `create_purchase_invoice`; search routes `/incoming-invoices` and `/incoming-invoices/{name}`; no `/app/`
+- [x] Rail Purchase group includes Incoming e-Invoices
+- [x] Write-path API test for draft PI
+
 ## Task 9: Purchase Order / Purchase Receipt lists after PI works
 
 ## Phase 4 — Accounting
