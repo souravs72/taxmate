@@ -64,7 +64,13 @@ export function useDoc<T>(
   };
 }
 
-export function useDocCount(doctype: string, filters?: unknown, orFilters?: unknown) {
+export function useDocCount(
+  doctype: string,
+  filters?: unknown,
+  orFilters?: unknown,
+  key?: string | null,
+) {
+  const paused = key === null;
   const call = useFrappeGetCall<{ message: number }>(
     METHOD.getCount,
     {
@@ -72,9 +78,14 @@ export function useDocCount(doctype: string, filters?: unknown, orFilters?: unkn
       filters: filters ? JSON.stringify(filters) : undefined,
       or_filters: orFilters ? JSON.stringify(orFilters) : undefined,
     },
-    `count-${doctype}-${JSON.stringify(filters ?? [])}-${JSON.stringify(orFilters ?? [])}`,
+    paused ? null : (key ?? `count-${doctype}-${JSON.stringify(filters ?? [])}-${JSON.stringify(orFilters ?? [])}`),
   );
-  return { data: call.data?.message ?? 0, error: call.error, isLoading: call.isLoading, mutate: call.mutate };
+  return {
+    data: paused ? undefined : (call.data?.message ?? 0),
+    error: call.error,
+    isLoading: paused || call.isLoading,
+    mutate: call.mutate,
+  };
 }
 
 export function useInsert() {
@@ -92,8 +103,10 @@ export function useSave() {
   const { call, loading, error, reset, isCompleted } = useFrappePostCall<{ message: Record<string, unknown> }>(
     METHOD.save,
   );
+  const latest = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.get);
   const updateDoc = async (doctype: string, name: string, doc: Record<string, unknown>) => {
-    const res = await call({ doc: { ...doc, doctype, name } });
+    const current = await latest.call({ doctype, name });
+    const res = await call({ doc: { ...(current.message ?? {}), ...doc, doctype, name } });
     return res.message;
   };
   return { updateDoc, loading, error, reset, isCompleted };

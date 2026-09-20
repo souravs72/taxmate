@@ -24,7 +24,9 @@ from taxmate.search import GLOBAL_SEARCH_DOCTYPES
 # Only doctypes the React app owns. No Desk fallback.
 _SPA_DOC_ROUTES: dict[str, str] = {
 	"Customer": "/customers/{name}",
+	"Supplier": "/suppliers/{name}",
 	"Sales Order": "/orders/{name}",
+	"Delivery Note": "/delivery-notes/{name}",
 	"Sales Invoice": "/invoices/{name}",
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
@@ -32,7 +34,9 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 
 _SPA_LIST_ROUTES: dict[str, str] = {
 	"Customer": "/customers",
+	"Supplier": "/suppliers",
 	"Sales Order": "/orders",
+	"Delivery Note": "/delivery-notes",
 	"Sales Invoice": "/invoices",
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
@@ -40,12 +44,17 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
 _NAV_PAGES: tuple[dict[str, str], ...] = (
+	{"label": "Dashboard", "route": "/", "keywords": "home overview kpi books"},
 	{"label": "Sales Orders", "route": "/orders", "keywords": "home dashboard sales order so"},
+	{"label": "Delivery Notes", "route": "/delivery-notes", "keywords": "dn delivery note despatch"},
 	{"label": "Customers", "route": "/customers", "keywords": "customer party"},
+	{"label": "Suppliers", "route": "/suppliers", "keywords": "supplier vendor purchase party"},
 	{"label": "Invoices", "route": "/invoices", "keywords": "sales invoice bill"},
 	{"label": "Payments", "route": "/payments", "keywords": "payment receipt"},
 	{"label": "Receivables", "route": "/receivables", "keywords": "ar outstanding"},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
+	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
+	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)
@@ -181,7 +190,7 @@ def _exact_name_hits(text: str, limit: int) -> list[dict[str, Any]]:
 	if " " in text.strip() and not re.search(r"-\d", text):
 		return []
 	out: list[dict[str, Any]] = []
-	for doctype in ("Sales Order", "Sales Invoice", "Customer", "Item", "Payment Entry"):
+	for doctype in _SPA_DOCTYPES:
 		if doctype not in _SPA_DOCTYPES:
 			continue
 		if not is_allowed_doctype(doctype) or not frappe.has_permission(doctype, "read"):

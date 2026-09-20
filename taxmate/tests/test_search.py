@@ -48,12 +48,32 @@ class TestAwesomeSearch(FrappeTestCase):
 		self.assertIsNotNone(pages)
 		self.assertTrue(any(r["route"] == "/orders" for r in pages["results"]))
 
+	def test_nav_pages_match_dashboard(self):
+		out = awesome(text="dashboard", limit=10)
+		pages = next((g for g in out["groups"] if g["results"] and g["results"][0].get("type") == "page"), None)
+		self.assertIsNotNone(pages)
+		self.assertTrue(any(r["route"] == "/" for r in pages["results"]))
+
+	def test_delivery_note_spa_routes(self):
+		out = awesome(text="delivery", limit=20)
+		routes = [row["route"] for group in out["groups"] for row in group["results"]]
+		self.assertTrue(any(route == "/delivery-notes" for route in routes))
+		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))
+
 	def test_list_customer_hit(self):
 		out = awesome(text="customer", limit=10)
 		lists = next((g for g in out["groups"] if g["results"] and g["results"][0].get("type") == "list"), None)
 		self.assertIsNotNone(lists)
 		routes = {r["route"] for r in lists["results"]}
 		self.assertIn("/customers", routes)
+
+	def test_list_supplier_hit(self):
+		out = awesome(text="supplier", limit=10)
+		lists = next((g for g in out["groups"] if g["results"] and g["results"][0].get("type") == "list"), None)
+		self.assertIsNotNone(lists)
+		routes = {r["route"] for r in lists["results"]}
+		self.assertIn("/suppliers", routes)
+		self.assertFalse(any(cstr(r.get("route")).startswith("/app/") for r in lists["results"]))
 
 	def test_no_desk_routes(self):
 		out = awesome(text="customer", limit=20)

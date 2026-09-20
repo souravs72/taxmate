@@ -6,12 +6,11 @@ import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 
-type CustomerDoc = {
+type SupplierDoc = {
   name: string;
-  customer_name?: string;
-  customer_type?: string;
-  customer_group?: string;
-  territory?: string;
+  supplier_name?: string;
+  supplier_type?: string;
+  supplier_group?: string;
   tax_id?: string;
   payment_terms?: string;
   trade_license_number?: string;
@@ -20,8 +19,8 @@ type CustomerDoc = {
   uae_peppol_id?: string;
   uae_fz_beneficiary_id?: string;
   uae_in_designated_zone?: 0 | 1;
-  customer_primary_address?: string;
-  customer_primary_contact?: string;
+  supplier_primary_address?: string;
+  supplier_primary_contact?: string;
 };
 
 type AddressDoc = {
@@ -35,16 +34,16 @@ type AddressDoc = {
   phone?: string;
 };
 
-export default function CustomerForm() {
+export default function SupplierForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
   const isNew = name === "new";
 
-  const existing = useDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
+  const existing = useDoc<SupplierDoc>(DT.supplier, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
-  const settings = useDoc<{ customer_group?: string; territory?: string }>(DT.sellingSettings, DT.sellingSettings);
-  const groups = useDocList<{ name: string }>(DT.customerGroup, {
+  const settings = useDoc<{ supplier_group?: string }>(DT.buyingSettings, DT.buyingSettings);
+  const groups = useDocList<{ name: string }>(DT.supplierGroup, {
     fields: ["name"],
     filters: [["is_group", "=", 0]],
     limit: 50,
@@ -54,9 +53,9 @@ export default function CustomerForm() {
   const update = useSave();
 
   const [form, setForm] = useState({
-    customer_name: "",
-    customer_type: "Company",
-    customer_group: "",
+    supplier_name: "",
+    supplier_type: "Company",
+    supplier_group: "",
     tax_id: "",
     payment_terms: "",
     trade_license_number: "",
@@ -79,9 +78,9 @@ export default function CustomerForm() {
     if (!d) return;
     setForm((f) => ({
       ...f,
-      customer_name: d.customer_name || "",
-      customer_type: d.customer_type || "Company",
-      customer_group: d.customer_group || "",
+      supplier_name: d.supplier_name || "",
+      supplier_type: d.supplier_type || "Company",
+      supplier_group: d.supplier_group || "",
       tax_id: d.tax_id || "",
       payment_terms: d.payment_terms || "",
       trade_license_number: d.trade_license_number || "",
@@ -93,7 +92,7 @@ export default function CustomerForm() {
     }));
   }, [existing.data]);
 
-  const addrName = existing.data?.customer_primary_address;
+  const addrName = existing.data?.supplier_primary_address;
   const address = useDoc<AddressDoc>(DT.address, addrName, addrName || null, {
     isPaused: () => !addrName,
   });
@@ -111,19 +110,17 @@ export default function CustomerForm() {
   }, [address.data]);
 
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
-  const ready = !!form.customer_name && !!form.customer_type && !!form.address_line1 && !!form.city && !!form.state;
+  const ready = !!form.supplier_name && !!form.supplier_type && !!form.address_line1 && !!form.city && !!form.state;
 
   async function save() {
     setBusy(true);
     setSaveError(null);
     try {
-      const group = form.customer_group || settings.data?.customer_group;
-      const territory = settings.data?.territory;
+      const group = form.supplier_group || settings.data?.supplier_group;
       const payload = {
-        customer_name: form.customer_name,
-        customer_type: form.customer_type,
-        customer_group: group,
-        territory,
+        supplier_name: form.supplier_name,
+        supplier_type: form.supplier_type,
+        supplier_group: group,
         tax_id: form.tax_id || undefined,
         payment_terms: form.payment_terms || undefined,
         trade_license_number: form.trade_license_number || undefined,
@@ -133,13 +130,13 @@ export default function CustomerForm() {
         uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
         uae_in_designated_zone: form.uae_in_designated_zone,
       };
-      const cust = isNew
-        ? await create.createDoc(DT.customer, payload)
-        : await update.updateDoc(DT.customer, name, payload);
-      const custName = (cust as { name: string }).name;
+      const supp = isNew
+        ? await create.createDoc(DT.supplier, payload)
+        : await update.updateDoc(DT.supplier, name, payload);
+      const suppName = (supp as { name: string }).name;
 
       const addrPayload = {
-        address_title: form.customer_name,
+        address_title: form.supplier_name,
         address_type: "Billing",
         address_line1: form.address_line1,
         city: form.city,
@@ -148,9 +145,9 @@ export default function CustomerForm() {
         country: "United Arab Emirates",
         email_id: form.email_id || undefined,
         phone: form.phone || undefined,
-        links: [{ link_doctype: "Customer", link_name: custName }],
+        links: [{ link_doctype: "Supplier", link_name: suppName }],
       };
-      let primaryAddress = existing.data?.customer_primary_address;
+      let primaryAddress = existing.data?.supplier_primary_address;
       if (primaryAddress) {
         await update.updateDoc(DT.address, primaryAddress, addrPayload);
       } else {
@@ -158,13 +155,13 @@ export default function CustomerForm() {
         primaryAddress = (addr as { name: string }).name;
       }
 
-      let primaryContact = existing.data?.customer_primary_contact;
+      let primaryContact = existing.data?.supplier_primary_contact;
       if (form.email_id || form.phone) {
         const contactPayload = {
-          first_name: form.customer_name,
+          first_name: form.supplier_name,
           email_id: form.email_id || undefined,
           mobile_no: form.phone || undefined,
-          links: [{ link_doctype: "Customer", link_name: custName }],
+          links: [{ link_doctype: "Supplier", link_name: suppName }],
         };
         if (primaryContact) {
           await update.updateDoc(DT.contact, primaryContact, contactPayload);
@@ -174,11 +171,11 @@ export default function CustomerForm() {
         }
       }
 
-      await update.updateDoc(DT.customer, custName, {
-        customer_primary_address: primaryAddress,
-        customer_primary_contact: primaryContact,
+      await update.updateDoc(DT.supplier, suppName, {
+        supplier_primary_address: primaryAddress,
+        supplier_primary_contact: primaryContact,
       });
-      nav(`/customers/${encodeURIComponent(custName)}`);
+      nav(`/suppliers/${encodeURIComponent(suppName)}`);
     } catch (err) {
       setSaveError(err);
     } finally {
@@ -192,12 +189,14 @@ export default function CustomerForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav("/customers")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.customers")}</a>}
-        title={isNew ? t("cust.new") : form.customer_name || name}
+        eyebrow={
+          <button type="button" className="btn quiet" onClick={() => nav("/suppliers")}>{t("nav.suppliers")}</button>
+        }
+        title={isNew ? t("supp.new") : form.supplier_name || name}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
-            <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
+            <button type="button" className="btn quiet" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
+            <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
           </>
@@ -208,17 +207,17 @@ export default function CustomerForm() {
       <Card num={1} title={t("cust.identity")}>
         <div className="grid2">
           <Field label={t("cust.col.name")} required>
-            <input className="ctl" value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} />
+            <input className="ctl" value={form.supplier_name} onChange={(e) => set("supplier_name", e.target.value)} />
           </Field>
           <Field label={t("cust.type")} required>
-            <select className="ctl" value={form.customer_type} onChange={(e) => set("customer_type", e.target.value)}>
+            <select className="ctl" value={form.supplier_type} onChange={(e) => set("supplier_type", e.target.value)}>
               <option value="Company">{t("cust.type.company")}</option>
               <option value="Individual">{t("cust.type.individual")}</option>
               <option value="Partnership">{t("cust.type.partnership")}</option>
             </select>
           </Field>
           <Field label={t("cust.col.group")}>
-            <select className="ctl" value={form.customer_group} onChange={(e) => set("customer_group", e.target.value)}>
+            <select className="ctl" value={form.supplier_group} onChange={(e) => set("supplier_group", e.target.value)}>
               <option value="" />
               {(groups.data ?? []).map((g) => <option key={g.name} value={g.name}>{g.name}</option>)}
             </select>

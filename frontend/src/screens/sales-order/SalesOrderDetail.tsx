@@ -60,7 +60,6 @@ export default function SalesOrderDetail() {
       const created = await create.createDoc(doctype, body);
       const newName = (created as { name: string }).name;
       if (kind === "si") nav(`/invoices/${encodeURIComponent(newName)}`);
-      // The SPA has no Delivery Note screen yet, so open the Desk form.
       else nav(`/delivery-notes/${encodeURIComponent(newName)}`);
     } catch (err) {
       setMapError(err);

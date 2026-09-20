@@ -61,10 +61,13 @@ export const DT = {
   taxTemplate: "Sales Taxes and Charges Template",
   paymentTerms: "Payment Terms Template",
   sellingSettings: "Selling Settings",
+  buyingSettings: "Buying Settings",
   itemGroup: "Item Group",
   customerGroup: "Customer Group",
+  supplierGroup: "Supplier Group",
   uom: "UOM",
   eInvoiceLog: "UAE E-Invoice Log",
+  vat201: "UAE VAT 201 Filing Log",
 } as const;
 
 /**

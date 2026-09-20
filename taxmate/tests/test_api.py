@@ -21,6 +21,8 @@ class TestApiAllowlist(unittest.TestCase):
 	def test_accounts_doctypes_allowed_hr_denied(self):
 		self.assertTrue(is_allowed_doctype("Sales Invoice"))
 		self.assertTrue(is_allowed_doctype("Customer"))
+		self.assertTrue(is_allowed_doctype("Supplier"))
+		self.assertTrue(is_allowed_doctype("Buying Settings"))
 		self.assertTrue(is_allowed_doctype("ToDo"))
 		self.assertFalse(is_allowed_doctype("Employee"))
 		self.assertFalse(is_allowed_doctype(""))
@@ -35,6 +37,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("Payment Entry", doctypes)
 		self.assertIn("Journal Entry", doctypes)
 		self.assertIn("Customer", doctypes)
+		self.assertIn("Supplier", doctypes)
+		self.assertIn("Buying Settings", doctypes)
 		self.assertIn("Account", doctypes)
 		self.assertIn("UAE VAT 201 Filing Log", doctypes)
 		self.assertIn("UAE Incoming Invoice", doctypes)
@@ -245,6 +249,64 @@ class TestApiMastersHappyPath(FrappeTestCase):
 		self.assertIn("company", defaults)
 
 		delete("Customer", created["name"])
+
+	def test_supplier_insert_address_contact(self):
+		group = frappe.db.get_single_value("Buying Settings", "supplier_group") or frappe.db.get_value(
+			"Supplier Group", {"is_group": 0}
+		)
+		if not group:
+			self.skipTest("Supplier Group not set up")
+
+		name = f"TM SUP {uuid.uuid4().hex[:8]}"
+		created = insert(
+			{
+				"doctype": "Supplier",
+				"supplier_name": name,
+				"supplier_type": "Company",
+				"supplier_group": group,
+			}
+		)
+		supp_name = created["name"]
+		self.assertTrue(frappe.db.exists("Supplier", supp_name))
+
+		addr = insert(
+			{
+				"doctype": "Address",
+				"address_title": name,
+				"address_type": "Billing",
+				"address_line1": "Street 1",
+				"city": "Dubai",
+				"state": "Dubai",
+				"emirate": "Dubai",
+				"country": "United Arab Emirates",
+				"links": [{"link_doctype": "Supplier", "link_name": supp_name}],
+			}
+		)
+		addr_doc = frappe.get_doc("Address", addr["name"])
+		self.assertTrue(any(row.link_doctype == "Supplier" and row.link_name == supp_name for row in addr_doc.links))
+
+		contact = insert(
+			{
+				"doctype": "Contact",
+				"first_name": name,
+				"links": [{"link_doctype": "Supplier", "link_name": supp_name}],
+			}
+		)
+		contact_doc = frappe.get_doc("Contact", contact["name"])
+		self.assertTrue(
+			any(row.link_doctype == "Supplier" and row.link_name == supp_name for row in contact_doc.links)
+		)
+
+		fetched = get("Supplier", supp_name)
+		fetched["supplier_primary_address"] = addr["name"]
+		fetched["supplier_primary_contact"] = contact["name"]
+		saved = save(fetched)
+		self.assertEqual(saved["supplier_primary_address"], addr["name"])
+		self.assertEqual(saved["supplier_primary_contact"], contact["name"])
+
+		frappe.delete_doc("Supplier", supp_name, force=True, ignore_permissions=True)
+		frappe.delete_doc("Contact", contact["name"], force=True, ignore_permissions=True)
+		frappe.delete_doc("Address", addr["name"], force=True, ignore_permissions=True)
 
 	def test_account_tree_when_company_exists(self):
 		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")

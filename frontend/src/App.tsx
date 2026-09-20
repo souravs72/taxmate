@@ -1,7 +1,7 @@
 /**
  * TaxMate SPA root router.
  * Importers: frontend entry (main.tsx). Callers: browser at /taxmate.
- * Routes: /orders (Sales Order), /customers, /invoices, /payments, /receivables.
+ * Routes: /orders (Sales Order), /customers, /suppliers, /invoices, /payments, /receivables.
  * User: "I can't see /orders (Sales Order in the frontend)." + revert sidebar design;
  * search should navigate to /taxmate endpoints only, not desk.
  */
@@ -16,9 +16,12 @@ import { SessionProvider } from "./lib/session";
 import SalesOrderList from "./screens/sales-order/SalesOrderList";
 import SalesOrderDetail from "./screens/sales-order/SalesOrderDetail";
 import SalesOrderCreate from "./screens/sales-order/SalesOrderCreate";
+import Dashboard from "./screens/dashboard/Dashboard";
 import SalesHub from "./screens/sales/SalesHub";
 import CustomerList from "./screens/customer/CustomerList";
 import CustomerForm from "./screens/customer/CustomerForm";
+import SupplierList from "./screens/supplier/SupplierList";
+import SupplierForm from "./screens/supplier/SupplierForm";
 import InvoiceList from "./screens/invoice/InvoiceList";
 import InvoiceForm from "./screens/invoice/InvoiceForm";
 import InvoiceDetail from "./screens/invoice/InvoiceDetail";
@@ -29,6 +32,7 @@ import PaymentDetail from "./screens/payment/PaymentDetail";
 import Receivables from "./screens/receivables/Receivables";
 import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
+import DeliveryNoteList from "./screens/delivery-note/DeliveryNoteList";
 import DeliveryNoteDetail from "./screens/delivery-note/DeliveryNoteDetail";
 import EInvoiceLog from "./screens/compliance/EInvoiceLog";
 import TaxSettings from "./screens/compliance/TaxSettings";
@@ -57,13 +61,16 @@ export default function App() {
             "index.html to www/taxmate.html." }} />
         )}
         <Routes>
-          <Route path="/" element={<Navigate to="/sales" replace />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/orders" element={<SalesOrderList />} />
           <Route path="/orders/new" element={<SalesOrderCreate />} />
           <Route path="/orders/:name" element={<SalesOrderDetail />} />
+          <Route path="/delivery-notes" element={<DeliveryNoteList />} />
           <Route path="/delivery-notes/:name" element={<DeliveryNoteDetail />} />
           <Route path="/customers" element={<CustomerList />} />
           <Route path="/customers/:name" element={<CustomerForm />} />
+          <Route path="/suppliers" element={<SupplierList />} />
+          <Route path="/suppliers/:name" element={<SupplierForm />} />
           <Route path="/invoices" element={<InvoiceList />} />
           <Route path="/invoices/new" element={<InvoiceForm />} />
           <Route path="/invoices/:name/return" element={<CreditNoteForm />} />

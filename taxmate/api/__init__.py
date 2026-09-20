@@ -41,6 +41,7 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"TaxMate Settings",
 	"Accounts Settings",
 	"Selling Settings",
+	"Buying Settings",
 	"Item Price",
 	"ToDo",
 	"Delivery Note",
