@@ -57,6 +57,9 @@ import TaxTemplateList from "./screens/tax-template/TaxTemplateList";
 import TaxTemplateDetail from "./screens/tax-template/TaxTemplateDetail";
 import EInvoiceLog from "./screens/compliance/EInvoiceLog";
 import TaxSettings from "./screens/compliance/TaxSettings";
+import Vat201List from "./screens/vat-201/Vat201List";
+import Vat201Detail from "./screens/vat-201/Vat201Detail";
+import Vat201Form from "./screens/vat-201/Vat201Form";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -127,6 +130,9 @@ export default function App() {
           <Route path="/tax-templates/:kind/:name" element={<TaxTemplateDetail />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
+          <Route path="/vat-201" element={<Vat201List />} />
+          <Route path="/vat-201/new" element={<Vat201Form />} />
+          <Route path="/vat-201/:name" element={<Vat201Detail />} />
           <Route path="/e-invoice-log" element={<EInvoiceLog />} />
           <Route path="/tax-settings" element={<TaxSettings />} />
           <Route path="/sales" element={<SalesHub />} />

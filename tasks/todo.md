@@ -161,15 +161,23 @@ Plan: `tasks/plan.md`
 
 ## Task 13: Warehouse list; tax templates as read-only lists if forms are too heavy
 
-- [ ] `/warehouses` lists via catalog `get_list` (company-scoped)
-- [ ] Detail via parent `get`; no invented stock balances
-- [ ] `/tax-templates` lists Sales and Purchase tax templates (read-only, nested taxes from parent `get`)
-- [ ] Search routes; no `/app/`
-- [ ] Rail Masters group includes both lists
+- [x] `/warehouses` lists via catalog `get_list` (company-scoped)
+- [x] Detail via parent `get`; no invented stock balances
+- [x] `/tax-templates` lists Sales and Purchase tax templates (read-only, nested taxes from parent `get`)
+- [x] Search routes; no `/app/`
+- [x] Rail Masters group includes both lists
 
 ## Phase 6 — UAE compliance screens
 
 ## Task 14: VAT 201 list + detail (then wire dashboard rows to it)
+
+- [x] `/vat-201` lists via catalog `get_list` (company-scoped)
+- [x] Detail via parent `get` (boxes nested); charts from group_by, not invented totals
+- [x] Prepare form calls catalog `get_or_create_vat_201`; regenerate via `generate_vat_201`
+- [x] Dashboard overdue tile and filing rows link to `/vat-201`
+- [x] Search routes `/vat-201` and `/vat-201/{name}`; no `/app/`
+- [x] Rail UAE Compliance includes VAT 201
+- [x] Write-path API test for get_or_create
 
 ## Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time
 

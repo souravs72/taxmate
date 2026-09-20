@@ -301,3 +301,12 @@ def get_or_create(company: str, period_start, period_end) -> str:
 	)
 	doc.insert()
 	return doc.name
+
+
+@frappe.whitelist()
+def generate_filing(name: str):
+	"""Recompute boxes on a Draft VAT 201. Catalog action generate_vat_201."""
+	if not name:
+		frappe.throw(_("Filing name is required."))
+	doc = frappe.get_doc("UAE VAT 201 Filing Log", name)
+	return doc.generate()

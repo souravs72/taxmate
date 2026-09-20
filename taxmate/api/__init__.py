@@ -87,6 +87,10 @@ _EXISTING_ACTIONS: tuple[dict[str, str], ...] = (
 		"method": "taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.get_or_create",
 	},
 	{
+		"name": "generate_vat_201",
+		"method": "taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.generate_filing",
+	},
+	{
 		"name": "get_ct_elections",
 		"method": "taxmate.uae_corporate_tax.utils.corporate_tax.get_ct_elections",
 	},

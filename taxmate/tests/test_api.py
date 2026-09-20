@@ -64,6 +64,14 @@ class TestApiCatalog(FrappeTestCase):
 			"taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",
 			methods,
 		)
+		self.assertIn(
+			"taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.get_or_create",
+			methods,
+		)
+		self.assertIn(
+			"taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.generate_filing",
+			methods,
+		)
 		self.assertIn("taxmate.api.accounts.resolve_payment_accounts", methods)
 		self.assertIn("taxmate.api.sales_order.linked_documents", methods)
 		self.assertIn("taxmate.api.sales_order.make_delivery_note", methods)
@@ -655,3 +663,25 @@ class TestSalesOrderApi(FrappeTestCase):
 
 		cancelled = cancel("Sales Order", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
+
+	def test_get_or_create_vat_201(self):
+		from taxmate.tests.uae_prove_fixtures import require_prove_site
+		from taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log import get_or_create
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		period_start = "2097-04-01"
+		period_end = "2097-06-30"
+		try:
+			name = get_or_create(company, period_start, period_end)
+		except frappe.ValidationError as exc:
+			self.skipTest(str(exc))
+
+		self.assertTrue(name)
+		fetched = get("UAE VAT 201 Filing Log", name)
+		self.assertEqual(fetched["docstatus"], 0)
+		self.assertEqual(str(fetched["period_start"]), period_start)
+		self.assertEqual(get_or_create(company, period_start, period_end), name)

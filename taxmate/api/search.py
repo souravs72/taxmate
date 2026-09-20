@@ -39,6 +39,7 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Purchase Taxes and Charges Template": "/tax-templates/purchase/{name}",
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
+	"UAE VAT 201 Filing Log": "/vat-201/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -58,6 +59,7 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Purchase Taxes and Charges Template": "/tax-templates",
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
+	"UAE VAT 201 Filing Log": "/vat-201",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -81,6 +83,7 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
 	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
 	{"label": "Tax Templates", "route": "/tax-templates", "keywords": "tax template vat sales purchase charges"},
+	{"label": "VAT 201", "route": "/vat-201", "keywords": "vat 201 fta filing return boxes deadline"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
 )

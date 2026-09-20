@@ -184,7 +184,7 @@ export default function Dashboard() {
             foot={t("hub.failedFoot")}
           />
         </button>
-        <div>
+        <button type="button" className="tilebtn" onClick={() => nav("/vat-201?deadline=Overdue")}>
           <StatTile
             colour="var(--warn)" tint="rgba(217,119,6,.12)"
             icon='<path d="M3.5 3.5h11v11h-11z"/><path d="M3.5 7h11M7 3.5V7"/>'
@@ -192,17 +192,25 @@ export default function Dashboard() {
             value={shownCount(homeLoading, kpiValue(kpis, "Overdue VAT 201"))}
             foot={t("dash.vatOverdueFoot")}
           />
-        </div>
+        </button>
       </div>
 
       <div className="dash-board">
-        <Card title={t("dash.deadlines")} hint={t("dash.deadlinesHint")}>
+        <Card
+          title={t("dash.deadlines")}
+          hint={<button type="button" className="btn quiet sm" onClick={() => nav("/vat-201")}>{t("dash.viewAll")}</button>}
+        >
           {vat.error && <ErrorBox error={vat.error} onRetry={() => vat.mutate()} />}
           {vat.isLoading ? <Loading />
             : vat.error ? null
             : (vat.data ?? []).length === 0 ? <Empty label={t("dash.noFilings")} />
             : (vat.data ?? []).map((row) => (
-              <div className="qrow static" key={row.name}>
+              <button
+                type="button"
+                className="qrow"
+                key={row.name}
+                onClick={() => nav(`/vat-201/${encodeURIComponent(row.name)}`)}
+              >
                 <span>
                   <span className="qtitle">{row.name}</span>
                   <span className="qsub">
@@ -218,7 +226,7 @@ export default function Dashboard() {
                     {row.deadline_status || row.status || "—"}
                   </Pill>
                 </span>
-              </div>
+              </button>
             ))}
         </Card>
 
