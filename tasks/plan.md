@@ -48,7 +48,7 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | Need | Catalog | Phase |
 |---|---|---|
 | Journal Entry | Journal Entry | 4 shipped |
-| Chart of accounts | Account | 4 (tree or filtered list, not a fake tree) |
+| Chart of accounts | Account | 4 shipped |
 | Bank / modes | Bank Account, Mode of Payment | 4 |
 | Trial Balance, GL, P&amp;L, Balance Sheet, Cash Flow | catalog reports via `run_report` | 4 |
 | Customer / Supplier ledgers | catalog reports | 4 |

@@ -98,6 +98,7 @@ export const METHOD = {
   getOutstandingInvoices: "taxmate.api.accounts.get_outstanding_invoices",
   resolvePaymentAccounts: "taxmate.api.accounts.resolve_payment_accounts",
   getPaymentEntry: "taxmate.api.accounts.get_payment_entry",
+  getAccountTree: "taxmate.api.accounts.get_account_tree",
   makeSalesReturn: "taxmate.api.accounts.make_sales_return",
   submit: "taxmate.api.workflow.submit",
   cancel: "taxmate.api.workflow.cancel",

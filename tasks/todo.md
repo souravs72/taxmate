@@ -144,6 +144,11 @@ Plan: `tasks/plan.md`
 
 ## Task 11: Chart of Accounts (Account list/tree from catalog)
 
+- [x] `/accounts` expands via catalog `get_account_tree` (company, one level, lazy)
+- [x] Detail via parent `get`; no invented balances
+- [x] Search routes `/accounts` and `/accounts/{name}`; no `/app/`
+- [x] Rail Accounting group includes Chart of Accounts
+
 ## Task 12: Report runner for TB / GL / P&amp;L / BS / Cash Flow using `list_reports` + `run_report` only with documented filters
 
 ## Phase 5 — Masters
