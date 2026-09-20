@@ -59,6 +59,7 @@ export const DT = {
   paymentEntryRef: "Payment Entry Reference",
   modeOfPayment: "Mode of Payment",
   taxTemplate: "Sales Taxes and Charges Template",
+  purchaseTaxTemplate: "Purchase Taxes and Charges Template",
   paymentTerms: "Payment Terms Template",
   sellingSettings: "Selling Settings",
   buyingSettings: "Buying Settings",

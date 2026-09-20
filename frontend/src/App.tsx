@@ -34,6 +34,9 @@ import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
 import DeliveryNoteList from "./screens/delivery-note/DeliveryNoteList";
 import DeliveryNoteDetail from "./screens/delivery-note/DeliveryNoteDetail";
+import PurchaseInvoiceList from "./screens/purchase-invoice/PurchaseInvoiceList";
+import PurchaseInvoiceForm from "./screens/purchase-invoice/PurchaseInvoiceForm";
+import PurchaseInvoiceDetail from "./screens/purchase-invoice/PurchaseInvoiceDetail";
 import EInvoiceLog from "./screens/compliance/EInvoiceLog";
 import TaxSettings from "./screens/compliance/TaxSettings";
 import NotFound from "./screens/NotFound";
@@ -71,6 +74,10 @@ export default function App() {
           <Route path="/customers/:name" element={<CustomerForm />} />
           <Route path="/suppliers" element={<SupplierList />} />
           <Route path="/suppliers/:name" element={<SupplierForm />} />
+          <Route path="/purchase-invoices" element={<PurchaseInvoiceList />} />
+          <Route path="/purchase-invoices/new" element={<PurchaseInvoiceForm />} />
+          <Route path="/purchase-invoices/:name/edit" element={<PurchaseInvoiceForm />} />
+          <Route path="/purchase-invoices/:name" element={<PurchaseInvoiceDetail />} />
           <Route path="/invoices" element={<InvoiceList />} />
           <Route path="/invoices/new" element={<InvoiceForm />} />
           <Route path="/invoices/:name/return" element={<CreditNoteForm />} />

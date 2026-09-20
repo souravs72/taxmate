@@ -104,6 +104,12 @@ Plan: `tasks/plan.md`
 
 ## Task 6: Purchase Invoice list + detail + form (read/submit via catalog)
 
+- [x] `/purchase-invoices` lists via `taxmate.api.resource.get_list` (company-scoped)
+- [x] Detail uses `get` + nested items; payments via parent Payment Entry filters
+- [x] Form insert then `taxmate.api.workflow.submit`; party/item details catalogued
+- [x] Search routes `/purchase-invoices` and `/purchase-invoices/{name}`; no `/app/`
+- [x] Rail Purchase group includes Purchase Invoices
+
 ## Task 7: Accounts Payable report screen (clone Receivables + `run_report`)
 
 ## Task 8: Incoming e-invoice list and draft-PI action

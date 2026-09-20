@@ -28,6 +28,7 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Sales Order": "/orders/{name}",
 	"Delivery Note": "/delivery-notes/{name}",
 	"Sales Invoice": "/invoices/{name}",
+	"Purchase Invoice": "/purchase-invoices/{name}",
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
 }
@@ -38,6 +39,7 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Sales Order": "/orders",
 	"Delivery Note": "/delivery-notes",
 	"Sales Invoice": "/invoices",
+	"Purchase Invoice": "/purchase-invoices",
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
 }
@@ -49,6 +51,7 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Delivery Notes", "route": "/delivery-notes", "keywords": "dn delivery note despatch"},
 	{"label": "Customers", "route": "/customers", "keywords": "customer party"},
 	{"label": "Suppliers", "route": "/suppliers", "keywords": "supplier vendor purchase party"},
+	{"label": "Purchase Invoices", "route": "/purchase-invoices", "keywords": "purchase invoice bill pi vendor"},
 	{"label": "Invoices", "route": "/invoices", "keywords": "sales invoice bill"},
 	{"label": "Payments", "route": "/payments", "keywords": "payment receipt"},
 	{"label": "Receivables", "route": "/receivables", "keywords": "ar outstanding"},

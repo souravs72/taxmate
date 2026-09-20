@@ -22,6 +22,7 @@ class TestApiAllowlist(unittest.TestCase):
 		self.assertTrue(is_allowed_doctype("Sales Invoice"))
 		self.assertTrue(is_allowed_doctype("Customer"))
 		self.assertTrue(is_allowed_doctype("Supplier"))
+		self.assertTrue(is_allowed_doctype("Purchase Invoice"))
 		self.assertTrue(is_allowed_doctype("Buying Settings"))
 		self.assertTrue(is_allowed_doctype("ToDo"))
 		self.assertFalse(is_allowed_doctype("Employee"))
@@ -410,6 +411,38 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(amended["docstatus"], 0)
 		self.assertEqual(amended["amended_from"], doc["name"])
 		self.assertFalse(amended.get("uae_e_invoice_status"))
+
+	def test_purchase_invoice_insert_then_submit(self):
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+		from taxmate.api.workflow import cancel, submit
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1}) or SERVICE_ITEM
+		doc = insert(
+			{
+				"doctype": "Purchase Invoice",
+				"company": company,
+				"supplier": supplier,
+				"posting_date": "2026-11-15",
+				"due_date": "2026-11-15",
+				"set_posting_time": 1,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"vat_emirate": "Dubai",
+				"update_stock": 0,
+				"items": [{"item_code": item, "qty": 1, "rate": 50}],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		submitted = submit({"doctype": "Purchase Invoice", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+		cancelled = cancel("Purchase Invoice", doc["name"])
+		self.assertEqual(cancelled["docstatus"], 2)
 
 
 class TestApiSearch(FrappeTestCase):
