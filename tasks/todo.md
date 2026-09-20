@@ -112,6 +112,10 @@ Plan: `tasks/plan.md`
 
 ## Task 7: Accounts Payable report screen (clone Receivables + `run_report`)
 
+- [x] `/payables` runs catalog `Accounts Payable` via `run_report`
+- [x] Paused until session company; Pay deep-link uses existing payment form
+- [x] Search route `/payables`; rail under Purchase
+
 ## Task 8: Incoming e-invoice list and draft-PI action
 
 ## Task 9: Purchase Order / Purchase Receipt lists after PI works

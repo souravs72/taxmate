@@ -170,6 +170,7 @@ class TestApiReportsAndHome(FrappeTestCase):
 		self.assertIn("Balance Sheet", reports)
 		self.assertIn("Trial Balance", reports)
 		self.assertIn("Accounts Receivable", reports)
+		self.assertIn("Accounts Payable", reports)
 
 	def test_home_kpis_shape(self):
 		home = get_home()

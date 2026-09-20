@@ -19,6 +19,7 @@ const en: Record<string, string> = {
   "nav.purchase": "Purchase",
   "nav.suppliers": "Suppliers",
   "nav.purchaseInvoices": "Purchase Invoices",
+  "nav.payables": "Payables",
   "nav.compliance": "UAE Compliance",
   "nav.eInvoiceLog": "E-Invoice Log",
   "nav.taxSettings": "Tax Settings",
@@ -479,6 +480,10 @@ const en: Record<string, string> = {
   "ar.sub": "Unpaid sales invoices, aged 30 / 60 / 90.",
   "ar.empty": "Nothing outstanding.",
   "ar.age": "Age",
+
+  "ap.title": "Payables",
+  "ap.sub": "What you still owe suppliers, aged on due date.",
+  "ap.empty": "No outstanding supplier bills for this company.",
 };
 
 const ar: Record<string, string> = {
@@ -493,6 +498,7 @@ const ar: Record<string, string> = {
   "nav.purchase": "المشتريات",
   "nav.suppliers": "الموردون",
   "nav.purchaseInvoices": "فواتير الشراء",
+  "nav.payables": "الذمم الدائنة",
   "nav.compliance": "الامتثال الإماراتي",
   "nav.eInvoiceLog": "سجل الفواتير الإلكترونية",
   "nav.taxSettings": "إعدادات الضرائب",
@@ -927,6 +933,10 @@ const ar: Record<string, string> = {
   "ar.sub": "فواتير المبيعات غير المدفوعة، بأعمار 30 / 60 / 90.",
   "ar.empty": "لا يوجد رصيد قائم.",
   "ar.age": "العمر",
+
+  "ap.title": "الذمم الدائنة",
+  "ap.sub": "ما يزال مستحقاً للموردين، بأعمار حسب تاريخ الاستحقاق.",
+  "ap.empty": "لا توجد فواتير مورد قائمة لهذه الشركة.",
 };
 
 export const t = makeT(en, ar);

@@ -30,6 +30,7 @@ import PaymentList from "./screens/payment/PaymentList";
 import PaymentForm from "./screens/payment/PaymentForm";
 import PaymentDetail from "./screens/payment/PaymentDetail";
 import Receivables from "./screens/receivables/Receivables";
+import Payables from "./screens/payables/Payables";
 import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
 import DeliveryNoteList from "./screens/delivery-note/DeliveryNoteList";
@@ -88,6 +89,7 @@ export default function App() {
           <Route path="/payments/:name/edit" element={<PaymentForm />} />
           <Route path="/payments/:name" element={<PaymentDetail />} />
           <Route path="/receivables" element={<Receivables />} />
+          <Route path="/payables" element={<Payables />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
           <Route path="/e-invoice-log" element={<EInvoiceLog />} />
