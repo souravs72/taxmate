@@ -126,6 +126,11 @@ Plan: `tasks/plan.md`
 
 ## Task 9: Purchase Order / Purchase Receipt lists after PI works
 
+- [x] `/purchase-orders` and `/purchase-receipts` list via catalog `get_list` (company-scoped)
+- [x] Status tiles/charts from grouped `base_grand_total`; late PO count via `get_count`
+- [x] Detail via parent `get` (nested items); search routes; no `/app/`
+- [x] Rail Purchase group includes both lists
+
 ## Phase 4 — Accounting
 
 ## Task 10: Journal Entry list + detail + form

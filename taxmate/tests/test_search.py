@@ -81,6 +81,18 @@ class TestAwesomeSearch(FrappeTestCase):
 		self.assertTrue(any(route == "/purchase-invoices" for route in routes))
 		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))
 
+	def test_purchase_order_spa_routes(self):
+		out = awesome(text="purchase order", limit=20)
+		routes = [row["route"] for group in out["groups"] for row in group["results"]]
+		self.assertTrue(any(route == "/purchase-orders" for route in routes))
+		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))
+
+	def test_purchase_receipt_spa_routes(self):
+		out = awesome(text="purchase receipt", limit=20)
+		routes = [row["route"] for group in out["groups"] for row in group["results"]]
+		self.assertTrue(any(route == "/purchase-receipts" for route in routes))
+		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))
+
 	def test_incoming_invoice_spa_routes(self):
 		out = awesome(text="incoming", limit=20)
 		routes = [row["route"] for group in out["groups"] for row in group["results"]]

@@ -56,6 +56,8 @@ export const DT = {
   paymentEntry: "Payment Entry",
   supplier: "Supplier",
   purchaseInvoice: "Purchase Invoice",
+  purchaseOrder: "Purchase Order",
+  purchaseReceipt: "Purchase Receipt",
   incomingInvoice: "UAE Incoming Invoice",
   paymentEntryRef: "Payment Entry Reference",
   modeOfPayment: "Mode of Payment",

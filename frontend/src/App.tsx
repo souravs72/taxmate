@@ -40,6 +40,10 @@ import PurchaseInvoiceForm from "./screens/purchase-invoice/PurchaseInvoiceForm"
 import PurchaseInvoiceDetail from "./screens/purchase-invoice/PurchaseInvoiceDetail";
 import IncomingInvoiceList from "./screens/incoming-invoice/IncomingInvoiceList";
 import IncomingInvoiceDetail from "./screens/incoming-invoice/IncomingInvoiceDetail";
+import PurchaseOrderList from "./screens/purchase-order/PurchaseOrderList";
+import PurchaseOrderDetail from "./screens/purchase-order/PurchaseOrderDetail";
+import PurchaseReceiptList from "./screens/purchase-receipt/PurchaseReceiptList";
+import PurchaseReceiptDetail from "./screens/purchase-receipt/PurchaseReceiptDetail";
 import EInvoiceLog from "./screens/compliance/EInvoiceLog";
 import TaxSettings from "./screens/compliance/TaxSettings";
 import NotFound from "./screens/NotFound";
@@ -79,6 +83,10 @@ export default function App() {
           <Route path="/suppliers/:name" element={<SupplierForm />} />
           <Route path="/incoming-invoices" element={<IncomingInvoiceList />} />
           <Route path="/incoming-invoices/:name" element={<IncomingInvoiceDetail />} />
+          <Route path="/purchase-orders" element={<PurchaseOrderList />} />
+          <Route path="/purchase-orders/:name" element={<PurchaseOrderDetail />} />
+          <Route path="/purchase-receipts" element={<PurchaseReceiptList />} />
+          <Route path="/purchase-receipts/:name" element={<PurchaseReceiptDetail />} />
           <Route path="/purchase-invoices" element={<PurchaseInvoiceList />} />
           <Route path="/purchase-invoices/new" element={<PurchaseInvoiceForm />} />
           <Route path="/purchase-invoices/:name/edit" element={<PurchaseInvoiceForm />} />

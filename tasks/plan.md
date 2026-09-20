@@ -32,7 +32,7 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | Quotations | Quotation (search allowlist) | none | 2 (after DN) |
 | Item selling prices | Item Price | none | 5 |
 
-### Purchase (in progress)
+### Purchase (shipped)
 
 | Need | Catalog | SPA today | Phase |
 |---|---|---|---|
@@ -41,7 +41,7 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | Payments (Pay) | Payment Entry | Shared payment screens + PI/AP Pay | 3 shipped |
 | Aged payables | Report: Accounts Payable | Screen + ageing charts | 3 shipped |
 | Incoming e-invoices → draft PI | UAE Incoming Invoice + `draft_purchase_invoice_from_incoming` | List + detail + draft | 3 shipped |
-| Purchase orders / receipts | Purchase Order, Purchase Receipt | none | 3 after PI |
+| Purchase orders / receipts | Purchase Order, Purchase Receipt | List + detail | 3 shipped |
 
 ### Accounting (not shipped)
 

@@ -23,6 +23,8 @@ class TestApiAllowlist(unittest.TestCase):
 		self.assertTrue(is_allowed_doctype("Customer"))
 		self.assertTrue(is_allowed_doctype("Supplier"))
 		self.assertTrue(is_allowed_doctype("Purchase Invoice"))
+		self.assertTrue(is_allowed_doctype("Purchase Order"))
+		self.assertTrue(is_allowed_doctype("Purchase Receipt"))
 		self.assertTrue(is_allowed_doctype("UAE Incoming Invoice"))
 		self.assertTrue(is_allowed_doctype("Buying Settings"))
 		self.assertTrue(is_allowed_doctype("ToDo"))
@@ -36,6 +38,8 @@ class TestApiCatalog(FrappeTestCase):
 		doctypes = {row["doctype"] for row in catalog["resources"]}
 		self.assertIn("Sales Invoice", doctypes)
 		self.assertIn("Purchase Invoice", doctypes)
+		self.assertIn("Purchase Order", doctypes)
+		self.assertIn("Purchase Receipt", doctypes)
 		self.assertIn("Payment Entry", doctypes)
 		self.assertIn("Journal Entry", doctypes)
 		self.assertIn("Customer", doctypes)
