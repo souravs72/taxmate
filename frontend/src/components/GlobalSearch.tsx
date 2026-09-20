@@ -93,10 +93,6 @@ export default function GlobalSearch() {
       return;
     }
     if (!flat.length) {
-      if (e.key === "Enter" && q.trim()) {
-        navigate(`/orders?q=${encodeURIComponent(q.trim())}`);
-        setOpen(false);
-      }
       return;
     }
     if (e.key === "ArrowDown") {
@@ -142,7 +138,10 @@ export default function GlobalSearch() {
           {search.loading && !flat.length && (
             <div className="tsearch-empty">{t("search.loading")}</div>
           )}
-          {!search.loading && q.trim() && !flat.length && (
+          {search.error && (
+            <div className="tsearch-empty">{t("search.error")}</div>
+          )}
+          {!search.loading && !search.error && q.trim() && !flat.length && (
             <div className="tsearch-empty">{t("search.empty")}</div>
           )}
           {groups.map((g) => (

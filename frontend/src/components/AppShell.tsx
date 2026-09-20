@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { useFrappeAuth } from "frappe-react-sdk";
 
-import { getLang, setLang } from "../lib/i18n";
+import { useLang } from "../lib/i18n";
 import { toggleTheme } from "../lib/theme";
 import { useSession } from "../lib/session";
 import { NAV } from "../lib/nav";
@@ -49,7 +49,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(RAIL_KEY) === "1"; } catch { return false; }
   });
-  const [, force] = useState(0);
+  const { lang, set: setLocale } = useLang();
   const { currentUser } = useFrappeAuth();
   const session = useSession();
   const roleLabel = (session.roles ?? []).includes("Accounts Manager")
@@ -115,9 +115,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               className="langbtn"
-              onClick={() => { setLang(getLang() === "en" ? "ar" : "en"); force((n) => n + 1); }}
+              onClick={() => setLocale(lang === "en" ? "ar" : "en")}
             >
-              {getLang() === "en" ? "عربي" : "English"}
+              {lang === "en" ? "عربي" : "English"}
             </button>
             <button type="button" className="iconbtn bordered" onClick={toggleTheme} aria-label={t("a11y.toggleTheme")}>
               <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6">
@@ -128,7 +128,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="page">{children}</div>
+        <div className="page" key={lang}>{children}</div>
       </div>
     </div>
   );

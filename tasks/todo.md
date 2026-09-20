@@ -199,3 +199,28 @@ Plan: `tasks/plan.md`
 ## Phase 7 — Polish
 
 ## Task 17: Search routes for every shipped screen; empty/error copy; RTL pass
+
+**Description:** Every rail link is an AwesomeBar page. Empty and error copy on lists. Arabic sets `dir=rtl` and re-renders the tree.
+
+**Acceptance criteria:**
+- [x] `_NAV_PAGES` routes match the sidebar; none start with `/app/`
+- [x] Search never dumps empty Enter into a leftover `/orders` query
+- [x] 404 home goes to `/`; e-invoice log has dedicated empty/error copy
+- [x] Language switch updates `dir` and re-renders screens via React context
+- [x] Layout uses logical CSS (`padding-inline`, `inset-inline`); collapsed rail tooltip flips in RTL
+
+**Verification:**
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_search`
+- [x] `npx tsc --noEmit` in `frontend/`
+- [x] Manual: عربي on a list flips `dir` and Arabic copy
+
+**Dependencies:** Task 16
+
+**Files likely touched:**
+- `taxmate/api/search.py`
+- `taxmate/tests/test_search.py`
+- `frontend/src/lib/i18n.ts`
+- `frontend/src/components/GlobalSearch.tsx`
+- `frontend/src/screens/NotFound.tsx`
+
+**Estimated scope:** S

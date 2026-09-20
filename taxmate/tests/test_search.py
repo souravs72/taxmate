@@ -158,3 +158,49 @@ class TestAwesomeSearch(FrappeTestCase):
 		for group in out["groups"]:
 			for row in group["results"]:
 				self.assertFalse(cstr(row.get("route")).startswith("/app/"), row)
+
+	def test_nav_pages_cover_every_shipped_screen(self):
+		from taxmate.api.search import _NAV_PAGES
+
+		routes = {page["route"] for page in _NAV_PAGES}
+		expected = {
+			"/",
+			"/orders",
+			"/delivery-notes",
+			"/customers",
+			"/suppliers",
+			"/purchase-invoices",
+			"/purchase-orders",
+			"/purchase-receipts",
+			"/incoming-invoices",
+			"/invoices",
+			"/payments",
+			"/receivables",
+			"/payables",
+			"/journals",
+			"/accounts",
+			"/reports",
+			"/catalogue/items",
+			"/warehouses",
+			"/tax-templates",
+			"/vat-201",
+			"/ct-filings",
+			"/esr",
+			"/ubo",
+			"/late-filings",
+			"/e-invoice-log",
+			"/tax-settings",
+		}
+		self.assertEqual(expected, routes)
+		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))
+
+	def test_tax_settings_and_e_invoice_log_spa_routes(self):
+		settings = awesome(text="tax settings", limit=20)
+		settings_routes = [row["route"] for group in settings["groups"] for row in group["results"]]
+		self.assertIn("/tax-settings", settings_routes)
+		self.assertFalse(any(cstr(route).startswith("/app/") for route in settings_routes))
+
+		logs = awesome(text="einvoice log", limit=20)
+		log_routes = [row["route"] for group in logs["groups"] for row in group["results"]]
+		self.assertIn("/e-invoice-log", log_routes)
+		self.assertFalse(any(cstr(route).startswith("/app/") for route in log_routes))

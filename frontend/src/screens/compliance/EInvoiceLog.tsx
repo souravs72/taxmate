@@ -5,7 +5,7 @@ import { useDocList } from "../../lib/resource";
 import { useFilteredCount, useListParams } from "../../lib/list";
 import { datetime } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, PageHead, Pill } from "../../components/ui";
+import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 
 type Row = {
@@ -35,13 +35,13 @@ export default function EInvoiceLog() {
   return (
     <>
       <PageHead title={t("nav.eInvoiceLog")} sub={t("elog.sub")} />
-      {list.error && <ErrorBox error={list.error} onRetry={() => list.mutate()} />}
       <Card>
         <DataTable
           rows={rows}
           columns={columns}
           rowKey={(r) => r.name}
-          emptyLabel={t("search.empty")}
+          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
+          emptyLabel={t("elog.empty")}
           onOpen={(r) => {
             if (r.reference_doctype === DT.salesInvoice && r.reference_name) {
               nav(`/invoices/${encodeURIComponent(r.reference_name)}`);

@@ -12,6 +12,7 @@ import { useFrappeAuth } from "frappe-react-sdk";
 import AppShell from "./components/AppShell";
 import { ErrorBox, Loading } from "./components/ui";
 import { hasCsrfToken } from "./lib/frappe";
+import { LangProvider } from "./lib/i18n";
 import { SessionProvider } from "./lib/session";
 import SalesOrderList from "./screens/sales-order/SalesOrderList";
 import SalesOrderDetail from "./screens/sales-order/SalesOrderDetail";
@@ -83,6 +84,7 @@ export default function App() {
   if (isLoading || needsLogin) return <Loading />;
 
   return (
+    <LangProvider>
     <SessionProvider>
       <AppShell>
         {!hasCsrfToken() && (
@@ -159,5 +161,6 @@ export default function App() {
         </Routes>
       </AppShell>
     </SessionProvider>
+    </LangProvider>
   );
 }

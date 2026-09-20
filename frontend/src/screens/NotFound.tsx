@@ -8,7 +8,7 @@ export default function NotFound() {
   return (
     <>
       <PageHead title={t("notfound.title")} sub={t("notfound.sub")} />
-      <button className="btn" onClick={() => nav("/sales")}>{t("notfound.home")}</button>
+      <button className="btn" onClick={() => nav("/")}>{t("notfound.home")}</button>
     </>
   );
 }
