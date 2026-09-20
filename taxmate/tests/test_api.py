@@ -224,6 +224,30 @@ class TestApiReportsAndHome(FrappeTestCase):
 		)
 		self.assertIn("result", result)
 
+	def test_profit_and_loss_runs_with_date_range_filters(self):
+		from taxmate.api.reports import run_report
+
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company")
+		fiscal_year = frappe.db.get_value("Fiscal Year", {"disabled": 0}, "name")
+		if not fiscal_year:
+			self.skipTest("No Fiscal Year")
+		result = run_report(
+			"Profit and Loss Statement",
+			{
+				"company": company,
+				"filter_based_on": "Date Range",
+				"periodicity": "Yearly",
+				"from_fiscal_year": fiscal_year,
+				"to_fiscal_year": fiscal_year,
+				"period_start_date": "2026-01-01",
+				"period_end_date": "2026-12-31",
+				"accumulated_values": 0,
+			},
+		)
+		self.assertIn("result", result)
+
 	def test_run_report_rejects_list_filters(self):
 		from taxmate.api.reports import run_report
 

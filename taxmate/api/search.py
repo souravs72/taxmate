@@ -71,6 +71,7 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Payables", "route": "/payables", "keywords": "ap aged payable supplier outstanding"},
 	{"label": "Journal Entries", "route": "/journals", "keywords": "journal entry je voucher books ledger posting"},
 	{"label": "Chart of Accounts", "route": "/accounts", "keywords": "chart of accounts coa ledger account tree"},
+	{"label": "Reports", "route": "/reports", "keywords": "trial balance general ledger profit loss balance sheet cash flow reports"},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},

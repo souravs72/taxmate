@@ -49,6 +49,8 @@ import JournalEntryDetail from "./screens/journal-entry/JournalEntryDetail";
 import JournalEntryForm from "./screens/journal-entry/JournalEntryForm";
 import ChartOfAccounts from "./screens/account/ChartOfAccounts";
 import AccountDetail from "./screens/account/AccountDetail";
+import ReportList from "./screens/reports/ReportList";
+import ReportRunner from "./screens/reports/ReportRunner";
 import EInvoiceLog from "./screens/compliance/EInvoiceLog";
 import TaxSettings from "./screens/compliance/TaxSettings";
 import NotFound from "./screens/NotFound";
@@ -113,6 +115,8 @@ export default function App() {
           <Route path="/journals/:name" element={<JournalEntryDetail />} />
           <Route path="/accounts" element={<ChartOfAccounts />} />
           <Route path="/accounts/:name" element={<AccountDetail />} />
+          <Route path="/reports" element={<ReportList />} />
+          <Route path="/reports/:report" element={<ReportRunner />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
           <Route path="/e-invoice-log" element={<EInvoiceLog />} />

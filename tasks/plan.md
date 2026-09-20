@@ -50,8 +50,8 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | Journal Entry | Journal Entry | 4 shipped |
 | Chart of accounts | Account | 4 shipped |
 | Bank / modes | Bank Account, Mode of Payment | 4 |
-| Trial Balance, GL, P&amp;L, Balance Sheet, Cash Flow | catalog reports via `run_report` | 4 |
-| Customer / Supplier ledgers | catalog reports | 4 |
+| Trial Balance, GL, P&amp;L, Balance Sheet, Cash Flow | catalog reports via `run_report` | 4 shipped |
+| Customer / Supplier ledgers | catalog reports | 4 shipped |
 | Cost Center, Fiscal Year | masters | 4/5 |
 
 ### Masters (items only)

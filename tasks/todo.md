@@ -151,6 +151,12 @@ Plan: `tasks/plan.md`
 
 ## Task 12: Report runner for TB / GL / P&amp;L / BS / Cash Flow using `list_reports` + `run_report` only with documented filters
 
+- [x] `/reports` lists catalog core books reports via `list_reports`
+- [x] `/reports/:report` runs `run_report` with a JSON object of documented filters
+- [x] Search route `/reports`; no `/app/`
+- [x] Rail Accounting group includes Reports
+- [x] API test for P&amp;L object filters
+
 ## Phase 5 — Masters
 
 ## Task 13: Warehouse list; tax templates as read-only lists if forms are too heavy

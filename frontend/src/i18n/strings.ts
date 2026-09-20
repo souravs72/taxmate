@@ -26,6 +26,7 @@ const en: Record<string, string> = {
   "nav.accounting": "Accounting",
   "nav.journals": "Journal Entries",
   "nav.accounts": "Chart of Accounts",
+  "nav.reports": "Reports",
   "nav.compliance": "UAE Compliance",
   "nav.eInvoiceLog": "E-Invoice Log",
   "nav.taxSettings": "Tax Settings",
@@ -673,6 +674,18 @@ const en: Record<string, string> = {
   "coa.root.Equity": "Equity",
   "coa.root.Income": "Income",
   "coa.root.Expense": "Expense",
+
+  "rpt.title": "Reports",
+  "rpt.sub": "Trial Balance, ledgers, P&L, Balance Sheet, and Cash Flow from the catalog.",
+  "rpt.runSub": "Dates stay in the URL. Filters match the catalogued report.",
+  "rpt.from": "From",
+  "rpt.to": "To",
+  "rpt.empty": "This report returned no rows for these filters.",
+  "rpt.unsupported": "That report is not on the books runner yet.",
+  "rpt.tile.rows": "Rows",
+  "rpt.tile.rowsFoot": "From the catalog run",
+  "rpt.chart": "Report chart",
+  "rpt.chartHint": "Values the report returned, not a browser total",
 };
 
 const ar: Record<string, string> = {
@@ -694,6 +707,7 @@ const ar: Record<string, string> = {
   "nav.accounting": "المحاسبة",
   "nav.journals": "القيود اليومية",
   "nav.accounts": "دليل الحسابات",
+  "nav.reports": "التقارير",
   "nav.compliance": "الامتثال الإماراتي",
   "nav.eInvoiceLog": "سجل الفواتير الإلكترونية",
   "nav.taxSettings": "إعدادات الضرائب",
@@ -1315,6 +1329,18 @@ const ar: Record<string, string> = {
   "coa.root.Equity": "حقوق ملكية",
   "coa.root.Income": "إيراد",
   "coa.root.Expense": "مصروف",
+
+  "rpt.title": "التقارير",
+  "rpt.sub": "ميزان المراجعة والدفاتر وقائمة الدخل والميزانية والتدفقات من الكتالوج.",
+  "rpt.runSub": "التواريخ تبقى في الرابط. عوامل التصفية تطابق تقرير الكتالوج.",
+  "rpt.from": "من",
+  "rpt.to": "إلى",
+  "rpt.empty": "لا صفوف لهذا التقرير بهذه عوامل التصفية.",
+  "rpt.unsupported": "هذا التقرير ليس على مشغّل الدفاتر بعد.",
+  "rpt.tile.rows": "الصفوف",
+  "rpt.tile.rowsFoot": "من تشغيل الكتالوج",
+  "rpt.chart": "رسم التقرير",
+  "rpt.chartHint": "قيم أعادها التقرير، وليست مجموعاً من المتصفح",
 };
 
 export const t = makeT(en, ar);
