@@ -28,6 +28,7 @@ class TestApiAllowlist(unittest.TestCase):
 		self.assertTrue(is_allowed_doctype("UAE Incoming Invoice"))
 		self.assertTrue(is_allowed_doctype("Journal Entry"))
 		self.assertTrue(is_allowed_doctype("Account"))
+		self.assertTrue(is_allowed_doctype("Warehouse"))
 		self.assertTrue(is_allowed_doctype("Buying Settings"))
 		self.assertTrue(is_allowed_doctype("ToDo"))
 		self.assertFalse(is_allowed_doctype("Employee"))

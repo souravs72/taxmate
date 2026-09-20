@@ -64,6 +64,7 @@ export const DT = {
   modeOfPayment: "Mode of Payment",
   taxTemplate: "Sales Taxes and Charges Template",
   purchaseTaxTemplate: "Purchase Taxes and Charges Template",
+  warehouse: "Warehouse",
   paymentTerms: "Payment Terms Template",
   sellingSettings: "Selling Settings",
   buyingSettings: "Buying Settings",

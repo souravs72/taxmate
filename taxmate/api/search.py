@@ -34,6 +34,9 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"UAE Incoming Invoice": "/incoming-invoices/{name}",
 	"Journal Entry": "/journals/{name}",
 	"Account": "/accounts/{name}",
+	"Warehouse": "/warehouses/{name}",
+	"Sales Taxes and Charges Template": "/tax-templates/sales/{name}",
+	"Purchase Taxes and Charges Template": "/tax-templates/purchase/{name}",
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
 }
@@ -50,6 +53,9 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"UAE Incoming Invoice": "/incoming-invoices",
 	"Journal Entry": "/journals",
 	"Account": "/accounts",
+	"Warehouse": "/warehouses",
+	"Sales Taxes and Charges Template": "/tax-templates",
+	"Purchase Taxes and Charges Template": "/tax-templates",
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
 }
@@ -73,6 +79,8 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Chart of Accounts", "route": "/accounts", "keywords": "chart of accounts coa ledger account tree"},
 	{"label": "Reports", "route": "/reports", "keywords": "trial balance general ledger profit loss balance sheet cash flow reports"},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
+	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
+	{"label": "Tax Templates", "route": "/tax-templates", "keywords": "tax template vat sales purchase charges"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
 )

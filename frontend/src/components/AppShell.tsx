@@ -32,6 +32,8 @@ const ICONS: Record<string, JSX.Element> = {
   "/accounts": <Icon><path d="M3 15.5V8l6-4 6 4v7.5"/><path d="M3 8l6 4 6-4"/></Icon>,
   "/reports": <Icon><path d="M3 15V8.5M7.5 15V3.5M12 15V10M15.5 15h-13"/></Icon>,
   "/catalogue/items": <Icon><path d="M3 4.5h12v9H3z" /><path d="M6 8h6" /></Icon>,
+  "/warehouses": <Icon><path d="M3 14.5V6l6-3.5 6 3.5v8.5"/><path d="M3 6l6 3.5L15 6"/></Icon>,
+  "/tax-templates": <Icon><path d="M3.5 2.5h8l3 3v10h-11z"/><path d="M6 9h6"/></Icon>,
   "/e-invoice-log": <Icon><path d="M9 2.5l5.5 2.2V10c0 3.3-2.4 5.7-5.5 6.5C5.9 15.7 3.5 13.3 3.5 10V4.7z" /><path d="M6.8 9 8.5 10.7 11.7 7.2" /></Icon>,
   "/tax-settings": <Icon><circle cx="9" cy="9" r="2.2" /><path d="M9 1.8v2.2M9 14v2.2M16.2 9H14M4 9H1.8" /></Icon>,
 };

@@ -161,6 +161,12 @@ Plan: `tasks/plan.md`
 
 ## Task 13: Warehouse list; tax templates as read-only lists if forms are too heavy
 
+- [ ] `/warehouses` lists via catalog `get_list` (company-scoped)
+- [ ] Detail via parent `get`; no invented stock balances
+- [ ] `/tax-templates` lists Sales and Purchase tax templates (read-only, nested taxes from parent `get`)
+- [ ] Search routes; no `/app/`
+- [ ] Rail Masters group includes both lists
+
 ## Phase 6 — UAE compliance screens
 
 ## Task 14: VAT 201 list + detail (then wire dashboard rows to it)

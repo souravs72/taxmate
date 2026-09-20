@@ -29,6 +29,8 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/reports", key: "nav.reports" },
   { type: "section", key: "nav.masters" },
   { type: "link", to: "/catalogue/items", key: "nav.items" },
+  { type: "link", to: "/warehouses", key: "nav.warehouses" },
+  { type: "link", to: "/tax-templates", key: "nav.taxTemplates" },
   { type: "section", key: "nav.compliance" },
   { type: "link", to: "/e-invoice-log", key: "nav.eInvoiceLog" },
   { type: "link", to: "/tax-settings", key: "nav.taxSettings" },
