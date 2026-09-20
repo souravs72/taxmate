@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeCreateDoc, useFrappeGetDoc, useFrappeGetDocList, useFrappeUpdateDoc } from "frappe-react-sdk";
-
 import { DT } from "../../lib/frappe";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
@@ -26,16 +25,16 @@ export default function ItemForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
   const isNew = name === "new";
-  const existing = useFrappeGetDoc<ItemDoc>(DT.item, isNew ? undefined : name, isNew ? null : name, {
+  const existing = useDoc<ItemDoc>(DT.item, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
-  const groups = useFrappeGetDocList<{ name: string }>(DT.itemGroup, {
+  const groups = useDocList<{ name: string }>(DT.itemGroup, {
     fields: ["name"], filters: [["is_group", "=", 0]], limit: 80,
   });
-  const uoms = useFrappeGetDocList<{ name: string }>(DT.uom, { fields: ["name"], limit: 80 });
-  const settings = useFrappeGetDoc<{ selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
-  const create = useFrappeCreateDoc();
-  const update = useFrappeUpdateDoc();
+  const uoms = useDocList<{ name: string }>(DT.uom, { fields: ["name"], limit: 80 });
+  const settings = useDoc<{ selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
+  const create = useInsert();
+  const update = useSave();
 
   /* ERPNext's own fallback when Selling Settings has no default
      (erpnext/stock/doctype/item/item.py:274) — without it, editing an item
@@ -53,7 +52,7 @@ export default function ItemForm() {
      must never be overwritten by the general rate (check_duplicates,
      erpnext/stock/doctype/item_price/item_price.py:105).                 */
   const priceReady = !isNew && !!priceList;
-  const existingPrice = useFrappeGetDocList<{
+  const existingPrice = useDocList<{
     name: string; price_list_rate: number; uom?: string; customer?: string; supplier?: string;
   }>(
     DT.itemPrice,

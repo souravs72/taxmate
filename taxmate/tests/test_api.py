@@ -47,6 +47,15 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.sales_order.fulfilment_summary", methods)
 		self.assertIn("taxmate.api.search.awesome", methods)
 		self.assertIn("taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice", methods)
+		self.assertIn("taxmate.api.accounts.resolve_payment_accounts", methods)
+		self.assertIn("taxmate.api.sales_order.linked_documents", methods)
+		self.assertIn("taxmate.api.sales_order.make_delivery_note", methods)
+		self.assertIn("taxmate.api.sales_order.make_sales_invoice", methods)
+		self.assertIn("taxmate.api.resource.group_by_count", methods)
+		self.assertFalse(any("rest" in row for row in catalog["resources"]))
+		self.assertFalse(is_allowed_doctype("User"))
+		self.assertFalse(is_allowed_doctype("Data Import"))
+		self.assertFalse(is_allowed_doctype("System Settings"))
 
 		reports = {row["report"] for row in catalog["reports"]}
 		self.assertIn("General Ledger", reports)
@@ -118,8 +127,18 @@ class TestApiResource(FrappeTestCase):
 
 			with self.assertRaises(frappe.AuthenticationError):
 				awesome(text="invoice")
+			with self.assertRaises(frappe.AuthenticationError):
+				get_list("ToDo")
 		finally:
 			frappe.set_user("Administrator")
+
+	def test_group_by_count_and_or_filters_count(self):
+		from taxmate.api.resource import get_count, group_by_count
+
+		counts = group_by_count("ToDo", current_filters=[], field="status")
+		self.assertIsInstance(counts, list)
+		n = get_count("ToDo", filters={"status": "Open"}, or_filters=[["status", "=", "Closed"]])
+		self.assertGreaterEqual(int(n or 0), 0)
 
 	def test_restricted_user_cannot_list_invoices(self):
 		email = f"tm-api-{uuid.uuid4().hex[:8]}@example.com"

@@ -19,6 +19,7 @@ from taxmate.api.resource import (
 @frappe.whitelist()
 def get_defaults(company: str | None = None) -> dict[str, Any]:
 	"""Company, currency, and fiscal year for new vouchers."""
+	require_login()
 	company = company or frappe.defaults.get_user_default("Company")
 	if not company:
 		return {"company": None}
@@ -62,6 +63,7 @@ def get_party_details(
 ):
 	if not party:
 		frappe.throw(_("party is required"))
+	require_login()
 	assert_allowed_doctype(party_type)
 	company = company or frappe.defaults.get_user_default("Company")
 	assert_company_read(company)
@@ -83,10 +85,13 @@ def get_party_details(
 
 @frappe.whitelist()
 def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse=True):
+	require_login()
 	ctx = _parse(ctx) or {}
 	if not ctx.get("item_code"):
 		frappe.throw(_("item_code is required"))
 	assert_allowed_doctype("Item")
+	if not frappe.has_permission("Item", "read", ctx["item_code"]):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	assert_company_read(ctx.get("company"))
 
 	if ctx.get("company") and not ctx.get("currency"):
@@ -111,6 +116,7 @@ def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse
 
 @frappe.whitelist()
 def get_account_tree(company: str | None = None, parent: str | None = None, include_disabled: bool = False):
+	require_login()
 	assert_allowed_doctype("Account")
 	if not frappe.has_permission("Account", "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
@@ -133,6 +139,7 @@ def get_account_tree(company: str | None = None, parent: str | None = None, incl
 
 @frappe.whitelist()
 def get_outstanding_invoices(company, party_type, party, party_account=None):
+	require_login()
 	assert_allowed_doctype("Payment Entry")
 	assert_allowed_doctype(party_type)
 	if not company:
@@ -164,6 +171,7 @@ def get_outstanding_invoices(company, party_type, party, party_account=None):
 
 @frappe.whitelist(methods=["POST"])
 def get_payment_entry(dt, dn, party_amount=None, bank_account=None, payment_type=None):
+	require_login()
 	assert_allowed_doctype(dt)
 	assert_allowed_doctype("Payment Entry")
 	doc = frappe.get_doc(dt, dn)
@@ -186,6 +194,7 @@ def get_payment_entry(dt, dn, party_amount=None, bank_account=None, payment_type
 
 @frappe.whitelist(methods=["POST"])
 def make_sales_return(source_name: str):
+	require_login()
 	assert_allowed_doctype("Sales Invoice")
 	doc = frappe.get_doc("Sales Invoice", source_name)
 	doc.check_permission("read")
@@ -196,6 +205,7 @@ def make_sales_return(source_name: str):
 
 @frappe.whitelist(methods=["POST"])
 def make_purchase_return(source_name: str):
+	require_login()
 	assert_allowed_doctype("Purchase Invoice")
 	doc = frappe.get_doc("Purchase Invoice", source_name)
 	doc.check_permission("read")

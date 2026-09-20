@@ -35,7 +35,7 @@ def get_data(filters):
 		conditions["company"] = filters["company"]
 	if filters.get("status"):
 		conditions["status"] = filters["status"]
-	return frappe.get_all(
+	return frappe.get_list(
 		"UAE Late Filing Notice",
 		filters=conditions,
 		fields=["name", "company", "obligation", "due_date", "days_late", "status", "source_name", "source_doctype"],

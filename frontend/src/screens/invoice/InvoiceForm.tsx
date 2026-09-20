@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { useFrappeCreateDoc, useFrappeGetDoc, useFrappeGetDocList, useFrappePostCall, useFrappeUpdateDoc } from "frappe-react-sdk";
+import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
@@ -71,17 +72,17 @@ export default function InvoiceForm() {
   const nav = useNavigate();
   const session = useSession();
   const isNew = name === "new";
-  const existing = useFrappeGetDoc<InvoiceDoc>(DT.salesInvoice, isNew ? undefined : name, isNew ? null : name, {
+  const existing = useDoc<InvoiceDoc>(DT.salesInvoice, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
   const defaults = useFrappePostCall<{ message: { company?: string; currency?: string; tax_id?: string } }>(METHOD.getDefaults);
   const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const submitCall = useFrappePostCall<{ message: InvoiceDoc }>(METHOD.submit);
-  const create = useFrappeCreateDoc();
-  const update = useFrappeUpdateDoc();
-  const templates = useFrappeGetDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
-  const terms = useFrappeGetDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const create = useInsert();
+  const update = useSave();
+  const templates = useDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
+  const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
 
   const [customer, setCustomer] = useState("");
   const [postingDate, setPostingDate] = useState(toIsoDate(new Date()));

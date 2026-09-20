@@ -28,6 +28,7 @@ def list_reports() -> list[dict[str, str]]:
 
 @frappe.whitelist()
 def run_report(report_name: str, filters=None, ignore_prepared_report: bool = True) -> dict[str, Any]:
+	require_login()
 	assert_allowed_report(report_name)
 	filters = _as_filter_dict(filters)
 	assert_company_read(filters.get("company"))

@@ -50,11 +50,6 @@ def create_from_webhook(payload: dict[str, Any]) -> str | None:
 		}
 	)
 	record.insert(ignore_permissions=True)
-	if record.company and record.supplier_trn and _auto_draft_enabled():
-		try:
-			_draft_purchase_invoice(record, ignore_permissions=True)
-		except Exception:
-			frappe.log_error(title=f"Auto-draft PI failed for incoming {record.name}")
 	return record.name
 
 

@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useFrappeGetCall, useFrappeGetDocCount } from "frappe-react-sdk";
+import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDocCount } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -18,8 +19,8 @@ export default function SalesHub() {
   const nav = useNavigate();
   const session = useSession();
   const home = useFrappeGetCall<{ message: { kpis: HomeKpi[] } }>(METHOD.getHome);
-  const overdue = useFrappeGetDocCount(DT.salesInvoice, [["status", "=", "Overdue"]]);
-  const paid = useFrappeGetDocCount(DT.paymentEntry, [
+  const overdue = useDocCount(DT.salesInvoice, [["status", "=", "Overdue"]]);
+  const paid = useDocCount(DT.paymentEntry, [
     ["payment_type", "=", "Receive"],
     ["docstatus", "=", 1],
     ["posting_date", ">=", monthStart()],

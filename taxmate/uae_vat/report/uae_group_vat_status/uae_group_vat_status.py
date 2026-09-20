@@ -32,7 +32,7 @@ def get_data():
 	from frappe.utils import today
 
 	rows = []
-	for company in frappe.get_all("Company", filters={"country": UAE_COUNTRY}, pluck="name"):
+	for company in frappe.get_list("Company", filters={"country": UAE_COUNTRY}, pluck="name"):
 		group = active_group_for_company(company, today()) if frappe.db.exists("DocType", "UAE VAT Group") else None
 		if group:
 			role = _("Representative") if group["is_representative"] else _("Member")

@@ -25,6 +25,9 @@ def uae_e_invoice_webhook():
 	raw_body = frappe.request.get_data() or b""
 	payload = frappe.request.get_json(silent=True) or {}
 	signature_valid = _verify_signature(raw_body)
+	if not signature_valid:
+		frappe.local.response.http_status_code = 401
+		return {"ok": False, "message": "Invalid webhook signature"}
 
 	event_type = payload.get("event") or payload.get("event_type") or "unknown"
 	document_id = (
@@ -47,10 +50,6 @@ def uae_e_invoice_webhook():
 		}
 	)
 	webhook_log.insert(ignore_permissions=True)
-
-	if not signature_valid:
-		frappe.local.response.http_status_code = 401
-		return {"ok": False, "message": "Invalid webhook signature"}
 
 	log_name = None
 	incoming_name = None
@@ -122,14 +121,12 @@ def get_webhook_subscription():
 def _verify_signature(raw_body: bytes) -> bool:
 	"""HMAC-SHA256 signature check; falls back to shared-secret header.
 
-	Fail closed: unsigned requests are only accepted when the ASP provider is
-	Sandbox (local mock). Flick / live never accept unsigned webhooks.
+	Fail closed: unsigned requests are rejected. A webhook secret must be set
+	in UAE Tax Settings; sandbox is not an exception.
 	"""
 	settings = frappe.get_cached_doc("UAE Tax Settings")
-	provider = settings.asp_provider or "Sandbox"
-
 	if not settings.webhook_secret:
-		return provider == "Sandbox" and bool(settings.sandbox_mode)
+		return False
 
 	secret = settings.get_password("webhook_secret")
 	headers = frappe.request.headers

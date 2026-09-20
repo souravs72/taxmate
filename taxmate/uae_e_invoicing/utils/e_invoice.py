@@ -65,6 +65,8 @@ def _is_b2c_sales_invoice(doc) -> bool:
 @frappe.whitelist()
 def generate_e_invoice(docname: str, doctype: str = "Sales Invoice", throw: bool = True):
 	"""Generate the PINT-AE payload, submit to the ASP, and log the result."""
+	if doctype not in ("Sales Invoice", "Purchase Invoice"):
+		frappe.throw(_("E-invoicing is only supported for Sales Invoice and Purchase Invoice."))
 	doc = frappe.get_doc(doctype, docname)
 	doc.check_permission("submit")
 
@@ -258,8 +260,14 @@ def fetch_asp_documents(log_name: str):
 @frappe.whitelist()
 def bulk_generate_e_invoices(docnames: str | list, doctype: str = "Sales Invoice"):
 	"""Submit e-invoices for multiple invoices from the list view."""
+	if doctype not in ("Sales Invoice", "Purchase Invoice"):
+		frappe.throw(_("E-invoicing is only supported for Sales Invoice and Purchase Invoice."))
 	if isinstance(docnames, str):
 		docnames = frappe.parse_json(docnames)
+	if not isinstance(docnames, list):
+		frappe.throw(_("docnames must be a list"))
+	if len(docnames) > 50:
+		frappe.throw(_("Bulk generate is limited to 50 documents at a time."))
 
 	submitted, skipped, failed = [], [], []
 	for docname in docnames:

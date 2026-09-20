@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeGetCall, useFrappeGetDoc, useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, eInvoiceLocked } from "../../lib/roles";
 import { date, datetime, money, qty } from "../../lib/format";
@@ -40,7 +41,7 @@ export default function InvoiceDetail() {
   const nav = useNavigate();
   const session = useSession();
 
-  const { data, error, isLoading, mutate } = useFrappeGetDoc<Doc>(DT.salesInvoice, name);
+  const { data, error, isLoading, mutate } = useDoc<Doc>(DT.salesInvoice, name);
 
   /* Payments allocated to this invoice.
      The amount lives on the Payment Entry Reference child row. Listing that
@@ -53,7 +54,7 @@ export default function InvoiceDetail() {
   const payments = useFrappeGetCall<{
     message: { name: string; allocated?: number; ref?: string }[];
   }>(
-    METHOD.clientGetList,
+    METHOD.getList,
     {
       doctype: DT.paymentEntry,
       fields: JSON.stringify([
@@ -74,7 +75,7 @@ export default function InvoiceDetail() {
     name ? `inv-payments-${name}` : null,
   );
 
-  const creditNotes = useFrappeGetDocList<{ name: string; grand_total?: number; posting_date?: string }>(
+  const creditNotes = useDocList<{ name: string; grand_total?: number; posting_date?: string }>(
     DT.salesInvoice,
     {
       fields: ["name", "grand_total", "posting_date"],
@@ -84,7 +85,7 @@ export default function InvoiceDetail() {
     name ? `inv-credit-notes-${name}` : null,
   );
 
-  const logs = useFrappeGetDocList<EInvoiceLog>(DT.eInvoiceLog, {
+  const logs = useDocList<EInvoiceLog>(DT.eInvoiceLog, {
     fields: ["name", "status", "modified", "creation", "asp_document_id", "error_message"],
     filters: [["reference_doctype", "=", DT.salesInvoice], ["reference_name", "=", name]],
     orderBy: { field: "creation", order: "desc" },
@@ -101,7 +102,7 @@ export default function InvoiceDetail() {
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
 
-  const cur = data.currency || session.currency || "AED";
+  const cur = data.currency || session.currency || "";
   const ui = invoiceUiStatus(data);
   const late = isInvoiceOverdue(data);
   const draft = data.docstatus === 0;

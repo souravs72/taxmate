@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  useFrappeCreateDoc, useFrappeGetCall, useFrappeGetDoc, useFrappeGetDocList,
-  useFrappePostCall, useFrappeUpdateDoc,
+  useFrappeGetCall, useFrappePostCall,
 } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import {
   PARTY_TYPE, autoAllocate, canSubmitPayment, needsReference, round2,
@@ -93,12 +93,12 @@ export default function PaymentForm() {
   const invoice = params.get("invoice") || "";
   const urlType = (params.get("type") === "Pay" ? "Pay" : "Receive") as PayType;
 
-  const existing = useFrappeGetDoc<PayDoc>(DT.paymentEntry, isNew ? undefined : name, isNew ? null : name);
+  const existing = useDoc<PayDoc>(DT.paymentEntry, isNew ? undefined : name, isNew ? null : name);
   const mapper = useFrappePostCall<{ message: PayDoc }>(METHOD.getPaymentEntry);
   const submitCall = useFrappePostCall(METHOD.submit);
-  const create = useFrappeCreateDoc();
-  const update = useFrappeUpdateDoc();
-  const modes = useFrappeGetDocList<{ name: string; type?: string }>(DT.modeOfPayment, {
+  const create = useInsert();
+  const update = useSave();
+  const modes = useDocList<{ name: string; type?: string }>(DT.modeOfPayment, {
     fields: ["name", "type"],
     filters: [["enabled", "=", 1]],
     limit: 30,
@@ -117,7 +117,7 @@ export default function PaymentForm() {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
-  const cur = session.currency || "AED";
+  const cur = session.currency || "";
   const type: PayType = doc.payment_type ?? "Receive";
   const partyType = PARTY_TYPE[type];
   const company = doc.company || session.company;

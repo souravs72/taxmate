@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - version-16
+      - frontend
   pull_request:
 
 concurrency:

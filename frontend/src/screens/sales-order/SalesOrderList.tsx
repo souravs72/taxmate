@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetCall, useFrappeGetDocList } from "frappe-react-sdk";
+import { useFrappeGetCall } from "frappe-react-sdk";
 
+import { DT, METHOD } from "../../lib/frappe";
+import { useDocList } from "../../lib/resource";
 import type { SalesOrder } from "../../types/erpnext";
-import { METHOD, DT } from "../../lib/frappe";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money, pct } from "../../lib/format";
 import {
@@ -48,7 +49,7 @@ export default function SalesOrderList() {
     return f as unknown as Filter<Row>[];
   }, [customer, uiStatus, q]);
 
-  const list = useFrappeGetDocList<Row>(DT.salesOrder, {
+  const list = useDocList<Row>(DT.salesOrder, {
     fields: [...FIELDS],
     filters,
     orderBy: { field: "modified", order: "desc" },
@@ -79,7 +80,7 @@ export default function SalesOrderList() {
   }>(METHOD.fulfilmentSummary, {}, undefined, { shouldRetryOnError: false });
 
   const s = summary.data?.message;
-  const cur = s?.currency || "AED";
+  const cur = s?.currency || "";
   const rows = list.data ?? [];
 
   const stages = useMemo(() => {

@@ -169,7 +169,7 @@ def _company_currency(company: str | None) -> str:
 		currency = frappe.get_cached_value("Company", company, "default_currency")
 		if currency:
 			return currency
-	return frappe.db.get_default("currency") or "AED"
+	return frappe.db.get_default("currency")
 
 
 # ── Document mappers ─────────────────────────────────────────────────────
@@ -186,6 +186,7 @@ def _company_currency(company: str | None) -> str:
 @frappe.whitelist(methods=["POST"])
 def make_sales_invoice(source_name: str):
 	"""Map a submitted Sales Order to a draft Sales Invoice."""
+	require_login()
 	name = _assert_mappable(source_name, "Sales Invoice", "per_billed")
 
 	from erpnext.selling.doctype.sales_order.sales_order import (
@@ -208,6 +209,7 @@ def make_delivery_note(source_name: str, for_reserved_stock=1):
 	their serial / batch bundles. It is a plain flag here rather than a
 	free-form kwargs dict so the wire cannot reach the rest of the mapper.
 	"""
+	require_login()
 	name = _assert_mappable(source_name, "Delivery Note", "per_delivered")
 
 	from erpnext.selling.doctype.sales_order.sales_order import (

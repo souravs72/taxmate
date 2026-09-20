@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeGetDoc, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { date, money } from "../../lib/format";
 import {
@@ -38,14 +39,14 @@ export default function PaymentDetail() {
   const nav = useNavigate();
   const session = useSession();
 
-  const { data, error, isLoading, mutate } = useFrappeGetDoc<Doc>(DT.paymentEntry, name);
+  const { data, error, isLoading, mutate } = useDoc<Doc>(DT.paymentEntry, name);
   const cancelCall = useFrappePostCall(METHOD.cancel);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
 
-  const cur = session.currency || "AED";
+  const cur = session.currency || "";
   const st = payStatus(data);
   const type: PayType = data.payment_type ?? "Receive";
   const amount = round2(data.paid_amount ?? 0);

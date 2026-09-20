@@ -46,6 +46,8 @@ class UAEVAT201FilingLog(Document):
 		self.filed_on = now_datetime()
 		self.filed_by = frappe.session.user
 		self.deadline_status = "Filed"
+		if hasattr(self, "status"):
+			self.status = "Filed"
 
 	# on_cancel: no extra handling needed -- Frappe moves docstatus to 2 and
 	# child table rows (the boxes) cancel with the parent automatically.

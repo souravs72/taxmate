@@ -62,7 +62,7 @@ def get_data(filters):
 	if filters.get("company"):
 		company_filter["name"] = filters["company"]
 
-	companies = frappe.get_all("Company", filters=company_filter, pluck="name")
+	companies = frappe.get_list("Company", filters=company_filter, pluck="name")
 	rows = []
 
 	for company in companies:
@@ -107,7 +107,7 @@ def _shareholder_row(company: str):
 
 
 def _esr_summary(company: str):
-	filings = frappe.get_all(
+	filings = frappe.get_list(
 		"UAE ESR Filing",
 		filters={"company": company},
 		fields=["name", "status", "financial_year_end"],

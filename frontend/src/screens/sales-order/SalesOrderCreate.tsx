@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFrappeCreateDoc, useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDocList, useInsert } from "../../lib/resource";
+import { useSession } from "../../lib/session";
 import { money, parseNum, toIsoDate } from "../../lib/format";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
@@ -35,6 +37,7 @@ const plus = (days: number) => {
 
 export default function SalesOrderCreate() {
   const nav = useNavigate();
+  const session = useSession();
 
   const [customer, setCustomer] = useState("");
   const [orderDate, setOrderDate] = useState(today);
@@ -45,20 +48,20 @@ export default function SalesOrderCreate() {
   const [party, setParty] = useState<PartyDetails>({});
   const [lines, setLines] = useState<Line[]>([]);
 
-  const customers = useFrappeGetDocList<{ name: string; customer_name: string }>(DT.customer, {
+  const customers = useDocList<{ name: string; customer_name: string }>(DT.customer, {
     fields: ["name", "customer_name"],
     orderBy: { field: "customer_name", order: "asc" },
     limit: 500,
   });
 
-  const items = useFrappeGetDocList<{ name: string; item_name: string; stock_uom: string }>(DT.item, {
+  const items = useDocList<{ name: string; item_name: string; stock_uom: string }>(DT.item, {
     fields: ["name", "item_name", "stock_uom"],
     filters: [["disabled", "=", 0]],
     orderBy: { field: "modified", order: "desc" },
     limit: 500,
   });
 
-  const taxTemplates = useFrappeGetDocList<{ name: string }>("Sales Taxes and Charges Template", {
+  const taxTemplates = useDocList<{ name: string }>("Sales Taxes and Charges Template", {
     fields: ["name"],
     limit: 50,
   });
@@ -70,7 +73,7 @@ export default function SalesOrderCreate() {
      and does NOT return delivery_date. We set that ourselves.               */
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.itemDetails);
 
-  const create = useFrappeCreateDoc();
+  const create = useInsert();
   const submitCall = useFrappePostCall<{ message: { name: string } }>(METHOD.submit);
   const busy = create.loading || submitCall.loading;
 
@@ -102,7 +105,7 @@ export default function SalesOrderCreate() {
           item_code,
           customer,
           doctype: DT.salesOrder,
-          company: undefined,
+          company: session.company,
           selling_price_list: party.selling_price_list,
           currency: party.currency,
           transaction_date: orderDate,

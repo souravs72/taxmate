@@ -5,6 +5,7 @@
  * User: "I can't see /orders (Sales Order in the frontend)." + revert sidebar design;
  * search should navigate to /taxmate endpoints only, not desk.
  */
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useFrappeAuth } from "frappe-react-sdk";
 
@@ -28,20 +29,22 @@ import PaymentDetail from "./screens/payment/PaymentDetail";
 import Receivables from "./screens/receivables/Receivables";
 import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
+import DeliveryNoteDetail from "./screens/delivery-note/DeliveryNoteDetail";
+import EInvoiceLog from "./screens/compliance/EInvoiceLog";
+import TaxSettings from "./screens/compliance/TaxSettings";
+import NotFound from "./screens/NotFound";
 
 export default function App() {
   const { currentUser, isLoading, error } = useFrappeAuth();
+  const needsLogin = !isLoading && (!!error || !currentUser || currentUser === "Guest");
 
-  if (isLoading) return <Loading />;
-
-  /* Not signed in: hand off to Frappe's own login and come back here.
-     Authentication and authorisation stay with Frappe — this app never
-     collects a password. */
-  if (error || !currentUser || currentUser === "Guest") {
+  useEffect(() => {
+    if (!needsLogin) return;
     const back = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/login?redirect-to=${back}`;
-    return <Loading />;
-  }
+  }, [needsLogin]);
+
+  if (isLoading || needsLogin) return <Loading />;
 
   return (
     <SessionProvider>
@@ -54,33 +57,32 @@ export default function App() {
             "index.html to www/taxmate.html." }} />
         )}
         <Routes>
-          <Route path="/" element={<Navigate to="/orders" replace />} />
+          <Route path="/" element={<Navigate to="/sales" replace />} />
           <Route path="/orders" element={<SalesOrderList />} />
           <Route path="/orders/new" element={<SalesOrderCreate />} />
           <Route path="/orders/:name" element={<SalesOrderDetail />} />
+          <Route path="/delivery-notes/:name" element={<DeliveryNoteDetail />} />
           <Route path="/customers" element={<CustomerList />} />
           <Route path="/customers/:name" element={<CustomerForm />} />
           <Route path="/invoices" element={<InvoiceList />} />
           <Route path="/invoices/new" element={<InvoiceForm />} />
           <Route path="/invoices/:name/return" element={<CreditNoteForm />} />
-          {/* A submitted invoice is a tax document, so the default view is
-              read-only; /edit is reachable only while it is a draft. */}
           <Route path="/invoices/:name/edit" element={<InvoiceForm />} />
           <Route path="/invoices/:name" element={<InvoiceDetail />} />
           <Route path="/payments" element={<PaymentList />} />
           <Route path="/payments/new" element={<PaymentForm />} />
-          {/* A submitted payment has posted to the ledger — read-only. */}
           <Route path="/payments/:name/edit" element={<PaymentForm />} />
           <Route path="/payments/:name" element={<PaymentDetail />} />
           <Route path="/receivables" element={<Receivables />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
-          {/* Legacy /sales aliases from earlier WIP */}
+          <Route path="/e-invoice-log" element={<EInvoiceLog />} />
+          <Route path="/tax-settings" element={<TaxSettings />} />
           <Route path="/sales" element={<SalesHub />} />
           <Route path="/sales/customers" element={<Navigate to="/customers" replace />} />
           <Route path="/sales/invoices" element={<Navigate to="/invoices" replace />} />
           <Route path="/sales/receivables" element={<Navigate to="/receivables" replace />} />
-          <Route path="*" element={<Navigate to="/orders" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>
     </SessionProvider>

@@ -40,6 +40,11 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Territory",
 	"TaxMate Settings",
 	"Accounts Settings",
+	"Selling Settings",
+	"Item Price",
+	"ToDo",
+	"Delivery Note",
+	"UAE Tax Settings",
 )
 
 # Existing TaxMate whitelist methods (not re-wrapped).
@@ -134,7 +139,6 @@ def get_catalog() -> dict[str, Any]:
 				"issingle": int(meta.issingle or 0),
 				"is_submittable": int(meta.is_submittable or 0),
 				"is_tree": int(meta.is_tree or 0),
-				"rest": f"/api/resource/{doctype}",
 			}
 		)
 
@@ -153,6 +157,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "save", "method": "taxmate.api.resource.save"},
 			{"name": "delete", "method": "taxmate.api.resource.delete"},
 			{"name": "get_count", "method": "taxmate.api.resource.get_count"},
+			{"name": "group_by_count", "method": "taxmate.api.resource.group_by_count"},
 			{"name": "get_meta", "method": "taxmate.api.resource.get_meta"},
 			{"name": "search_link", "method": "taxmate.api.resource.search_link"},
 			{"name": "submit", "method": "taxmate.api.workflow.submit"},
@@ -164,6 +169,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "get_defaults", "method": "taxmate.api.accounts.get_defaults"},
 			{"name": "get_outstanding_invoices", "method": "taxmate.api.accounts.get_outstanding_invoices"},
 			{"name": "get_payment_entry", "method": "taxmate.api.accounts.get_payment_entry"},
+			{"name": "resolve_payment_accounts", "method": "taxmate.api.accounts.resolve_payment_accounts"},
 			{"name": "make_sales_return", "method": "taxmate.api.accounts.make_sales_return"},
 			{"name": "make_purchase_return", "method": "taxmate.api.accounts.make_purchase_return"},
 			{"name": "run_report", "method": "taxmate.api.reports.run_report"},
@@ -173,6 +179,9 @@ def get_catalog() -> dict[str, Any]:
 				"name": "fulfilment_summary",
 				"method": "taxmate.api.sales_order.fulfilment_summary",
 			},
+			{"name": "linked_documents", "method": "taxmate.api.sales_order.linked_documents"},
+			{"name": "make_delivery_note", "method": "taxmate.api.sales_order.make_delivery_note"},
+			{"name": "make_sales_invoice", "method": "taxmate.api.sales_order.make_sales_invoice"},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},

@@ -4,14 +4,14 @@ import { getLocale } from "./i18n";
 
 export function money(n: number | string | undefined | null): string {
   const v = typeof n === "string" ? parseFloat(n.replace(/,/g, "")) : (n ?? 0);
-  return (Number.isFinite(v) ? v : 0).toLocaleString("en-AE", {
+  return (Number.isFinite(v) ? v : 0).toLocaleString(getLocale(), {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
 }
 
 export function qty(n: number | undefined | null): string {
-  return (n ?? 0).toLocaleString("en-AE", { maximumFractionDigits: 3 });
+  return (n ?? 0).toLocaleString(getLocale(), { maximumFractionDigits: 3 });
 }
 
 export function pct(n: number | undefined | null): string {

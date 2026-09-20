@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  useFrappeCreateDoc, useFrappeGetCall, useFrappeGetDoc, useFrappePostCall,
+  useFrappeGetCall, useFrappePostCall,
 } from "frappe-react-sdk";
 
 import type { SalesOrder, SalesOrderItem } from "../../types/erpnext";
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useInsert } from "../../lib/resource";
 import { date, money, pct, qty } from "../../lib/format";
 import { SO_PILL_CLASS, isLate, toUiStatus } from "../../lib/status";
 import { t } from "../../i18n/strings";
@@ -18,7 +19,7 @@ export default function SalesOrderDetail() {
   const { name = "" } = useParams();
   const nav = useNavigate();
 
-  const { data, error, isLoading, mutate } = useFrappeGetDoc<Doc>(DT.salesOrder, name);
+  const { data, error, isLoading, mutate } = useDoc<Doc>(DT.salesOrder, name);
 
   /* Delivery notes and invoices raised against this order. The link lives on
      the child rows, but listing a child doctype straight from the client is
@@ -36,7 +37,7 @@ export default function SalesOrderDetail() {
      each button maps, inserts the draft, then opens it.                   */
   const makeDn = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeDeliveryNote);
   const makeSi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeSalesInvoice);
-  const create = useFrappeCreateDoc();
+  const create = useInsert();
   const [busy, setBusy] = useState<"" | "dn" | "si">("");
   const [mapError, setMapError] = useState<unknown>(null);
 
@@ -60,7 +61,7 @@ export default function SalesOrderDetail() {
       const newName = (created as { name: string }).name;
       if (kind === "si") nav(`/invoices/${encodeURIComponent(newName)}`);
       // The SPA has no Delivery Note screen yet, so open the Desk form.
-      else window.location.assign(`/app/delivery-note/${encodeURIComponent(newName)}`);
+      else nav(`/delivery-notes/${encodeURIComponent(newName)}`);
     } catch (err) {
       setMapError(err);
     } finally {

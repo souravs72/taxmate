@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocList } from "frappe-react-sdk";
+import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
@@ -24,7 +24,7 @@ export default function CustomerList() {
     return f as unknown as Filter<Row>[];
   }, [q]);
 
-  const list = useFrappeGetDocList<Row>(DT.customer, {
+  const list = useDocList<Row>(DT.customer, {
     fields: ["name", "customer_name", "tax_id", "customer_group", "primary_address"],
     filters,
     orderBy: { field: "modified", order: "desc" },

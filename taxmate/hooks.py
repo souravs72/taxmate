@@ -11,15 +11,15 @@ app_license = "mit"
 required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "taxmate",
-# 		"logo": "/assets/taxmate/logo.png",
-# 		"title": "TaxMate",
-# 		"route": "/taxmate",
-# 		"has_permission": "taxmate.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "taxmate",
+		"logo": "/assets/taxmate/logo.png",
+		"title": "TaxMate",
+		"route": "/taxmate",
+		"has_permission": "taxmate.api.permission.has_app_permission",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -145,13 +145,13 @@ after_migrate = "taxmate.install.after_migrate"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	"*": "taxmate.uae.permissions.get_permission_query_conditions",
+}
+
+has_permission = {
+	"*": "taxmate.uae.permissions.has_permission",
+}
 
 # Document Events
 # ---------------
@@ -200,6 +200,7 @@ doc_events = {
 	"Purchase Invoice": {
 		"validate": [
 			"taxmate.uae_vat.overrides.purchase_invoice.validate",
+			"taxmate.uae_e_invoicing.overrides.purchase_invoice.validate",
 			"taxmate.uae_corporate_tax.overrides.purchase_invoice.validate",
 		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",

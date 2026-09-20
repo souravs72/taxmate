@@ -13,7 +13,7 @@ type ReportRow = Record<string, unknown>;
 export default function Receivables() {
   const nav = useNavigate();
   const session = useSession();
-  const today = toIsoDate(new Date());
+  const today = session.today || toIsoDate(new Date());
   const filters = useMemo(() => ({
     company: session.company,
     report_date: today,

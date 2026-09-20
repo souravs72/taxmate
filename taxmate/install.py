@@ -42,6 +42,7 @@ def _setup_vat_uae():
 			title="TaxMate UAE VAT setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _setup_e_invoicing_uae():
@@ -54,6 +55,7 @@ def _setup_e_invoicing_uae():
 			title="TaxMate UAE E-Invoicing setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _setup_ct_uae():
@@ -66,6 +68,7 @@ def _setup_ct_uae():
 			title="TaxMate UAE Corporate Tax setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _setup_compliance_uae():
@@ -82,6 +85,7 @@ def _setup_compliance_uae():
 			title="TaxMate UAE Compliance setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _ensure_taxmate_settings_defaults():

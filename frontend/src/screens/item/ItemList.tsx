@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocList } from "frappe-react-sdk";
+import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
@@ -28,7 +28,7 @@ export default function ItemList() {
     return f as unknown as Filter<Row>[];
   }, [q]);
 
-  const list = useFrappeGetDocList<Row>(DT.item, {
+  const list = useDocList<Row>(DT.item, {
     fields: ["name", "item_name", "item_group", "is_stock_item", "is_zero_rated", "is_exempt", "standard_rate"],
     filters,
     orderBy: { field: "modified", order: "desc" },
