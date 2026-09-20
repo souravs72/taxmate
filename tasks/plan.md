@@ -70,11 +70,9 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | E-invoice transmission log | UAE E-Invoice Log | shipped (list) |
 | ASP / tax connection | UAE Tax Settings (Single) | shipped (read) |
 | VAT 201 filing | UAE VAT 201 Filing Log + `get_or_create_vat_201` + report UAE VAT 201 | 6 shipped (list+detail) |
-| Late filing | UAE Late Filing Notice + report | 6 |
-| Import VAT / customs | UAE Customs Declaration + Import VAT report | 6 |
-| VAT group / bad debt | UAE VAT Group, UAE Bad Debt Relief | 6 |
-| Corporate tax | UAE CT Settings, UAE CT Filing Log, worksheet report, `get_ct_elections` | 6 |
-| UBO / ESR | UAE UBO Register, UAE ESR Filing | 6 |
+| Corporate tax | UAE CT Settings, UAE CT Filing Log, worksheet report, `get_ct_elections` | 6 shipped (filing list) |
+| UBO / ESR | UAE UBO Register, UAE ESR Filing | 6 shipped (lists) |
+| Late filing | UAE Late Filing Notice + report | 6 shipped (notice list) |
 | Related party / FTA pack | UAE Related Party, UAE FTA Audit Pack | 6 |
 | E-invoice contingency | UAE E-Invoice Contingency | 6 |
 | UAE reports | Late Filing Status, Group VAT, E-Invoice Status, VAT 201 Reconciliation, EmaraTax Export, Compliance Status | 6 (report runner) |

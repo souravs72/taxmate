@@ -74,6 +74,10 @@ export const DT = {
   uom: "UOM",
   eInvoiceLog: "UAE E-Invoice Log",
   vat201: "UAE VAT 201 Filing Log",
+  ctFiling: "UAE CT Filing Log",
+  esrFiling: "UAE ESR Filing",
+  uboRegister: "UAE UBO Register",
+  lateFiling: "UAE Late Filing Notice",
 } as const;
 
 /**

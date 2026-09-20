@@ -33,6 +33,10 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/tax-templates", key: "nav.taxTemplates" },
   { type: "section", key: "nav.compliance" },
   { type: "link", to: "/vat-201", key: "nav.vat201" },
+  { type: "link", to: "/ct-filings", key: "nav.ct" },
+  { type: "link", to: "/esr", key: "nav.esr" },
+  { type: "link", to: "/ubo", key: "nav.ubo" },
+  { type: "link", to: "/late-filings", key: "nav.lateFilings" },
   { type: "link", to: "/e-invoice-log", key: "nav.eInvoiceLog" },
   { type: "link", to: "/tax-settings", key: "nav.taxSettings" },
 ];

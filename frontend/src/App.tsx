@@ -60,6 +60,14 @@ import TaxSettings from "./screens/compliance/TaxSettings";
 import Vat201List from "./screens/vat-201/Vat201List";
 import Vat201Detail from "./screens/vat-201/Vat201Detail";
 import Vat201Form from "./screens/vat-201/Vat201Form";
+import CtFilingList from "./screens/ct-filing/CtFilingList";
+import CtFilingDetail from "./screens/ct-filing/CtFilingDetail";
+import EsrFilingList from "./screens/esr/EsrFilingList";
+import EsrFilingDetail from "./screens/esr/EsrFilingDetail";
+import UboRegisterList from "./screens/ubo/UboRegisterList";
+import UboRegisterDetail from "./screens/ubo/UboRegisterDetail";
+import LateFilingList from "./screens/late-filing/LateFilingList";
+import LateFilingDetail from "./screens/late-filing/LateFilingDetail";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -133,6 +141,14 @@ export default function App() {
           <Route path="/vat-201" element={<Vat201List />} />
           <Route path="/vat-201/new" element={<Vat201Form />} />
           <Route path="/vat-201/:name" element={<Vat201Detail />} />
+          <Route path="/ct-filings" element={<CtFilingList />} />
+          <Route path="/ct-filings/:name" element={<CtFilingDetail />} />
+          <Route path="/esr" element={<EsrFilingList />} />
+          <Route path="/esr/:name" element={<EsrFilingDetail />} />
+          <Route path="/ubo" element={<UboRegisterList />} />
+          <Route path="/ubo/:name" element={<UboRegisterDetail />} />
+          <Route path="/late-filings" element={<LateFilingList />} />
+          <Route path="/late-filings/:name" element={<LateFilingDetail />} />
           <Route path="/e-invoice-log" element={<EInvoiceLog />} />
           <Route path="/tax-settings" element={<TaxSettings />} />
           <Route path="/sales" element={<SalesHub />} />

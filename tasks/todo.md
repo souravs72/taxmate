@@ -181,6 +181,14 @@ Plan: `tasks/plan.md`
 
 ## Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time
 
+- [x] `/ct-filings` list + detail via catalog `get_list` / parent `get`
+- [x] `/esr` list + detail (activities nested on parent)
+- [x] `/ubo` list + detail (owners nested on parent)
+- [x] `/late-filings` list + detail
+- [x] Charts from group_by; no invented totals; no child-table `get_list`
+- [x] Search routes; no `/app/`
+- [x] Rail UAE Compliance includes all four lists
+
 ## Task 16: UAE report pages through the same report runner
 
 ## Phase 7 — Polish

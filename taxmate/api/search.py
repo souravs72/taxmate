@@ -40,6 +40,10 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
 	"UAE VAT 201 Filing Log": "/vat-201/{name}",
+	"UAE CT Filing Log": "/ct-filings/{name}",
+	"UAE ESR Filing": "/esr/{name}",
+	"UAE UBO Register": "/ubo/{name}",
+	"UAE Late Filing Notice": "/late-filings/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -60,6 +64,10 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
 	"UAE VAT 201 Filing Log": "/vat-201",
+	"UAE CT Filing Log": "/ct-filings",
+	"UAE ESR Filing": "/esr",
+	"UAE UBO Register": "/ubo",
+	"UAE Late Filing Notice": "/late-filings",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -84,6 +92,10 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
 	{"label": "Tax Templates", "route": "/tax-templates", "keywords": "tax template vat sales purchase charges"},
 	{"label": "VAT 201", "route": "/vat-201", "keywords": "vat 201 fta filing return boxes deadline"},
+	{"label": "Corporate Tax", "route": "/ct-filings", "keywords": "corporate tax ct filing log worksheet"},
+	{"label": "ESR", "route": "/esr", "keywords": "esr economic substance notification report"},
+	{"label": "UBO Register", "route": "/ubo", "keywords": "ubo beneficial owner register"},
+	{"label": "Late Filings", "route": "/late-filings", "keywords": "late filing notice overdue fta"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
 )

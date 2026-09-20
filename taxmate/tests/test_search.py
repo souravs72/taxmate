@@ -111,6 +111,18 @@ class TestAwesomeSearch(FrappeTestCase):
 		self.assertTrue(any(route == "/vat-201" for route in routes))
 		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))
 
+	def test_ct_esr_ubo_late_spa_routes(self):
+		for query, route in (
+			("corporate tax", "/ct-filings"),
+			("esr", "/esr"),
+			("ubo", "/ubo"),
+			("late filing", "/late-filings"),
+		):
+			out = awesome(text=query, limit=20)
+			routes = [row["route"] for group in out["groups"] for row in group["results"]]
+			self.assertTrue(any(r == route for r in routes), query)
+			self.assertFalse(any(cstr(r).startswith("/app/") for r in routes), query)
+
 	def test_reports_spa_routes(self):
 		out = awesome(text="trial balance", limit=20)
 		routes = [row["route"] for group in out["groups"] for row in group["results"]]
