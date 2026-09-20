@@ -683,7 +683,9 @@ const en: Record<string, string> = {
   "coa.root.Expense": "Expense",
 
   "rpt.title": "Reports",
-  "rpt.sub": "Trial Balance, ledgers, P&L, Balance Sheet, and Cash Flow from the catalog.",
+  "rpt.sub": "Trial Balance, ledgers, P&L, Balance Sheet, Cash Flow, and UAE catalog reports.",
+  "rpt.books": "Books",
+  "rpt.uae": "UAE compliance",
   "rpt.runSub": "Dates stay in the URL. Filters match the catalogued report.",
   "rpt.from": "From",
   "rpt.to": "To",
@@ -1532,7 +1534,9 @@ const ar: Record<string, string> = {
   "coa.root.Expense": "مصروف",
 
   "rpt.title": "التقارير",
-  "rpt.sub": "ميزان المراجعة والدفاتر وقائمة الدخل والميزانية والتدفقات من الكتالوج.",
+  "rpt.sub": "ميزان المراجعة والدفاتر وقائمة الدخل والميزانية والتدفقات وتقارير الامتثال من الكتالوج.",
+  "rpt.books": "الدفاتر",
+  "rpt.uae": "الامتثال الإماراتي",
   "rpt.runSub": "التواريخ تبقى في الرابط. عوامل التصفية تطابق تقرير الكتالوج.",
   "rpt.from": "من",
   "rpt.to": "إلى",

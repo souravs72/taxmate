@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { METHOD } from "../../lib/frappe";
-import { bookFilters, isCoreBookReport } from "../../lib/bookReports";
+import { bookFilters, isRunnableReport } from "../../lib/bookReports";
 import { useSession } from "../../lib/session";
 import { useListParams } from "../../lib/list";
 import { money, toIsoDate } from "../../lib/format";
@@ -46,7 +46,7 @@ export default function ReportRunner() {
     company ? `defaults-${company}` : null,
   );
   const fiscalYear = defaults.data?.message?.fiscal_year;
-  const allowed = isCoreBookReport(name);
+  const allowed = isRunnableReport(name);
   const needsFy = name === "Trial Balance" || name === "Profit and Loss Statement"
     || name === "Balance Sheet" || name === "Cash Flow";
   const paused = !session.user || !company || !allowed || (needsFy && !fiscalYear);

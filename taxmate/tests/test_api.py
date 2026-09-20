@@ -265,6 +265,15 @@ class TestApiReportsAndHome(FrappeTestCase):
 		)
 		self.assertIn("result", result)
 
+	def test_uae_late_filing_status_runs_with_object_filters(self):
+		from taxmate.api.reports import run_report
+
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company")
+		result = run_report("UAE Late Filing Status", {"company": company})
+		self.assertIn("result", result)
+
 	def test_run_report_rejects_list_filters(self):
 		from taxmate.api.reports import run_report
 

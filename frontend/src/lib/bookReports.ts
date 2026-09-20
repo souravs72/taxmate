@@ -10,10 +10,31 @@ export const CORE_BOOK_REPORTS = [
   "Supplier Ledger Summary",
 ] as const;
 
+export const UAE_CATALOG_REPORTS = [
+  "UAE VAT 201",
+  "UAE Late Filing Status",
+  "UAE Group VAT Status",
+  "UAE Import VAT Explanation",
+  "UAE E-Invoice Status",
+  "UAE E-Invoice VAT 201 Reconciliation",
+  "EmaraTax Export",
+  "UAE Corporate Tax Worksheet",
+  "UAE Compliance Status",
+] as const;
+
 export type CoreBookReport = (typeof CORE_BOOK_REPORTS)[number];
+export type UaeCatalogReport = (typeof UAE_CATALOG_REPORTS)[number];
 
 export function isCoreBookReport(name: string): name is CoreBookReport {
   return (CORE_BOOK_REPORTS as readonly string[]).includes(name);
+}
+
+export function isUaeCatalogReport(name: string): name is UaeCatalogReport {
+  return (UAE_CATALOG_REPORTS as readonly string[]).includes(name);
+}
+
+export function isRunnableReport(name: string): boolean {
+  return isCoreBookReport(name) || isUaeCatalogReport(name);
 }
 
 export function bookFilters(

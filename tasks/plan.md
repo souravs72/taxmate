@@ -75,7 +75,7 @@ Mapped to what TaxMate already catalogs (DocTypes / reports / actions). Screens 
 | Late filing | UAE Late Filing Notice + report | 6 shipped (notice list) |
 | Related party / FTA pack | UAE Related Party, UAE FTA Audit Pack | 6 |
 | E-invoice contingency | UAE E-Invoice Contingency | 6 |
-| UAE reports | Late Filing Status, Group VAT, E-Invoice Status, VAT 201 Reconciliation, EmaraTax Export, Compliance Status | 6 (report runner) |
+| UAE reports | Late Filing Status, Group VAT, E-Invoice Status, VAT 201 Reconciliation, EmaraTax Export, Compliance Status | 6 shipped (report runner) |
 
 ### Dashboard (this slice)
 

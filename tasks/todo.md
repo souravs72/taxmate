@@ -191,6 +191,11 @@ Plan: `tasks/plan.md`
 
 ## Task 16: UAE report pages through the same report runner
 
+- [x] `/reports` lists catalog UAE reports next to core books via `list_reports`
+- [x] `/reports/:report` runs `run_report` with a JSON object of documented filters
+- [x] Search route `/reports`; no `/app/`
+- [x] API test for UAE Late Filing Status object filters
+
 ## Phase 7 — Polish
 
 ## Task 17: Search routes for every shipped screen; empty/error copy; RTL pass

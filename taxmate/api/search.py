@@ -87,7 +87,7 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Payables", "route": "/payables", "keywords": "ap aged payable supplier outstanding"},
 	{"label": "Journal Entries", "route": "/journals", "keywords": "journal entry je voucher books ledger posting"},
 	{"label": "Chart of Accounts", "route": "/accounts", "keywords": "chart of accounts coa ledger account tree"},
-	{"label": "Reports", "route": "/reports", "keywords": "trial balance general ledger profit loss balance sheet cash flow reports"},
+	{"label": "Reports", "route": "/reports", "keywords": "trial balance general ledger profit loss balance sheet cash flow reports vat 201 late filing esr compliance emaratax"},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
 	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
 	{"label": "Tax Templates", "route": "/tax-templates", "keywords": "tax template vat sales purchase charges"},
