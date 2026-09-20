@@ -52,7 +52,10 @@ export const DT = {
   itemPrice: "Item Price",
   address: "Address",
   contact: "Contact",
+  account: "Account",
   paymentEntry: "Payment Entry",
+  supplier: "Supplier",
+  purchaseInvoice: "Purchase Invoice",
   paymentEntryRef: "Payment Entry Reference",
   modeOfPayment: "Mode of Payment",
   taxTemplate: "Sales Taxes and Charges Template",
@@ -78,6 +81,17 @@ export const METHOD = {
   getItemDetails: "taxmate.api.accounts.get_item_details",
   itemDetails: "taxmate.api.accounts.get_item_details",
   getOutstandingInvoices: "taxmate.api.accounts.get_outstanding_invoices",
+  /**
+   * Both legs of a Payment Entry from the Mode of Payment and the party.
+   *
+   * The Payment Entry controller never reads mode_of_payment: paid_from and
+   * paid_to are mandatory and nothing server-side fills them, so they have to
+   * be resolved and sent. ERPNext's own helper does it without a permission
+   * check and accepts any company, so TaxMate wraps it -- and the
+   * Receive -> paid_to / Pay -> paid_from mapping lives on the server rather
+   * than in the browser.
+   */
+  resolvePaymentAccounts: "taxmate.api.accounts.resolve_payment_accounts",
   getPaymentEntry: "taxmate.api.accounts.get_payment_entry",
   makeSalesReturn: "taxmate.api.accounts.make_sales_return",
   submit: "taxmate.api.workflow.submit",
@@ -86,11 +100,36 @@ export const METHOD = {
   searchLink: "taxmate.api.resource.search_link",
   runReport: "taxmate.api.reports.run_report",
   fulfilmentSummary: "taxmate.api.sales_order.fulfilment_summary",
+  /** Child doctypes cannot be listed directly — this filters the parents. */
+  salesOrderLinks: "taxmate.api.sales_order.linked_documents",
   awesomeSearch: "taxmate.api.search.awesome",
   generateEInvoice: "taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice",
-  /** Mapper returns an unsaved doc — caller must insert. */
-  makeDeliveryNote: "erpnext.selling.doctype.sales_order.sales_order.make_delivery_note",
-  makeSalesInvoice: "erpnext.selling.doctype.sales_order.sales_order.make_sales_invoice",
+  bulkGenerateEInvoices: "taxmate.uae_e_invoicing.utils.e_invoice.bulk_generate_e_invoices",
+  syncEInvoiceStatus: "taxmate.uae_e_invoicing.utils.e_invoice.sync_status_from_asp",
+  fetchEInvoiceDocuments: "taxmate.uae_e_invoicing.utils.e_invoice.fetch_asp_documents",
+  /**
+   * Aggregates. frappe.client.get_list is whitelisted (frappe/client.py:26)
+   * and its signature explicitly accepts dict fields —
+   * `fields: str | list[str | dict]` — which DatabaseQuery turns into SQL
+   * functions (frappe/database/query.py:1163, FUNCTION_MAPPING at :179).
+   * Frappe's own list view uses the same shape in get_group_by_count. No
+   * custom aggregation endpoint needed.
+   */
+  clientGetList: "frappe.client.get_list",
+  /** Count with an or_filters group, which the SDK's own count hook lacks. */
+  reportviewCount: "frappe.desk.reportview.get_count",
+  /** Activity timeline: comments, versions, assignments. */
+  getDocinfo: "frappe.desk.form.load.get_docinfo",
+  /**
+   * Mappers return an unsaved doc — the caller inserts it.
+   *
+   * These go through TaxMate, not ERPNext's own whitelisted mappers. The
+   * ERPNext signatures accept `target_doc` and (for the invoice)
+   * `ignore_permissions` straight off the wire; the TaxMate wrappers take only
+   * the source name and fix those arguments server-side.
+   */
+  makeDeliveryNote: "taxmate.api.sales_order.make_delivery_note",
+  makeSalesInvoice: "taxmate.api.sales_order.make_sales_invoice",
   /** Stage donut — until a TaxMate wrapper exists. */
   groupByCount: "frappe.desk.listview.get_group_by_count",
 } as const;

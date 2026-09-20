@@ -201,4 +201,9 @@ def get_session() -> dict[str, Any]:
 		"currency": currency,
 		"country": country,
 		"roles": frappe.get_roles(),
+		# The SITE's today, not the browser's. Anything date-driven in the UI
+		# -- most of all whether an invoice is overdue -- has to agree with the
+		# server, and a viewer outside Asia/Dubai is a day off for part of it.
+		"today": frappe.utils.today(),
+		"time_zone": frappe.utils.get_system_timezone(),
 	}

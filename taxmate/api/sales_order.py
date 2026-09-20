@@ -1,13 +1,19 @@
-"""Sales Order KPIs for the TaxMate SPA list screen."""
+"""Sales Order KPIs and document mappers for the TaxMate SPA."""
 
 from __future__ import annotations
 
 from typing import Any
 
 import frappe
+from frappe import _
 from frappe.utils import cint, flt, getdate, today
 
-from taxmate.api.resource import assert_company_read, require_login
+from taxmate.api.resource import (
+	_as_data,
+	assert_allowed_doctype,
+	assert_company_read,
+	require_login,
+)
 
 # Open = promised and not fully billed (excludes Draft / Completed / Cancelled / Closed).
 _OPEN_STATUSES = (
@@ -23,28 +29,41 @@ _OPEN_STATUSES = (
 def fulfilment_summary(company: str | None = None) -> dict[str, Any]:
 	"""Committed / delivered / billed value plus open and overdue counts.
 
-	Used by the Sales Order list tiles and fulfilment bars. Permission-checked
-	via ``has_permission``; guests are rejected.
+	Used by the Sales Order list tiles and fulfilment bars.
+
+	Two things this deliberately does:
+
+	* Reads through ``frappe.get_list``, not ``get_all``. ``get_all`` sets
+	  ``ignore_permissions=True``, so every user would see company-wide totals
+	  regardless of their User Permissions. ``get_list`` applies them.
+	* Sums ``base_grand_total`` (company currency), not ``grand_total``
+	  (document currency). The two differ the moment anything is priced in a
+	  currency other than the company's, and a sum across mixed currencies is
+	  meaningless. The response carries the currency it is denominated in.
+
+	Only open orders contribute to the value totals. A Completed or Closed
+	order is no longer a commitment, so including it would permanently inflate
+	``committed`` and flatten the delivered / billed bars against it.
 	"""
 	require_login()
 	if not frappe.has_permission("Sales Order", "read"):
-		frappe.throw(frappe._("Not permitted"), frappe.PermissionError)
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	company = company or frappe.defaults.get_user_default("Company")
 	assert_company_read(company)
 
-	filters: dict[str, Any] = {"docstatus": ["<", 2]}
+	filters: dict[str, Any] = {"docstatus": 1, "status": ["in", _OPEN_STATUSES]}
 	if company:
 		filters["company"] = company
 
-	rows = frappe.get_all(
+	rows = frappe.get_list(
 		"Sales Order",
 		filters=filters,
 		fields=[
 			"name",
 			"status",
 			"docstatus",
-			"grand_total",
+			"base_grand_total",
 			"per_delivered",
 			"per_billed",
 			"delivery_date",
@@ -61,26 +80,21 @@ def fulfilment_summary(company: str | None = None) -> dict[str, Any]:
 	today_date = getdate(today())
 
 	for row in rows:
-		if row.docstatus == 0 or row.status in ("Draft", "Cancelled"):
-			continue
-
-		total = flt(row.grand_total)
+		total = flt(row.base_grand_total)
 		per_d = flt(row.per_delivered)
 		per_b = flt(row.per_billed)
-		delivered = total * per_d / 100.0
-		billed = total * per_b / 100.0
 
 		committed += total
-		delivered_value += delivered
-		billed_value += billed
+		delivered_value += total * per_d / 100.0
+		billed_value += total * per_b / 100.0
 
-		if row.status in _OPEN_STATUSES:
-			open_count += 1
-			if row.delivery_date and getdate(row.delivery_date) < today_date and per_d < 100:
-				overdue_count += 1
+		open_count += 1
+		if row.delivery_date and getdate(row.delivery_date) < today_date and per_d < 100:
+			overdue_count += 1
 
 	return {
 		"company": company,
+		"currency": _company_currency(company),
 		"committed": committed,
 		"delivered_value": delivered_value,
 		"billed_value": billed_value,
@@ -88,3 +102,166 @@ def fulfilment_summary(company: str | None = None) -> dict[str, Any]:
 		"open_count": cint(open_count),
 		"overdue_count": cint(overdue_count),
 	}
+
+
+@frappe.whitelist()
+def linked_documents(sales_order: str) -> dict[str, list[str]]:
+	"""Delivery Notes and Sales Invoices raised against one Sales Order.
+
+	The link lives on the child rows, but a child doctype cannot be listed
+	directly: frappe's has_child_permission refuses a child table with no
+	parent_doctype (frappe/permissions.py:837), so the SPA's old approach
+	silently returned 403 and rendered an empty panel. Filtering the PARENT
+	doctype by a child field is the supported shape and applies the parent's
+	own permissions.
+	"""
+	require_login()
+	name = _require_name(sales_order, "Sales Order")
+	assert_allowed_doctype("Sales Order")
+	doc = frappe.get_doc("Sales Order", name)
+	doc.check_permission("read")
+
+	return {
+		"delivery_notes": _parents("Delivery Note", "Delivery Note Item", "against_sales_order", name),
+		"sales_invoices": _parents("Sales Invoice", "Sales Invoice Item", "sales_order", name),
+	}
+
+
+def _parents(parent_doctype: str, child_doctype: str, fieldname: str, value: str) -> list[str]:
+	if not frappe.has_permission(parent_doctype, "read"):
+		return []
+	# Deduplicated here rather than with distinct=True: on PostgreSQL frappe
+	# drops the ORDER BY when distinct is set (frappe/database/query.py:320),
+	# which would return an arbitrary 50 rows instead of the newest 50.
+	rows = frappe.get_list(
+		parent_doctype,
+		filters=[
+			[child_doctype, fieldname, "=", value],
+			[parent_doctype, "docstatus", "<", 2],
+		],
+		fields=["name"],
+		order_by="creation desc",
+		limit_page_length=200,
+	)
+	seen: dict[str, None] = {}
+	for row in rows:
+		seen.setdefault(row.name, None)
+	return list(seen)[:50]
+
+
+def _require_name(value, doctype: str) -> str:
+	"""Whitelisted arguments arrive from the wire — a name must be a string.
+
+	``from __future__ import annotations`` turns every annotation into a string,
+	which switches off frappe's own argument-type validation
+	(frappe/utils/typing_validations.py:130). Without this, a JSON body could
+	pass a dict where a document name belongs and frappe.get_doc would treat it
+	as a filter expression.
+	"""
+	if not isinstance(value, str) or not value.strip():
+		frappe.throw(_("{0} is required").format(_(doctype)))
+	return value.strip()
+
+
+def _company_currency(company: str | None) -> str:
+	"""Currency the totals above are denominated in."""
+	if company:
+		currency = frappe.get_cached_value("Company", company, "default_currency")
+		if currency:
+			return currency
+	return frappe.db.get_default("currency") or "AED"
+
+
+# ── Document mappers ─────────────────────────────────────────────────────
+#
+# ERPNext's own mappers are whitelisted, but their signatures accept
+# ``target_doc`` and (for the invoice) ``ignore_permissions`` straight off the
+# wire. Calling them from the browser hands the client those parameters. These
+# wrappers take only the source name, check read permission on the real
+# document, and fix the sensitive arguments server-side.
+#
+# Both return an UNSAVED document — the caller inserts it.
+
+
+@frappe.whitelist(methods=["POST"])
+def make_sales_invoice(source_name: str):
+	"""Map a submitted Sales Order to a draft Sales Invoice."""
+	name = _assert_mappable(source_name, "Sales Invoice", "per_billed")
+
+	from erpnext.selling.doctype.sales_order.sales_order import (
+		make_sales_invoice as erp_make_sales_invoice,
+	)
+
+	return _as_data(
+		erp_make_sales_invoice(name, target_doc=None, ignore_permissions=False)
+	)
+
+
+@frappe.whitelist(methods=["POST"])
+def make_delivery_note(source_name: str, for_reserved_stock=1):
+	"""Map a submitted Sales Order to a draft Delivery Note.
+
+	``for_reserved_stock`` defaults to on, matching ERPNext's own Create ->
+	Delivery Note button (sales_order.js:1049 passes true). With it off, the
+	reserved-stock branch is skipped and the note is mapped from plain
+	remaining quantity, which silently ignores Stock Reservation Entries and
+	their serial / batch bundles. It is a plain flag here rather than a
+	free-form kwargs dict so the wire cannot reach the rest of the mapper.
+	"""
+	name = _assert_mappable(source_name, "Delivery Note", "per_delivered")
+
+	from erpnext.selling.doctype.sales_order.sales_order import (
+		make_delivery_note as erp_make_delivery_note,
+	)
+
+	return _as_data(
+		erp_make_delivery_note(
+			name,
+			target_doc=None,
+			kwargs={
+				"for_reserved_stock": _as_bool(for_reserved_stock),
+				"skip_item_mapping": False,
+			},
+		)
+	)
+
+
+def _as_bool(value) -> bool:
+	"""Wire-safe flag. cint("true") is 0, and "true" is what JS sends."""
+	if isinstance(value, str):
+		return value.strip().lower() in ("1", "true", "yes", "on")
+	return bool(cint(value))
+
+
+def _assert_mappable(source_name: str, target_doctype: str, progress_field: str) -> str:
+	"""Read on the real source, create on the real target, before mapping.
+
+	get_mapped_doc's own ``check_permission("create")`` is skipped when System
+	Settings has apply_strict_user_permissions on (frappe/model/mapper.py:89),
+	so without this a user who cannot create the target would still get the
+	fully mapped document -- rates, margins and all -- back in the response.
+
+	``progress_field`` is the refusal ERPNext's own button gets for free: at
+	100% every row's mapper condition is false, so the mapper happily returns a
+	document with no items and the failure only surfaces as a mandatory-field
+	error on insert.
+	"""
+	name = _require_name(source_name, "Sales Order")
+
+	assert_allowed_doctype("Sales Order")
+	assert_allowed_doctype(target_doctype)
+
+	doc = frappe.get_doc("Sales Order", name)
+	doc.check_permission("read")
+	if cint(doc.docstatus) != 1:
+		frappe.throw(_("Submit the Sales Order before creating a downstream document."))
+	if not frappe.has_permission(target_doctype, "create"):
+		frappe.throw(
+			_("Not permitted to create {0}").format(_(target_doctype)), frappe.PermissionError
+		)
+	if flt(doc.get(progress_field)) >= 100:
+		frappe.throw(
+			_("Nothing left on {0} to put on a {1}.").format(name, _(target_doctype)),
+			title=_("Already Complete"),
+		)
+	return name

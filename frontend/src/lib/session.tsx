@@ -1,7 +1,8 @@
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect } from "react";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { METHOD } from "./frappe";
+import { setSiteToday } from "./status";
 
 export type Session = {
   user: string;
@@ -10,6 +11,9 @@ export type Session = {
   currency?: string | null;
   country?: string | null;
   roles?: string[];
+  /** The SITE's date, so anything date-driven agrees with the server. */
+  today?: string;
+  time_zone?: string;
 };
 
 const SessionContext = createContext<Session>({ user: "", roles: [] });
@@ -17,6 +21,7 @@ const SessionContext = createContext<Session>({ user: "", roles: [] });
 export function SessionProvider({ children }: { children: React.ReactNode }) {
   const { data } = useFrappeGetCall<{ message: Session }>(METHOD.getSession);
   const session = data?.message ?? { user: "", roles: [] };
+  useEffect(() => { setSiteToday(session.today); }, [session.today]);
   return <SessionContext.Provider value={session}>{children}</SessionContext.Provider>;
 }
 

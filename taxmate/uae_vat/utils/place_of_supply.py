@@ -97,6 +97,105 @@ def validate_sales_invoice(doc) -> None:
 	)
 
 
+def validate_sales_order(doc, on_submit: bool = False) -> None:
+	"""Enforce Place of Supply on Sales Orders for UAE companies.
+
+	A Sales Order is a promise, not a tax document, so this is deliberately
+	softer than the invoice rule: an empty Emirate is a warning while the order
+	is a draft and an error at submit. The field exists on Sales Order because
+	ERPNext's UAE regional setup applies the Sales Invoice field set to both
+	(erpnext/regional/united_arab_emirates/setup.py:233), and it carries
+	through the Sales Order -> Sales Invoice mapper, so capturing it here is
+	what stops an order from becoming an invoice that cannot be reported in
+	VAT 201 Box 1.
+
+	``vat_emirate`` is declared with ``fetch_from="company_address.emirate"``.
+	That fetch runs in _validate_links, BEFORE this hook
+	(frappe/model/base_document.py:1063), and it overwrites rather than fills,
+	so a document with a company address whose Emirate is blank arrives here
+	with the field cleared even if an operator typed a value. Resolving it here
+	is what keeps a REST insert, a Data Import or a test fixture from hitting
+	the check with an empty field when the answer is on the company address.
+
+	The designated-zone item rules are NOT checked here: ``uae_item_type``
+	lives on Sales Invoice Item and Purchase Invoice Item only, so a Sales
+	Order row carries nothing to check. The zone guidance is still surfaced so
+	the operator knows what the invoice will demand.
+	"""
+	if not _is_uae_company(doc):
+		return
+	if not setting_enabled("require_vat_emirate_on_sales_order", default=1):
+		return
+	if doc.get("vat_emirate"):
+		return
+
+	resolved = _resolve_company_emirate(doc)
+	if resolved:
+		doc.vat_emirate = resolved
+		return
+
+	message = _(
+		"Set Place of Supply (Emirate) on this Sales Order. It carries through to "
+		"the Sales Invoice, where VAT 201 Box 1 is reported by Emirate."
+	)
+	if on_submit:
+		frappe.throw(message, title=_("Place of Supply"))
+	frappe.msgprint(message, title=_("Place of Supply"), indicator="orange", alert=True)
+
+
+def _resolve_company_emirate(doc) -> str | None:
+	"""Emirate of the supplying establishment, mirroring the Desk fetch_from."""
+	if not frappe.db.has_column("Address", "emirate"):
+		return None
+
+	company_address = doc.get("company_address")
+	if company_address:
+		# The supplying establishment is named on the document. Whatever that
+		# address says is the answer — including nothing. Falling back to some
+		# OTHER company address here would quietly report the supply under the
+		# wrong Emirate in VAT 201 Box 1.
+		return frappe.db.get_value("Address", company_address, "emirate") or None
+
+	company = doc.get("company")
+	if not company:
+		return None
+
+	# is_your_company_address is an ERPNext Custom Field (erpnext/setup/install.py:155);
+	# ordering by a column that is not there would throw, so check first.
+	prefers_company_address = frappe.db.has_column("Address", "is_your_company_address")
+	rows = frappe.get_all(
+		"Address",
+		filters=[
+			["Dynamic Link", "parenttype", "=", "Address"],
+			["Dynamic Link", "link_doctype", "=", "Company"],
+			["Dynamic Link", "link_name", "=", company],
+			["Address", "emirate", "is", "set"],
+		],
+		fields=["name", "emirate"],
+		order_by=(
+			"is_your_company_address desc, modified desc"
+			if prefers_company_address
+			else "modified desc"
+		),
+		limit=1,
+	)
+	return rows[0].emirate if rows else None
+
+
+def sales_order_zone_guidance(doc) -> str | None:
+	"""Designated-zone hint for a Sales Order, or None when it does not apply."""
+	company_dz = _zone_flag("Company", doc.get("company"))
+	if not company_dz:
+		return None
+	if not _zone_flag("Customer", doc.get("customer")):
+		return None
+	return _(
+		"Supplier and customer are both in a Designated Zone. If these lines are "
+		"goods that remain in the zone, the Sales Invoice will require an Item Tax "
+		"Template with UAE VAT Category = Out of Scope."
+	)
+
+
 def validate_purchase_invoice(doc) -> None:
 	"""Enforce credit-note and designated-zone category rules on purchases."""
 	if not _is_uae_company(doc):
@@ -116,7 +215,8 @@ def _is_uae_company(doc) -> bool:
 	company = doc.get("company")
 	if not company:
 		return False
-	return frappe.db.get_value("Company", company, "country") == UAE_COUNTRY
+	# Cached: this runs on every save of every sales/purchase document.
+	return frappe.get_cached_value("Company", company, "country") == UAE_COUNTRY
 
 
 def _zone_flag(doctype: str, name: str | None) -> bool:

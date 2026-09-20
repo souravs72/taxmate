@@ -1,12 +1,15 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocCount, useFrappeGetDocList } from "frappe-react-sdk";
+import { useFrappeGetDocList } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { money } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
+import { Card, PageHead, Pill } from "../../components/ui";
+import { DataTable, ListFooter, type Column } from "../../components/DataTable";
+import { FilterBar, SearchFilter } from "../../components/filters";
 
 const PAGE = 20;
 type Row = {
@@ -16,12 +19,13 @@ type Row = {
 
 export default function ItemList() {
   const nav = useNavigate();
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(0);
+  const { get, set, page, setPage, start } = useListParams(PAGE);
+  const q = get("q");
+
   const filters = useMemo(() => {
-    const f: Filter<Row>[] = [["disabled", "=", 0]];
+    const f: FilterTuple[] = [["disabled", "=", 0]];
     if (q.trim()) f.push(["item_name", "like", `%${q.trim()}%`]);
-    return f;
+    return f as unknown as Filter<Row>[];
   }, [q]);
 
   const list = useFrappeGetDocList<Row>(DT.item, {
@@ -29,11 +33,26 @@ export default function ItemList() {
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
-    limit_start: page * PAGE,
+    limit_start: start,
   });
-  const count = useFrappeGetDocCount(DT.item, filters);
+  const { total } = useFilteredCount(DT.item, filters as unknown as FilterTuple[]);
   const rows = list.data ?? [];
-  const total = count.data ?? 0;
+
+  const columns: Column<Row>[] = [
+    { key: "code", header: t("item.col.code"), cell: (it) => <span className="ordno">{it.name}</span> },
+    { key: "name", header: t("item.col.name"), cell: (it) => it.item_name },
+    { key: "group", header: t("item.col.group"), cell: (it) => it.item_group },
+    { key: "stock", header: t("item.col.stock"), cell: (it) => (it.is_stock_item ? t("yes") : t("no")) },
+    {
+      key: "vat", header: t("item.col.vat"),
+      cell: (it) => (
+        it.is_zero_rated ? <Pill cls="p-open">{t("item.zero")}</Pill>
+          : it.is_exempt ? <Pill cls="p-flat">{t("item.exempt")}</Pill>
+          : <Pill cls="p-done">{t("item.standard")}</Pill>
+      ),
+    },
+    { key: "rate", header: t("item.col.rate"), className: "n tot", cell: (it) => money(it.standard_rate) },
+  ];
 
   return (
     <>
@@ -43,57 +62,20 @@ export default function ItemList() {
         actions={<button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button>}
       />
       <Card bodyClass={null as unknown as string}>
-        <div className="filters">
-          <div className="fsearch">
-            <input className="ctl" type="search" value={q} placeholder={t("item.search")}
-              onChange={(e) => { setQ(e.target.value); setPage(0); }} />
-          </div>
-        </div>
-        {list.error ? <ErrorBox error={list.error} onRetry={() => list.mutate()} />
-          : list.isLoading ? <Loading />
-          : rows.length === 0 ? <Empty label={t("item.empty")} />
-          : (
-            <div className="twrap">
-              <table className="clickable">
-                <thead>
-                  <tr>
-                    <th>{t("item.col.code")}</th>
-                    <th>{t("item.col.name")}</th>
-                    <th>{t("item.col.group")}</th>
-                    <th>{t("item.col.stock")}</th>
-                    <th>{t("item.col.vat")}</th>
-                    <th className="n">{t("item.col.rate")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((it) => (
-                    <tr key={it.name} tabIndex={0}
-                      onClick={() => nav(`/catalogue/items/${encodeURIComponent(it.name)}`)}
-                      onKeyDown={(e) => e.key === "Enter" && nav(`/catalogue/items/${encodeURIComponent(it.name)}`)}>
-                      <td><span className="ordno">{it.name}</span></td>
-                      <td>{it.item_name}</td>
-                      <td>{it.item_group}</td>
-                      <td>{it.is_stock_item ? t("yes") : t("no")}</td>
-                      <td>
-                        {it.is_zero_rated ? <Pill cls="p-open">{t("item.zero")}</Pill>
-                          : it.is_exempt ? <Pill cls="p-flat">{t("item.exempt")}</Pill>
-                          : <Pill cls="p-done">{t("item.standard")}</Pill>}
-                      </td>
-                      <td className="n tot">{money(it.standard_rate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        <div className="foot">
-          <span>{t("list.showing")} {rows.length} {t("list.of")} {total}</span>
-          <div className="pager">
-            <button disabled={page === 0} onClick={() => setPage((p) => p - 1)}>‹</button>
-            <button aria-current="true">{page + 1}</button>
-            <button disabled={(page + 1) * PAGE >= total} onClick={() => setPage((p) => p + 1)}>›</button>
-          </div>
-        </div>
+        <FilterBar>
+          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("item.search")} />
+        </FilterBar>
+
+        <DataTable<Row>
+          rows={rows}
+          rowKey={(it) => it.name}
+          onOpen={(it) => nav(`/catalogue/items/${encodeURIComponent(it.name)}`)}
+          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
+          emptyLabel={t("item.empty")}
+          columns={columns}
+        />
+
+        <ListFooter shown={rows.length} total={total} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
     </>
   );

@@ -1,10 +1,3 @@
-/**
- * AwesomeBar-style search for the TaxMate SPA shell.
- * Callers: AppShell topbar. Hits taxmate.api.search.awesome (METHOD.awesomeSearch).
- * Schema: { groups:[{ title, results:[{ type, route, title, … }] }] }.
- * User: "SEARCH ANYTHING BAR … should work like the awesomebar" + SPA-only routes;
- * follow-up from React review: race-safe debounce, no stale Enter, URL q on /orders, a11y name.
- */
 import { useEffect, useId, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
@@ -32,21 +25,13 @@ export default function GlobalSearch() {
   const listId = useId();
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const reqId = useRef(0);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const [groups, setGroups] = useState<Group[]>([]);
-  /** Query string that `groups` belong to — blocks Enter on stale hits. */
-  const [resultQuery, setResultQuery] = useState("");
-  const [pending, setPending] = useState(false);
   const search = useFrappePostCall<SearchResponse>(METHOD.awesomeSearch);
 
-  const text = q.trim();
-  const resultsFresh = resultQuery === text;
-  const flat = resultsFresh
-    ? groups.flatMap((g) => g.results.map((r) => ({ ...r, group: g.title })))
-    : [];
+  const flat = groups.flatMap((g) => g.results.map((r) => ({ ...r, group: g.title })));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -69,45 +54,24 @@ export default function GlobalSearch() {
   }, []);
 
   useEffect(() => {
-    const next = q.trim();
-    // Invalidate immediately so Enter / UI never act on a prior query's hits.
-    setGroups([]);
-    setResultQuery("");
-    setActive(0);
-
-    if (!next) {
-      setPending(false);
+    const text = q.trim();
+    if (!text) {
+      setGroups([]);
+      setActive(0);
       return;
     }
-
-    setPending(true);
-    const id = ++reqId.current;
     const handle = window.setTimeout(() => {
       void search
-        .call({ text: next, limit: 20 })
+        .call({ text, limit: 20 })
         .then((res) => {
-          if (id !== reqId.current) return;
-          const payload = res?.message ?? (res as unknown as { groups?: Group[] });
-          const nextGroups = payload?.groups ?? [];
-          setGroups(nextGroups);
-          setResultQuery(next);
+          const next = res?.message?.groups ?? (res as unknown as { groups?: Group[] })?.groups ?? [];
+          setGroups(next);
           setActive(0);
           setOpen(true);
-          setPending(false);
         })
-        .catch(() => {
-          if (id !== reqId.current) return;
-          setGroups([]);
-          setResultQuery(next);
-          setPending(false);
-        });
+        .catch(() => setGroups([]));
     }, DEBOUNCE_MS);
-
-    return () => {
-      window.clearTimeout(handle);
-      // Bump so any in-flight call for this effect is ignored.
-      if (reqId.current === id) reqId.current += 1;
-    };
+    return () => window.clearTimeout(handle);
     // search.call identity churns; q is the trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
@@ -121,33 +85,29 @@ export default function GlobalSearch() {
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open && (e.key === "ArrowDown" || e.key === "Enter") && text) {
+    if (!open && (e.key === "ArrowDown" || e.key === "Enter") && q.trim()) {
       setOpen(true);
     }
     if (e.key === "Escape") {
       setOpen(false);
       return;
     }
-    if (e.key === "Enter") {
-      e.preventDefault();
-      if (pending || !text) return;
-      if (flat.length) {
-        go(flat[active] ?? flat[0]);
-        return;
-      }
-      if (resultsFresh) {
-        navigate(`/orders?q=${encodeURIComponent(text)}`);
+    if (!flat.length) {
+      if (e.key === "Enter" && q.trim()) {
+        navigate(`/orders?q=${encodeURIComponent(q.trim())}`);
         setOpen(false);
       }
       return;
     }
-    if (!flat.length) return;
     if (e.key === "ArrowDown") {
       e.preventDefault();
       setActive((i) => (i + 1) % flat.length);
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((i) => (i - 1 + flat.length) % flat.length);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      go(flat[active] ?? flat[0]);
     }
   }
 
@@ -162,8 +122,6 @@ export default function GlobalSearch() {
         ref={inputRef}
         type="search"
         role="combobox"
-        aria-label={t("search.placeholder")}
-        aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
@@ -171,7 +129,7 @@ export default function GlobalSearch() {
         placeholder={t("search.placeholder")}
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        onFocus={() => text && setOpen(true)}
+        onFocus={() => q.trim() && setOpen(true)}
         onKeyDown={onKeyDown}
         autoComplete="off"
       />
@@ -181,10 +139,10 @@ export default function GlobalSearch() {
 
       {open && (
         <div className="tsearch-menu" id={listId} role="listbox">
-          {pending && !flat.length && (
+          {search.loading && !flat.length && (
             <div className="tsearch-empty">{t("search.loading")}</div>
           )}
-          {!pending && text && resultsFresh && !flat.length && (
+          {!search.loading && q.trim() && !flat.length && (
             <div className="tsearch-empty">{t("search.empty")}</div>
           )}
           {groups.map((g) => (
