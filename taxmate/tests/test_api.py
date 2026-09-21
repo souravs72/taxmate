@@ -438,10 +438,13 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 				"plc_conversion_rate": 1,
 				"vat_emirate": "Dubai",
 				"taxes_and_charges": "UAE VAT 5% - TM",
-				"items": [{"item_code": SERVICE_ITEM, "qty": 1, "rate": 100}],
+				"items": [{"item_code": SERVICE_ITEM, "qty": 1, "rate": 100, "uae_item_type": "Service", "sac_code": "998311"}],
 			}
 		)
 		self.assertEqual(doc["docstatus"], 0)
+		items = doc.get("items") or []
+		self.assertTrue(items)
+		self.assertEqual(items[0].get("sac_code"), "998311")
 
 		submitted = submit({"doctype": "Sales Invoice", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)

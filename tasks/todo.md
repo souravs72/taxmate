@@ -304,3 +304,23 @@ Plan: `tasks/plan.md`
 
 **Estimated scope:** S
 
+## Task 21: Sales Invoice persist HS/SAC
+
+**Description:** The sales invoice form already fetches HS/SAC from item details but drops them on save, so UAE e-invoices go out without classification. Persist and show the codes on the line table.
+
+**Acceptance criteria:**
+- [ ] Invoice form line table shows HS/SAC; payload sends `hs_code` / `sac_code` / `uae_item_type`
+- [ ] Write-path SI test inserts with `sac_code` and asserts it on the saved item
+
+**Verification:**
+- [ ] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [ ] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 20
+
+**Files likely touched:**
+- `frontend/src/screens/invoice/InvoiceForm.tsx`
+- `taxmate/tests/test_api.py`
+
+**Estimated scope:** S
+

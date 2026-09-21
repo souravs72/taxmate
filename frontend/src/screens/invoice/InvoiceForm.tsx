@@ -209,6 +209,9 @@ export default function InvoiceForm() {
         income_account: l.income_account,
         cost_center: l.cost_center,
         item_tax_template: l.item_tax_template,
+        uae_item_type: l.uae_item_type,
+        hs_code: l.hs_code,
+        sac_code: l.sac_code,
       })),
     };
   }
@@ -350,6 +353,7 @@ export default function InvoiceForm() {
                   <tr>
                     <th style={{ width: 26 }}>#</th>
                     <th>{t("soc.pickItem")}</th>
+                    <th>{t("pi.hsSac")}</th>
                     <th className="n">{t("sod.col.qty")}</th>
                     <th className="n">{t("sod.col.rate")}</th>
                     <th className="n">{t("sod.col.amount")}</th>
@@ -363,6 +367,24 @@ export default function InvoiceForm() {
                       <td style={{ minWidth: 220 }}>
                         {locked ? (l.item_name || l.item_code) : (
                           <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                        )}
+                      </td>
+                      <td>
+                        {l.uae_item_type !== "Service" && (
+                          <input className="ctl mini" style={{ width: 88 }}
+                            aria-label={t("item.hs")}
+                            placeholder={t("item.hs")}
+                            value={l.hs_code || ""}
+                            disabled={locked}
+                            onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
+                        )}
+                        {l.uae_item_type !== "Goods" && (
+                          <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
+                            aria-label={t("item.sac")}
+                            placeholder={t("item.sac")}
+                            value={l.sac_code || ""}
+                            disabled={locked}
+                            onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
                         )}
                       </td>
                       <td className="n">
