@@ -89,6 +89,7 @@ export const METHOD = {
   getCatalog: "taxmate.api.get_catalog",
   getSession: "taxmate.api.get_session",
   getHome: "taxmate.api.dashboard.get_home",
+  ownerDashboard: "taxmate.api.owner_dashboard.get_owner_dashboard",
   getList: "taxmate.api.resource.get_list",
   get: "taxmate.api.resource.get",
   insert: "taxmate.api.resource.insert",
