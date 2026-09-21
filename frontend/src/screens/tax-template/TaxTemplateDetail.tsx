@@ -40,7 +40,9 @@ export default function TaxTemplateDetail() {
         </p>
       </PageHead>
       <Card>
-        <ReadRow k={t("coa.company")} v={data.company || "—"} />
+        <div className="fg">
+          <ReadRow k={t("coa.company")} v={data.company || "—"} />
+        </div>
       </Card>
       <Card title={t("tx.charges")}>
         <div className="twrap">

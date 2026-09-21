@@ -108,7 +108,7 @@ export default function Payables() {
       )}
 
       <div className="charts">
-        <Card title={t("ap.chart.age")} hint={t("ap.chart.ageHint")} bodyClass="donutwrap">
+        <Card title={t("ap.chart.age")} bodyClass="donutwrap">
           {!ready ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("ap.chart.all")} />
@@ -117,7 +117,7 @@ export default function Payables() {
           )}
         </Card>
         {ready && (
-          <Card title={t("ap.chart.value")} hint={t("ap.chart.valueHint")} bodyClass="bars">
+          <Card title={t("ap.chart.value")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(ageing.outstanding)}</span>

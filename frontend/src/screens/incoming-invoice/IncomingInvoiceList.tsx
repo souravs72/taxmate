@@ -167,7 +167,7 @@ export default function IncomingInvoiceList() {
       )}
 
       <div className="charts">
-        <Card title={t("in.chart.status")} hint={t("in.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("in.chart.status")} bodyClass="donutwrap">
           {paused || agg.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("in.chart.all")} />
@@ -176,7 +176,7 @@ export default function IncomingInvoiceList() {
           )}
         </Card>
         {agg.ready && (
-          <Card title={t("in.chart.flow")} hint={t("in.chart.flowHint")} bodyClass="bars">
+          <Card title={t("in.chart.flow")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(booked)}</span>

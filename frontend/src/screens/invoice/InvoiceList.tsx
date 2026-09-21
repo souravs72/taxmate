@@ -239,7 +239,7 @@ export default function InvoiceList() {
       )}
 
       <div className="charts">
-        <Card title={t("inv.chart.status")} hint={t("inv.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("inv.chart.status")} bodyClass="donutwrap">
           {agg.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("inv.chart.all")} />
@@ -249,7 +249,7 @@ export default function InvoiceList() {
         </Card>
 
         {aggReady && (
-          <Card title={t("inv.chart.collection")} hint={t("inv.chart.collectionHint")} bodyClass="bars">
+          <Card title={t("inv.chart.collection")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(totals.billed)}</span>

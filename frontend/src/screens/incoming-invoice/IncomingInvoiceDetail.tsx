@@ -108,18 +108,20 @@ export default function IncomingInvoiceDetail() {
         }
       >
         <Card>
-          <ReadRow k={t("in.col.id")} v={data.asp_document_id || data.name} />
-          <ReadRow k={t("nav.suppliers")} v={data.supplier_name || "—"} />
-          <ReadRow k={t("pi.supplierTrn")} v={data.supplier_trn || "—"} />
-          <ReadRow k={t("inv.col.date")} v={date(data.issue_date)} />
-          <ReadRow k={t("in.company")} v={data.company || "—"} />
-          {data.purchase_invoice && (
-            <ReadRow k={t("pi.col.no")} v={data.purchase_invoice} />
-          )}
+          <div className="fg">
+            <ReadRow k={t("in.col.id")} v={data.asp_document_id || data.name} />
+            <ReadRow k={t("nav.suppliers")} v={data.supplier_name || "—"} />
+            <ReadRow k={t("pi.supplierTrn")} v={data.supplier_trn || "—"} />
+            <ReadRow k={t("inv.col.date")} v={date(data.issue_date)} />
+            <ReadRow k={t("in.company")} v={data.company || "—"} />
+            {data.purchase_invoice && (
+              <ReadRow k={t("pi.col.no")} v={data.purchase_invoice} />
+            )}
+          </div>
         </Card>
 
         {payload && (
-          <Card title={t("in.payload")} hint={t("in.payloadHint")}>
+          <Card title={t("in.payload")}>
             <pre className="payload" style={{ margin: 0, maxHeight: 360, overflow: "auto", fontSize: 12 }}>
               {payload}
             </pre>

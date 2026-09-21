@@ -70,7 +70,7 @@ export default function SalesHub() {
         </div>
       )}
 
-      <Card title={t("hub.daily")} hint={session.company || undefined}>
+      <Card title={t("hub.daily")}>
         <p className="sub" style={{ margin: 0 }}>{t("hub.dailyBody")}</p>
       </Card>
     </>

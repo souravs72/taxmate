@@ -295,7 +295,7 @@ export default function InvoiceForm() {
           </Card>
         </>
       }>
-          <Card num={1} title={t("inv.who")} hint={t("inv.whoHint")}>
+          <Card num={1} title={t("inv.who")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
                 <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} disabled={locked} />
@@ -318,7 +318,7 @@ export default function InvoiceForm() {
             </div>
           </Card>
 
-          <Card num={2} title={t("soc.b2")} hint={t("soc.b2hint")}>
+          <Card num={2} title={t("soc.b2")}>
             <div className="grid2">
               <Field label={t("f.emirate")} required>
                 <select className="ctl" value={emirate} disabled={locked} onChange={(e) => setEmirate(e.target.value)}>

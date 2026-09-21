@@ -106,13 +106,13 @@ export default function WarehouseList() {
         </div>
       )}
       <div className="charts">
-        <Card title={t("wh.chart.kind")} hint={t("wh.chart.kindHint")} bodyClass="donutwrap">
+        <Card title={t("wh.chart.kind")} bodyClass="donutwrap">
           {paused || byKind.isLoading ? <Loading /> : (
             <><Donut data={donut} total={donutTotal} centreLabel={t("wh.chart.all")} /><Legend data={donut} /></>
           )}
         </Card>
         {byType.ready && (
-          <Card title={t("wh.chart.type")} hint={t("wh.chart.typeHint")} bodyClass="bars">
+          <Card title={t("wh.chart.type")} bodyClass="bars">
             {byType.rows.slice(0, 6).map((r) => (
               <BarRow key={String(r.name)} label={String(r.name || t("wh.untyped"))}
                 value={typeTotal ? (Number(r.count) / typeTotal) * 100 : 0}

@@ -205,7 +205,7 @@ export default function InvoiceDetail() {
 
       {/* Payment split — the spec's worked case: total / received / outstanding */}
       {submitted && (
-        <Card title={t("inv.pay.title")} hint={t("inv.pay.hint")}>
+        <Card title={t("inv.pay.title")}>
           <div className="paybar">
             <i style={{ width: `${grand ? (received / grand) * 100 : 0}%`, background: "var(--c-billed)" }} />
             <i style={{ width: `${grand ? (outstanding / grand) * 100 : 0}%`,
@@ -226,7 +226,7 @@ export default function InvoiceDetail() {
       {submitted && (
         <Card
           title={t("inv.einv.title")}
-          hint={t("inv.einv.hint")}
+         
           bodyClass={null as unknown as string}
         >
           <EInvoicePipeline status={eStatus} log={log} />
@@ -295,7 +295,7 @@ export default function InvoiceDetail() {
           )}
         </>
       }>
-          <Card title={t("inv.details")} hint={submitted ? t("inv.detailsLocked") : t("inv.detailsDraft")}>
+          <Card title={t("inv.details")}>
             <div className="fg">
               <ReadRow k={t("f.customer")} v={data.customer_name || data.customer} link />
               <ReadRow k={t("f.customerTrn")} v={<span className="mono">{data.tax_id || "—"}</span>} />
@@ -312,7 +312,7 @@ export default function InvoiceDetail() {
             </div>
           </Card>
 
-          <Card title={t("inv.lines")} hint={`${data.items?.length ?? 0} · ${t("inv.linesHint")}`} bodyClass="twrap">
+          <Card title={t("inv.lines")} bodyClass="twrap">
             <table>
               <thead>
                 <tr>

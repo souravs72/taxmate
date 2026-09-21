@@ -208,7 +208,7 @@ export default function SalesOrderCreate() {
           </div>
         </>
       }>
-          <Card num={1} title={t("soc.b1")} hint={t("soc.b1hint")}>
+          <Card num={1} title={t("soc.b1")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
                 <select className="ctl" value={customer} onChange={(e) => setCustomer(e.target.value)}>
@@ -239,7 +239,7 @@ export default function SalesOrderCreate() {
             </div>
           </Card>
 
-          <Card num={2} title={t("soc.b2")} hint={t("soc.b2hint")}>
+          <Card num={2} title={t("soc.b2")}>
             <div className="grid3">
               <Field label={t("f.taxTemplate")} required>
                 <select className="ctl" value={taxTemplate} onChange={(e) => setTaxTemplate(e.target.value)}>
@@ -256,7 +256,7 @@ export default function SalesOrderCreate() {
             </div>
           </Card>
 
-          <Card num={3} title={t("soc.b3")} hint={t("soc.b3hint")} bodyClass={null as unknown as string}>
+          <Card num={3} title={t("soc.b3")} bodyClass={null as unknown as string}>
             <div className="twrap">
               <table>
                 <thead>

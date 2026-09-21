@@ -271,6 +271,9 @@ tbody tr:last-child td{border-block-end:0}
 .fi .v{font-size:13.5px; font-weight:500; overflow-wrap:anywhere}
 .fi .v.link{color:var(--brand); cursor:pointer}
 .fi .v small{display:block; font-size:11.5px; color:var(--faint); font-weight:400; margin-block-start:1px}
+
+/* Notes / long text under a dense field grid */
+.cbody > .fg + *{margin-block-start:14px}
 .srow{display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding-block:6px; font-size:13px}
 .srow .k{color:var(--muted)}
 .srow .v{font-variant-numeric:tabular-nums; font-weight:500; white-space:nowrap}

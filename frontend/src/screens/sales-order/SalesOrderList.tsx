@@ -193,7 +193,7 @@ export default function SalesOrderList() {
       )}
 
       <div className="charts">
-        <Card title={t("so.chart.stage")} hint={t("so.chart.stageHint")} bodyClass="donutwrap">
+        <Card title={t("so.chart.stage")} bodyClass="donutwrap">
           {grouped.isLoading ? <Loading /> : (
             <>
               <Donut data={stages} total={stageTotal} centreLabel={t("so.chart.all")} />
@@ -203,7 +203,7 @@ export default function SalesOrderList() {
         </Card>
 
         {s && (
-          <Card title={t("so.chart.fulfil")} hint={t("so.chart.fulfilHint")} bodyClass="bars">
+          <Card title={t("so.chart.fulfil")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(s.committed)}</span>

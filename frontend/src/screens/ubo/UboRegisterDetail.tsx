@@ -46,10 +46,16 @@ export default function UboRegisterDetail() {
         </p>
       </PageHead>
       <Card>
-        <ReadRow k={t("coa.company")} v={data.company || "—"} />
-        <ReadRow k={t("esr.col.auth")} v={data.licence_authority || "—"} />
-        <ReadRow k={t("ubo.col.reviewed")} v={date(data.last_reviewed_on)} />
-        {data.notes ? <ReadRow k={t("v201.notes")} v={data.notes} /> : null}
+        <div className="fg">
+          <ReadRow k={t("coa.company")} v={data.company || "—"} />
+          <ReadRow k={t("esr.col.auth")} v={data.licence_authority || "—"} />
+          <ReadRow k={t("ubo.col.reviewed")} v={date(data.last_reviewed_on)} />
+        </div>
+        {data.notes ? (
+          <div>
+            <ReadRow k={t("v201.notes")} v={data.notes} />
+          </div>
+        ) : null}
       </Card>
       <Card title={t("ubo.owners")}>
         {owners.length === 0 ? <p className="sub">{t("ubo.noOwners")}</p> : (

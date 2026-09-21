@@ -83,7 +83,7 @@ export default function UboRegisterList() {
           <StatTile colour="var(--bad)" tint="rgba(220,38,38,.12)" icon='<path d="M9 2.5 16 15H2z"/>' label={t("v201.tile.overdue")} value={overdue} foot={t("ubo.tile.overdueFoot")} />
         </div>
       )}
-      <Card title={t("ubo.chart")} hint={t("ubo.chartHint")} bodyClass="donutwrap">
+      <Card title={t("ubo.chart")} bodyClass="donutwrap">
         {paused || byStatus.isLoading ? <Loading /> : (<><Donut data={donut} total={donutTotal} centreLabel={t("ubo.chartAll")} /><Legend data={donut} /></>)}
       </Card>
       <Card bodyClass={null as unknown as string}>

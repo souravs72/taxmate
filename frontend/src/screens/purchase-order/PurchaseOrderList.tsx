@@ -224,7 +224,7 @@ export default function PurchaseOrderList() {
       )}
 
       <div className="charts">
-        <Card title={t("po.chart.stage")} hint={t("po.chart.stageHint")} bodyClass="donutwrap">
+        <Card title={t("po.chart.stage")} bodyClass="donutwrap">
           {paused || agg.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("po.chart.all")} />
@@ -233,7 +233,7 @@ export default function PurchaseOrderList() {
           )}
         </Card>
         {agg.ready && (
-          <Card title={t("po.chart.value")} hint={t("po.chart.valueHint")} bodyClass="bars">
+          <Card title={t("po.chart.value")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(totals.booked)}</span>

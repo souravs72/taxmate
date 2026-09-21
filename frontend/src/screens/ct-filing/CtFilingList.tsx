@@ -103,11 +103,11 @@ export default function CtFilingList() {
         </div>
       )}
       <div className="charts">
-        <Card title={t("ct.chart")} hint={t("ct.chartHint")} bodyClass="donutwrap">
+        <Card title={t("ct.chart")} bodyClass="donutwrap">
           {paused || byDeadline.isLoading ? <Loading /> : (<><Donut data={donut} total={donutTotal} centreLabel={t("v201.chart.all")} /><Legend data={donut} /></>)}
         </Card>
         {byDeadline.ready && (
-          <Card title={t("ct.chartTax")} hint={t("ct.chartTaxHint")} bodyClass="bars">
+          <Card title={t("ct.chartTax")} bodyClass="bars">
             {DEADLINES.map((d) => {
               const n = Number(pick(byDeadline.rows, d)?.amount) || 0;
               return <BarRow key={d} label={d} currency={cur} value={payable ? (n / payable) * 100 : 0} amount={n} colour={d === "Overdue" ? "var(--bad)" : "var(--c-confirmed)"} />;

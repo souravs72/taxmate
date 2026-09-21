@@ -137,7 +137,7 @@ export default function PaymentDetail() {
           </div>
         </>
       }>
-          <Card title={t("pay.hDet")} hint={t("pay.hDetH")}>
+          <Card title={t("pay.hDet")}>
             <div className="fg">
               <ReadRow k={t("pay.lType")} v={t(`pay.type.${type}`)} />
               <ReadRow k={t(`pay.party.${data.party_type ?? PARTY_TYPE[type]}`)}
@@ -149,7 +149,7 @@ export default function PaymentDetail() {
             </div>
           </Card>
 
-          <Card title={t("pay.hClear")} hint={t("pay.hClearH")} bodyClass={null as unknown as string}>
+          <Card title={t("pay.hClear")} bodyClass={null as unknown as string}>
             {refs.length === 0 ? <Empty label={t("pay.noAllocations")} /> : (
               <div className="twrap">
                 <table>

@@ -225,7 +225,7 @@ export default function ChartOfAccounts() {
       )}
 
       <div className="charts">
-        <Card title={t("coa.chart.root")} hint={t("coa.chart.rootHint")} bodyClass="donutwrap">
+        <Card title={t("coa.chart.root")} bodyClass="donutwrap">
           {paused || byRoot.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("coa.chart.all")} />
@@ -234,7 +234,7 @@ export default function ChartOfAccounts() {
           )}
         </Card>
         {byRoot.ready && (
-          <Card title={t("coa.chart.mix")} hint={t("coa.chart.mixHint")} bodyClass="bars">
+          <Card title={t("coa.chart.mix")} bodyClass="bars">
             {byRoot.rows.map((r) => (
               <BarRow
                 key={String(r.name)}
@@ -248,7 +248,7 @@ export default function ChartOfAccounts() {
         )}
       </div>
 
-      <Card title={t("coa.tree")} hint={t("coa.treeHint")} bodyClass={null as unknown as string}>
+      <Card title={t("coa.tree")} bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("coa.search")} />
         </FilterBar>

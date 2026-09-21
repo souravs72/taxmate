@@ -31,7 +31,6 @@ export default function DeliveryNoteDetail() {
       <PageHead
         title={data.name}
         eyebrow={t("dn.title")}
-        sub={data.customer_name || data.customer}
         actions={<button className="btn ghost" onClick={() => nav(-1)}>{t("common.back")}</button>}
       />
       <FormLayout

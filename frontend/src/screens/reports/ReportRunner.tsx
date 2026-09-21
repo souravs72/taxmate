@@ -111,7 +111,7 @@ export default function ReportRunner() {
       )}
 
       {labels.length > 0 && values.length > 0 && (
-        <Card title={t("rpt.chart")} hint={series?.name || t("rpt.chartHint")} bodyClass="bars">
+        <Card title={t("rpt.chart")} bodyClass="bars">
           {labels.map((label, i) => (
             <BarRow
               key={`${label}-${i}`}

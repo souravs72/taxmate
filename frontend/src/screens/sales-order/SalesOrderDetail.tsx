@@ -163,7 +163,7 @@ export default function SalesOrderDetail() {
           </Card>
         </>
       }>
-          <Card title={t("sod.details")} hint={t("sod.detailsHint")}>
+          <Card title={t("sod.details")}>
             <div className="fg">
               <ReadRow k={t("f.customer")} v={data.customer_name || data.customer} link />
               <ReadRow k={t("f.customerTrn")} v={<span className="mono">{data.tax_id || "—"}</span>} />
@@ -177,7 +177,7 @@ export default function SalesOrderDetail() {
             </div>
           </Card>
 
-          <Card title={t("sod.items")} hint={`${data.items?.length ?? 0} · ${t("sod.itemsHint")}`}
+          <Card title={t("sod.items")}
                 bodyClass="twrap">
             <table>
               <thead>

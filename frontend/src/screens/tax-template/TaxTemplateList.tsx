@@ -82,11 +82,11 @@ export default function TaxTemplateList() {
           label={t("tx.purchase")} value={paused ? "—" : (purchaseN.data ?? 0)} foot={t("tx.tile.purchaseFoot")} />
       </div>
       <div className="charts">
-        <Card title={t("tx.chart.kind")} hint={t("tx.chart.kindHint")} bodyClass="donutwrap">
+        <Card title={t("tx.chart.kind")} bodyClass="donutwrap">
           {paused ? <Loading /> : <><Donut data={donut} total={donutTotal} centreLabel={t("tx.chart.all")} /><Legend data={donut} /></>}
         </Card>
         {byDefault.ready && (
-          <Card title={t("tx.chart.default")} hint={t("tx.chart.defaultHint")} bodyClass="bars">
+          <Card title={t("tx.chart.default")} bodyClass="bars">
             {byDefault.rows.map((r) => (
               <BarRow key={String(r.name)} label={String(r.name) === "1" ? t("tx.col.default") : t("tx.other")}
                 value={(Number(r.count) / kindTotal) * 100}

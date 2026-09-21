@@ -88,7 +88,7 @@ export default function EsrFilingList() {
           <StatTile colour="var(--brand)" tint="rgba(72,127,255,.14)" icon='<path d="M3 15.5V8l6-4 6 4v7.5"/>' label={t("esr.tile.all")} value={donutTotal} foot={t("esr.tile.allFoot")} />
         </div>
       )}
-      <Card title={t("esr.chart")} hint={t("esr.chartHint")} bodyClass="donutwrap">
+      <Card title={t("esr.chart")} bodyClass="donutwrap">
         {paused || byStatus.isLoading ? <Loading /> : (<><Donut data={donut} total={donutTotal} centreLabel={t("esr.chartAll")} /><Legend data={donut} /></>)}
       </Card>
       <Card bodyClass={null as unknown as string}>

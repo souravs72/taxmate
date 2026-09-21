@@ -58,23 +58,25 @@ export default function CtFilingDetail() {
         </Card>
       }>
         <Card>
-          <ReadRow k={t("coa.company")} v={data.company || "—"} />
-          <ReadRow k={t("v201.col.period")} v={`${date(data.period_start)} – ${date(data.period_end)}`} />
-          <ReadRow k={t("v201.trn")} v={data.company_trn || "—"} />
-          <ReadRow k={t("ct.revenue")} v={money(data.revenue)} />
-          <ReadRow k={t("ct.expenses")} v={money(data.expenses)} />
-          <ReadRow k={t("ct.accounting")} v={money(data.accounting_profit)} />
+          <div className="fg">
+            <ReadRow k={t("coa.company")} v={data.company || "—"} />
+            <ReadRow k={t("v201.col.period")} v={`${date(data.period_start)} – ${date(data.period_end)}`} />
+            <ReadRow k={t("v201.trn")} v={data.company_trn || "—"} />
+            <ReadRow k={t("ct.revenue")} v={money(data.revenue)} />
+            <ReadRow k={t("ct.expenses")} v={money(data.expenses)} />
+            <ReadRow k={t("ct.accounting")} v={money(data.accounting_profit)} />
+          </div>
         </Card>
-        <Card title={t("ct.adjustments")}>
-          {rows.length === 0 ? <p className="sub">{t("ct.noAdj")}</p> : (
+        {rows.length > 0 ? (
+          <Card title={t("ct.adjustments")}>
             <div className="twrap"><table>
               <thead><tr><th>{t("ct.adjType")}</th><th>{t("ct.adjCat")}</th><th className="n">{t("v201.amount")}</th></tr></thead>
               <tbody>{rows.map((r) => (
                 <tr key={r.name}><td>{r.adjustment_type || "—"}</td><td>{r.category || r.notes || "—"}</td><td className="n">{money(r.amount)}</td></tr>
               ))}</tbody>
             </table></div>
-          )}
-        </Card>
+          </Card>
+        ) : null}
       </FormLayout>
     </>
   );

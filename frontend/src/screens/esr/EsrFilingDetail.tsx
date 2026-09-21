@@ -2,7 +2,8 @@
  * Importers: App.tsx /esr/:name. Callers: ESR list, search.
  * API: catalog get parent UAE ESR Filing (activities nested UAE ESR Activity Row).
  * Schema: status, notification/report dates, has_relevant_activity, activities[].activity.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * User: "Do we need everything? or is this verbose? If verbose, make it clean
+ * and do similar for all other screens where verbosity is present."
  */
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -12,13 +13,31 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 
-type Act = { name?: string; activity?: string; income_from_activity?: number; employee_count?: number; is_core_income_generating_activity_in_uae?: number };
+type Act = {
+  name?: string;
+  activity?: string;
+  income_from_activity?: number;
+  employee_count?: number;
+  is_core_income_generating_activity_in_uae?: number;
+};
 type Doc = {
-  name: string; company?: string; financial_year_start?: string; financial_year_end?: string;
-  licence_authority?: string; status?: string; has_relevant_activity?: number; is_exempt?: number;
-  exemption_reason?: string; notification_due_date?: string; notification_filed_on?: string;
-  notification_reference?: string; report_due_date?: string; report_filed_on?: string;
-  report_reference?: string; notes?: string; activities?: Act[];
+  name: string;
+  company?: string;
+  financial_year_start?: string;
+  financial_year_end?: string;
+  licence_authority?: string;
+  status?: string;
+  has_relevant_activity?: number;
+  is_exempt?: number;
+  exemption_reason?: string;
+  notification_due_date?: string;
+  notification_filed_on?: string;
+  notification_reference?: string;
+  report_due_date?: string;
+  report_filed_on?: string;
+  report_reference?: string;
+  notes?: string;
+  activities?: Act[];
 };
 
 function esrPill(status?: string): string {
@@ -47,27 +66,49 @@ export default function EsrFilingDetail() {
         </p>
       </PageHead>
       <Card>
-        <ReadRow k={t("coa.company")} v={data.company || "—"} />
-        <ReadRow k={t("esr.col.year")} v={`${date(data.financial_year_start)} – ${date(data.financial_year_end)}`} />
-        <ReadRow k={t("esr.col.auth")} v={data.licence_authority || "—"} />
-        <ReadRow k={t("esr.relevant")} v={data.has_relevant_activity ? t("yes") : t("no")} />
-        <ReadRow k={t("esr.exempt")} v={data.is_exempt ? (data.exemption_reason || t("yes")) : t("no")} />
-        <ReadRow k={t("esr.col.notify")} v={date(data.notification_due_date)} />
-        <ReadRow k={t("esr.notifFiled")} v={data.notification_filed_on ? date(data.notification_filed_on) : "—"} />
-        <ReadRow k={t("esr.col.report")} v={date(data.report_due_date)} />
-        <ReadRow k={t("esr.reportFiled")} v={data.report_filed_on ? date(data.report_filed_on) : "—"} />
-        {data.notes ? <ReadRow k={t("v201.notes")} v={data.notes} /> : null}
+        <div className="fg">
+          <ReadRow k={t("coa.company")} v={data.company || "—"} />
+          <ReadRow k={t("esr.col.year")} v={`${date(data.financial_year_start)} – ${date(data.financial_year_end)}`} />
+          <ReadRow k={t("esr.col.auth")} v={data.licence_authority || "—"} />
+          <ReadRow k={t("esr.relevant")} v={data.has_relevant_activity ? t("yes") : t("no")} />
+          <ReadRow k={t("esr.exempt")} v={data.is_exempt ? (data.exemption_reason || t("yes")) : t("no")} />
+          <ReadRow k={t("esr.col.notify")} v={date(data.notification_due_date)} />
+          <ReadRow k={t("esr.notifFiled")} v={data.notification_filed_on ? date(data.notification_filed_on) : "—"} />
+          <ReadRow k={t("esr.col.report")} v={date(data.report_due_date)} />
+          <ReadRow k={t("esr.reportFiled")} v={data.report_filed_on ? date(data.report_filed_on) : "—"} />
+        </div>
+        {data.notes ? (
+          <div>
+            <ReadRow k={t("v201.notes")} v={data.notes} />
+          </div>
+        ) : null}
       </Card>
-      <Card title={t("esr.activities")}>
-        {acts.length === 0 ? <p className="sub">{t("esr.noAct")}</p> : (
-          <div className="twrap"><table>
-            <thead><tr><th>{t("esr.activity")}</th><th className="n">{t("esr.income")}</th><th className="n">{t("esr.employees")}</th><th>{t("esr.ciga")}</th></tr></thead>
-            <tbody>{acts.map((a) => (
-              <tr key={a.name}><td>{a.activity || "—"}</td><td className="n">{money(a.income_from_activity)}</td><td className="n">{a.employee_count ?? "—"}</td><td>{a.is_core_income_generating_activity_in_uae ? t("yes") : t("no")}</td></tr>
-            ))}</tbody>
-          </table></div>
-        )}
-      </Card>
+      {acts.length > 0 ? (
+        <Card title={t("esr.activities")}>
+          <div className="twrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("esr.activity")}</th>
+                  <th className="n">{t("esr.income")}</th>
+                  <th className="n">{t("esr.employees")}</th>
+                  <th>{t("esr.ciga")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {acts.map((a) => (
+                  <tr key={a.name}>
+                    <td>{a.activity || "—"}</td>
+                    <td className="n">{money(a.income_from_activity)}</td>
+                    <td className="n">{a.employee_count ?? "—"}</td>
+                    <td>{a.is_core_income_generating_activity_in_uae ? t("yes") : t("no")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      ) : null}
     </>
   );
 }

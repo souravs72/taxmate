@@ -38,10 +38,12 @@ export default function WarehouseDetail() {
         </p>
       </PageHead>
       <Card>
-        <ReadRow k={t("coa.company")} v={data.company || "—"} />
-        <ReadRow k={t("wh.col.type")} v={data.warehouse_type || "—"} />
-        <ReadRow k={t("wh.col.parent")} v={data.parent_warehouse || "—"} />
-        <ReadRow k={t("wh.account")} v={data.account || "—"} />
+        <div className="fg">
+          <ReadRow k={t("coa.company")} v={data.company || "—"} />
+          <ReadRow k={t("wh.col.type")} v={data.warehouse_type || "—"} />
+          <ReadRow k={t("wh.col.parent")} v={data.parent_warehouse || "—"} />
+          <ReadRow k={t("wh.account")} v={data.account || "—"} />
+        </div>
       </Card>
     </>
   );

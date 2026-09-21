@@ -217,7 +217,7 @@ export default function PurchaseInvoiceList() {
       )}
 
       <div className="charts">
-        <Card title={t("pi.chart.status")} hint={t("pi.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("pi.chart.status")} bodyClass="donutwrap">
           {paused || agg.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("pi.chart.all")} />
@@ -226,7 +226,7 @@ export default function PurchaseInvoiceList() {
           )}
         </Card>
         {agg.ready && (
-          <Card title={t("pi.chart.settlement")} hint={t("pi.chart.settlementHint")} bodyClass="bars">
+          <Card title={t("pi.chart.settlement")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(totals.billed)}</span>

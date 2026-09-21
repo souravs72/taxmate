@@ -97,11 +97,11 @@ export default function LateFilingList() {
         </div>
       )}
       <div className="charts">
-        <Card title={t("lf.chart")} hint={t("lf.chartHint")} bodyClass="donutwrap">
+        <Card title={t("lf.chart")} bodyClass="donutwrap">
           {paused || byStatus.isLoading ? <Loading /> : (<><Donut data={donut} total={donutTotal} centreLabel={t("lf.chartAll")} /><Legend data={donut} /></>)}
         </Card>
         {byObl.ready && (
-          <Card title={t("lf.chartObl")} hint={t("lf.chartOblHint")} bodyClass="bars">
+          <Card title={t("lf.chartObl")} bodyClass="bars">
             {byObl.rows.map((r) => (
               <BarRow key={String(r.name)} label={String(r.name || "—")}
                 value={oblTotal ? (Number(r.count) / oblTotal) * 100 : 0}

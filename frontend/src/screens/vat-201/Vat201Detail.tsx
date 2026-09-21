@@ -125,16 +125,20 @@ export default function Vat201Detail() {
         }
       >
         <Card>
-          <ReadRow k={t("coa.company")} v={data.company || "—"} />
-          <ReadRow k={t("v201.col.period")} v={`${date(data.period_start)} – ${date(data.period_end)}`} />
-          <ReadRow k={t("v201.trn")} v={data.company_trn || "—"} />
-          <ReadRow k={t("v201.group")} v={data.vat_group || "—"} />
-          {data.notes ? <ReadRow k={t("v201.notes")} v={data.notes} /> : null}
+          <div className="fg">
+            <ReadRow k={t("coa.company")} v={data.company || "—"} />
+            <ReadRow k={t("v201.col.period")} v={`${date(data.period_start)} – ${date(data.period_end)}`} />
+            <ReadRow k={t("v201.trn")} v={data.company_trn || "—"} />
+            <ReadRow k={t("v201.group")} v={data.vat_group || "—"} />
+          </div>
+          {data.notes ? (
+            <div>
+              <ReadRow k={t("v201.notes")} v={data.notes} />
+            </div>
+          ) : null}
         </Card>
-        <Card title={t("v201.boxes")}>
-          {boxes.length === 0 ? (
-            <p className="sub">{t("v201.noBoxes")}</p>
-          ) : (
+        {boxes.length > 0 ? (
+          <Card title={t("v201.boxes")}>
             <div className="twrap">
               <table>
                 <thead>
@@ -157,8 +161,8 @@ export default function Vat201Detail() {
                 </tbody>
               </table>
             </div>
-          )}
-        </Card>
+          </Card>
+        ) : null}
       </FormLayout>
     </>
   );

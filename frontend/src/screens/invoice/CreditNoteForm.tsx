@@ -71,7 +71,7 @@ export default function CreditNoteForm() {
         }
       />
       {saveError && <ErrorBox error={saveError} />}
-      <Card title={t("inv.reason")} hint={t("inv.reasonHint")}>
+      <Card title={t("inv.reason")}>
         <Field label={t("inv.reason")} required>
           <input className="ctl" value={reason} onChange={(e) => setReason(e.target.value)} />
         </Field>

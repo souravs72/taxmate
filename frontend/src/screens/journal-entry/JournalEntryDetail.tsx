@@ -110,9 +110,11 @@ export default function JournalEntryDetail() {
         }
       >
         <Card>
-          <ReadRow k={t("inv.col.date")} v={date(data.posting_date)} />
-          <ReadRow k={t("je.col.type")} v={data.voucher_type || "—"} />
-          <ReadRow k={t("je.col.remark")} v={data.user_remark || "—"} />
+          <div className="fg">
+            <ReadRow k={t("inv.col.date")} v={date(data.posting_date)} />
+            <ReadRow k={t("je.col.type")} v={data.voucher_type || "—"} />
+            <ReadRow k={t("je.col.remark")} v={data.user_remark || "—"} />
+          </div>
         </Card>
         <Card title={t("je.accounts")}>
           <div className="twrap">

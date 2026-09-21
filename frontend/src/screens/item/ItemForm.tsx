@@ -253,7 +253,7 @@ export default function ItemForm() {
               <input className="ctl" value={form.sac_code} onChange={(e) => set("sac_code", e.target.value)} />
             </Field>
           )}
-          <Field label={t("item.col.rate")} hint={priceList ? `${t("item.rateHint")} ${priceList}` : undefined}>
+          <Field label={t("item.col.rate")}>
             <input className="ctl" value={form.standard_rate} onChange={(e) => set("standard_rate", parseNum(e.target.value))} />
           </Field>
         </div>

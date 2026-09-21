@@ -201,7 +201,7 @@ export default function PurchaseReceiptList() {
       )}
 
       <div className="charts">
-        <Card title={t("pr.chart.status")} hint={t("pr.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("pr.chart.status")} bodyClass="donutwrap">
           {paused || agg.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("pr.chart.all")} />
@@ -210,7 +210,7 @@ export default function PurchaseReceiptList() {
           )}
         </Card>
         {agg.ready && (
-          <Card title={t("pr.chart.value")} hint={t("pr.chart.valueHint")} bodyClass="bars">
+          <Card title={t("pr.chart.value")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(totals.booked)}</span>

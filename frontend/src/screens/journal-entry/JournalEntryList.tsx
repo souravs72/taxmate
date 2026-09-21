@@ -168,7 +168,7 @@ export default function JournalEntryList() {
       )}
 
       <div className="charts">
-        <Card title={t("je.chart.status")} hint={t("je.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("je.chart.status")} bodyClass="donutwrap">
           {paused || byStatus.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("je.chart.all")} />
@@ -177,7 +177,7 @@ export default function JournalEntryList() {
           )}
         </Card>
         {byType.ready && (
-          <Card title={t("je.chart.type")} hint={t("je.chart.typeHint")} bodyClass="bars">
+          <Card title={t("je.chart.type")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(typeTotal)}</span>

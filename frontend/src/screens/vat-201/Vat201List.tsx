@@ -186,13 +186,13 @@ export default function Vat201List() {
         </div>
       )}
       <div className="charts">
-        <Card title={t("v201.chart.status")} hint={t("v201.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("v201.chart.status")} bodyClass="donutwrap">
           {paused || byStatus.isLoading ? <Loading /> : (
             <><Donut data={donut} total={donutTotal} centreLabel={t("v201.chart.all")} /><Legend data={donut} /></>
           )}
         </Card>
         {byDeadline.ready && (
-          <Card title={t("v201.chart.deadline")} hint={t("v201.chart.deadlineHint")} bodyClass="bars">
+          <Card title={t("v201.chart.deadline")} bodyClass="bars">
             {DEADLINES.map((d) => {
               const n = Number(pick(byDeadline.rows, d)?.count) || 0;
               return (

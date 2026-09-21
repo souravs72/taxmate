@@ -21,11 +21,13 @@ export default function TaxSettings() {
     <>
       <PageHead title={t("nav.taxSettings")} />
       <Card title={t("tax.asp")}>
-        <ReadRow k={t("tax.provider")} v={data?.asp_provider || "—"} />
-        <ReadRow k={t("tax.sandbox")} v={data?.sandbox_mode ? t("yes") : t("no")} />
-        <ReadRow k={t("tax.baseUrl")} v={data?.base_url || "—"} />
-        <ReadRow k={t("tax.sla")} v={data?.sla_days != null ? String(data.sla_days) : "—"} />
-        <ReadRow k={t("tax.retention")} v={data?.archive_retention_years != null ? String(data.archive_retention_years) : "—"} />
+        <div className="fg">
+          <ReadRow k={t("tax.provider")} v={data?.asp_provider || "—"} />
+          <ReadRow k={t("tax.sandbox")} v={data?.sandbox_mode ? t("yes") : t("no")} />
+          <ReadRow k={t("tax.baseUrl")} v={data?.base_url || "—"} />
+          <ReadRow k={t("tax.sla")} v={data?.sla_days != null ? String(data.sla_days) : "—"} />
+          <ReadRow k={t("tax.retention")} v={data?.archive_retention_years != null ? String(data.archive_retention_years) : "—"} />
+        </div>
       </Card>
     </>
   );

@@ -190,7 +190,7 @@ export default function PaymentList() {
       )}
 
       <div className="charts">
-        <Card title={t("pay.chart.status")} hint={t("pay.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("pay.chart.status")} bodyClass="donutwrap">
           {byStatus.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("pay.chart.all")} />
@@ -200,7 +200,7 @@ export default function PaymentList() {
         </Card>
 
         {ready && (
-          <Card title={t("pay.chart.movement")} hint={t("pay.chart.movementHint")} bodyClass="bars">
+          <Card title={t("pay.chart.movement")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(received - paid)}</span>
