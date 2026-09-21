@@ -399,6 +399,10 @@ class TestApiMastersHappyPath(FrappeTestCase):
 			}
 		)
 		self.assertEqual(details.get("item_code") or item, item)
+		item_doc = frappe.get_cached_doc("Item", item)
+		for field in ("uae_item_type", "hs_code", "sac_code"):
+			if item_doc.meta.has_field(field) and item_doc.get(field):
+				self.assertEqual(details.get(field), item_doc.get(field))
 
 
 class TestApiVoucherHappyPath(FrappeTestCase):
@@ -500,10 +504,14 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 				"conversion_rate": 1,
 				"vat_emirate": "Dubai",
 				"update_stock": 0,
+				"bill_no": "TM-API-BILL",
+				"bill_date": "2026-11-10",
 				"items": [{"item_code": item, "qty": 1, "rate": 50}],
 			}
 		)
 		self.assertEqual(doc["docstatus"], 0)
+		self.assertEqual(str(doc.get("bill_date") or ""), "2026-11-10")
+		self.assertEqual(doc.get("bill_no"), "TM-API-BILL")
 		submitted = submit({"doctype": "Purchase Invoice", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
 		cancelled = cancel("Purchase Invoice", doc["name"])

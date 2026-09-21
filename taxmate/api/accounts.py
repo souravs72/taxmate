@@ -104,14 +104,27 @@ def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse
 			frappe.throw(_("conversion_rate is required when currency differs from company currency"))
 		ctx["conversion_rate"] = 1.0
 
+	# Callers: InvoiceForm, PurchaseInvoiceForm, PurchaseOrderForm pickItem;
+	# taxmate.tests.test_api.test_item_details_when_item_exists.
+	# Catalog: taxmate.api.accounts.get_item_details. Schema: Item.hs_code,
+	# sac_code, uae_item_type. User: "businesses will not be able to
+	# comfortably transact their business."
 	from erpnext.stock.get_item_details import get_item_details as erp_get_item_details
 
-	return erp_get_item_details(
+	out = erp_get_item_details(
 		ctx,
 		doc=doc,
 		for_validate=for_validate,
 		overwrite_warehouse=overwrite_warehouse,
 	)
+	# Desk fetch_from does not run on SPA insert. Stamp UAE classification
+	# so invoice lines can send HS/SAC without a second Item get.
+	if isinstance(out, dict) and ctx.get("item_code") and frappe.db.exists("Item", ctx["item_code"]):
+		item = frappe.get_cached_doc("Item", ctx["item_code"])
+		for field in ("uae_item_type", "hs_code", "sac_code"):
+			if item.meta.has_field(field) and not out.get(field):
+				out[field] = item.get(field)
+	return out
 
 
 @frappe.whitelist()

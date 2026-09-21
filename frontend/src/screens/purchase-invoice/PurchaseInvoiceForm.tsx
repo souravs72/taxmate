@@ -23,6 +23,9 @@ type Line = {
   expense_account?: string;
   cost_center?: string;
   item_tax_template?: string;
+  uae_item_type?: string;
+  hs_code?: string;
+  sac_code?: string;
 };
 
 type Party = {
@@ -43,6 +46,7 @@ type InvoiceDoc = {
   posting_date?: string;
   due_date?: string;
   bill_no?: string;
+  bill_date?: string;
   company?: string;
   vat_emirate?: string;
   taxes_and_charges?: string;
@@ -77,6 +81,7 @@ export default function PurchaseInvoiceForm() {
   const [postingDate, setPostingDate] = useState(toIsoDate(new Date()));
   const [dueDate, setDueDate] = useState("");
   const [billNo, setBillNo] = useState("");
+  const [billDate, setBillDate] = useState("");
   const [emirate, setEmirate] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
@@ -98,6 +103,7 @@ export default function PurchaseInvoiceForm() {
     setPostingDate(d.posting_date || toIsoDate(new Date()));
     setDueDate(d.due_date || "");
     setBillNo(d.bill_no || "");
+    setBillDate(d.bill_date || "");
     setEmirate(d.vat_emirate || "");
     setTaxTemplate(d.taxes_and_charges || "");
     setPaymentTerms(d.payment_terms_template || "");
@@ -105,6 +111,7 @@ export default function PurchaseInvoiceForm() {
       item_code: l.item_code, item_name: l.item_name, description: l.description,
       qty: l.qty, rate: l.rate, uom: l.uom, expense_account: l.expense_account,
       cost_center: l.cost_center, item_tax_template: l.item_tax_template,
+      uae_item_type: l.uae_item_type, hs_code: l.hs_code, sac_code: l.sac_code,
     })));
   }, [existing.data]);
 
@@ -155,6 +162,9 @@ export default function PurchaseInvoiceForm() {
         expense_account: String(m.expense_account ?? ""),
         cost_center: String(m.cost_center ?? ""),
         item_tax_template: m.item_tax_template ? String(m.item_tax_template) : undefined,
+        uae_item_type: m.uae_item_type ? String(m.uae_item_type) : undefined,
+        hs_code: m.hs_code ? String(m.hs_code) : undefined,
+        sac_code: m.sac_code ? String(m.sac_code) : undefined,
       } : l));
     } catch { /* itemCall.error */ }
   }
@@ -171,6 +181,7 @@ export default function PurchaseInvoiceForm() {
       posting_date: postingDate,
       due_date: dueDate || undefined,
       bill_no: billNo || undefined,
+      bill_date: billDate || undefined,
       company: companyDefaults.company || session.company,
       vat_emirate: emirate,
       taxes_and_charges: taxTemplate || undefined,
@@ -189,6 +200,9 @@ export default function PurchaseInvoiceForm() {
         expense_account: l.expense_account,
         cost_center: l.cost_center,
         item_tax_template: l.item_tax_template,
+        uae_item_type: l.uae_item_type,
+        hs_code: l.hs_code,
+        sac_code: l.sac_code,
       })),
     };
   }
@@ -275,8 +289,11 @@ export default function PurchaseInvoiceForm() {
             <Field label={t("inv.due")}>
               <input className="ctl" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
             </Field>
-            <Field label={t("pi.billNo")}>
-              <input className="ctl" value={billNo} onChange={(e) => setBillNo(e.target.value)} />
+            <Field label={t("pi.billNo")} htmlFor="pi-bill-no">
+              <input id="pi-bill-no" name="bill_no" className="ctl" value={billNo} onChange={(e) => setBillNo(e.target.value)} />
+            </Field>
+            <Field label={t("pi.billDate")} htmlFor="pi-bill-date">
+              <input id="pi-bill-date" name="bill_date" className="ctl" type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} />
             </Field>
           </div>
           <div className="numblk">
@@ -315,6 +332,7 @@ export default function PurchaseInvoiceForm() {
                 <tr>
                   <th style={{ width: 26 }}>#</th>
                   <th>{t("soc.pickItem")}</th>
+                  <th>{t("pi.hsSac")}</th>
                   <th className="n">{t("sod.col.qty")}</th>
                   <th className="n">{t("sod.col.rate")}</th>
                   <th className="n">{t("sod.col.amount")}</th>
@@ -327,6 +345,22 @@ export default function PurchaseInvoiceForm() {
                     <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
                     <td style={{ minWidth: 220 }}>
                       <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    </td>
+                    <td>
+                      {l.uae_item_type !== "Service" && (
+                        <input className="ctl mini" style={{ width: 88 }}
+                          aria-label={t("item.hs")}
+                          placeholder={t("item.hs")}
+                          value={l.hs_code || ""}
+                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
+                      )}
+                      {l.uae_item_type !== "Goods" && (
+                        <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
+                          aria-label={t("item.sac")}
+                          placeholder={t("item.sac")}
+                          value={l.sac_code || ""}
+                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
+                      )}
                     </td>
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}

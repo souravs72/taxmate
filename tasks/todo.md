@@ -280,3 +280,27 @@ Plan: `tasks/plan.md`
 
 **Estimated scope:** M
 
+## Task 20: Purchase Invoice bill date and HS/SAC
+
+**Description:** FTA input VAT needs the supplier’s bill date; e-invoicing needs HS/SAC on lines. The PI form already has bill number, TRN, and emirate — add the missing fields without extra chrome.
+
+**Acceptance criteria:**
+- [x] PI form has supplier bill date next to bill number
+- [x] Line table shows HS and/or SAC from the item (editable); payload sends `hs_code` / `sac_code` / `uae_item_type`
+- [x] Detail shows bill date and HS/SAC
+- [x] `get_item_details` stamps Item `hs_code` / `sac_code` / `uae_item_type`
+- [x] Write-path PI test sets `bill_date`
+
+**Verification:**
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [x] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 19
+
+**Files likely touched:**
+- `frontend/src/screens/purchase-invoice/`
+- `taxmate/api/accounts.py`
+- `taxmate/tests/test_api.py`
+
+**Estimated scope:** S
+

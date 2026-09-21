@@ -12,12 +12,12 @@ import { FormLayout } from "../../components/form";
 
 type Line = {
   name?: string; item_code?: string; item_name?: string; qty?: number; uom?: string;
-  rate?: number; amount?: number;
+  rate?: number; amount?: number; hs_code?: string; sac_code?: string;
 };
 
 type Doc = {
   name: string; supplier?: string; supplier_name?: string; supplier_address?: string;
-  posting_date?: string; due_date?: string; bill_no?: string; company?: string;
+  posting_date?: string; due_date?: string; bill_no?: string; bill_date?: string; company?: string;
   vat_emirate?: string; taxes_and_charges?: string; tax_id?: string;
   payment_terms_template?: string;
   net_total?: number; total_taxes_and_charges?: number; grand_total?: number;
@@ -180,6 +180,7 @@ export default function PurchaseInvoiceDetail() {
             <ReadRow k={t("inv.date")} v={date(data.posting_date)} />
             <ReadRow k={t("inv.due")} v={date(data.due_date)} />
             <ReadRow k={t("pi.billNo")} v={data.bill_no || "—"} />
+            <ReadRow k={t("pi.billDate")} v={date(data.bill_date)} />
             <ReadRow k={t("f.taxTemplate")} v={data.taxes_and_charges || "—"} />
             <ReadRow k={t("f.emirate")} v={data.vat_emirate || "—"} />
           </div>
@@ -202,6 +203,13 @@ export default function PurchaseInvoiceDetail() {
                   <td>
                     <div className="icode">{l.item_code}</div>
                     <div className="iname">{l.item_name}</div>
+                    {(l.hs_code || l.sac_code) && (
+                      <div style={{ fontSize: 11, color: "var(--faint)", marginTop: 2 }}>
+                        {l.hs_code ? `HS ${l.hs_code}` : ""}
+                        {l.hs_code && l.sac_code ? " · " : ""}
+                        {l.sac_code ? `SAC ${l.sac_code}` : ""}
+                      </div>
+                    )}
                   </td>
                   <td className="n">{qty(l.qty)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></td>
                   <td className="n">{money(l.rate)}</td>
