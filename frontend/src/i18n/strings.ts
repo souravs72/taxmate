@@ -374,6 +374,7 @@ const en: Record<string, string> = {
 
   "pr.title": "Purchase receipts",
   "pr.sub": "Goods received. Bill them from a purchase invoice.",
+  "pr.new": "New purchase receipt",
   "pr.search": "Search purchase receipts",
   "pr.empty": "No purchase receipts match these filters.",
   "pr.col.no": "Receipt",
@@ -1255,6 +1256,7 @@ const ar: Record<string, string> = {
 
   "pr.title": "إيصالات الشراء",
   "pr.sub": "بضائع مستلمة. فوّرها من فاتورة الشراء.",
+  "pr.new": "إيصال شراء جديد",
   "pr.search": "ابحث في إيصالات الشراء",
   "pr.empty": "لا توجد إيصالات شراء مطابقة.",
   "pr.col.no": "الإيصال",

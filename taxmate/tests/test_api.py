@@ -616,6 +616,51 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		cancelled = cancel("Journal Entry", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
 
+	def test_purchase_receipt_insert_then_submit(self):
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+		from taxmate.api.workflow import cancel, submit
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		if not frappe.db.exists("Supplier", supplier):
+			self.skipTest(f"Missing supplier {supplier}")
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1}) or SERVICE_ITEM
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0})
+		if not warehouse:
+			self.skipTest("need a leaf warehouse for the company")
+		doc = insert(
+			{
+				"doctype": "Purchase Receipt",
+				"company": company,
+				"supplier": supplier,
+				"posting_date": "2026-09-15",
+				"set_posting_time": 1,
+				"set_warehouse": warehouse,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"buying_price_list": "Standard Buying",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"items": [
+					{
+						"item_code": item,
+						"qty": 1,
+						"rate": 50,
+						"warehouse": warehouse,
+					}
+				],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		submitted = submit({"doctype": "Purchase Receipt", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+		cancelled = cancel("Purchase Receipt", doc["name"])
+		self.assertEqual(cancelled["docstatus"], 2)
+
 	def test_draft_purchase_invoice_from_incoming(self):
 		import json
 

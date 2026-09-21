@@ -46,6 +46,7 @@ import PurchaseOrderDetail from "./screens/purchase-order/PurchaseOrderDetail";
 import PurchaseOrderForm from "./screens/purchase-order/PurchaseOrderForm";
 import PurchaseReceiptList from "./screens/purchase-receipt/PurchaseReceiptList";
 import PurchaseReceiptDetail from "./screens/purchase-receipt/PurchaseReceiptDetail";
+import PurchaseReceiptForm from "./screens/purchase-receipt/PurchaseReceiptForm";
 import JournalEntryList from "./screens/journal-entry/JournalEntryList";
 import JournalEntryDetail from "./screens/journal-entry/JournalEntryDetail";
 import JournalEntryForm from "./screens/journal-entry/JournalEntryForm";
@@ -114,6 +115,7 @@ export default function App() {
           <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
           <Route path="/purchase-orders/:name" element={<PurchaseOrderDetail />} />
           <Route path="/purchase-receipts" element={<PurchaseReceiptList />} />
+          <Route path="/purchase-receipts/new" element={<PurchaseReceiptForm />} />
           <Route path="/purchase-receipts/:name" element={<PurchaseReceiptDetail />} />
           <Route path="/purchase-invoices" element={<PurchaseInvoiceList />} />
           <Route path="/purchase-invoices/new" element={<PurchaseInvoiceForm />} />

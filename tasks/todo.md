@@ -346,3 +346,56 @@ Plan: `tasks/plan.md`
 
 **Estimated scope:** S
 
+## Task 23: Purchase Receipt create
+
+**Description:** Goods can arrive without a PO. List/detail exist; add create/submit so a clerk can post a GRN from the SPA, then bill it.
+
+**Acceptance criteria:**
+- [x] `/purchase-receipts/new` form: supplier, posting date, warehouse, items; insert then `workflow.submit`
+- [x] New button on the PR list (hidden for Viewer)
+- [x] Search still uses `/purchase-receipts`
+- [x] Write-path API test: insert PR then submit
+
+**Verification:**
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [x] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 22
+
+**Files likely touched:**
+- `frontend/src/screens/purchase-receipt/`
+
+**Estimated scope:** M
+
+## Task 24: Delivery Note create
+
+**Description:** Same gap on sales: DN list is view-only except when mapped from a Sales Order.
+
+**Acceptance criteria:**
+- [ ] `/delivery-notes/new` form: customer, date, warehouse, items; insert then `workflow.submit`
+- [ ] New button on the DN list (hidden for Viewer)
+- [ ] Write-path API test: insert DN then submit
+
+**Verification:**
+- [ ] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [ ] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 23
+
+**Estimated scope:** M
+
+## Task 25: Bank Account and Mode of Payment lists
+
+**Description:** Payments already pick a mode; accountants still need to see bank accounts and modes without Desk.
+
+**Acceptance criteria:**
+- [ ] Catalogued list screens for Bank Account and Mode of Payment under Masters
+- [ ] Search routes; rail links; no `/app/`
+
+**Verification:**
+- [ ] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 24
+
+**Estimated scope:** S
+
