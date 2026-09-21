@@ -58,6 +58,7 @@ export default function GlobalSearch() {
     if (!text) {
       setGroups([]);
       setActive(0);
+      setOpen(false);
       return;
     }
     const handle = window.setTimeout(() => {
@@ -69,7 +70,10 @@ export default function GlobalSearch() {
           setActive(0);
           setOpen(true);
         })
-        .catch(() => setGroups([]));
+        .catch(() => {
+          setGroups([]);
+          setOpen(true);
+        });
     }, DEBOUNCE_MS);
     return () => window.clearTimeout(handle);
     // search.call identity churns; q is the trigger.
@@ -85,14 +89,15 @@ export default function GlobalSearch() {
   }
 
   function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (!open && (e.key === "ArrowDown" || e.key === "Enter") && q.trim()) {
+    const text = q.trim();
+    if (!open && (e.key === "ArrowDown" || e.key === "Enter") && text) {
       setOpen(true);
     }
     if (e.key === "Escape") {
       setOpen(false);
       return;
     }
-    if (!flat.length) {
+    if (!text || !flat.length) {
       return;
     }
     if (e.key === "ArrowDown") {
@@ -118,13 +123,22 @@ export default function GlobalSearch() {
         ref={inputRef}
         type="search"
         role="combobox"
+        aria-label={t("a11y.search")}
         aria-expanded={open}
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={flat[active] ? `${listId}-${active}` : undefined}
         placeholder={t("search.placeholder")}
         value={q}
-        onChange={(e) => setQ(e.target.value)}
+        onChange={(e) => {
+          const next = e.target.value;
+          setQ(next);
+          if (!next.trim()) {
+            setGroups([]);
+            setActive(0);
+            setOpen(false);
+          }
+        }}
         onFocus={() => q.trim() && setOpen(true)}
         onKeyDown={onKeyDown}
         autoComplete="off"

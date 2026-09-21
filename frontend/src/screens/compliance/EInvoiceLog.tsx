@@ -1,8 +1,10 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
-import { useDocList } from "../../lib/resource";
-import { useFilteredCount, useListParams } from "../../lib/list";
+import { useDocCount, useDocList } from "../../lib/resource";
+import { useSession } from "../../lib/session";
+import { useListParams, type FilterTuple } from "../../lib/list";
 import { datetime } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
@@ -15,15 +17,24 @@ type Row = {
 
 export default function EInvoiceLog() {
   const nav = useNavigate();
+  const session = useSession();
   const { page, setPage, start } = useListParams(20);
+  const company = session.company;
+  const paused = !session.user || !company;
+  const filters = useMemo<FilterTuple[]>(
+    () => (company ? [["company", "=", company]] : []),
+    [company],
+  );
   const list = useDocList<Row>(DT.eInvoiceLog, {
     fields: ["name", "status", "reference_name", "reference_doctype", "company", "modified", "asp_document_id"],
+    filters,
     orderBy: { field: "modified", order: "desc" },
     limit: 20,
     limit_start: start,
-  });
-  const { total } = useFilteredCount(DT.eInvoiceLog, []);
+  }, paused ? null : undefined);
+  const count = useDocCount(DT.eInvoiceLog, filters, undefined, paused ? null : undefined);
   const rows = list.data ?? [];
+  const total = count.data ?? 0;
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("elog.col.log"), cell: (r) => r.name },
@@ -40,7 +51,7 @@ export default function EInvoiceLog() {
           rows={rows}
           columns={columns}
           rowKey={(r) => r.name}
-          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
+          state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("elog.empty")}
           onOpen={(r) => {
             if (r.reference_doctype === DT.salesInvoice && r.reference_name) {

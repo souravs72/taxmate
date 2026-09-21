@@ -83,6 +83,7 @@ const en: Record<string, string> = {
   "search.hint": "↑↓ navigate · Enter open · Esc close",
   "a11y.toggleMenu": "Toggle menu",
   "a11y.toggleTheme": "Toggle theme",
+  "a11y.search": "Search",
 
   "so.title": "Sales Orders",
   "so.sub": "What you have promised — and how much of it has shipped and been billed.",
@@ -962,6 +963,7 @@ const ar: Record<string, string> = {
   "search.hint": "↑↓ للتنقل · Enter للفتح · Esc للإغلاق",
   "a11y.toggleMenu": "تبديل القائمة",
   "a11y.toggleTheme": "تبديل المظهر",
+  "a11y.search": "بحث",
   "so.title": "أوامر البيع",
   "so.sub": "ما التزمتَ بتسليمه — وكم منه شُحن وفُوتر.",
   "so.new": "أمر بيع جديد",
