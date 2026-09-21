@@ -48,7 +48,7 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 		if fiscal:
 			out["fiscal_year"] = fiscal.name
 	except FiscalYearError:
-		pass
+		out["fiscal_year"] = None
 	return out
 
 
@@ -107,11 +107,6 @@ def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse
 			frappe.throw(_("conversion_rate is required when currency differs from company currency"))
 		ctx["conversion_rate"] = 1.0
 
-	# Callers: InvoiceForm, PurchaseInvoiceForm, PurchaseOrderForm pickItem;
-	# taxmate.tests.test_api.test_item_details_when_item_exists.
-	# Catalog: taxmate.api.accounts.get_item_details. Schema: Item.hs_code,
-	# sac_code, uae_item_type. User: "businesses will not be able to
-	# comfortably transact their business."
 	from erpnext.stock.get_item_details import get_item_details as erp_get_item_details
 
 	out = erp_get_item_details(

@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /ct-filings/:name. Callers: CT list row, search.
- * API: taxmate.api.resource.get parent UAE CT Filing Log (adjustments nested).
- * Schema: tax_payable, taxable_profit, revenue, expenses, adjustments child UAE CT Adjustment Row.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * Corporate tax filing detail.
  */
 import { useNavigate, useParams } from "react-router-dom";
 

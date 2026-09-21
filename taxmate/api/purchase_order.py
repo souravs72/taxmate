@@ -1,13 +1,7 @@
 """Purchase Order mappers for the TaxMate SPA.
 
-1. Callers: taxmate.api.get_catalog actions, PurchaseOrderDetail convert
-   buttons, taxmate.tests.test_api write path.
-2. No taxmate/api/purchase_order.py exists (Glob empty). ERPNext mappers
-   live in erpnext.buying.doctype.purchase_order.purchase_order.
-3. Schema: submitted Purchase Order name → unsaved Purchase Receipt or
-   Purchase Invoice dict (insert separately). per_received / per_billed.
-4. User: "a lot of frontend screens are not complete in the sense that the
-   businesses will not be able to comfortably transact their business."
+Wrap ERPNext PO → Purchase Receipt / Purchase Invoice mappers. The result is
+unsaved; insert with taxmate.api.resource.insert, then submit.
 """
 
 from __future__ import annotations

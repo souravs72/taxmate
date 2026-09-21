@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /vat-201. Callers: rail, dashboard overdue tile, awesome search.
- * API: taxmate.api.resource.get_list / get_count / group_by_count on UAE VAT 201 Filing Log.
- * Schema: status Draft|Reviewed|Filed; deadline_status Upcoming|Due|Overdue|Filed; net_vat_due.
- * User: "Task 14: VAT 201 list + detail (then wire dashboard rows to it)"
+ * VAT 201 filing list.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";

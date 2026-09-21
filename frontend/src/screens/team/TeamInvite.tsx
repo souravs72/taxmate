@@ -1,10 +1,5 @@
 /**
  * Invite a teammate. Catalog invite_user — User is not a resource doctype.
- * Importers: App.tsx /team/new. Owner only.
- * Schema: email, first_name, last_name, mobile_no, spa_role.
- * User: "as many fields possible as necessary. Not just the mandatory fields."
- * "No verbosity on any screen." "frontend will not have Administrator role.
- * Instead Admin role."
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

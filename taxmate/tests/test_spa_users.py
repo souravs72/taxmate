@@ -1,10 +1,6 @@
 """SPA team admin tests: invite then set role. User stays off catalog.
 
-Importers/callers: bench run-tests --module taxmate.tests.test_spa_users.
-API: taxmate.api.users.invite_user / set_user_role / list_users / get_session.spa_role.
-Schema: User name=email, spa_role owner|accountant|clerk|viewer, enabled 0|1.
-User: "Keep users and roles simplified … 3 or 4 roles in the frontend for
-the users. Please follow the same automated implementation … and commit."
+Run: bench --site taxmate.site run-tests --module taxmate.tests.test_spa_users
 """
 
 from __future__ import annotations
@@ -213,12 +209,7 @@ class TestSpaUsers(FrappeTestCase):
 			self._delete(created["name"])
 
 	def test_invited_clerk_can_read_books(self):
-		"""Callers: bench run-tests --module taxmate.tests.test_spa_users.
-		API: frappe.has_permission after invite_user. Schema: Custom DocPerm
-		parent=Sales Invoice|Journal Entry, role=TaxMate Clerk|Viewer.
-		User: "Review the changes using best frappe skills and react skills
-		and commit and push. Create a pr to version-16"
-		"""
+		"""Invited clerk can read Sales Invoice / Journal Entry."""
 		clerk = self._invite("clerk")
 		viewer = self._invite("viewer")
 		try:

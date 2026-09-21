@@ -1,9 +1,7 @@
 """Four TaxMate SPA roles. Marker Role.role_name only — no ERPNext Desk roles.
 
-Importers: taxmate.install.after_install, taxmate.api.users, taxmate.api.get_session.
-Schema: spa_role owner|accountant|clerk|viewer; Role.desk_access=0 on every marker.
+spa_role is owner, accountant, clerk, or viewer. Marker Roles have desk_access=0.
 The Frappe Administrator user keeps System Manager and Desk. SPA Admin is TaxMate Owner.
-User: frontend has Admin, not Administrator; none of the four SPA roles open Desk.
 """
 
 from __future__ import annotations
@@ -240,10 +238,6 @@ def _perm_values(spa: str, doctype: str) -> dict[str, int]:
 
 
 def _books_perms_ready() -> bool:
-	# Callers: _ensure_books_perms (install.py after_install, TestSpaUsers.setUp).
-	# Schema: Custom DocPerm parent/role/permlevel + create/submit/write flags.
-	# User: "Review the changes using best frappe skills and react skills and commit
-	# and push. Create a pr to version-16"
 	clerk = MARKER["clerk"]
 	viewer = MARKER["viewer"]
 	return (

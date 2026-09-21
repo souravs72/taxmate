@@ -91,7 +91,7 @@ def get_uae_readiness_checklist(company: str) -> dict:
 		_item(
 			"e_invoice_enabled",
 			_("UAE E-Invoicing enabled"),
-			_has_company_check(company, "uae_e_invoice_enabled"),
+			_has_company_field(company, "uae_e_invoice_enabled"),
 			_("Enable UAE E-Invoicing on the Company when ready to generate PINT-AE documents."),
 			"/app/company/" + company,
 		),
@@ -194,12 +194,6 @@ def enforce_e_invoice_readiness(company: str) -> None:
 
 
 def _has_company_field(company: str, fieldname: str) -> bool:
-	if not frappe.db.has_column("Company", fieldname):
-		return False
-	return bool(frappe.db.get_value("Company", company, fieldname))
-
-
-def _has_company_check(company: str, fieldname: str) -> bool:
 	if not frappe.db.has_column("Company", fieldname):
 		return False
 	return bool(frappe.db.get_value("Company", company, fieldname))

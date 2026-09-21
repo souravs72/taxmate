@@ -49,9 +49,6 @@ const RAIL_KEY = "taxmate-rail";
 const OPEN_KEY = "taxmate-nav-open";
 
 function loadOpen(): Record<string, boolean> {
-  // Callers: AppShell grouped rail. Schema: localStorage taxmate-nav-open JSON object.
-  // User: "Review the changes using best frappe skills and react skills and commit
-  // and push. Create a pr to version-16"
   try {
     const raw = localStorage.getItem(OPEN_KEY);
     if (!raw) return {};

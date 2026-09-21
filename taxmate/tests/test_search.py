@@ -1,10 +1,5 @@
 """TaxMate AwesomeBar allowlist + SPA awesome search API.
 
-Importers/callers: unittest via bench run-tests; taxmate.api.search.awesome
-(whitelist) called by frontend GlobalSearch via METHOD.awesomeSearch.
-Schema: awesome(text, limit) → {query, groups:[{title, results:[{type,route,...}]}]}.
-User: "SeaRCH ANYTHING BAR in the frontend should work like the awesomebar."
-
 Run: bench --site taxmate.site run-tests --module taxmate.tests.test_search
 """
 

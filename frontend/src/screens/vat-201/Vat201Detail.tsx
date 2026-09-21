@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /vat-201/:name. Callers: list row, dashboard deadline queue, search.
- * API: taxmate.api.resource.get (parent includes boxes); generate_vat_201; taxmate.api.workflow.submit.
- * Schema: UAE VAT 201 Filing Log + child UAE VAT 201 Box Detail (box_no, legend, amount, vat_amount).
- * User: "Task 14: VAT 201 list + detail (then wire dashboard rows to it)"
+ * VAT 201 filing detail. Catalog get, generate_vat_201, workflow.submit.
  */
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";

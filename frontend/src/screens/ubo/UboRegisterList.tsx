@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /ubo. Callers: rail, search.
- * API: catalog get_list/get_count/group_by on UAE UBO Register.
- * Schema: status Compliant|Update Reporting Due|Overdue; licence_authority; last_reviewed_on; name=company.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * UBO register list.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";

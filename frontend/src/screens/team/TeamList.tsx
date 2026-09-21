@@ -1,8 +1,5 @@
 /**
  * Team list. Catalog list_users — User is not a resource doctype.
- * Importers: App.tsx /team. Callers: rail nav.team, search /team.
- * Schema: {name, email, full_name, enabled, spa_role}.
- * User: "how to manage the Users in the company and their roles?"
  */
 import { useNavigate } from "react-router-dom";
 import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";

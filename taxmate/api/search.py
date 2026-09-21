@@ -1,11 +1,6 @@
-"""AwesomeBar-style search for the TaxMate SPA only.
+"""AwesomeBar-style search for the TaxMate SPA.
 
-Importers: frontend GlobalSearch via METHOD.awesomeSearch / catalog action
-awesome_search. Whitelist: taxmate.api.search.awesome.
-Schema: {query, groups:[{title, results:[{type, doctype?, name?, title, description?, route}]}]}.
-Routes are SPA paths under /taxmate (e.g. /orders/…); never Desk /app/….
-User: "The frontend searchbar should navigate to /taxmate endpoints only …
-similar to awesomebar. But not on desk endpoints"
+Returns grouped hits with routes under /taxmate only, never Desk /app/.
 """
 
 from __future__ import annotations

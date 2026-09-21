@@ -1,9 +1,6 @@
 /**
  * TaxMate SPA root router.
- * Importers: frontend entry (main.tsx). Callers: browser at /taxmate.
- * Routes: /orders (Sales Order), /customers, /suppliers, /invoices, /payments, /receivables.
- * User: "I can't see /orders (Sales Order in the frontend)." + revert sidebar design;
- * search should navigate to /taxmate endpoints only, not desk.
+ * Routes under /taxmate: orders, customers, suppliers, invoices, payments, and the rest of the books.
  */
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";

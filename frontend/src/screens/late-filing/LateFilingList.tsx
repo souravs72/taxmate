@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /late-filings. Callers: rail, search.
- * API: catalog get_list/get_count/group_by on UAE Late Filing Notice.
- * Schema: obligation VAT 201|Corporate Tax|ESR Notification|ESR Report; status Upcoming|Due|Overdue|Cleared; due_date; days_late.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * Late filing notice list.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";

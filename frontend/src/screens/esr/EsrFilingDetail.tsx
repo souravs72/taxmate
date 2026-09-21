@@ -1,9 +1,5 @@
 /**
- * Importers: App.tsx /esr/:name. Callers: ESR list, search.
- * API: catalog get parent UAE ESR Filing (activities nested UAE ESR Activity Row).
- * Schema: status, notification/report dates, has_relevant_activity, activities[].activity.
- * User: "Do we need everything? or is this verbose? If verbose, make it clean
- * and do similar for all other screens where verbosity is present."
+ * ESR filing detail.
  */
 import { useNavigate, useParams } from "react-router-dom";
 

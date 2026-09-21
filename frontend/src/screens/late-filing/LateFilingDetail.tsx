@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /late-filings/:name. Callers: late-filing list, search.
- * API: catalog get parent UAE Late Filing Notice.
- * Schema: obligation, status, due_date, days_late, source_doctype, source_name, guidance.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * Late filing notice detail.
  */
 import { useNavigate, useParams } from "react-router-dom";
 

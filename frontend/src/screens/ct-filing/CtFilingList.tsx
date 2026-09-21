@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /ct-filings. Callers: rail, awesome search.
- * API: taxmate.api.resource.get_list / get_count / group_by_count on UAE CT Filing Log.
- * Schema: period_start/end, filing_due_date, deadline_status, tax_payable, taxable_profit.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * Corporate tax filing list.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";

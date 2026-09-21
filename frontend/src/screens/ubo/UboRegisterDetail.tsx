@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /ubo/:name. Callers: UBO list, search.
- * API: catalog get parent UAE UBO Register (beneficial_owners nested UAE UBO Owner).
- * Schema: owners full_name, ownership_percentage, nationality, is_active, control_basis.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * UBO register detail.
  */
 import { useNavigate, useParams } from "react-router-dom";
 

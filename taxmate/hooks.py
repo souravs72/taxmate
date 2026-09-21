@@ -1,7 +1,7 @@
 app_name = "taxmate"
 app_title = "TaxMate"
 app_publisher = "Sourav Singh"
-app_description = "A cloud accounting SaaS platform for businesses to manage bookkeeping, taxation, and financial reporting."
+app_description = "UAE accounting on ERPNext: VAT, e-invoicing, corporate tax, and compliance tracking."
 app_email = "sourav@ascratech.com"
 app_license = "mit"
 
@@ -68,13 +68,9 @@ doctype_list_js = {
 # Home Pages
 # ----------
 
-# Importers: Frappe boot / login (get_home_page_via_hooks). Callers: Website User
-# login after invite. Schema: User.redirect_url, User.default_app, Role.desk_access=0
-# on TaxMate markers. User: "Review the changes using best frappe skills and react
-# skills and commit and push. Create a pr to version-16"
-# Do not set role_home_page: Administrator's get_roles() includes every Role, so
-# that hook would send Desk Administrator to /taxmate. No other file defines
-# role_home_page (grep taxmate/). website_user_home_page returns None for
+# SPA users land on /taxmate after login. Do not set role_home_page:
+# Administrator's get_roles() includes every Role, so that hook would send
+# Desk Administrator to /taxmate. website_user_home_page returns None for
 # Administrator so Desk login is unchanged.
 get_website_user_home_page = "taxmate.setup.spa_roles.website_user_home_page"
 

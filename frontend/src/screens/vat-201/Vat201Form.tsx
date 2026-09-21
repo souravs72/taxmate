@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /vat-201/new. Callers: list New button.
- * API: catalog get_or_create_vat_201 (company, period_start, period_end) → filing name.
- * Schema: UAE VAT 201 Filing Log unique on company + period; returns existing Draft if present.
- * User: "Task 14: VAT 201 list + detail (then wire dashboard rows to it)"
+ * New VAT 201 filing. Catalog get_or_create_vat_201.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";

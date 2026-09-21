@@ -1,8 +1,5 @@
 /**
  * Create a Purchase Order. Catalog insert then workflow.submit.
- * Importers: App.tsx /purchase-orders/new. Callers: PO list New.
- * Schema: supplier, transaction_date, schedule_date, taxes_and_charges, items.
- * User: "businesses will not be able to comfortably transact their business."
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";

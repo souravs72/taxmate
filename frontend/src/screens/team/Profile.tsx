@@ -1,9 +1,5 @@
 /**
  * Own profile. Catalog get_profile / update_profile / change_password.
- * Importers: App.tsx /profile. Callers: rail footer, search /profile.
- * Schema: User first_name, last_name, email, mobile_no; password via change_password.
- * User: "how will someone manage password, and other things when they login?
- * And other details such as phone, etc?"
  */
 import { useEffect, useState } from "react";
 import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";

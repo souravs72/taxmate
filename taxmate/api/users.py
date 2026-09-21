@@ -1,16 +1,7 @@
 """SPA team admin. User is not a catalog resource.
 
-1. Callers: taxmate/api/__init__.py get_catalog actions (~line 158) and
-   get_session; frontend METHOD.listUsers / inviteUser; test_spa_users.py.
-2. No taxmate/api/users.py exists (Glob empty). User is denied on
-   resource.is_allowed_doctype — this is a dedicated whitelist, not CRUD.
-3. User DocType fields: name=email (e.g. clerk@example.com), first_name,
-   last_name, enabled 0|1, user_type=System User, send_welcome_email,
-   last_active datetime, roles[].role. spa_role owner|accountant|clerk|viewer.
-4. User: "how to manage the Users in the company and their roles? Keep
-   users and roles simplified - an accounts business may not need every
-   role. So backend could use a combination of role permissions for a
-   frontend role. And we could have 3 or 4 roles in the frontend."
+Invite, role, and enablement go through taxmate.api.users (see get_catalog).
+SPA roles are owner, accountant, clerk, and viewer mapped onto marker Roles.
 """
 
 from __future__ import annotations
@@ -192,10 +183,6 @@ def update_profile(
 	last_name: str | None = None,
 	mobile_no: str | None = None,
 ) -> dict[str, Any]:
-	# Callers: Profile.tsx via taxmate.api.users.update_profile (catalog). Schema:
-	# User.first_name, last_name, mobile_no. Guest is already blocked by require_login.
-	# User: "Review the changes using best frappe skills and react skills and commit
-	# and push. Create a pr to version-16"
 	require_login()
 	user = frappe.session.user
 	first_name = (first_name or "").strip()

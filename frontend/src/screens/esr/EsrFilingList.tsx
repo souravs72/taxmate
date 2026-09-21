@@ -1,8 +1,5 @@
 /**
- * Importers: App.tsx /esr. Callers: rail, search.
- * API: catalog get_list/get_count/group_by on UAE ESR Filing.
- * Schema: status, financial_year_start/end, notification_due_date, report_due_date, has_relevant_activity.
- * User: "Task 15: CT filing, ESR, UBO, late filing — one DocType list at a time"
+ * ESR filing list.
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";

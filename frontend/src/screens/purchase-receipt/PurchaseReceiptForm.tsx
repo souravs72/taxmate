@@ -1,8 +1,5 @@
 /**
  * Create a Purchase Receipt. Catalog insert then workflow.submit.
- * Importers: App.tsx /purchase-receipts/new. Callers: PR list New.
- * Schema: supplier, posting_date, set_warehouse, taxes_and_charges, items.
- * User: "businesses will not be able to comfortably transact their business."
  */
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
