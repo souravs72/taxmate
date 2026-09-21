@@ -253,7 +253,7 @@ def get_ct_settings(company: str) -> dict[str, Any]:
 
 
 def fetch_gl_totals(company: str, period_start, period_end) -> dict[str, float]:
-	"""Income − expense from posted GL (cancelled rows excluded)."""
+	"""Income - expense from posted GL (cancelled rows excluded)."""
 	if not frappe.db.exists("DocType", "GL Entry"):
 		return {"revenue": 0.0, "expenses": 0.0, "accounting_profit": 0.0}
 	row = frappe.db.sql(

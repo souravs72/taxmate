@@ -41,8 +41,8 @@ export default defineConfig({
   server: {
     // `npm run dev` proxies to the local bench so the session cookie works.
     proxy: {
-      "^/(api|assets|files|private)": {
-        target: "http://localhost:8000",
+      "^/(api|assets|files|private|login)": {
+        target: "http://localhost:8001",
         changeOrigin: false,
       },
     },

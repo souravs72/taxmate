@@ -46,6 +46,8 @@ class UAEVAT201FilingLog(Document):
 		self.filed_on = now_datetime()
 		self.filed_by = frappe.session.user
 		self.deadline_status = "Filed"
+		if hasattr(self, "status"):
+			self.status = "Filed"
 
 	# on_cancel: no extra handling needed -- Frappe moves docstatus to 2 and
 	# child table rows (the boxes) cancel with the parent automatically.
@@ -144,7 +146,9 @@ class UAEVAT201FilingLog(Document):
 			self.company_trn = group_trn
 			if required and not group_trn:
 				frappe.throw(
-					_("Set Tax ID (TRN) on the representative company so the VAT Group TIN can be snapshotted."),
+					_(
+						"Set Tax ID (TRN) on the representative company so the VAT Group TIN can be snapshotted."
+					),
 					title=_("VAT Group TIN Required"),
 				)
 			return
@@ -196,7 +200,11 @@ class UAEVAT201FilingLog(Document):
 
 		companies = members_in_period(self.vat_group, self.period_start, self.period_end)
 		if self.company not in companies:
-			frappe.throw(_("Representative {0} is not a member of {1} in this period.").format(self.company, self.vat_group))
+			frappe.throw(
+				_("Representative {0} is not a member of {1} in this period.").format(
+					self.company, self.vat_group
+				)
+			)
 		results = []
 		box_6 = box_6_vat = box_7 = box_7_vat = 0.0
 		for company in companies:
@@ -207,11 +215,7 @@ class UAEVAT201FilingLog(Document):
 			box_7 += to_aed(customs["box_7_amount"], rate)
 			box_7_vat += to_aed(customs["box_7_vat_amount"], rate)
 			if self.get("boxes_6_7_manual"):
-				results.append(
-					compute_vat_201(
-						company, self.period_start, self.period_end, 0, 0, 0, 0
-					)
-				)
+				results.append(compute_vat_201(company, self.period_start, self.period_end, 0, 0, 0, 0))
 			else:
 				results.append(
 					compute_vat_201(
@@ -232,8 +236,24 @@ class UAEVAT201FilingLog(Document):
 		detail = merge_vat_201_boxes(results)
 		if self.get("boxes_6_7_manual"):
 			detail = [row for row in detail if row["box_no"] not in {"6", "7"}]
-			detail.append({"box_no": "6", "legend": _("Goods imported into the UAE"), "amount": self.box_6_amount or 0, "vat_amount": self.box_6_vat_amount or 0, "is_subtotal": 0})
-			detail.append({"box_no": "7", "legend": _("Adjustments to goods imported into the UAE"), "amount": self.box_7_amount or 0, "vat_amount": self.box_7_vat_amount or 0, "is_subtotal": 0})
+			detail.append(
+				{
+					"box_no": "6",
+					"legend": _("Goods imported into the UAE"),
+					"amount": self.box_6_amount or 0,
+					"vat_amount": self.box_6_vat_amount or 0,
+					"is_subtotal": 0,
+				}
+			)
+			detail.append(
+				{
+					"box_no": "7",
+					"legend": _("Adjustments to goods imported into the UAE"),
+					"amount": self.box_7_amount or 0,
+					"vat_amount": self.box_7_vat_amount or 0,
+					"is_subtotal": 0,
+				}
+			)
 		boxes, totals = append_vat_201_totals(detail)
 		return {
 			"boxes": boxes,
@@ -299,3 +319,12 @@ def get_or_create(company: str, period_start, period_end) -> str:
 	)
 	doc.insert()
 	return doc.name
+
+
+@frappe.whitelist()
+def generate_filing(name: str):
+	"""Recompute boxes on a Draft VAT 201. Catalog action generate_vat_201."""
+	if not name:
+		frappe.throw(_("Filing name is required."))
+	doc = frappe.get_doc("UAE VAT 201 Filing Log", name)
+	return doc.generate()

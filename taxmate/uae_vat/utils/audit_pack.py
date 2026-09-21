@@ -56,10 +56,7 @@ def collect_pack_files(company: str, period_start, period_end) -> list[tuple[str
 
 
 def _manifest(company, period_start, period_end) -> str:
-	return (
-		f"Company: {company}\nPeriod: {period_start} to {period_end}\n\n"
-		f"{MANIFEST_NOTE}\n"
-	)
+	return f"Company: {company}\nPeriod: {period_start} to {period_end}\n\n{MANIFEST_NOTE}\n"
 
 
 def _residency_note() -> str:
@@ -84,7 +81,9 @@ def _residency_note() -> str:
 def _invoices_csv(company, period_start, period_end) -> str:
 	buf = io.StringIO()
 	writer = csv.writer(buf)
-	writer.writerow(["Doctype", "Name", "Posting Date", "Party", "Emirate", "Net (AED)", "UAE VAT (AED)", "Is Return"])
+	writer.writerow(
+		["Doctype", "Name", "Posting Date", "Party", "Emirate", "Net (AED)", "UAE VAT (AED)", "Is Return"]
+	)
 	for row in list_period_invoices(company, period_start, period_end):
 		writer.writerow(
 			[
@@ -138,7 +137,14 @@ def _ubo_csv(company) -> str:
 	for row in frappe.get_all(
 		"UAE UBO Owner",
 		filters={"parent": register, "parenttype": "UAE UBO Register"},
-		fields=["full_name", "person_type", "control_basis", "ownership_percentage", "is_active", "became_ubo_on"],
+		fields=[
+			"full_name",
+			"person_type",
+			"control_basis",
+			"ownership_percentage",
+			"is_active",
+			"became_ubo_on",
+		],
 	):
 		writer.writerow(
 			[

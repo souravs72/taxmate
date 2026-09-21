@@ -19,6 +19,7 @@ from taxmate.api.resource import (
 @frappe.whitelist()
 def get_defaults(company: str | None = None) -> dict[str, Any]:
 	"""Company, currency, and fiscal year for new vouchers."""
+	require_login()
 	company = company or frappe.defaults.get_user_default("Company")
 	if not company:
 		return {"company": None}
@@ -29,7 +30,7 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 	row = frappe.db.get_value(
 		"Company",
 		company,
-		["name", "default_currency", "country", "tax_id"],
+		["name", "default_currency", "country", "tax_id", "cost_center"],
 		as_dict=True,
 	)
 	out = {
@@ -37,6 +38,7 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 		"currency": row.default_currency,
 		"country": row.country,
 		"tax_id": row.tax_id,
+		"cost_center": row.get("cost_center"),
 		"fiscal_year": None,
 	}
 	from erpnext.accounts.utils import FiscalYearError, get_fiscal_year
@@ -46,7 +48,7 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 		if fiscal:
 			out["fiscal_year"] = fiscal.name
 	except FiscalYearError:
-		pass
+		out["fiscal_year"] = None
 	return out
 
 
@@ -62,6 +64,7 @@ def get_party_details(
 ):
 	if not party:
 		frappe.throw(_("party is required"))
+	require_login()
 	assert_allowed_doctype(party_type)
 	company = company or frappe.defaults.get_user_default("Company")
 	assert_company_read(company)
@@ -83,17 +86,22 @@ def get_party_details(
 
 @frappe.whitelist()
 def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse=True):
+	require_login()
 	ctx = _parse(ctx) or {}
 	if not ctx.get("item_code"):
 		frappe.throw(_("item_code is required"))
 	assert_allowed_doctype("Item")
+	if not frappe.has_permission("Item", "read", ctx["item_code"]):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	assert_company_read(ctx.get("company"))
 
 	if ctx.get("company") and not ctx.get("currency"):
 		ctx["currency"] = frappe.get_cached_value("Company", ctx["company"], "default_currency")
 	if ctx.get("conversion_rate") in (None, ""):
 		company_currency = (
-			frappe.get_cached_value("Company", ctx["company"], "default_currency") if ctx.get("company") else None
+			frappe.get_cached_value("Company", ctx["company"], "default_currency")
+			if ctx.get("company")
+			else None
 		)
 		if ctx.get("currency") and company_currency and ctx["currency"] != company_currency:
 			frappe.throw(_("conversion_rate is required when currency differs from company currency"))
@@ -101,16 +109,25 @@ def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse
 
 	from erpnext.stock.get_item_details import get_item_details as erp_get_item_details
 
-	return erp_get_item_details(
+	out = erp_get_item_details(
 		ctx,
 		doc=doc,
 		for_validate=for_validate,
 		overwrite_warehouse=overwrite_warehouse,
 	)
+	# Desk fetch_from does not run on SPA insert. Stamp UAE classification
+	# so invoice lines can send HS/SAC without a second Item get.
+	if isinstance(out, dict) and ctx.get("item_code") and frappe.db.exists("Item", ctx["item_code"]):
+		item = frappe.get_cached_doc("Item", ctx["item_code"])
+		for field in ("uae_item_type", "hs_code", "sac_code"):
+			if item.meta.has_field(field) and not out.get(field):
+				out[field] = item.get(field)
+	return out
 
 
 @frappe.whitelist()
 def get_account_tree(company: str | None = None, parent: str | None = None, include_disabled: bool = False):
+	require_login()
 	assert_allowed_doctype("Account")
 	if not frappe.has_permission("Account", "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
@@ -133,6 +150,7 @@ def get_account_tree(company: str | None = None, parent: str | None = None, incl
 
 @frappe.whitelist()
 def get_outstanding_invoices(company, party_type, party, party_account=None):
+	require_login()
 	assert_allowed_doctype("Payment Entry")
 	assert_allowed_doctype(party_type)
 	if not company:
@@ -164,6 +182,7 @@ def get_outstanding_invoices(company, party_type, party, party_account=None):
 
 @frappe.whitelist(methods=["POST"])
 def get_payment_entry(dt, dn, party_amount=None, bank_account=None, payment_type=None):
+	require_login()
 	assert_allowed_doctype(dt)
 	assert_allowed_doctype("Payment Entry")
 	doc = frappe.get_doc(dt, dn)
@@ -186,6 +205,7 @@ def get_payment_entry(dt, dn, party_amount=None, bank_account=None, payment_type
 
 @frappe.whitelist(methods=["POST"])
 def make_sales_return(source_name: str):
+	require_login()
 	assert_allowed_doctype("Sales Invoice")
 	doc = frappe.get_doc("Sales Invoice", source_name)
 	doc.check_permission("read")
@@ -196,6 +216,7 @@ def make_sales_return(source_name: str):
 
 @frappe.whitelist(methods=["POST"])
 def make_purchase_return(source_name: str):
+	require_login()
 	assert_allowed_doctype("Purchase Invoice")
 	doc = frappe.get_doc("Purchase Invoice", source_name)
 	doc.check_permission("read")
@@ -205,7 +226,9 @@ def make_purchase_return(source_name: str):
 
 
 @frappe.whitelist()
-def resolve_payment_accounts(company: str, payment_type: str, mode_of_payment: str, party_type: str, party: str):
+def resolve_payment_accounts(
+	company: str, payment_type: str, mode_of_payment: str, party_type: str, party: str
+):
 	"""Both legs of a Payment Entry, without the user ever seeing an account.
 
 	The Payment Entry controller never reads ``mode_of_payment`` -- ``paid_from``
@@ -240,9 +263,7 @@ def resolve_payment_accounts(company: str, payment_type: str, mode_of_payment: s
 	party_details = pe_party_details(company, party_type, party, frappe.utils.today())
 
 	# Bank / cash leg.
-	bank = get_default_bank_cash_account(
-		company, mode_of_payment=mode_of_payment, fetch_balance=False
-	) or {}
+	bank = get_default_bank_cash_account(company, mode_of_payment=mode_of_payment, fetch_balance=False) or {}
 	bank_account = bank.get("account")
 	if not bank_account:
 		frappe.throw(

@@ -12,13 +12,9 @@ from frappe.client import get_count as client_get_count
 from frappe.client import get_list as client_get_list
 from frappe.client import insert as client_insert
 from frappe.client import save as client_save
+from frappe.utils import cint
 
-from taxmate.search import (
-	ALLOWED_SEARCH_DOCTYPES,
-	ALLOWED_SEARCH_MODULES,
-	DENIED_SEARCH_DOCTYPES,
-	GLOBAL_SEARCH_DOCTYPES,
-)
+from taxmate.search import DENIED_SEARCH_DOCTYPES
 
 
 def is_allowed_doctype(doctype: str) -> bool:
@@ -29,10 +25,9 @@ def is_allowed_doctype(doctype: str) -> bool:
 	# Child tables are not in Desk search; listing them skips parent row permissions.
 	if frappe.get_meta(doctype).istable:
 		return False
-	if doctype in ALLOWED_SEARCH_DOCTYPES or doctype in GLOBAL_SEARCH_DOCTYPES:
-		return True
-	module = frappe.db.get_value("DocType", doctype, "module")
-	return module in ALLOWED_SEARCH_MODULES
+	from taxmate.api import catalog_doctypes
+
+	return doctype in catalog_doctypes()
 
 
 def assert_allowed_doctype(doctype: str) -> None:
@@ -82,6 +77,17 @@ def _require_doc(doc):
 	return doc
 
 
+def _permission_aware_count(doctype, filters=None, or_filters=None) -> int:
+	rows = frappe.get_list(
+		doctype,
+		filters=filters,
+		or_filters=or_filters,
+		fields=[{"COUNT": "*", "as": "total"}],
+		limit=1,
+	)
+	return cint(rows[0].total) if rows else 0
+
+
 @frappe.whitelist()
 def get_list(
 	doctype,
@@ -92,7 +98,9 @@ def get_list(
 	limit_page_length=20,
 	or_filters=None,
 	parent=None,
+	group_by=None,
 ):
+	require_login()
 	assert_allowed_doctype(doctype)
 	return client_get_list(
 		doctype,
@@ -103,39 +111,62 @@ def get_list(
 		limit_page_length=limit_page_length,
 		or_filters=or_filters,
 		parent=parent,
+		group_by=group_by,
 	)
 
 
 @frappe.whitelist()
-def get_count(doctype, filters=None):
+def get_count(doctype, filters=None, or_filters=None):
+	require_login()
 	assert_allowed_doctype(doctype)
+	or_filters = _parse(or_filters)
+	if or_filters:
+		return _permission_aware_count(doctype, filters=_parse(filters), or_filters=or_filters)
 	return client_get_count(doctype, filters=filters)
 
 
 @frappe.whitelist()
+def group_by_count(doctype: str, current_filters=None, field: str = "status"):
+	require_login()
+	assert_allowed_doctype(doctype)
+	from frappe.desk.listview import get_group_by_count as desk_group_by_count
+
+	if current_filters is None:
+		current_filters = "[]"
+	elif not isinstance(current_filters, str):
+		current_filters = frappe.as_json(current_filters)
+	return desk_group_by_count(doctype, current_filters, field)
+
+
+@frappe.whitelist()
 def get(doctype, name=None, filters=None, parent=None):
+	require_login()
 	assert_allowed_doctype(doctype)
 	return client_get(doctype, name=name, filters=filters, parent=parent)
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def insert(doc=None):
+	require_login()
 	return client_insert(_require_doc(doc))
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def save(doc):
+	require_login()
 	return client_save(_require_doc(doc))
 
 
 @frappe.whitelist(methods=["DELETE", "POST"])
 def delete(doctype, name):
+	require_login()
 	assert_allowed_doctype(doctype)
 	return client_delete(doctype, name)
 
 
 @frappe.whitelist()
 def get_meta(doctype: str) -> dict[str, Any]:
+	require_login()
 	assert_allowed_doctype(doctype)
 	if not frappe.has_permission(doctype, "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
@@ -186,6 +217,7 @@ def search_link(
 	searchfield: str | None = None,
 	reference_doctype: str | None = None,
 ):
+	require_login()
 	assert_allowed_doctype(doctype)
 	from frappe.desk.search import search_link as desk_search_link
 

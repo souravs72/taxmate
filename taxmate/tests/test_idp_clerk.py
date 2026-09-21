@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import unittest
 
-from taxmate.idp.clerk import IDP_ADMIN_SEARCH_DOCTYPES, EXTRACT_PROMPT, _reject_new_items
+from taxmate.idp.clerk import EXTRACT_PROMPT, IDP_ADMIN_SEARCH_DOCTYPES, _reject_new_items
 from taxmate.search import ALLOWED_SEARCH_DOCTYPES
 
 

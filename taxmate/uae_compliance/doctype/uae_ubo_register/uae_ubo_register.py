@@ -29,21 +29,21 @@ class UAEUBORegister(Document):
 
 	def _validate_owner_rows(self):
 		for row in self.beneficial_owners:
-			if not chain_resolves_to_natural_person(row.get("person_type"), row.get("ultimate_natural_person")):
+			if not chain_resolves_to_natural_person(
+				row.get("person_type"), row.get("ultimate_natural_person")
+			):
 				frappe.throw(
 					_(
 						"Row #{0}: {1} is a legal entity — name the natural person the control chain resolves to."
 					).format(row.idx, row.full_name)
 				)
 			if not nominee_named(cint(row.get("is_nominee")), row.get("nominee_for")):
-				frappe.throw(
-					_("Row #{0}: name who {1} is a nominee for.").format(row.idx, row.full_name)
-				)
+				frappe.throw(_("Row #{0}: name who {1} is a nominee for.").format(row.idx, row.full_name))
 			if not row.is_active and not row.ceased_to_be_ubo_on:
 				frappe.throw(
-					_("Row #{0}: set 'Ceased to be UBO On' for {1}, who is marked as no longer an active UBO.").format(
-						row.idx, row.full_name
-					)
+					_(
+						"Row #{0}: set 'Ceased to be UBO On' for {1}, who is marked as no longer an active UBO."
+					).format(row.idx, row.full_name)
 				)
 			if row.is_active and row.ceased_to_be_ubo_on:
 				frappe.throw(

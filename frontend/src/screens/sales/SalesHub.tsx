@@ -1,7 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useFrappeGetCall, useFrappeGetDocCount } from "frappe-react-sdk";
+import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDocCount } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -18,8 +19,8 @@ export default function SalesHub() {
   const nav = useNavigate();
   const session = useSession();
   const home = useFrappeGetCall<{ message: { kpis: HomeKpi[] } }>(METHOD.getHome);
-  const overdue = useFrappeGetDocCount(DT.salesInvoice, [["status", "=", "Overdue"]]);
-  const paid = useFrappeGetDocCount(DT.paymentEntry, [
+  const overdue = useDocCount(DT.salesInvoice, [["status", "=", "Overdue"]]);
+  const paid = useDocCount(DT.paymentEntry, [
     ["payment_type", "=", "Receive"],
     ["docstatus", "=", 1],
     ["posting_date", ">=", monthStart()],
@@ -33,7 +34,6 @@ export default function SalesHub() {
     <>
       <PageHead
         title={t("hub.title")}
-        sub={t("hub.sub")}
         actions={
           <>
             <button className="btn ghost" onClick={() => nav("/customers/new")}>{t("hub.newCustomer")}</button>
@@ -70,7 +70,7 @@ export default function SalesHub() {
         </div>
       )}
 
-      <Card title={t("hub.daily")} hint={session.company || undefined}>
+      <Card title={t("hub.daily")}>
         <p className="sub" style={{ margin: 0 }}>{t("hub.dailyBody")}</p>
       </Card>
     </>

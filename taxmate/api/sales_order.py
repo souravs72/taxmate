@@ -169,7 +169,7 @@ def _company_currency(company: str | None) -> str:
 		currency = frappe.get_cached_value("Company", company, "default_currency")
 		if currency:
 			return currency
-	return frappe.db.get_default("currency") or "AED"
+	return frappe.db.get_default("currency")
 
 
 # ── Document mappers ─────────────────────────────────────────────────────
@@ -186,15 +186,14 @@ def _company_currency(company: str | None) -> str:
 @frappe.whitelist(methods=["POST"])
 def make_sales_invoice(source_name: str):
 	"""Map a submitted Sales Order to a draft Sales Invoice."""
+	require_login()
 	name = _assert_mappable(source_name, "Sales Invoice", "per_billed")
 
 	from erpnext.selling.doctype.sales_order.sales_order import (
 		make_sales_invoice as erp_make_sales_invoice,
 	)
 
-	return _as_data(
-		erp_make_sales_invoice(name, target_doc=None, ignore_permissions=False)
-	)
+	return _as_data(erp_make_sales_invoice(name, target_doc=None, ignore_permissions=False))
 
 
 @frappe.whitelist(methods=["POST"])
@@ -208,6 +207,7 @@ def make_delivery_note(source_name: str, for_reserved_stock=1):
 	their serial / batch bundles. It is a plain flag here rather than a
 	free-form kwargs dict so the wire cannot reach the rest of the mapper.
 	"""
+	require_login()
 	name = _assert_mappable(source_name, "Delivery Note", "per_delivered")
 
 	from erpnext.selling.doctype.sales_order.sales_order import (
@@ -256,9 +256,7 @@ def _assert_mappable(source_name: str, target_doctype: str, progress_field: str)
 	if cint(doc.docstatus) != 1:
 		frappe.throw(_("Submit the Sales Order before creating a downstream document."))
 	if not frappe.has_permission(target_doctype, "create"):
-		frappe.throw(
-			_("Not permitted to create {0}").format(_(target_doctype)), frappe.PermissionError
-		)
+		frappe.throw(_("Not permitted to create {0}").format(_(target_doctype)), frappe.PermissionError)
 	if flt(doc.get(progress_field)) >= 100:
 		frappe.throw(
 			_("Nothing left on {0} to put on a {1}.").format(name, _(target_doctype)),

@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocList } from "frappe-react-sdk";
+import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import {
   groupRow, useFilteredCount, useGroupedAggregate, useListParams, type FilterTuple,
 } from "../../lib/list";
@@ -35,7 +36,7 @@ type Agg = { name?: string; count?: number; paid?: number; unallocated?: number 
 export default function PaymentList() {
   const nav = useNavigate();
   const session = useSession();
-  const cur = session.currency || "AED";
+  const cur = session.currency || "";
   const { get, set, page, setPage, start } = useListParams(PAGE);
 
   const q = get("q");
@@ -65,7 +66,7 @@ export default function PaymentList() {
     return f as unknown as Filter<Row>[];
   }, [periodFilters, type, status]);
 
-  const list = useFrappeGetDocList<Row>(DT.paymentEntry, {
+  const list = useDocList<Row>(DT.paymentEntry, {
     fields: ["name", "payment_type", "party_type", "party", "party_name", "posting_date",
       "paid_amount", "base_paid_amount", "total_allocated_amount", "unallocated_amount",
       "mode_of_payment", "status", "docstatus"],
@@ -154,16 +155,17 @@ export default function PaymentList() {
     <>
       <PageHead
         title={t("pay.title")}
-        sub={t("pay.sub")}
         actions={
-          <>
-            <button className="btn ghost" onClick={() => nav("/payments/new?type=Pay")}>
-              ＋ {t("pay.newOut")}
-            </button>
-            <button className="btn" onClick={() => nav("/payments/new")}>
-              ＋ {t("pay.new")}
-            </button>
-          </>
+          canWrite(session) ? (
+            <>
+              <button className="btn ghost" onClick={() => nav("/payments/new?type=Pay")}>
+                ＋ {t("pay.newOut")}
+              </button>
+              <button className="btn" onClick={() => nav("/payments/new")}>
+                ＋ {t("pay.new")}
+              </button>
+            </>
+          ) : null
         }
       />
 
@@ -188,7 +190,7 @@ export default function PaymentList() {
       )}
 
       <div className="charts">
-        <Card title={t("pay.chart.status")} hint={t("pay.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("pay.chart.status")} bodyClass="donutwrap">
           {byStatus.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("pay.chart.all")} />
@@ -198,7 +200,7 @@ export default function PaymentList() {
         </Card>
 
         {ready && (
-          <Card title={t("pay.chart.movement")} hint={t("pay.chart.movementHint")} bodyClass="bars">
+          <Card title={t("pay.chart.movement")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(received - paid)}</span>

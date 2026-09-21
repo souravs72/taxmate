@@ -19,7 +19,10 @@ def apply_box_1_special_regimes(box_1_rows: list[dict], filters: dict) -> list[d
 	from taxmate.uae_vat.utils.vat_201 import VAT_201_EMIRATE_ORDER
 
 	ordered = [
-		next((row for row in box_1_rows if row["emirate"] == emirate), {"emirate": emirate, "amount": 0.0, "vat_amount": 0.0})
+		next(
+			(row for row in box_1_rows if row["emirate"] == emirate),
+			{"emirate": emirate, "amount": 0.0, "vat_amount": 0.0},
+		)
 		for emirate in VAT_201_EMIRATE_ORDER
 	]
 	merged = merge_emirate_rows(ordered, _margin_scheme_by_emirate(filters))
@@ -29,7 +32,10 @@ def apply_box_1_special_regimes(box_1_rows: list[dict], filters: dict) -> list[d
 		row["vat_amount"] = -flt(row.get("vat_amount"))
 	merged = merge_emirate_rows(merged, relief)
 	return [
-		next((row for row in merged if row["emirate"] == emirate), {"emirate": emirate, "amount": 0.0, "vat_amount": 0.0})
+		next(
+			(row for row in merged if row["emirate"] == emirate),
+			{"emirate": emirate, "amount": 0.0, "vat_amount": 0.0},
+		)
 		for emirate in VAT_201_EMIRATE_ORDER
 	]
 
@@ -52,7 +58,9 @@ def _margin_scheme_by_emirate(filters: dict) -> list[dict[str, Any]]:
 		filters,
 		as_dict=True,
 	)
-	return [{"emirate": row.emirate, "amount": r2(row.amount), "vat_amount": r2(row.vat_amount)} for row in rows]
+	return [
+		{"emirate": row.emirate, "amount": r2(row.amount), "vat_amount": r2(row.vat_amount)} for row in rows
+	]
 
 
 def _bad_debt_by_emirate(filters: dict) -> list[dict[str, Any]]:
@@ -72,7 +80,9 @@ def _bad_debt_by_emirate(filters: dict) -> list[dict[str, Any]]:
 		filters,
 		as_dict=True,
 	)
-	return [{"emirate": row.emirate, "amount": r2(row.amount), "vat_amount": r2(row.vat_amount)} for row in rows]
+	return [
+		{"emirate": row.emirate, "amount": r2(row.amount), "vat_amount": r2(row.vat_amount)} for row in rows
+	]
 
 
 def sum_capital_goods_adjustments(company: str, period_start, period_end) -> dict[str, float]:

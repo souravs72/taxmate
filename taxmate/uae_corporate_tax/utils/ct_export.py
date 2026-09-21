@@ -20,8 +20,12 @@ def export_accountant_pack(doc) -> dict:
 		frappe.throw(_("Generate the Corporate Tax worksheet before exporting the accountant pack."))
 
 	stamp = now_datetime().strftime("%Y%m%d%H%M%S")
-	save_file(f"CT-worksheet-{doc.name}-{stamp}.csv", _worksheet_csv(doc), doc.doctype, doc.name, is_private=1)
-	save_file(f"CT-adjustments-{doc.name}-{stamp}.csv", _adjustments_csv(doc), doc.doctype, doc.name, is_private=1)
+	save_file(
+		f"CT-worksheet-{doc.name}-{stamp}.csv", _worksheet_csv(doc), doc.doctype, doc.name, is_private=1
+	)
+	save_file(
+		f"CT-adjustments-{doc.name}-{stamp}.csv", _adjustments_csv(doc), doc.doctype, doc.name, is_private=1
+	)
 	save_file(
 		f"CT-related-parties-{doc.name}-{stamp}.csv",
 		_related_party_csv(doc),

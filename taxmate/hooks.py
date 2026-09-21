@@ -1,7 +1,7 @@
 app_name = "taxmate"
 app_title = "TaxMate"
 app_publisher = "Sourav Singh"
-app_description = "A cloud accounting SaaS platform for businesses to manage bookkeeping, taxation, and financial reporting."
+app_description = "UAE accounting on ERPNext: VAT, e-invoicing, corporate tax, and compliance tracking."
 app_email = "sourav@ascratech.com"
 app_license = "mit"
 
@@ -11,15 +11,15 @@ app_license = "mit"
 required_apps = ["erpnext"]
 
 # Each item in the list will be shown as an app in the apps page
-# add_to_apps_screen = [
-# 	{
-# 		"name": "taxmate",
-# 		"logo": "/assets/taxmate/logo.png",
-# 		"title": "TaxMate",
-# 		"route": "/taxmate",
-# 		"has_permission": "taxmate.api.permission.has_app_permission"
-# 	}
-# ]
+add_to_apps_screen = [
+	{
+		"name": "taxmate",
+		"logo": "/assets/taxmate/logo.png",
+		"title": "TaxMate",
+		"route": "/taxmate",
+		"has_permission": "taxmate.api.permission.has_app_permission",
+	}
+]
 
 # Includes in <head>
 # ------------------
@@ -68,13 +68,11 @@ doctype_list_js = {
 # Home Pages
 # ----------
 
-# application home page (will override Website Settings)
-# home_page = "login"
-
-# website user home page (by Role)
-# role_home_page = {
-# 	"Role": "home_page"
-# }
+# SPA users land on /taxmate after login. Do not set role_home_page:
+# Administrator's get_roles() includes every Role, so that hook would send
+# Desk Administrator to /taxmate. website_user_home_page returns None for
+# Administrator so Desk login is unchanged.
+get_website_user_home_page = "taxmate.setup.spa_roles.website_user_home_page"
 
 # Generators
 # ----------
@@ -145,13 +143,13 @@ after_migrate = "taxmate.install.after_migrate"
 # -----------
 # Permissions evaluated in scripted ways
 
-# permission_query_conditions = {
-# 	"Event": "frappe.desk.doctype.event.event.get_permission_query_conditions",
-# }
-#
-# has_permission = {
-# 	"Event": "frappe.desk.doctype.event.event.has_permission",
-# }
+permission_query_conditions = {
+	"*": "taxmate.uae.permissions.get_permission_query_conditions",
+}
+
+has_permission = {
+	"*": "taxmate.uae.permissions.has_permission",
+}
 
 # Document Events
 # ---------------
@@ -200,6 +198,7 @@ doc_events = {
 	"Purchase Invoice": {
 		"validate": [
 			"taxmate.uae_vat.overrides.purchase_invoice.validate",
+			"taxmate.uae_e_invoicing.overrides.purchase_invoice.validate",
 			"taxmate.uae_corporate_tax.overrides.purchase_invoice.validate",
 		],
 		"before_submit": "taxmate.uae_e_invoicing.overrides.purchase_invoice.before_submit",

@@ -24,7 +24,9 @@ frappe.query_reports["UAE E-Invoice Status"] = {
 	formatter(value, row, column, data, default_formatter) {
 		value = default_formatter(value, row, column, data);
 		if (column.fieldname === "sla" && data) {
-			const color = { Breached: "red", Late: "orange", Met: "green", Open: "blue" }[data.sla];
+			const color = { Breached: "red", Late: "orange", Met: "green", Open: "blue" }[
+				data.sla
+			];
 			if (color) {
 				return `<span class="indicator-pill ${color}">${value}</span>`;
 			}

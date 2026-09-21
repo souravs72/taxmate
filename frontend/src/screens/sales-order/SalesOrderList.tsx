@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetCall, useFrappeGetDocList } from "frappe-react-sdk";
+import { useFrappeGetCall } from "frappe-react-sdk";
 
+import { DT, METHOD } from "../../lib/frappe";
+import { useDocList } from "../../lib/resource";
 import type { SalesOrder } from "../../types/erpnext";
-import { METHOD, DT } from "../../lib/frappe";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money, pct } from "../../lib/format";
 import {
@@ -17,6 +18,7 @@ import {
 } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
+import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 20;
 
@@ -48,7 +50,7 @@ export default function SalesOrderList() {
     return f as unknown as Filter<Row>[];
   }, [customer, uiStatus, q]);
 
-  const list = useFrappeGetDocList<Row>(DT.salesOrder, {
+  const list = useDocList<Row>(DT.salesOrder, {
     fields: [...FIELDS],
     filters,
     orderBy: { field: "modified", order: "desc" },
@@ -79,7 +81,7 @@ export default function SalesOrderList() {
   }>(METHOD.fulfilmentSummary, {}, undefined, { shouldRetryOnError: false });
 
   const s = summary.data?.message;
-  const cur = s?.currency || "AED";
+  const cur = s?.currency || "";
   const rows = list.data ?? [];
 
   const stages = useMemo(() => {
@@ -160,11 +162,12 @@ export default function SalesOrderList() {
     <>
       <PageHead
         title={t("so.title")}
-        sub={t("so.sub")}
         actions={
           <>
             <button className="btn ghost">{t("so.export")}</button>
-            <button className="btn" onClick={() => nav("/orders/new")}>＋ {t("so.new")}</button>
+            <IfCanWrite>
+              <button className="btn" onClick={() => nav("/orders/new")}>＋ {t("so.new")}</button>
+            </IfCanWrite>
           </>
         }
       />
@@ -190,7 +193,7 @@ export default function SalesOrderList() {
       )}
 
       <div className="charts">
-        <Card title={t("so.chart.stage")} hint={t("so.chart.stageHint")} bodyClass="donutwrap">
+        <Card title={t("so.chart.stage")} bodyClass="donutwrap">
           {grouped.isLoading ? <Loading /> : (
             <>
               <Donut data={stages} total={stageTotal} centreLabel={t("so.chart.all")} />
@@ -200,7 +203,7 @@ export default function SalesOrderList() {
         </Card>
 
         {s && (
-          <Card title={t("so.chart.fulfil")} hint={t("so.chart.fulfilHint")} bodyClass="bars">
+          <Card title={t("so.chart.fulfil")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(s.committed)}</span>

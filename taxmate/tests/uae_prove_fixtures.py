@@ -286,7 +286,10 @@ def parse_boxes_csv(text: str) -> dict:
 			continue
 		if not row or not row[0] or row[0] == "Note":
 			break
-		out[row[0]] = {"amount": flt(row[2] if len(row) > 2 else 0), "vat_amount": flt(row[3] if len(row) > 3 else 0)}
+		out[row[0]] = {
+			"amount": flt(row[2] if len(row) > 2 else 0),
+			"vat_amount": flt(row[3] if len(row) > 3 else 0),
+		}
 	return out
 
 

@@ -21,10 +21,12 @@ def after_install():
 	_ensure_taxmate_settings_defaults()
 	_ensure_product_branding()
 	from taxmate.search import configure_global_search
+	from taxmate.setup.spa_roles import ensure_spa_roles
 	from taxmate.setup.workspaces import ensure_product_workspaces
 
 	configure_global_search()
 	ensure_product_workspaces()
+	ensure_spa_roles()
 
 
 def after_migrate():
@@ -42,6 +44,7 @@ def _setup_vat_uae():
 			title="TaxMate UAE VAT setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _setup_e_invoicing_uae():
@@ -54,6 +57,7 @@ def _setup_e_invoicing_uae():
 			title="TaxMate UAE E-Invoicing setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _setup_ct_uae():
@@ -66,6 +70,7 @@ def _setup_ct_uae():
 			title="TaxMate UAE Corporate Tax setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _setup_compliance_uae():
@@ -82,6 +87,7 @@ def _setup_compliance_uae():
 			title="TaxMate UAE Compliance setup failed",
 			message=frappe.get_traceback(),
 		)
+		raise
 
 
 def _ensure_taxmate_settings_defaults():

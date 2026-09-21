@@ -23,20 +23,29 @@ frappe.ui.form.on("UAE ESR Filing", {
 				"green"
 			);
 		} else if (frm.doc.docstatus === 2) {
-			frm.dashboard.set_headline_alert(__("Cancelled. Amend to create a corrected copy."), "red");
+			frm.dashboard.set_headline_alert(
+				__("Cancelled. Amend to create a corrected copy."),
+				"red"
+			);
 		} else if (frm.doc.status === "Overdue") {
 			frm.dashboard.set_headline_alert(
-				__("This ESR filing is past a deadline. File through your regulatory authority's portal, then record the date here."),
+				__(
+					"This ESR filing is past a deadline. File through your regulatory authority's portal, then record the date here."
+				),
 				"red"
 			);
 		} else if (frm.doc.status === "Complete") {
 			frm.dashboard.set_headline_alert(
-				__("Everything required is filed. Submit this record to lock it in as your audit trail."),
+				__(
+					"Everything required is filed. Submit this record to lock it in as your audit trail."
+				),
 				"blue"
 			);
 		} else if (frm.doc.has_relevant_activity && !frm.doc.is_exempt && !frm.doc.board_minutes) {
 			frm.dashboard.set_headline_alert(
-				__("Attach Board Minutes before submitting — ESR substance tests need minutes, not just a ticked activity."),
+				__(
+					"Attach Board Minutes before submitting — ESR substance tests need minutes, not just a ticked activity."
+				),
 				"orange"
 			);
 		}

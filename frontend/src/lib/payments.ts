@@ -107,13 +107,21 @@ export function autoAllocate(outstanding: number, remaining: number): number {
    refuses. Accounts User can also cancel, which the sales CANCEL_ROLES
    leaves out. Hence payment-specific predicates.                        */
 
+import { spaRoleOf } from "./roles";
+
 const PAY_WRITE_ROLES = ["Accounts User", "Accounts Manager"];
 
 export function canSubmitPayment(roles: string[] | undefined): boolean {
+  const spa = spaRoleOf({ roles });
+  if (spa === "viewer") return false;
+  if (spa === "owner" || spa === "accountant" || spa === "clerk") return true;
   return (roles ?? []).some((r) => PAY_WRITE_ROLES.includes(r));
 }
 
-/** Same set — ERPNext gives Accounts User cancel on Payment Entry. */
+/** Clerk can submit payments; only Owner and Accountant cancel from the SPA. */
 export function canCancelPayment(roles: string[] | undefined): boolean {
+  const spa = spaRoleOf({ roles });
+  if (spa === "owner" || spa === "accountant") return true;
+  if (spa === "clerk" || spa === "viewer") return false;
   return (roles ?? []).some((r) => PAY_WRITE_ROLES.includes(r));
 }

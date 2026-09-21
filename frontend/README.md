@@ -59,18 +59,11 @@ the brand blue fails the colour-blind separation floor. See
 UI shows four. Desk keeps showing the ERPNext value, so mapping on the client
 keeps both views on the same record. See `src/lib/status.ts`.
 
-## Known dependency on backend work
+## Sales Order fulfilment
 
-`src/lib/frappe.ts` references `taxmate.api.sales_order.fulfilment_summary`.
-It does not exist yet. The list screen hides the two value tiles and the
-delivered-vs-billed bars until it does, rather than inventing numbers. It
-needs to return:
-
-    {"committed": 0.0, "delivered_value": 0.0, "billed_value": 0.0,
-     "unbilled_delivered": 0.0, "open_count": 0, "overdue_count": 0}
-
-This is the only custom endpoint the Sales Order screens need. Everything
-else is stock Frappe/ERPNext — see `claude/sales-order-api-verification.md`.
+`taxmate.api.sales_order.fulfilment_summary` returns committed, delivered, billed,
+and unbilled totals plus open/overdue counts. The list screen reads that method
+instead of inventing numbers.
 
 ## Regenerating models
 

@@ -184,7 +184,9 @@ class TestUaeChartsSite(FrappeTestCase):
 			self.assertIn("VAT 201 Net Due", chart_names)
 
 		chart = frappe.get_doc("Dashboard Chart", "VAT 201 Net Due")
-		self.assertTrue({row.role for row in chart.roles} & {"Accounts User", "UAE Tax Manager", "System Manager"})
+		self.assertTrue(
+			{row.role for row in chart.roles} & {"Accounts User", "UAE Tax Manager", "System Manager"}
+		)
 		self.assertIn('"fieldtype": "Currency"', chart.custom_options or "")
 		self.assertIn('"options": "AED"', chart.custom_options or "")
 		if frappe.db.exists("Currency", "AED"):

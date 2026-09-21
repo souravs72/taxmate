@@ -29,10 +29,12 @@ def period_label(period_start: date | str, period_end: date | str) -> str:
 		return f"Q{(end.month - 1) // 3 + 1} {end.year}"
 	if 27 <= span <= 31:
 		return end.strftime("%b %Y")
-	return f"{start.strftime('%d %b')}–{end.strftime('%d %b %Y')}"
+	return f"{start.strftime('%d %b')}-{end.strftime('%d %b %Y')}"
 
 
-def select_vat_201_filings(rows: list[dict[str, Any]], limit: int = VAT_201_PERIOD_LIMIT) -> list[dict[str, Any]]:
+def select_vat_201_filings(
+	rows: list[dict[str, Any]], limit: int = VAT_201_PERIOD_LIMIT
+) -> list[dict[str, Any]]:
 	"""One live filing per period_end. Submitted beats draft; cancelled dropped."""
 	by_period: dict[str, dict[str, Any]] = {}
 	for row in rows:

@@ -14,6 +14,12 @@ from taxmate.uae_e_invoicing.utils.purchase_transaction_data import (
 )
 
 
+def validate(doc, method=None):
+	if not is_e_invoice_applicable(doc):
+		return
+	_validate_items(doc)
+
+
 def before_submit(doc, method=None):
 	if not is_e_invoice_applicable(doc):
 		return
@@ -54,3 +60,26 @@ def on_cancel(doc, method=None):
 	if doc.get("uae_e_invoice_log"):
 		frappe.db.set_value("UAE E-Invoice Log", doc.uae_e_invoice_log, "status", "Cancelled")
 	doc.db_set("uae_e_invoice_status", "Cancelled", update_modified=False)
+
+
+def _validate_items(doc):
+	from taxmate.uae_e_invoicing.constants import (
+		ITEM_TYPE_BOTH,
+		ITEM_TYPE_GOODS,
+		ITEM_TYPE_SERVICE,
+	)
+
+	for row in doc.items or []:
+		item_type = row.get("uae_item_type")
+		if item_type in (ITEM_TYPE_GOODS, ITEM_TYPE_BOTH) and not row.get("hs_code"):
+			frappe.throw(
+				_("Row #{0}: HS Code is required for {1} when UAE e-invoicing is enabled.").format(
+					row.idx, item_type
+				)
+			)
+		if item_type in (ITEM_TYPE_SERVICE, ITEM_TYPE_BOTH) and not row.get("sac_code"):
+			frappe.throw(
+				_("Row #{0}: SAC Code is required for {1} when UAE e-invoicing is enabled.").format(
+					row.idx, item_type
+				)
+			)

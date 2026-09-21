@@ -10,6 +10,7 @@ from taxmate.api.resource import require_login
 from taxmate.search import ALLOWED_SEARCH_DOCTYPES, DENIED_SEARCH_DOCTYPES, GLOBAL_SEARCH_DOCTYPES
 from taxmate.setup.financial_reports import CORE_REPORT_LINKS, TAXMATE_REPORT_LINKS
 from taxmate.setup.home import DAILY_SHORTCUTS, HOME_LINKS, UAE_SHORTCUTS
+from taxmate.setup.spa_roles import spa_role_of
 
 # Masters a books frontend needs that are not always in global search.
 _CORE_MASTERS: tuple[str, ...] = (
@@ -40,6 +41,12 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Territory",
 	"TaxMate Settings",
 	"Accounts Settings",
+	"Selling Settings",
+	"Buying Settings",
+	"Item Price",
+	"ToDo",
+	"Delivery Note",
+	"UAE Tax Settings",
 )
 
 # Existing TaxMate whitelist methods (not re-wrapped).
@@ -81,6 +88,10 @@ _EXISTING_ACTIONS: tuple[dict[str, str], ...] = (
 		"method": "taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.get_or_create",
 	},
 	{
+		"name": "generate_vat_201",
+		"method": "taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.generate_filing",
+	},
+	{
 		"name": "get_ct_elections",
 		"method": "taxmate.uae_corporate_tax.utils.corporate_tax.get_ct_elections",
 	},
@@ -99,9 +110,7 @@ def catalog_doctypes() -> list[str]:
 		if link_to and kind == "DocType":
 			names.add(link_to)
 	return sorted(
-		name
-		for name in names
-		if name not in DENIED_SEARCH_DOCTYPES and frappe.db.exists("DocType", name)
+		name for name in names if name not in DENIED_SEARCH_DOCTYPES and frappe.db.exists("DocType", name)
 	)
 
 
@@ -134,7 +143,6 @@ def get_catalog() -> dict[str, Any]:
 				"issingle": int(meta.issingle or 0),
 				"is_submittable": int(meta.is_submittable or 0),
 				"is_tree": int(meta.is_tree or 0),
-				"rest": f"/api/resource/{doctype}",
 			}
 		)
 
@@ -153,6 +161,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "save", "method": "taxmate.api.resource.save"},
 			{"name": "delete", "method": "taxmate.api.resource.delete"},
 			{"name": "get_count", "method": "taxmate.api.resource.get_count"},
+			{"name": "group_by_count", "method": "taxmate.api.resource.group_by_count"},
 			{"name": "get_meta", "method": "taxmate.api.resource.get_meta"},
 			{"name": "search_link", "method": "taxmate.api.resource.search_link"},
 			{"name": "submit", "method": "taxmate.api.workflow.submit"},
@@ -164,6 +173,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "get_defaults", "method": "taxmate.api.accounts.get_defaults"},
 			{"name": "get_outstanding_invoices", "method": "taxmate.api.accounts.get_outstanding_invoices"},
 			{"name": "get_payment_entry", "method": "taxmate.api.accounts.get_payment_entry"},
+			{"name": "resolve_payment_accounts", "method": "taxmate.api.accounts.resolve_payment_accounts"},
 			{"name": "make_sales_return", "method": "taxmate.api.accounts.make_sales_return"},
 			{"name": "make_purchase_return", "method": "taxmate.api.accounts.make_purchase_return"},
 			{"name": "run_report", "method": "taxmate.api.reports.run_report"},
@@ -173,7 +183,19 @@ def get_catalog() -> dict[str, Any]:
 				"name": "fulfilment_summary",
 				"method": "taxmate.api.sales_order.fulfilment_summary",
 			},
+			{"name": "linked_documents", "method": "taxmate.api.sales_order.linked_documents"},
+			{"name": "make_delivery_note", "method": "taxmate.api.sales_order.make_delivery_note"},
+			{"name": "make_sales_invoice", "method": "taxmate.api.sales_order.make_sales_invoice"},
+			{"name": "make_purchase_receipt", "method": "taxmate.api.purchase_order.make_purchase_receipt"},
+			{"name": "make_purchase_invoice", "method": "taxmate.api.purchase_order.make_purchase_invoice"},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
+			{"name": "list_users", "method": "taxmate.api.users.list_users"},
+			{"name": "invite_user", "method": "taxmate.api.users.invite_user"},
+			{"name": "set_user_role", "method": "taxmate.api.users.set_user_role"},
+			{"name": "set_user_enabled", "method": "taxmate.api.users.set_user_enabled"},
+			{"name": "get_profile", "method": "taxmate.api.users.get_profile"},
+			{"name": "update_profile", "method": "taxmate.api.users.update_profile"},
+			{"name": "change_password", "method": "taxmate.api.users.change_password"},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
 			*_EXISTING_ACTIONS,
@@ -201,6 +223,7 @@ def get_session() -> dict[str, Any]:
 		"currency": currency,
 		"country": country,
 		"roles": frappe.get_roles(),
+		"spa_role": spa_role_of(),
 		# The SITE's today, not the browser's. Anything date-driven in the UI
 		# -- most of all whether an invoice is overdue -- has to agree with the
 		# server, and a viewer outside Asia/Dubai is a day off for part of it.

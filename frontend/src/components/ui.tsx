@@ -186,12 +186,12 @@ export function Legend({ data }: {
   );
 }
 
-export function Field({ label, required, hint, children }: {
-  label: string; required?: boolean; hint?: string; children: React.ReactNode;
+export function Field({ label, required, hint, htmlFor, children }: {
+  label: string; required?: boolean; hint?: string; htmlFor?: string; children: React.ReactNode;
 }) {
   return (
     <div className="f">
-      <label>{label} {required && <span className="req">*</span>}</label>
+      <label htmlFor={htmlFor}>{label} {required && <span className="req">*</span>}</label>
       {children}
       {hint && <span className="help">{hint}</span>}
     </div>

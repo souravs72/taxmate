@@ -1,6 +1,7 @@
 /**
  * TaxMate Desk search — scoped AwesomeBar + sidebar search control.
  */
+/* global taxmate */
 (function () {
 	"use strict";
 
@@ -46,7 +47,12 @@
 				return report?.ref_doctype || null;
 			}
 		}
-		if (option.type === "New" || option.type === "List" || option.type === "Tree" || option.type === "Report") {
+		if (
+			option.type === "New" ||
+			option.type === "List" ||
+			option.type === "Tree" ||
+			option.type === "Report"
+		) {
 			return option.match || null;
 		}
 		if (typeof option.match === "string") {
@@ -60,7 +66,11 @@
 			return options;
 		}
 		return options.filter((opt) => {
-			if (opt.default === "Calculator" || opt.default === "Search" || opt.default === "Current") {
+			if (
+				opt.default === "Calculator" ||
+				opt.default === "Search" ||
+				opt.default === "Current"
+			) {
 				return true;
 			}
 			if (opt.onclick && !opt.route && !opt.match) {
@@ -132,7 +142,9 @@
 		// Prefer Frappe's native #navbar-modal-search (body-sidebar); only bootstrap if missing.
 		if (!document.getElementById("navbar-modal-search")) {
 			$("body").append(
-				$('<button type="button" id="navbar-modal-search" class="hidden" aria-hidden="true"></button>')
+				$(
+					'<button type="button" id="navbar-modal-search" class="hidden" aria-hidden="true"></button>'
+				)
 			);
 			if (!taxmate.search._awesomebar && frappe.search?.AwesomeBar) {
 				taxmate.search._awesomebar = new frappe.search.AwesomeBar();
@@ -156,7 +168,9 @@
 
 		const shortcut = frappe.utils.is_mac() ? "⌘K" : "Ctrl+K";
 		const $btn = $(`
-			<button type="button" id="taxmate-desk-search" class="taxmate-desk-search" title="${__("Search")} (${shortcut})">
+			<button type="button" id="taxmate-desk-search" class="taxmate-desk-search" title="${__(
+				"Search"
+			)} (${shortcut})">
 				<span class="taxmate-desk-search-icon">${frappe.utils.icon("search", "sm")}</span>
 				<span class="taxmate-desk-search-label">${__("Search")}</span>
 				<kbd class="taxmate-desk-search-kbd">${shortcut}</kbd>

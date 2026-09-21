@@ -11,6 +11,7 @@ export type Session = {
   currency?: string | null;
   country?: string | null;
   roles?: string[];
+  spa_role?: "owner" | "accountant" | "clerk" | "viewer";
   /** The SITE's date, so anything date-driven agrees with the server. */
   today?: string;
   time_zone?: string;

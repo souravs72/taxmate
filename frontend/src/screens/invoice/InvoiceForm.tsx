@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
-import { useFrappeCreateDoc, useFrappeGetDoc, useFrappeGetDocList, useFrappePostCall, useFrappeUpdateDoc } from "frappe-react-sdk";
+import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
@@ -71,17 +72,17 @@ export default function InvoiceForm() {
   const nav = useNavigate();
   const session = useSession();
   const isNew = name === "new";
-  const existing = useFrappeGetDoc<InvoiceDoc>(DT.salesInvoice, isNew ? undefined : name, isNew ? null : name, {
+  const existing = useDoc<InvoiceDoc>(DT.salesInvoice, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
   const defaults = useFrappePostCall<{ message: { company?: string; currency?: string; tax_id?: string } }>(METHOD.getDefaults);
   const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const submitCall = useFrappePostCall<{ message: InvoiceDoc }>(METHOD.submit);
-  const create = useFrappeCreateDoc();
-  const update = useFrappeUpdateDoc();
-  const templates = useFrappeGetDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
-  const terms = useFrappeGetDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const create = useInsert();
+  const update = useSave();
+  const templates = useDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
+  const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
 
   const [customer, setCustomer] = useState("");
   const [postingDate, setPostingDate] = useState(toIsoDate(new Date()));
@@ -208,6 +209,9 @@ export default function InvoiceForm() {
         income_account: l.income_account,
         cost_center: l.cost_center,
         item_tax_template: l.item_tax_template,
+        uae_item_type: l.uae_item_type,
+        hs_code: l.hs_code,
+        sac_code: l.sac_code,
       })),
     };
   }
@@ -291,7 +295,7 @@ export default function InvoiceForm() {
           </Card>
         </>
       }>
-          <Card num={1} title={t("inv.who")} hint={t("inv.whoHint")}>
+          <Card num={1} title={t("inv.who")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
                 <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} disabled={locked} />
@@ -314,7 +318,7 @@ export default function InvoiceForm() {
             </div>
           </Card>
 
-          <Card num={2} title={t("soc.b2")} hint={t("soc.b2hint")}>
+          <Card num={2} title={t("soc.b2")}>
             <div className="grid2">
               <Field label={t("f.emirate")} required>
                 <select className="ctl" value={emirate} disabled={locked} onChange={(e) => setEmirate(e.target.value)}>
@@ -349,6 +353,7 @@ export default function InvoiceForm() {
                   <tr>
                     <th style={{ width: 26 }}>#</th>
                     <th>{t("soc.pickItem")}</th>
+                    <th>{t("pi.hsSac")}</th>
                     <th className="n">{t("sod.col.qty")}</th>
                     <th className="n">{t("sod.col.rate")}</th>
                     <th className="n">{t("sod.col.amount")}</th>
@@ -362,6 +367,24 @@ export default function InvoiceForm() {
                       <td style={{ minWidth: 220 }}>
                         {locked ? (l.item_name || l.item_code) : (
                           <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                        )}
+                      </td>
+                      <td>
+                        {l.uae_item_type !== "Service" && (
+                          <input className="ctl mini" style={{ width: 88 }}
+                            aria-label={t("item.hs")}
+                            placeholder={t("item.hs")}
+                            value={l.hs_code || ""}
+                            disabled={locked}
+                            onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
+                        )}
+                        {l.uae_item_type !== "Goods" && (
+                          <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
+                            aria-label={t("item.sac")}
+                            placeholder={t("item.sac")}
+                            value={l.sac_code || ""}
+                            disabled={locked}
+                            onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
                         )}
                       </td>
                       <td className="n">

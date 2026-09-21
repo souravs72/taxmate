@@ -4,7 +4,11 @@
  *
  * Strings live in flat dictionaries keyed identically, so a missing Arabic
  * key silently falls back to English rather than rendering blank.
+ *
+ * Language lives in React context so switching en/ar re-renders the tree
+ * (rail, search, and the active screen), not only AppShell.
  */
+import { createContext, createElement, useContext, useMemo, useState, type ReactNode } from "react";
 
 export type Lang = "en" | "ar";
 
@@ -40,6 +44,29 @@ export function applyDir(): void {
   const root = document.documentElement;
   root.setAttribute("dir", current === "ar" ? "rtl" : "ltr");
   root.setAttribute("lang", current);
+}
+
+type LangCtx = { lang: Lang; set: (lang: Lang) => void };
+
+const LangContext = createContext<LangCtx>({ lang: "en", set: () => {} });
+
+export function LangProvider({ children }: { children: ReactNode }) {
+  const [lang, setLangState] = useState<Lang>(() => getLang());
+  const value = useMemo<LangCtx>(
+    () => ({
+      lang,
+      set: (next: Lang) => {
+        setLang(next);
+        setLangState(next);
+      },
+    }),
+    [lang],
+  );
+  return createElement(LangContext.Provider, { value }, children);
+}
+
+export function useLang(): LangCtx {
+  return useContext(LangContext);
 }
 
 type Dict = Record<string, string>;

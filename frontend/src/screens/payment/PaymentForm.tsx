@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
-  useFrappeCreateDoc, useFrappeGetCall, useFrappeGetDoc, useFrappeGetDocList,
-  useFrappePostCall, useFrappeUpdateDoc,
+  useFrappeGetCall, useFrappePostCall,
 } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import {
   PARTY_TYPE, autoAllocate, canSubmitPayment, needsReference, round2,
@@ -93,12 +93,12 @@ export default function PaymentForm() {
   const invoice = params.get("invoice") || "";
   const urlType = (params.get("type") === "Pay" ? "Pay" : "Receive") as PayType;
 
-  const existing = useFrappeGetDoc<PayDoc>(DT.paymentEntry, isNew ? undefined : name, isNew ? null : name);
+  const existing = useDoc<PayDoc>(DT.paymentEntry, isNew ? undefined : name, isNew ? null : name);
   const mapper = useFrappePostCall<{ message: PayDoc }>(METHOD.getPaymentEntry);
   const submitCall = useFrappePostCall(METHOD.submit);
-  const create = useFrappeCreateDoc();
-  const update = useFrappeUpdateDoc();
-  const modes = useFrappeGetDocList<{ name: string; type?: string }>(DT.modeOfPayment, {
+  const create = useInsert();
+  const update = useSave();
+  const modes = useDocList<{ name: string; type?: string }>(DT.modeOfPayment, {
     fields: ["name", "type"],
     filters: [["enabled", "=", 1]],
     limit: 30,
@@ -117,7 +117,7 @@ export default function PaymentForm() {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
-  const cur = session.currency || "AED";
+  const cur = session.currency || "";
   const type: PayType = doc.payment_type ?? "Receive";
   const partyType = PARTY_TYPE[type];
   const company = doc.company || session.company;
@@ -337,7 +337,6 @@ export default function PaymentForm() {
           </>
         }
         title={isNew ? t(`pay.new${type === "Pay" ? "Out" : ""}`) : name}
-        sub={t("pay.isMoney")}
         actions={
           <FormActions
             onDiscard={() => nav("/payments")}
@@ -375,14 +374,9 @@ export default function PaymentForm() {
           </Card>
 
           <ReadinessCard checks={checks} title={t("pay.ready")} />
-
-          <div className="note">
-            <span className="ic">✦</span>
-            <span><b>{t("pay.noteT")}</b>{t("pay.noteB")}</span>
-          </div>
         </>
       }>
-          <Card title={<><span className="snum">1</span>{t("pay.b1")}</>} hint={t("pay.b1h")}>
+          <Card title={<><span className="snum">1</span>{t("pay.b1")}</>}>
             <div className="f" style={{ marginBlockEnd: 14 }}>
               <label>{t("pay.lType")} <span className="req">*</span></label>
               <div className="seg" role="group" aria-label={t("pay.lType")}>
@@ -400,14 +394,14 @@ export default function PaymentForm() {
                   value={doc.party ?? ""}
                   onChange={(v) => setDoc((d) => ({ ...d, party: v, references: [] }))} />
               </Field>
-              <Field label={t("pay.lDate")} required hint={t("pay.hDate")}>
+              <Field label={t("pay.lDate")} required>
                 <input className="ctl" type="date" value={doc.posting_date ?? ""}
                   onChange={(e) => setDoc((d) => ({ ...d, posting_date: e.target.value }))} />
               </Field>
             </div>
           </Card>
 
-          <Card title={<><span className="snum">2</span>{t("pay.b2")}</>} hint={t("pay.b2h")}>
+          <Card title={<><span className="snum">2</span>{t("pay.b2")}</>}>
             <div className="grid2">
               <Field label={`${t("pay.lAmount")} (${cur})`} required>
                 <input className="ctl nn" value={doc.paid_amount ?? 0}
@@ -426,8 +420,7 @@ export default function PaymentForm() {
                   ))}
                 </select>
               </Field>
-              <Field label={t("pay.refNo")} required={refRequired}
-                     hint={refRequired ? t("pay.hRefBank") : t("pay.hRefCash")}>
+              <Field label={t("pay.refNo")} required={refRequired}>
                 <input className="ctl" value={doc.reference_no ?? ""}
                   onChange={(e) => setDoc((d) => ({ ...d, reference_no: e.target.value }))} />
               </Field>
@@ -441,7 +434,7 @@ export default function PaymentForm() {
             )}
           </Card>
 
-          <Card title={<><span className="snum">3</span>{t("pay.b3")}</>} hint={t("pay.b3h")}
+          <Card title={<><span className="snum">3</span>{t("pay.b3")}</>}
                 bodyClass={null as unknown as string}>
             {!doc.party ? <Empty label={t("pay.emptyParty")} />
               : outstanding.isLoading ? <Loading />

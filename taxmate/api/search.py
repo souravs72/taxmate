@@ -1,11 +1,6 @@
-"""AwesomeBar-style search for the TaxMate SPA only.
+"""AwesomeBar-style search for the TaxMate SPA.
 
-Importers: frontend GlobalSearch via METHOD.awesomeSearch / catalog action
-awesome_search. Whitelist: taxmate.api.search.awesome.
-Schema: {query, groups:[{title, results:[{type, doctype?, name?, title, description?, route}]}]}.
-Routes are SPA paths under /taxmate (e.g. /orders/…); never Desk /app/….
-User: "The frontend searchbar should navigate to /taxmate endpoints only …
-similar to awesomebar. But not on desk endpoints"
+Returns grouped hits with routes under /taxmate only, never Desk /app/.
 """
 
 from __future__ import annotations
@@ -24,28 +19,114 @@ from taxmate.search import GLOBAL_SEARCH_DOCTYPES
 # Only doctypes the React app owns. No Desk fallback.
 _SPA_DOC_ROUTES: dict[str, str] = {
 	"Customer": "/customers/{name}",
+	"Supplier": "/suppliers/{name}",
 	"Sales Order": "/orders/{name}",
+	"Delivery Note": "/delivery-notes/{name}",
 	"Sales Invoice": "/invoices/{name}",
+	"Purchase Invoice": "/purchase-invoices/{name}",
+	"Purchase Order": "/purchase-orders/{name}",
+	"Purchase Receipt": "/purchase-receipts/{name}",
+	"UAE Incoming Invoice": "/incoming-invoices/{name}",
+	"Journal Entry": "/journals/{name}",
+	"Account": "/accounts/{name}",
+	"Warehouse": "/warehouses/{name}",
+	"Sales Taxes and Charges Template": "/tax-templates/sales/{name}",
+	"Purchase Taxes and Charges Template": "/tax-templates/purchase/{name}",
 	"Payment Entry": "/payments/{name}",
 	"Item": "/catalogue/items/{name}",
+	"UAE VAT 201 Filing Log": "/vat-201/{name}",
+	"UAE CT Filing Log": "/ct-filings/{name}",
+	"UAE ESR Filing": "/esr/{name}",
+	"UAE UBO Register": "/ubo/{name}",
+	"UAE Late Filing Notice": "/late-filings/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
 	"Customer": "/customers",
+	"Supplier": "/suppliers",
 	"Sales Order": "/orders",
+	"Delivery Note": "/delivery-notes",
 	"Sales Invoice": "/invoices",
+	"Purchase Invoice": "/purchase-invoices",
+	"Purchase Order": "/purchase-orders",
+	"Purchase Receipt": "/purchase-receipts",
+	"UAE Incoming Invoice": "/incoming-invoices",
+	"Journal Entry": "/journals",
+	"Account": "/accounts",
+	"Warehouse": "/warehouses",
+	"Sales Taxes and Charges Template": "/tax-templates",
+	"Purchase Taxes and Charges Template": "/tax-templates",
 	"Payment Entry": "/payments",
 	"Item": "/catalogue/items",
+	"UAE VAT 201 Filing Log": "/vat-201",
+	"UAE CT Filing Log": "/ct-filings",
+	"UAE ESR Filing": "/esr",
+	"UAE UBO Register": "/ubo",
+	"UAE Late Filing Notice": "/late-filings",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
 _NAV_PAGES: tuple[dict[str, str], ...] = (
+	{"label": "Dashboard", "route": "/", "keywords": "home overview kpi books"},
 	{"label": "Sales Orders", "route": "/orders", "keywords": "home dashboard sales order so"},
+	{"label": "Delivery Notes", "route": "/delivery-notes", "keywords": "dn delivery note despatch"},
 	{"label": "Customers", "route": "/customers", "keywords": "customer party"},
+	{"label": "Suppliers", "route": "/suppliers", "keywords": "supplier vendor purchase party"},
+	{
+		"label": "Purchase Invoices",
+		"route": "/purchase-invoices",
+		"keywords": "purchase invoice bill pi vendor",
+	},
+	{"label": "Purchase Orders", "route": "/purchase-orders", "keywords": "purchase order po buying"},
+	{
+		"label": "Purchase Receipts",
+		"route": "/purchase-receipts",
+		"keywords": "purchase receipt pr goods received grn",
+	},
+	{
+		"label": "Incoming e-Invoices",
+		"route": "/incoming-invoices",
+		"keywords": "incoming einvoice peppol received supplier bill asp",
+	},
 	{"label": "Invoices", "route": "/invoices", "keywords": "sales invoice bill"},
 	{"label": "Payments", "route": "/payments", "keywords": "payment receipt"},
 	{"label": "Receivables", "route": "/receivables", "keywords": "ar outstanding"},
+	{"label": "Payables", "route": "/payables", "keywords": "ap aged payable supplier outstanding"},
+	{
+		"label": "Journal Entries",
+		"route": "/journals",
+		"keywords": "journal entry je voucher books ledger posting",
+	},
+	{
+		"label": "Chart of Accounts",
+		"route": "/accounts",
+		"keywords": "chart of accounts coa ledger account tree",
+	},
+	{
+		"label": "Reports",
+		"route": "/reports",
+		"keywords": "trial balance general ledger profit loss balance sheet cash flow reports vat 201 late filing esr compliance emaratax",
+	},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
+	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
+	{
+		"label": "Tax Templates",
+		"route": "/tax-templates",
+		"keywords": "tax template vat sales purchase charges",
+	},
+	{"label": "VAT 201", "route": "/vat-201", "keywords": "vat 201 fta filing return boxes deadline"},
+	{"label": "Corporate Tax", "route": "/ct-filings", "keywords": "corporate tax ct filing log worksheet"},
+	{"label": "ESR", "route": "/esr", "keywords": "esr economic substance notification report"},
+	{"label": "UBO Register", "route": "/ubo", "keywords": "ubo beneficial owner register"},
+	{"label": "Late Filings", "route": "/late-filings", "keywords": "late filing notice overdue fta"},
+	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
+	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
+	{
+		"label": "Team",
+		"route": "/team",
+		"keywords": "users roles team staff invite admin finance manager accounts officer read-only owner accountant clerk viewer",
+	},
+	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)
@@ -106,7 +187,7 @@ def _nav_results(text: str, limit: int) -> list[dict[str, Any]]:
 
 
 def _doctype_list_results(text: str, limit: int) -> list[dict[str, Any]]:
-	"""Match DocType titles like AwesomeBar ‘List Customer’ — SPA lists only."""
+	"""Match DocType titles like AwesomeBar 'List Customer' — SPA lists only."""
 	out: list[dict[str, Any]] = []
 	can_read = set(frappe.get_user().get_can_read())
 	for doctype in _SPA_DOCTYPES:
@@ -181,7 +262,7 @@ def _exact_name_hits(text: str, limit: int) -> list[dict[str, Any]]:
 	if " " in text.strip() and not re.search(r"-\d", text):
 		return []
 	out: list[dict[str, Any]] = []
-	for doctype in ("Sales Order", "Sales Invoice", "Customer", "Item", "Payment Entry"):
+	for doctype in _SPA_DOCTYPES:
 		if doctype not in _SPA_DOCTYPES:
 			continue
 		if not is_allowed_doctype(doctype) or not frappe.has_permission(doctype, "read"):

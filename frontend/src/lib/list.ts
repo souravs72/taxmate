@@ -61,7 +61,7 @@ export function useGroupedAggregate<T extends { name?: string }>(
     [doctype, opts.groupBy, opts.filters, opts.orFilters],
   );
   const call = useFrappeGetCall<{ message: T[] }>(
-    METHOD.clientGetList,
+    METHOD.getList,
     {
       doctype,
       fields: JSON.stringify(opts.fields),
@@ -95,7 +95,7 @@ export function groupRow<T extends { name?: string }>(rows: T[], name: string): 
  */
 export function useFilteredCount(doctype: string, filters: FilterTuple[], orFilters?: FilterTuple[]) {
   const call = useFrappeGetCall<{ message: number }>(
-    METHOD.reportviewCount,
+    METHOD.getCount,
     {
       doctype,
       filters: JSON.stringify(filters),

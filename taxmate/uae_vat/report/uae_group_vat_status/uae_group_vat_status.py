@@ -18,13 +18,37 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		{"label": _("Company"), "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 220},
+		{
+			"label": _("Company"),
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"options": "Company",
+			"width": 220,
+		},
 		{"label": _("Role"), "fieldname": "group_role", "fieldtype": "Data", "width": 140},
-		{"label": _("VAT Group"), "fieldname": "vat_group", "fieldtype": "Link", "options": "UAE VAT Group", "width": 180},
+		{
+			"label": _("VAT Group"),
+			"fieldname": "vat_group",
+			"fieldtype": "Link",
+			"options": "UAE VAT Group",
+			"width": 180,
+		},
 		{"label": _("Group TIN"), "fieldname": "group_trn", "fieldtype": "Data", "width": 130},
 		{"label": _("Establishments"), "fieldname": "establishments", "fieldtype": "Int", "width": 120},
-		{"label": _("Head Office"), "fieldname": "head_office", "fieldtype": "Link", "options": "UAE Establishment", "width": 180},
-		{"label": _("Last VAT 201"), "fieldname": "last_vat_201", "fieldtype": "Link", "options": "UAE VAT 201 Filing Log", "width": 200},
+		{
+			"label": _("Head Office"),
+			"fieldname": "head_office",
+			"fieldtype": "Link",
+			"options": "UAE Establishment",
+			"width": 180,
+		},
+		{
+			"label": _("Last VAT 201"),
+			"fieldname": "last_vat_201",
+			"fieldtype": "Link",
+			"options": "UAE VAT 201 Filing Log",
+			"width": 200,
+		},
 	]
 
 
@@ -32,8 +56,12 @@ def get_data():
 	from frappe.utils import today
 
 	rows = []
-	for company in frappe.get_all("Company", filters={"country": UAE_COUNTRY}, pluck="name"):
-		group = active_group_for_company(company, today()) if frappe.db.exists("DocType", "UAE VAT Group") else None
+	for company in frappe.get_list("Company", filters={"country": UAE_COUNTRY}, pluck="name"):
+		group = (
+			active_group_for_company(company, today())
+			if frappe.db.exists("DocType", "UAE VAT Group")
+			else None
+		)
 		if group:
 			role = _("Representative") if group["is_representative"] else _("Member")
 		else:
@@ -42,7 +70,10 @@ def get_data():
 		head = ""
 		if frappe.db.exists("DocType", "UAE Establishment"):
 			est_count = frappe.db.count("UAE Establishment", {"company": company})
-			head = frappe.db.get_value("UAE Establishment", {"company": company, "is_head_office": 1}, "name") or ""
+			head = (
+				frappe.db.get_value("UAE Establishment", {"company": company, "is_head_office": 1}, "name")
+				or ""
+			)
 		last = frappe.db.get_value(
 			"UAE VAT 201 Filing Log",
 			{"company": company, "docstatus": 1},

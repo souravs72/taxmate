@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeCreateDoc, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useInsert } from "../../lib/resource";
 import { money, parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
@@ -19,7 +20,7 @@ export default function CreditNoteForm() {
   const { name = "" } = useParams();
   const nav = useNavigate();
   const make = useFrappePostCall<{ message: ReturnDoc }>(METHOD.makeSalesReturn);
-  const create = useFrappeCreateDoc();
+  const create = useInsert();
   const [draft, setDraft] = useState<ReturnDoc | null>(null);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
@@ -70,7 +71,7 @@ export default function CreditNoteForm() {
         }
       />
       {saveError && <ErrorBox error={saveError} />}
-      <Card title={t("inv.reason")} hint={t("inv.reasonHint")}>
+      <Card title={t("inv.reason")}>
         <Field label={t("inv.reason")} required>
           <input className="ctl" value={reason} onChange={(e) => setReason(e.target.value)} />
         </Field>

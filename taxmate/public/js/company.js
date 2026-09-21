@@ -131,5 +131,7 @@ taxmate._mandate_headline = function (mandate) {
 	if (mandate.disclaimer) {
 		lines.push(`<span class="text-muted">${esc(mandate.disclaimer)}</span>`);
 	}
-	return `<div style="margin-top: 8px;"><strong>${esc(__("E-invoicing mandate"))}</strong><div>${lines.join("<br>")}</div></div>`;
+	return `<div style="margin-top: 8px;"><strong>${esc(
+		__("E-invoicing mandate")
+	)}</strong><div>${lines.join("<br>")}</div></div>`;
 };

@@ -17,7 +17,10 @@ frappe.ui.form.on("UAE FTA Audit Pack", {
 					freeze_message: __("Building FTA audit zip..."),
 					callback(r) {
 						if (!r.exc) {
-							frappe.show_alert({ message: __("Audit zip attached."), indicator: "green" });
+							frappe.show_alert({
+								message: __("Audit zip attached."),
+								indicator: "green",
+							});
 							frm.reload_doc();
 						}
 					},

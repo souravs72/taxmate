@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeCreateDoc, useFrappeGetDoc, useFrappeGetDocList, useFrappeUpdateDoc } from "frappe-react-sdk";
-
 import { DT } from "../../lib/frappe";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
@@ -30,6 +29,7 @@ type AddressDoc = {
   address_line1?: string;
   city?: string;
   state?: string;
+  emirate?: string;
   country?: string;
   email_id?: string;
   phone?: string;
@@ -40,18 +40,18 @@ export default function CustomerForm() {
   const nav = useNavigate();
   const isNew = name === "new";
 
-  const existing = useFrappeGetDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
+  const existing = useDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
-  const settings = useFrappeGetDoc<{ customer_group?: string; territory?: string }>(DT.sellingSettings, DT.sellingSettings);
-  const groups = useFrappeGetDocList<{ name: string }>(DT.customerGroup, {
+  const settings = useDoc<{ customer_group?: string; territory?: string }>(DT.sellingSettings, DT.sellingSettings);
+  const groups = useDocList<{ name: string }>(DT.customerGroup, {
     fields: ["name"],
     filters: [["is_group", "=", 0]],
     limit: 50,
   });
-  const terms = useFrappeGetDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
-  const create = useFrappeCreateDoc();
-  const update = useFrappeUpdateDoc();
+  const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const create = useInsert();
+  const update = useSave();
 
   const [form, setForm] = useState({
     customer_name: "",
@@ -94,7 +94,7 @@ export default function CustomerForm() {
   }, [existing.data]);
 
   const addrName = existing.data?.customer_primary_address;
-  const address = useFrappeGetDoc<AddressDoc>(DT.address, addrName, addrName || null, {
+  const address = useDoc<AddressDoc>(DT.address, addrName, addrName || null, {
     isPaused: () => !addrName,
   });
   useEffect(() => {
@@ -104,7 +104,7 @@ export default function CustomerForm() {
       ...f,
       address_line1: a.address_line1 || "",
       city: a.city || "",
-      state: a.state || "",
+      state: a.emirate || a.state || "",
       email_id: a.email_id || "",
       phone: a.phone || "",
     }));
@@ -144,6 +144,7 @@ export default function CustomerForm() {
         address_line1: form.address_line1,
         city: form.city,
         state: form.state,
+        emirate: form.state,
         country: "United Arab Emirates",
         email_id: form.email_id || undefined,
         phone: form.phone || undefined,

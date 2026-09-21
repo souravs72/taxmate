@@ -15,7 +15,6 @@ from frappe import _
 from frappe.utils import get_url_to_form
 from frappe.utils.user import get_users_with_role
 
-
 # UAE ESR Filing is submittable: once Submitted (docstatus 1) it is locked
 # in as the audit record on purpose (see uae_esr_filing.py::before_submit),
 # so only Draft filings need their date-driven status refreshed daily.
@@ -78,9 +77,9 @@ def _remind_esr_filings() -> None:
 		_raise_todo_once(
 			reference_doctype="UAE ESR Filing",
 			reference_name=filing.name,
-			description=_(
-				"ESR filing for {0} (financial year ending {1}) is {2}."
-			).format(filing.company, filing.financial_year_end, filing.status),
+			description=_("ESR filing for {0} (financial year ending {1}) is {2}.").format(
+				filing.company, filing.financial_year_end, filing.status
+			),
 		)
 
 

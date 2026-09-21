@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
-
 from frappe.utils import cint
 
 from taxmate.uae.constants import UAE_COUNTRY
@@ -23,7 +22,13 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		{"label": _("Company"), "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 200},
+		{
+			"label": _("Company"),
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"options": "Company",
+			"width": 200,
+		},
 		{"label": _("UBO Status"), "fieldname": "ubo_status", "fieldtype": "Data", "width": 160},
 		{
 			"label": _("UBO Register"),
@@ -40,7 +45,12 @@ def get_columns():
 			"options": "UAE Shareholder Register",
 			"width": 180,
 		},
-		{"label": _("Registers Complete"), "fieldname": "registers_complete", "fieldtype": "Data", "width": 140},
+		{
+			"label": _("Registers Complete"),
+			"fieldname": "registers_complete",
+			"fieldtype": "Data",
+			"width": 140,
+		},
 		{"label": _("Open ESR Filings"), "fieldname": "esr_open_count", "fieldtype": "Int", "width": 130},
 		{"label": _("Worst ESR Status"), "fieldname": "esr_worst_status", "fieldtype": "Data", "width": 160},
 		{
@@ -62,7 +72,7 @@ def get_data(filters):
 	if filters.get("company"):
 		company_filter["name"] = filters["company"]
 
-	companies = frappe.get_all("Company", filters=company_filter, pluck="name")
+	companies = frappe.get_list("Company", filters=company_filter, pluck="name")
 	rows = []
 
 	for company in companies:
@@ -76,7 +86,9 @@ def get_data(filters):
 				"ubo_register": ubo_register,
 				"shareholder_status": share_status,
 				"shareholder_register": share_register,
-				"registers_complete": _("Yes") if registers_complete(bool(ubo_register), bool(share_register)) else _("No"),
+				"registers_complete": _("Yes")
+				if registers_complete(bool(ubo_register), bool(share_register))
+				else _("No"),
 				"esr_open_count": esr_open_count,
 				"esr_worst_status": esr_worst_status,
 				"esr_latest": esr_latest,
@@ -107,7 +119,7 @@ def _shareholder_row(company: str):
 
 
 def _esr_summary(company: str):
-	filings = frappe.get_all(
+	filings = frappe.get_list(
 		"UAE ESR Filing",
 		filters={"company": company},
 		fields=["name", "status", "financial_year_end"],

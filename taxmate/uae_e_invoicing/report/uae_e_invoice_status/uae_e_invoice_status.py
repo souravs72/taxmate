@@ -48,37 +48,37 @@ def execute(filters=None):
 	from taxmate.uae_e_invoicing.utils.mandate import get_sla_days, sla_status
 
 	days = get_sla_days()
-	values = {"today": frappe.utils.nowdate()}
-	clauses = ["1=1"]
+	list_filters = {}
 	if filters.get("company"):
-		clauses.append("company = %(company)s")
-		values["company"] = filters["company"]
+		list_filters["company"] = filters["company"]
 	if filters.get("status"):
-		clauses.append("status = %(status)s")
-		values["status"] = filters["status"]
-	if frappe.db.has_column("UAE E-Invoice Log", "sla_due"):
-		sla = filters.get("sla")
-		if sla == "Breached":
-			clauses.append("ifnull(accepted_on, '') = '' and sla_due < %(today)s")
-		elif sla == "Open":
-			clauses.append("ifnull(accepted_on, '') = '' and sla_due >= %(today)s")
-		elif sla == "Met":
-			clauses.append("ifnull(accepted_on, '') != '' and date(accepted_on) <= sla_due")
-		elif sla == "Late":
-			clauses.append("ifnull(accepted_on, '') != '' and date(accepted_on) > sla_due")
+		list_filters["status"] = filters["status"]
 
-	data = frappe.db.sql(
-		f"""
-		select company, reference_doctype, reference_name, uuid, status,
-			document_type_code, issued_on, accepted_on, sla_due, modified
-		from `tabUAE E-Invoice Log`
-		where {' and '.join(clauses)}
-		order by modified desc
-		limit 500
-		""",
-		values,
-		as_dict=True,
+	fields = [
+		"company",
+		"reference_doctype",
+		"reference_name",
+		"uuid",
+		"status",
+		"document_type_code",
+		"issued_on",
+		"accepted_on",
+		"modified",
+	]
+	if frappe.db.has_column("UAE E-Invoice Log", "sla_due"):
+		fields.append("sla_due")
+
+	data = frappe.get_list(
+		"UAE E-Invoice Log",
+		filters=list_filters,
+		fields=fields,
+		order_by="modified desc",
+		limit_page_length=500,
 	)
+	out = []
 	for row in data:
 		row["sla"] = sla_status(row.get("issued_on"), row.get("accepted_on"), sla_days=days)
-	return columns, data
+		if filters.get("sla") and row["sla"] != filters.get("sla"):
+			continue
+		out.append(row)
+	return columns, out

@@ -164,7 +164,7 @@ class TestHomeWorkspaceSite(FrappeTestCase):
 		if not frappe.db.exists("Workspace", "IDP"):
 			self.skipTest("Workspace IDP is missing")
 
-		from taxmate.setup.workspaces import _ensure_invoice_ocr_workspace, _ensure_idp_clerk_defaults
+		from taxmate.setup.workspaces import _ensure_idp_clerk_defaults, _ensure_invoice_ocr_workspace
 
 		_ensure_invoice_ocr_workspace()
 		_ensure_idp_clerk_defaults()

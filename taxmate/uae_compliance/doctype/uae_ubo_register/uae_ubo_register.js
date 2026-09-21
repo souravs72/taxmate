@@ -38,7 +38,10 @@ frappe.ui.form.on("UAE UBO Register", {
 							freeze: true,
 							callback(r) {
 								if (!r.exc) {
-									frappe.show_alert({ message: __("Change logged."), indicator: "green" });
+									frappe.show_alert({
+										message: __("Change logged."),
+										indicator: "green",
+									});
 									frm.reload_doc();
 								}
 							},
@@ -59,7 +62,9 @@ function render_alerts(frm) {
 
 	if (!(frm.doc.beneficial_owners || []).length) {
 		messages.push({
-			text: __("No beneficial owners recorded yet. Add at least one UBO row (or a Senior Management Official fallback)."),
+			text: __(
+				"No beneficial owners recorded yet. Add at least one UBO row (or a Senior Management Official fallback)."
+			),
 			indicator: "orange",
 		});
 	}
@@ -69,7 +74,9 @@ function render_alerts(frm) {
 	);
 	if (unresolved.length) {
 		messages.push({
-			text: __("Legal-entity UBO rows must name the natural person the control chain resolves to."),
+			text: __(
+				"Legal-entity UBO rows must name the natural person the control chain resolves to."
+			),
 			indicator: "orange",
 		});
 	}
@@ -86,7 +93,10 @@ function render_alerts(frm) {
 
 	const today = frappe.datetime.get_today();
 	const expired = (frm.doc.beneficial_owners || []).filter(
-		(row) => row.is_active && row.identification_expiry_date && row.identification_expiry_date < today
+		(row) =>
+			row.is_active &&
+			row.identification_expiry_date &&
+			row.identification_expiry_date < today
 	);
 	if (expired.length) {
 		messages.push({
@@ -100,12 +110,16 @@ function render_alerts(frm) {
 
 	if (frm.doc.status === "Overdue") {
 		messages.push({
-			text: __("A UBO change was not reported within the deadline. Report it to your licensing authority and log the date above."),
+			text: __(
+				"A UBO change was not reported within the deadline. Report it to your licensing authority and log the date above."
+			),
 			indicator: "red",
 		});
 	} else if (frm.doc.status === "Update Reporting Due") {
 		messages.push({
-			text: __("A logged UBO change is still within its reporting window — report it to your licensing authority soon."),
+			text: __(
+				"A logged UBO change is still within its reporting window — report it to your licensing authority soon."
+			),
 			indicator: "orange",
 		});
 	}

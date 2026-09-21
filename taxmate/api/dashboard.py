@@ -6,23 +6,15 @@ import json
 from typing import Any
 
 import frappe
-from frappe.utils import cint
 
 from taxmate.api.resource import assert_company_read, require_login
 from taxmate.setup.home import NUMBER_CARD_SPECS
 
 
 def _count(doctype: str, filters: list) -> int:
-	from frappe.desk.reportview import execute as reportview_execute
+	from taxmate.api.resource import _permission_aware_count
 
-	partial = reportview_execute(
-		doctype,
-		fields=[f"`tab{doctype}`.name"],
-		filters=filters,
-		order_by=None,
-		run=0,
-	)
-	return cint(frappe.db.sql(f"select count(*) from ( {partial.get_sql()} ) p")[0][0])
+	return _permission_aware_count(doctype, filters=filters)
 
 
 @frappe.whitelist()

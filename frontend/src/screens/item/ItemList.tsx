@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocList } from "frappe-react-sdk";
+import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
@@ -10,6 +10,7 @@ import { t } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
+import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 20;
 type Row = {
@@ -28,7 +29,7 @@ export default function ItemList() {
     return f as unknown as Filter<Row>[];
   }, [q]);
 
-  const list = useFrappeGetDocList<Row>(DT.item, {
+  const list = useDocList<Row>(DT.item, {
     fields: ["name", "item_name", "item_group", "is_stock_item", "is_zero_rated", "is_exempt", "standard_rate"],
     filters,
     orderBy: { field: "modified", order: "desc" },
@@ -58,8 +59,7 @@ export default function ItemList() {
     <>
       <PageHead
         title={t("item.title")}
-        sub={t("item.sub")}
-        actions={<button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button>}
+        actions={<IfCanWrite><button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button></IfCanWrite>}
       />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>

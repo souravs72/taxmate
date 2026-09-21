@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
-import { useFrappeGetDocCount, useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDocList, useDocCount } from "../../lib/resource";
 import {
   useFilteredCount, useGroupedAggregate, useListParams, type FilterTuple,
 } from "../../lib/list";
@@ -19,6 +20,7 @@ import { BarRow, Card, Donut, ErrorBox, Legend, Loading, PageHead, Pill, StatTil
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 
 const PAGE = 20;
 const E_FAILED = ["Failed", "Rejected"];
@@ -37,7 +39,7 @@ type Agg = { name?: string; count?: number; billed?: number; outstanding?: numbe
 export default function InvoiceList() {
   const nav = useNavigate();
   const session = useSession();
-  const cur = session.currency || "AED";
+  const cur = session.currency || "";
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const params = useListParams(PAGE);
   const { get, page, setPage, start } = params;
@@ -73,7 +75,7 @@ export default function InvoiceList() {
   );
   const orFilters = query.orFilters as unknown as Filter<Row>[] | undefined;
 
-  const list = useFrappeGetDocList<Row>(DT.salesInvoice, {
+  const list = useDocList<Row>(DT.salesInvoice, {
     fields: ["name", "customer", "customer_name", "posting_date", "due_date", "grand_total",
       "outstanding_amount", "currency", "status", "docstatus", "is_return",
       "uae_e_invoice_status", "vat_emirate", "po_no"],
@@ -116,7 +118,7 @@ export default function InvoiceList() {
     groupBy: "docstatus",
   });
 
-  const eFailed = useFrappeGetDocCount(
+  const eFailed = useDocCount(
     DT.salesInvoice,
     [...baseFilters, ["uae_e_invoice_status", "in", E_FAILED]] as unknown as Filter<Row>[],
   );
@@ -213,8 +215,7 @@ export default function InvoiceList() {
     <>
       <PageHead
         title={t("inv.title")}
-        sub={t("inv.sub")}
-        actions={<button className="btn" onClick={() => nav("/invoices/new")}>＋ {t("inv.new")}</button>}
+        actions={canWrite(session) ? <button className="btn" onClick={() => nav("/invoices/new")}>＋ {t("inv.new")}</button> : null}
       />
 
       {aggReady && (
@@ -238,7 +239,7 @@ export default function InvoiceList() {
       )}
 
       <div className="charts">
-        <Card title={t("inv.chart.status")} hint={t("inv.chart.statusHint")} bodyClass="donutwrap">
+        <Card title={t("inv.chart.status")} bodyClass="donutwrap">
           {agg.isLoading ? <Loading /> : (
             <>
               <Donut data={donut} total={donutTotal} centreLabel={t("inv.chart.all")} />
@@ -248,7 +249,7 @@ export default function InvoiceList() {
         </Card>
 
         {aggReady && (
-          <Card title={t("inv.chart.collection")} hint={t("inv.chart.collectionHint")} bodyClass="bars">
+          <Card title={t("inv.chart.collection")} bodyClass="bars">
             <div className="hero">
               <span className="c">{cur}</span>
               <span className="n2">{money(totals.billed)}</span>

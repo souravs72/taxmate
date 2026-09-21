@@ -22,11 +22,35 @@ def execute(filters=None):
 def get_columns():
 	return [
 		{"label": _("Source"), "fieldname": "source", "fieldtype": "Data", "width": 220},
-		{"label": _("Document"), "fieldname": "document", "fieldtype": "Dynamic Link", "options": "document_type", "width": 200},
-		{"label": _("Document Type"), "fieldname": "document_type", "fieldtype": "Link", "options": "DocType", "width": 180},
+		{
+			"label": _("Document"),
+			"fieldname": "document",
+			"fieldtype": "Dynamic Link",
+			"options": "document_type",
+			"width": 200,
+		},
+		{
+			"label": _("Document Type"),
+			"fieldname": "document_type",
+			"fieldtype": "Link",
+			"options": "DocType",
+			"width": 180,
+		},
 		{"label": _("Box"), "fieldname": "box", "fieldtype": "Data", "width": 70},
-		{"label": _("Amount (AED)"), "fieldname": "amount", "fieldtype": "Currency", "options": "AED", "width": 130},
-		{"label": _("VAT (AED)"), "fieldname": "vat_amount", "fieldtype": "Currency", "options": "AED", "width": 130},
+		{
+			"label": _("Amount (AED)"),
+			"fieldname": "amount",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"width": 130,
+		},
+		{
+			"label": _("VAT (AED)"),
+			"fieldname": "vat_amount",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"width": 130,
+		},
 		{"label": _("Linked PI / LCV"), "fieldname": "linked", "fieldtype": "Data", "width": 220},
 	]
 
@@ -35,6 +59,8 @@ def get_data(filters):
 	company = filters.get("company")
 	if not company:
 		return []
+	if not frappe.has_permission("Company", "read", company):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 	if frappe.db.get_value("Company", company, "country") != UAE_COUNTRY:
 		frappe.throw(_("{0} is not a UAE company.").format(company))
 	period_start = filters.get("from_date")
@@ -43,7 +69,7 @@ def get_data(filters):
 		frappe.throw(_("Set From Date and To Date."))
 
 	rows = []
-	customs = frappe.get_all(
+	customs = frappe.get_list(
 		"UAE Customs Declaration",
 		filters={
 			"company": company,
@@ -77,7 +103,7 @@ def get_data(filters):
 	pi_fields = ["name", "base_net_total", "recoverable_standard_rated_expenses"]
 	if frappe.db.has_column("Purchase Invoice", "uae_box_9_taxable_amount"):
 		pi_fields.append("uae_box_9_taxable_amount")
-	purchases = frappe.get_all(
+	purchases = frappe.get_list(
 		"Purchase Invoice",
 		filters={
 			"company": company,
@@ -102,7 +128,7 @@ def get_data(filters):
 		)
 
 	if frappe.db.exists("DocType", "UAE Capital Goods Adjustment"):
-		adjustments = frappe.get_all(
+		adjustments = frappe.get_list(
 			"UAE Capital Goods Adjustment",
 			filters={
 				"company": company,

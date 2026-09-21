@@ -37,9 +37,7 @@ def singles_field_is_set(fieldname: str) -> bool:
 	"""True when TaxMate Settings already has a tabSingles row for ``fieldname``."""
 	if not frappe.db.exists("DocType", "TaxMate Settings"):
 		return False
-	return bool(
-		frappe.db.exists("Singles", {"doctype": "TaxMate Settings", "field": fieldname})
-	)
+	return bool(frappe.db.exists("Singles", {"doctype": "TaxMate Settings", "field": fieldname}))
 
 
 def normalize_trn(trn: str | None) -> str | None:

@@ -73,7 +73,11 @@ class TestFixtureGoldenVat201(FrappeTestCase):
 
 		from unittest.mock import patch
 
-		from taxmate.uae_vat.utils.vat_201 import compute_vat_201, list_period_invoices, sum_customs_declarations
+		from taxmate.uae_vat.utils.vat_201 import (
+			compute_vat_201,
+			list_period_invoices,
+			sum_customs_declarations,
+		)
 		from taxmate.uae_vat.utils.vat_201_export import export_accountant_pack
 
 		customs = sum_customs_declarations(company, PERIOD_START, PERIOD_END)

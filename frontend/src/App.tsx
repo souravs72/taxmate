@@ -1,23 +1,25 @@
 /**
  * TaxMate SPA root router.
- * Importers: frontend entry (main.tsx). Callers: browser at /taxmate.
- * Routes: /orders (Sales Order), /customers, /invoices, /payments, /receivables.
- * User: "I can't see /orders (Sales Order in the frontend)." + revert sidebar design;
- * search should navigate to /taxmate endpoints only, not desk.
+ * Routes under /taxmate: orders, customers, suppliers, invoices, payments, and the rest of the books.
  */
+import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
 import { useFrappeAuth } from "frappe-react-sdk";
 
 import AppShell from "./components/AppShell";
 import { ErrorBox, Loading } from "./components/ui";
 import { hasCsrfToken } from "./lib/frappe";
+import { LangProvider } from "./lib/i18n";
 import { SessionProvider } from "./lib/session";
 import SalesOrderList from "./screens/sales-order/SalesOrderList";
 import SalesOrderDetail from "./screens/sales-order/SalesOrderDetail";
 import SalesOrderCreate from "./screens/sales-order/SalesOrderCreate";
+import Dashboard from "./screens/dashboard/Dashboard";
 import SalesHub from "./screens/sales/SalesHub";
 import CustomerList from "./screens/customer/CustomerList";
 import CustomerForm from "./screens/customer/CustomerForm";
+import SupplierList from "./screens/supplier/SupplierList";
+import SupplierForm from "./screens/supplier/SupplierForm";
 import InvoiceList from "./screens/invoice/InvoiceList";
 import InvoiceForm from "./screens/invoice/InvoiceForm";
 import InvoiceDetail from "./screens/invoice/InvoiceDetail";
@@ -26,24 +28,65 @@ import PaymentList from "./screens/payment/PaymentList";
 import PaymentForm from "./screens/payment/PaymentForm";
 import PaymentDetail from "./screens/payment/PaymentDetail";
 import Receivables from "./screens/receivables/Receivables";
+import Payables from "./screens/payables/Payables";
 import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
+import DeliveryNoteList from "./screens/delivery-note/DeliveryNoteList";
+import DeliveryNoteDetail from "./screens/delivery-note/DeliveryNoteDetail";
+import PurchaseInvoiceList from "./screens/purchase-invoice/PurchaseInvoiceList";
+import PurchaseInvoiceForm from "./screens/purchase-invoice/PurchaseInvoiceForm";
+import PurchaseInvoiceDetail from "./screens/purchase-invoice/PurchaseInvoiceDetail";
+import IncomingInvoiceList from "./screens/incoming-invoice/IncomingInvoiceList";
+import IncomingInvoiceDetail from "./screens/incoming-invoice/IncomingInvoiceDetail";
+import PurchaseOrderList from "./screens/purchase-order/PurchaseOrderList";
+import PurchaseOrderDetail from "./screens/purchase-order/PurchaseOrderDetail";
+import PurchaseOrderForm from "./screens/purchase-order/PurchaseOrderForm";
+import PurchaseReceiptList from "./screens/purchase-receipt/PurchaseReceiptList";
+import PurchaseReceiptDetail from "./screens/purchase-receipt/PurchaseReceiptDetail";
+import PurchaseReceiptForm from "./screens/purchase-receipt/PurchaseReceiptForm";
+import JournalEntryList from "./screens/journal-entry/JournalEntryList";
+import JournalEntryDetail from "./screens/journal-entry/JournalEntryDetail";
+import JournalEntryForm from "./screens/journal-entry/JournalEntryForm";
+import ChartOfAccounts from "./screens/account/ChartOfAccounts";
+import AccountDetail from "./screens/account/AccountDetail";
+import ReportList from "./screens/reports/ReportList";
+import ReportRunner from "./screens/reports/ReportRunner";
+import WarehouseList from "./screens/warehouse/WarehouseList";
+import WarehouseDetail from "./screens/warehouse/WarehouseDetail";
+import TaxTemplateList from "./screens/tax-template/TaxTemplateList";
+import TaxTemplateDetail from "./screens/tax-template/TaxTemplateDetail";
+import EInvoiceLog from "./screens/compliance/EInvoiceLog";
+import TaxSettings from "./screens/compliance/TaxSettings";
+import Vat201List from "./screens/vat-201/Vat201List";
+import Vat201Detail from "./screens/vat-201/Vat201Detail";
+import Vat201Form from "./screens/vat-201/Vat201Form";
+import CtFilingList from "./screens/ct-filing/CtFilingList";
+import CtFilingDetail from "./screens/ct-filing/CtFilingDetail";
+import EsrFilingList from "./screens/esr/EsrFilingList";
+import EsrFilingDetail from "./screens/esr/EsrFilingDetail";
+import UboRegisterList from "./screens/ubo/UboRegisterList";
+import UboRegisterDetail from "./screens/ubo/UboRegisterDetail";
+import LateFilingList from "./screens/late-filing/LateFilingList";
+import LateFilingDetail from "./screens/late-filing/LateFilingDetail";
+import TeamList from "./screens/team/TeamList";
+import TeamInvite from "./screens/team/TeamInvite";
+import Profile from "./screens/team/Profile";
+import NotFound from "./screens/NotFound";
 
 export default function App() {
   const { currentUser, isLoading, error } = useFrappeAuth();
+  const needsLogin = !isLoading && (!!error || !currentUser || currentUser === "Guest");
 
-  if (isLoading) return <Loading />;
-
-  /* Not signed in: hand off to Frappe's own login and come back here.
-     Authentication and authorisation stay with Frappe — this app never
-     collects a password. */
-  if (error || !currentUser || currentUser === "Guest") {
+  useEffect(() => {
+    if (!needsLogin) return;
     const back = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/login?redirect-to=${back}`;
-    return <Loading />;
-  }
+  }, [needsLogin]);
+
+  if (isLoading || needsLogin) return <Loading />;
 
   return (
+    <LangProvider>
     <SessionProvider>
       <AppShell>
         {!hasCsrfToken() && (
@@ -54,35 +97,77 @@ export default function App() {
             "index.html to www/taxmate.html." }} />
         )}
         <Routes>
-          <Route path="/" element={<Navigate to="/orders" replace />} />
+          <Route path="/" element={<Dashboard />} />
           <Route path="/orders" element={<SalesOrderList />} />
           <Route path="/orders/new" element={<SalesOrderCreate />} />
           <Route path="/orders/:name" element={<SalesOrderDetail />} />
+          <Route path="/delivery-notes" element={<DeliveryNoteList />} />
+          <Route path="/delivery-notes/:name" element={<DeliveryNoteDetail />} />
           <Route path="/customers" element={<CustomerList />} />
           <Route path="/customers/:name" element={<CustomerForm />} />
+          <Route path="/suppliers" element={<SupplierList />} />
+          <Route path="/suppliers/:name" element={<SupplierForm />} />
+          <Route path="/incoming-invoices" element={<IncomingInvoiceList />} />
+          <Route path="/incoming-invoices/:name" element={<IncomingInvoiceDetail />} />
+          <Route path="/purchase-orders" element={<PurchaseOrderList />} />
+          <Route path="/purchase-orders/new" element={<PurchaseOrderForm />} />
+          <Route path="/purchase-orders/:name" element={<PurchaseOrderDetail />} />
+          <Route path="/purchase-receipts" element={<PurchaseReceiptList />} />
+          <Route path="/purchase-receipts/new" element={<PurchaseReceiptForm />} />
+          <Route path="/purchase-receipts/:name" element={<PurchaseReceiptDetail />} />
+          <Route path="/purchase-invoices" element={<PurchaseInvoiceList />} />
+          <Route path="/purchase-invoices/new" element={<PurchaseInvoiceForm />} />
+          <Route path="/purchase-invoices/:name/edit" element={<PurchaseInvoiceForm />} />
+          <Route path="/purchase-invoices/:name" element={<PurchaseInvoiceDetail />} />
           <Route path="/invoices" element={<InvoiceList />} />
           <Route path="/invoices/new" element={<InvoiceForm />} />
           <Route path="/invoices/:name/return" element={<CreditNoteForm />} />
-          {/* A submitted invoice is a tax document, so the default view is
-              read-only; /edit is reachable only while it is a draft. */}
           <Route path="/invoices/:name/edit" element={<InvoiceForm />} />
           <Route path="/invoices/:name" element={<InvoiceDetail />} />
           <Route path="/payments" element={<PaymentList />} />
           <Route path="/payments/new" element={<PaymentForm />} />
-          {/* A submitted payment has posted to the ledger — read-only. */}
           <Route path="/payments/:name/edit" element={<PaymentForm />} />
           <Route path="/payments/:name" element={<PaymentDetail />} />
           <Route path="/receivables" element={<Receivables />} />
+          <Route path="/payables" element={<Payables />} />
+          <Route path="/journals" element={<JournalEntryList />} />
+          <Route path="/journals/new" element={<JournalEntryForm />} />
+          <Route path="/journals/:name/edit" element={<JournalEntryForm />} />
+          <Route path="/journals/:name" element={<JournalEntryDetail />} />
+          <Route path="/accounts" element={<ChartOfAccounts />} />
+          <Route path="/accounts/:name" element={<AccountDetail />} />
+          <Route path="/reports" element={<ReportList />} />
+          <Route path="/reports/:report" element={<ReportRunner />} />
+          <Route path="/warehouses" element={<WarehouseList />} />
+          <Route path="/warehouses/:name" element={<WarehouseDetail />} />
+          <Route path="/tax-templates" element={<TaxTemplateList />} />
+          <Route path="/tax-templates/:kind/:name" element={<TaxTemplateDetail />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
-          {/* Legacy /sales aliases from earlier WIP */}
+          <Route path="/vat-201" element={<Vat201List />} />
+          <Route path="/vat-201/new" element={<Vat201Form />} />
+          <Route path="/vat-201/:name" element={<Vat201Detail />} />
+          <Route path="/ct-filings" element={<CtFilingList />} />
+          <Route path="/ct-filings/:name" element={<CtFilingDetail />} />
+          <Route path="/esr" element={<EsrFilingList />} />
+          <Route path="/esr/:name" element={<EsrFilingDetail />} />
+          <Route path="/ubo" element={<UboRegisterList />} />
+          <Route path="/ubo/:name" element={<UboRegisterDetail />} />
+          <Route path="/late-filings" element={<LateFilingList />} />
+          <Route path="/late-filings/:name" element={<LateFilingDetail />} />
+          <Route path="/e-invoice-log" element={<EInvoiceLog />} />
+          <Route path="/tax-settings" element={<TaxSettings />} />
+          <Route path="/team" element={<TeamList />} />
+          <Route path="/team/new" element={<TeamInvite />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/sales" element={<SalesHub />} />
           <Route path="/sales/customers" element={<Navigate to="/customers" replace />} />
           <Route path="/sales/invoices" element={<Navigate to="/invoices" replace />} />
           <Route path="/sales/receivables" element={<Navigate to="/receivables" replace />} />
-          <Route path="*" element={<Navigate to="/orders" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>
     </SessionProvider>
+    </LangProvider>
   );
 }

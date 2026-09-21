@@ -1,7 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
-import { useFrappeGetCall, useFrappeGetDoc, useFrappeGetDocList, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, eInvoiceLocked } from "../../lib/roles";
 import { date, datetime, money, qty } from "../../lib/format";
@@ -40,7 +41,7 @@ export default function InvoiceDetail() {
   const nav = useNavigate();
   const session = useSession();
 
-  const { data, error, isLoading, mutate } = useFrappeGetDoc<Doc>(DT.salesInvoice, name);
+  const { data, error, isLoading, mutate } = useDoc<Doc>(DT.salesInvoice, name);
 
   /* Payments allocated to this invoice.
      The amount lives on the Payment Entry Reference child row. Listing that
@@ -53,7 +54,7 @@ export default function InvoiceDetail() {
   const payments = useFrappeGetCall<{
     message: { name: string; allocated?: number; ref?: string }[];
   }>(
-    METHOD.clientGetList,
+    METHOD.getList,
     {
       doctype: DT.paymentEntry,
       fields: JSON.stringify([
@@ -74,7 +75,7 @@ export default function InvoiceDetail() {
     name ? `inv-payments-${name}` : null,
   );
 
-  const creditNotes = useFrappeGetDocList<{ name: string; grand_total?: number; posting_date?: string }>(
+  const creditNotes = useDocList<{ name: string; grand_total?: number; posting_date?: string }>(
     DT.salesInvoice,
     {
       fields: ["name", "grand_total", "posting_date"],
@@ -84,7 +85,7 @@ export default function InvoiceDetail() {
     name ? `inv-credit-notes-${name}` : null,
   );
 
-  const logs = useFrappeGetDocList<EInvoiceLog>(DT.eInvoiceLog, {
+  const logs = useDocList<EInvoiceLog>(DT.eInvoiceLog, {
     fields: ["name", "status", "modified", "creation", "asp_document_id", "error_message"],
     filters: [["reference_doctype", "=", DT.salesInvoice], ["reference_name", "=", name]],
     orderBy: { field: "creation", order: "desc" },
@@ -101,7 +102,7 @@ export default function InvoiceDetail() {
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
 
-  const cur = data.currency || session.currency || "AED";
+  const cur = data.currency || session.currency || "";
   const ui = invoiceUiStatus(data);
   const late = isInvoiceOverdue(data);
   const draft = data.docstatus === 0;
@@ -204,7 +205,7 @@ export default function InvoiceDetail() {
 
       {/* Payment split — the spec's worked case: total / received / outstanding */}
       {submitted && (
-        <Card title={t("inv.pay.title")} hint={t("inv.pay.hint")}>
+        <Card title={t("inv.pay.title")}>
           <div className="paybar">
             <i style={{ width: `${grand ? (received / grand) * 100 : 0}%`, background: "var(--c-billed)" }} />
             <i style={{ width: `${grand ? (outstanding / grand) * 100 : 0}%`,
@@ -225,7 +226,7 @@ export default function InvoiceDetail() {
       {submitted && (
         <Card
           title={t("inv.einv.title")}
-          hint={t("inv.einv.hint")}
+         
           bodyClass={null as unknown as string}
         >
           <EInvoicePipeline status={eStatus} log={log} />
@@ -294,7 +295,7 @@ export default function InvoiceDetail() {
           )}
         </>
       }>
-          <Card title={t("inv.details")} hint={submitted ? t("inv.detailsLocked") : t("inv.detailsDraft")}>
+          <Card title={t("inv.details")}>
             <div className="fg">
               <ReadRow k={t("f.customer")} v={data.customer_name || data.customer} link />
               <ReadRow k={t("f.customerTrn")} v={<span className="mono">{data.tax_id || "—"}</span>} />
@@ -311,7 +312,7 @@ export default function InvoiceDetail() {
             </div>
           </Card>
 
-          <Card title={t("inv.lines")} hint={`${data.items?.length ?? 0} · ${t("inv.linesHint")}`} bodyClass="twrap">
+          <Card title={t("inv.lines")} bodyClass="twrap">
             <table>
               <thead>
                 <tr>
