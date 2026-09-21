@@ -17,6 +17,7 @@ type Line = {
   debit_in_account_currency?: number;
   credit_in_account_currency?: number;
   user_remark?: string;
+  cost_center?: string;
 };
 
 type Doc = {
@@ -119,6 +120,7 @@ export default function JournalEntryDetail() {
               <thead>
                 <tr>
                   <th>{t("je.account")}</th>
+                  <th>{t("je.costCenter")}</th>
                   <th>{t("je.party")}</th>
                   <th className="n">{t("je.col.debit")}</th>
                   <th className="n">{t("je.col.credit")}</th>
@@ -128,6 +130,7 @@ export default function JournalEntryDetail() {
                 {(data.accounts ?? []).map((row, i) => (
                   <tr key={`${row.account}-${i}`}>
                     <td>{row.account}</td>
+                    <td>{row.cost_center || "—"}</td>
                     <td>{row.party || "—"}</td>
                     <td className="n">{money(row.debit_in_account_currency)}</td>
                     <td className="n tot">{money(row.credit_in_account_currency)}</td>

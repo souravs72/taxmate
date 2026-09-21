@@ -30,7 +30,7 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 	row = frappe.db.get_value(
 		"Company",
 		company,
-		["name", "default_currency", "country", "tax_id"],
+		["name", "default_currency", "country", "tax_id", "cost_center"],
 		as_dict=True,
 	)
 	out = {
@@ -38,6 +38,7 @@ def get_defaults(company: str | None = None) -> dict[str, Any]:
 		"currency": row.default_currency,
 		"country": row.country,
 		"tax_id": row.tax_id,
+		"cost_center": row.get("cost_center"),
 		"fiscal_year": None,
 	}
 	from erpnext.accounts.utils import FiscalYearError, get_fiscal_year

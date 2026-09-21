@@ -608,6 +608,9 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 			}
 		)
 		self.assertEqual(doc["docstatus"], 0)
+		if cost_center:
+			for row in doc.get("accounts") or []:
+				self.assertEqual(row.get("cost_center"), cost_center)
 		submitted = submit({"doctype": "Journal Entry", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
 		cancelled = cancel("Journal Entry", doc["name"])

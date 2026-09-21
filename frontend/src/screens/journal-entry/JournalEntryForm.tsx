@@ -12,7 +12,7 @@ import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../componen
 import { FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
-type Line = { account: string; party_type: string; party: string; debit: number; credit: number };
+type Line = { account: string; party_type: string; party: string; debit: number; credit: number; cost_center: string };
 
 const TYPES = [
   "Journal Entry",
@@ -35,6 +35,7 @@ type Doc = {
     party?: string;
     debit_in_account_currency?: number;
     credit_in_account_currency?: number;
+    cost_center?: string;
   }[];
 };
 
@@ -49,16 +50,26 @@ export default function JournalEntryForm() {
   const submitCall = useFrappePostCall(METHOD.submit);
   const create = useInsert();
   const update = useSave();
+  const defaults = useFrappePostCall<{ message: { company?: string; currency?: string; cost_center?: string } }>(METHOD.getDefaults);
 
   const [postingDate, setPostingDate] = useState(toIsoDate(new Date()));
   const [voucherType, setVoucherType] = useState("Journal Entry");
   const [remark, setRemark] = useState("");
-  const [lines, setLines] = useState<Line[]>([
-    { account: "", party_type: "", party: "", debit: 0, credit: 0 },
-    { account: "", party_type: "", party: "", debit: 0, credit: 0 },
-  ]);
+  const [defaultCc, setDefaultCc] = useState("");
+  const blank = (cc = ""): Line => ({ account: "", party_type: "", party: "", debit: 0, credit: 0, cost_center: cc });
+  const [lines, setLines] = useState<Line[]>([blank(), blank()]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+
+  useEffect(() => {
+    defaults.call({}).then((r) => setDefaultCc(r?.message?.cost_center || "")).catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!defaultCc) return;
+    setLines((rows) => rows.map((r) => (r.account || r.cost_center ? r : { ...r, cost_center: defaultCc })));
+  }, [defaultCc]);
 
   useEffect(() => {
     const d = existing.data;
@@ -72,8 +83,9 @@ export default function JournalEntryForm() {
       party: r.party || "",
       debit: Number(r.debit_in_account_currency) || 0,
       credit: Number(r.credit_in_account_currency) || 0,
+      cost_center: r.cost_center || defaultCc,
     }));
-    setLines(acc.length >= 2 ? acc : [...acc, { account: "", party_type: "", party: "", debit: 0, credit: 0 }]);
+    setLines(acc.length >= 2 ? acc : [...acc, blank(defaultCc)]);
   }, [existing.data]);
 
   const filled = useMemo(
@@ -101,6 +113,7 @@ export default function JournalEntryForm() {
         party: l.party || undefined,
         debit_in_account_currency: l.debit || 0,
         credit_in_account_currency: l.credit || 0,
+        cost_center: l.cost_center || defaultCc || undefined,
       })),
     };
   }
@@ -206,6 +219,7 @@ export default function JournalEntryForm() {
               <thead>
                 <tr>
                   <th>{t("je.account")}</th>
+                  <th>{t("je.costCenter")}</th>
                   <th>{t("je.party")}</th>
                   <th className="n">{t("je.col.debit")}</th>
                   <th className="n">{t("je.col.credit")}</th>
@@ -222,6 +236,15 @@ export default function JournalEntryForm() {
                         onChange={(v) => setLine(i, { account: v })}
                         placeholder={t("je.pickAccount")}
                         filters={company ? [["company", "=", company], ["is_group", "=", 0], ["disabled", "=", 0]] : undefined}
+                      />
+                    </td>
+                    <td>
+                      <LinkField
+                        doctype={DT.costCenter}
+                        value={row.cost_center}
+                        onChange={(v) => setLine(i, { cost_center: v })}
+                        placeholder={t("je.costCenter")}
+                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined}
                       />
                     </td>
                     <td>
@@ -260,7 +283,7 @@ export default function JournalEntryForm() {
               </tbody>
             </table>
           </div>
-          <button type="button" className="btn ghost sm" onClick={() => setLines((r) => [...r, { account: "", party_type: "", party: "", debit: 0, credit: 0 }])}>
+          <button type="button" className="btn ghost sm" onClick={() => setLines((r) => [...r, blank(defaultCc)])}>
             ＋ {t("soc.addLine")}
           </button>
         </Card>

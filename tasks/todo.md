@@ -309,18 +309,40 @@ Plan: `tasks/plan.md`
 **Description:** The sales invoice form already fetches HS/SAC from item details but drops them on save, so UAE e-invoices go out without classification. Persist and show the codes on the line table.
 
 **Acceptance criteria:**
-- [ ] Invoice form line table shows HS/SAC; payload sends `hs_code` / `sac_code` / `uae_item_type`
-- [ ] Write-path SI test inserts with `sac_code` and asserts it on the saved item
+- [x] Invoice form line table shows HS/SAC; payload sends `hs_code` / `sac_code` / `uae_item_type`
+- [x] Write-path SI test inserts with `sac_code` and asserts it on the saved item
 
 **Verification:**
-- [ ] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
-- [ ] `npx tsc --noEmit` in `frontend/`
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [x] `npx tsc --noEmit` in `frontend/`
 
 **Dependencies:** Task 20
 
 **Files likely touched:**
 - `frontend/src/screens/invoice/InvoiceForm.tsx`
 - `taxmate/tests/test_api.py`
+
+**Estimated scope:** S
+
+## Task 22: Journal Entry cost center
+
+**Description:** ERPNext posts journals against a cost center. The SPA form omits it, so many companies cannot submit. Default from Company and let each line override.
+
+**Acceptance criteria:**
+- [x] `get_defaults` returns company `cost_center`
+- [x] JE form has a cost center on each line (defaulted); payload sends it
+- [x] Detail shows cost center when set
+- [x] Write-path JE test asserts cost center on saved accounts when the company has one
+
+**Verification:**
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [x] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 21
+
+**Files likely touched:**
+- `frontend/src/screens/journal-entry/`
+- `taxmate/api/accounts.py`
 
 **Estimated scope:** S
 

@@ -54,6 +54,7 @@ export const DT = {
   contact: "Contact",
   account: "Account",
   journalEntry: "Journal Entry",
+  costCenter: "Cost Center",
   paymentEntry: "Payment Entry",
   supplier: "Supplier",
   purchaseInvoice: "Purchase Invoice",
