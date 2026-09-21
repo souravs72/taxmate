@@ -60,8 +60,14 @@ uv.lock
 taxmate/public/frontend/
 taxmate/www/taxmate.html
 
-# Installed agent skills/plugins (local copies; restore with `npx skills experimental_install`)
+# Agent / IDE tooling — local only, not shipped in production packages.
+# Callers: git status / packaging (flit); no runtime importer.
+# Existing purpose: this .gitignore already ignored .agents/.claude/.cursor/skills|agents;
+# extend to full .cursor/, tasks/, skills-lock.json. User: "I want you to ensure that
+# the next commit is about those files that are not requried in production - check
+# the cursor rules file, and other files that shouldn't be in production - remove them"
 .agents/
 .claude/
-.cursor/skills/
-.cursor/agents/
+.cursor/
+skills-lock.json
+tasks/
