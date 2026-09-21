@@ -36,7 +36,7 @@ class TestCapitalGoods(unittest.TestCase):
 		self.assertEqual(capital_adjustment_years("Other"), 5)
 
 	def test_higher_use_increases_recovery(self):
-		# 500_000 / 5 × (80-60)/100 = 20_000
+		# 500_000 / 5 x (80-60)/100 = 20_000
 		self.assertEqual(capital_goods_annual_adjustment(500_000, 5, 60, 80), 20_000)
 
 	def test_lower_use_is_clawback(self):

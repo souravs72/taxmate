@@ -32,6 +32,4 @@ class UAEEstablishment(Document):
 				},
 			)
 			if existing:
-				frappe.throw(
-					_("Head office is already {0}. Untick that record first.").format(existing)
-				)
+				frappe.throw(_("Head office is already {0}. Untick that record first.").format(existing))

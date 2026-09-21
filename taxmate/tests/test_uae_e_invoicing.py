@@ -446,9 +446,7 @@ class TestIbtRules(unittest.TestCase):
 	def test_deemed_supply_requires_full_ibg14(self):
 		from taxmate.uae_e_invoicing.utils.transaction_data import invoice_period_validation_messages
 
-		msgs = invoice_period_validation_messages(
-			{"deemed_supply": True}, None, None, None, False
-		)
+		msgs = invoice_period_validation_messages({"deemed_supply": True}, None, None, None, False)
 		self.assertEqual(len(msgs), 3)
 		self.assertTrue(any("Billing Frequency" in m for m in msgs))
 		self.assertTrue(any("start date" in m for m in msgs))

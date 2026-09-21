@@ -22,11 +22,35 @@ def execute(filters=None):
 def get_columns():
 	return [
 		{"label": _("Source"), "fieldname": "source", "fieldtype": "Data", "width": 220},
-		{"label": _("Document"), "fieldname": "document", "fieldtype": "Dynamic Link", "options": "document_type", "width": 200},
-		{"label": _("Document Type"), "fieldname": "document_type", "fieldtype": "Link", "options": "DocType", "width": 180},
+		{
+			"label": _("Document"),
+			"fieldname": "document",
+			"fieldtype": "Dynamic Link",
+			"options": "document_type",
+			"width": 200,
+		},
+		{
+			"label": _("Document Type"),
+			"fieldname": "document_type",
+			"fieldtype": "Link",
+			"options": "DocType",
+			"width": 180,
+		},
 		{"label": _("Box"), "fieldname": "box", "fieldtype": "Data", "width": 70},
-		{"label": _("Amount (AED)"), "fieldname": "amount", "fieldtype": "Currency", "options": "AED", "width": 130},
-		{"label": _("VAT (AED)"), "fieldname": "vat_amount", "fieldtype": "Currency", "options": "AED", "width": 130},
+		{
+			"label": _("Amount (AED)"),
+			"fieldname": "amount",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"width": 130,
+		},
+		{
+			"label": _("VAT (AED)"),
+			"fieldname": "vat_amount",
+			"fieldtype": "Currency",
+			"options": "AED",
+			"width": 130,
+		},
 		{"label": _("Linked PI / LCV"), "fieldname": "linked", "fieldtype": "Data", "width": 220},
 	]
 

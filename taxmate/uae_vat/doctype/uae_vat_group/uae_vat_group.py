@@ -52,9 +52,7 @@ class UAEVATGroup(Document):
 			"name",
 		)
 		if filing:
-			frappe.throw(
-				_("Cancel submitted VAT 201 {0} before cancelling this VAT group.").format(filing)
-			)
+			frappe.throw(_("Cancel submitted VAT 201 {0} before cancelling this VAT group.").format(filing))
 
 	def _assert_no_cross_group_overlap(self):
 		others = frappe.get_all(

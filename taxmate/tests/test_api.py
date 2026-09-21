@@ -349,7 +349,9 @@ class TestApiMastersHappyPath(FrappeTestCase):
 			}
 		)
 		addr_doc = frappe.get_doc("Address", addr["name"])
-		self.assertTrue(any(row.link_doctype == "Supplier" and row.link_name == supp_name for row in addr_doc.links))
+		self.assertTrue(
+			any(row.link_doctype == "Supplier" and row.link_name == supp_name for row in addr_doc.links)
+		)
 
 		contact = insert(
 			{
@@ -438,7 +440,15 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 				"plc_conversion_rate": 1,
 				"vat_emirate": "Dubai",
 				"taxes_and_charges": "UAE VAT 5% - TM",
-				"items": [{"item_code": SERVICE_ITEM, "qty": 1, "rate": 100, "uae_item_type": "Service", "sac_code": "998311"}],
+				"items": [
+					{
+						"item_code": SERVICE_ITEM,
+						"qty": 1,
+						"rate": 100,
+						"uae_item_type": "Service",
+						"sac_code": "998311",
+					}
+				],
 			}
 		)
 		self.assertEqual(doc["docstatus"], 0)
@@ -485,8 +495,8 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertFalse(amended.get("uae_e_invoice_status"))
 
 	def test_purchase_invoice_insert_then_submit(self):
-		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
 		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
 
 		try:
 			company = require_prove_site()
@@ -521,9 +531,9 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(cancelled["docstatus"], 2)
 
 	def test_purchase_order_insert_submit_then_make_receipt(self):
-		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
 		from taxmate.api.purchase_order import make_purchase_receipt
 		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
 
 		try:
 			company = require_prove_site()
@@ -570,8 +580,8 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(cancelled["docstatus"], 2)
 
 	def test_journal_entry_insert_then_submit(self):
-		from taxmate.tests.uae_prove_fixtures import require_prove_site
 		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import require_prove_site
 
 		try:
 			company = require_prove_site()
@@ -602,8 +612,18 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 				"voucher_type": "Journal Entry",
 				"user_remark": "TaxMate SPA journal entry write-path test",
 				"accounts": [
-					{**line, "account": leaves[0], "debit_in_account_currency": 25, "credit_in_account_currency": 0},
-					{**line, "account": leaves[1], "debit_in_account_currency": 0, "credit_in_account_currency": 25},
+					{
+						**line,
+						"account": leaves[0],
+						"debit_in_account_currency": 25,
+						"credit_in_account_currency": 0,
+					},
+					{
+						**line,
+						"account": leaves[1],
+						"debit_in_account_currency": 0,
+						"credit_in_account_currency": 25,
+					},
 				],
 			}
 		)
@@ -617,8 +637,8 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(cancelled["docstatus"], 2)
 
 	def test_purchase_receipt_insert_then_submit(self):
-		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
 		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
 
 		try:
 			company = require_prove_site()

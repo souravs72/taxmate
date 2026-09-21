@@ -110,9 +110,7 @@ def catalog_doctypes() -> list[str]:
 		if link_to and kind == "DocType":
 			names.add(link_to)
 	return sorted(
-		name
-		for name in names
-		if name not in DENIED_SEARCH_DOCTYPES and frappe.db.exists("DocType", name)
+		name for name in names if name not in DENIED_SEARCH_DOCTYPES and frappe.db.exists("DocType", name)
 	)
 
 

@@ -99,7 +99,11 @@ class TestTouristAndRcmFetchers(FrappeTestCase):
 		self.assertEqual(_reverse_charge_output(filters)["vat_amount"], 0)
 		result = compute_vat_201(company, "2099-01-01", "2099-03-31")
 		self.assertEqual(
-			[row["box_no"] for row in result["boxes"] if row["box_no"][:1] == "1" and row["box_no"][1:].isalpha()],
+			[
+				row["box_no"]
+				for row in result["boxes"]
+				if row["box_no"][:1] == "1" and row["box_no"][1:].isalpha()
+			],
 			["1a", "1b", "1c", "1d", "1e", "1f", "1g"],
 		)
 		self.assertEqual(result["net_vat_due"], 0)

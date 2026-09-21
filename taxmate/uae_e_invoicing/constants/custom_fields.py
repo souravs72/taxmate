@@ -28,8 +28,7 @@ CUSTOM_FIELDS = {
 			"default": "0",
 			"depends_on": _UAE_ONLY,
 			"description": (
-				"Government cohort: appoint an ASP by 31 Mar 2027, live from 1 Oct 2027 "
-				"(MD 244/2025)."
+				"Government cohort: appoint an ASP by 31 Mar 2027, live from 1 Oct 2027 (MD 244/2025)."
 			),
 		},
 		{

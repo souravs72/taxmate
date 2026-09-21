@@ -22,9 +22,7 @@ def _apply_establishment(doc):
 	if not hasattr(doc, "uae_establishment") or not frappe.db.exists("DocType", "UAE Establishment"):
 		return
 	if not doc.get("uae_establishment"):
-		head = frappe.db.get_value(
-			"UAE Establishment", {"company": doc.company, "is_head_office": 1}, "name"
-		)
+		head = frappe.db.get_value("UAE Establishment", {"company": doc.company, "is_head_office": 1}, "name")
 		if head:
 			doc.uae_establishment = head
 		return
@@ -43,9 +41,7 @@ def _apply_margin_scheme(doc):
 		if cint(item.uae_is_margin_scheme) and flt(item.get("uae_purchase_price")) < 0:
 			frappe.throw(_("Row #{0}: purchase price cannot be negative.").format(item.idx))
 		if cint(item.uae_is_margin_scheme) and item.get("uae_purchase_price") in (None, ""):
-			frappe.throw(
-				_("Row #{0}: set the purchase price for margin-scheme items.").format(item.idx)
-			)
+			frappe.throw(_("Row #{0}: set the purchase price for margin-scheme items.").format(item.idx))
 	if flags and any(flags) and not all(flags):
 		frappe.throw(
 			_(

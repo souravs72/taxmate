@@ -70,7 +70,18 @@ def grant_tax_manager_permissions() -> None:
 			add_permission(doctype, TAX_MANAGER_ROLE, 0)
 		except Exception:
 			pass
-		for perm in ("read", "write", "create", "submit", "cancel", "amend", "print", "report", "export", "share"):
+		for perm in (
+			"read",
+			"write",
+			"create",
+			"submit",
+			"cancel",
+			"amend",
+			"print",
+			"report",
+			"export",
+			"share",
+		):
 			try:
 				update_permission_property(doctype, TAX_MANAGER_ROLE, 0, perm, 1)
 			except Exception:

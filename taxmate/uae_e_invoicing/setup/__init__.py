@@ -1,6 +1,5 @@
 """UAE E-Invoicing setup — Mode of Payment means codes (UNCL 4461) + mandate custom fields."""
 
-
 from __future__ import annotations
 
 import frappe

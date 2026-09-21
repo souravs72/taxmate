@@ -133,7 +133,7 @@ def execute(filters=None):
 			"status": _("Archive"),
 		},
 		{
-			"reference_name": _("Difference (Box 1 − Accepted)"),
+			"reference_name": _("Difference (Box 1 - Accepted)"),
 			"taxable_amount": diff_amount,
 			"vat_amount": diff_vat,
 			"status": _("Mismatch") if diff_amount or diff_vat else _("OK"),
@@ -152,7 +152,19 @@ def _is_box1(box_no) -> bool:
 def get_columns():
 	return [
 		{"fieldname": "reference_name", "label": _("Invoice / Line"), "fieldtype": "Data", "width": 240},
-		{"fieldname": "taxable_amount", "label": _("Amount (AED)"), "fieldtype": "Currency", "options": "AED", "width": 140},
-		{"fieldname": "vat_amount", "label": _("VAT (AED)"), "fieldtype": "Currency", "options": "AED", "width": 120},
+		{
+			"fieldname": "taxable_amount",
+			"label": _("Amount (AED)"),
+			"fieldtype": "Currency",
+			"options": "AED",
+			"width": 140,
+		},
+		{
+			"fieldname": "vat_amount",
+			"label": _("VAT (AED)"),
+			"fieldtype": "Currency",
+			"options": "AED",
+			"width": 120,
+		},
 		{"fieldname": "status", "label": _("Status"), "fieldtype": "Data", "width": 140},
 	]

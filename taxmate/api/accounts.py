@@ -99,7 +99,9 @@ def get_item_details(ctx=None, doc=None, for_validate=False, overwrite_warehouse
 		ctx["currency"] = frappe.get_cached_value("Company", ctx["company"], "default_currency")
 	if ctx.get("conversion_rate") in (None, ""):
 		company_currency = (
-			frappe.get_cached_value("Company", ctx["company"], "default_currency") if ctx.get("company") else None
+			frappe.get_cached_value("Company", ctx["company"], "default_currency")
+			if ctx.get("company")
+			else None
 		)
 		if ctx.get("currency") and company_currency and ctx["currency"] != company_currency:
 			frappe.throw(_("conversion_rate is required when currency differs from company currency"))
@@ -229,7 +231,9 @@ def make_purchase_return(source_name: str):
 
 
 @frappe.whitelist()
-def resolve_payment_accounts(company: str, payment_type: str, mode_of_payment: str, party_type: str, party: str):
+def resolve_payment_accounts(
+	company: str, payment_type: str, mode_of_payment: str, party_type: str, party: str
+):
 	"""Both legs of a Payment Entry, without the user ever seeing an account.
 
 	The Payment Entry controller never reads ``mode_of_payment`` -- ``paid_from``
@@ -264,9 +268,7 @@ def resolve_payment_accounts(company: str, payment_type: str, mode_of_payment: s
 	party_details = pe_party_details(company, party_type, party, frappe.utils.today())
 
 	# Bank / cash leg.
-	bank = get_default_bank_cash_account(
-		company, mode_of_payment=mode_of_payment, fetch_balance=False
-	) or {}
+	bank = get_default_bank_cash_account(company, mode_of_payment=mode_of_payment, fetch_balance=False) or {}
 	bank_account = bank.get("account")
 	if not bank_account:
 		frappe.throw(

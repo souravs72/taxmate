@@ -69,13 +69,11 @@ def confirm_card(
 	edited_payload: str | dict | None = None,
 ) -> dict:
 	"""Draft-only confirm: no Submit, existing Items, default UAE input VAT."""
-	from idp.api.conversation import confirm_card as original
 	from idp.api.conversation import _parse_json_arg
+	from idp.api.conversation import confirm_card as original
 
 	if (action or "") == "submit":
-		frappe.throw(
-			_("Invoice OCR only creates drafts. Open the Purchase Invoice in TaxMate to submit.")
-		)
+		frappe.throw(_("Invoice OCR only creates drafts. Open the Purchase Invoice in TaxMate to submit."))
 
 	edited = _parse_json_arg(edited_payload, None)
 	if edited is None:

@@ -10,14 +10,17 @@ frappe.ui.form.on("UAE VAT 201 Filing Log", {
 	refresh(frm) {
 		if (frm.doc.docstatus === 1) {
 			frm.dashboard.set_headline_alert(
-				__("Filed (submitted) on {0} by {1}. Cancel and Amend to correct a filed return — don't edit it in place.", [
-					frappe.datetime.str_to_user(frm.doc.filed_on),
-					frm.doc.filed_by,
-				]),
+				__(
+					"Filed (submitted) on {0} by {1}. Cancel and Amend to correct a filed return — don't edit it in place.",
+					[frappe.datetime.str_to_user(frm.doc.filed_on), frm.doc.filed_by]
+				),
 				"green"
 			);
 		} else if (frm.doc.docstatus === 2) {
-			frm.dashboard.set_headline_alert(__("Cancelled. Amend to create a corrected copy."), "red");
+			frm.dashboard.set_headline_alert(
+				__("Cancelled. Amend to create a corrected copy."),
+				"red"
+			);
 		} else {
 			frm.dashboard.set_headline_alert(
 				__(
@@ -36,7 +39,10 @@ frappe.ui.form.on("UAE VAT 201 Filing Log", {
 					freeze_message: __("Computing VAT 201 boxes..."),
 					callback(r) {
 						if (!r.exc) {
-							frappe.show_alert({ message: __("Boxes generated."), indicator: "green" });
+							frappe.show_alert({
+								message: __("Boxes generated."),
+								indicator: "green",
+							});
 							frm.reload_doc();
 						}
 					},
@@ -56,7 +62,9 @@ frappe.ui.form.on("UAE VAT 201 Filing Log", {
 							frappe.msgprint({
 								title: __("Accountant Pack"),
 								indicator: "green",
-								message: `${r.message.message || ""}<br><br><span class="text-muted">${
+								message: `${
+									r.message.message || ""
+								}<br><br><span class="text-muted">${
 									r.message.emaratax_api || ""
 								}</span>`,
 							});

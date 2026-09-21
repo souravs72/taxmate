@@ -41,12 +41,15 @@ def execute(filters=None):
 	box_6_vat_amount = filters.get("box_6_vat_amount")
 	box_7_amount = filters.get("box_7_amount")
 	box_7_vat_amount = filters.get("box_7_vat_amount")
-	override = any(_filter_was_set(filters, key) for key in (
-		"box_6_amount",
-		"box_6_vat_amount",
-		"box_7_amount",
-		"box_7_vat_amount",
-	))
+	override = any(
+		_filter_was_set(filters, key)
+		for key in (
+			"box_6_amount",
+			"box_6_vat_amount",
+			"box_7_amount",
+			"box_7_vat_amount",
+		)
+	)
 	if not override:
 		customs = sum_customs_declarations(filters["company"], filters["from_date"], filters["to_date"])
 		box_6_amount = customs["box_6_amount"]

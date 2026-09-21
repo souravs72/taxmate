@@ -12,7 +12,9 @@ frappe.ui.form.on("UAE Incoming Invoice", {
 
 		if (frm.doc.status === "Received" && !frm.doc.company) {
 			frm.dashboard.set_headline_alert(
-				__("Buyer TRN did not match a Company. Set Company before drafting a Purchase Invoice."),
+				__(
+					"Buyer TRN did not match a Company. Set Company before drafting a Purchase Invoice."
+				),
 				"orange"
 			);
 			return;

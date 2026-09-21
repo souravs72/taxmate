@@ -52,9 +52,7 @@ def _attach_worksheet_pdf(doc, stamp: str) -> bool:
 	if not frappe.db.exists("Print Format", "UAE VAT 201 Worksheet"):
 		return False
 	try:
-		pdf = frappe.get_print(
-			doc.doctype, doc.name, print_format="UAE VAT 201 Worksheet", as_pdf=True
-		)
+		pdf = frappe.get_print(doc.doctype, doc.name, print_format="UAE VAT 201 Worksheet", as_pdf=True)
 	except Exception:
 		frappe.log_error(title="VAT 201 worksheet PDF failed")
 		return False

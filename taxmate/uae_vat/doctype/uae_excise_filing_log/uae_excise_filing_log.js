@@ -16,7 +16,10 @@ frappe.ui.form.on("UAE Excise Filing Log", {
 					freeze: true,
 					callback(r) {
 						if (!r.exc) {
-							frappe.show_alert({ message: __("Excise lines generated."), indicator: "green" });
+							frappe.show_alert({
+								message: __("Excise lines generated."),
+								indicator: "green",
+							});
 							frm.reload_doc();
 						}
 					},

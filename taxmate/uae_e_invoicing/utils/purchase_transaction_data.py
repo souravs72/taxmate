@@ -129,9 +129,7 @@ class UAEPurchaseTransactionData(UAETransactionData):
 			self._check_address(customer["address"], _("Company address"))
 
 		self.errors.extend(
-			buyer_fz_validation_messages(
-				self.get_transaction_flags(), customer.get("fz_beneficiary_id")
-			)
+			buyer_fz_validation_messages(self.get_transaction_flags(), customer.get("fz_beneficiary_id"))
 		)
 
 	def _check_credit_note(self):

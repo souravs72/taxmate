@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
-
 from frappe.utils import flt
 
 from taxmate.uae.constants import SIMPLIFIED_TAX_INVOICE_THRESHOLD_AED, UAE_COUNTRY
@@ -173,9 +172,7 @@ def _resolve_company_emirate(doc) -> str | None:
 		],
 		fields=["name", "emirate"],
 		order_by=(
-			"is_your_company_address desc, modified desc"
-			if prefers_company_address
-			else "modified desc"
+			"is_your_company_address desc, modified desc" if prefers_company_address else "modified desc"
 		),
 		limit=1,
 	)

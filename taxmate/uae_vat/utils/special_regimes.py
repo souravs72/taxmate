@@ -15,7 +15,7 @@ from taxmate.uae_vat.constants.special_regimes import (
 
 
 def excise_tax(taxable_base, rate_percent) -> float:
-	"""Excise due = tax base × designated rate. Rate 0 is allowed; blank is not."""
+	"""Excise due = tax base x designated rate. Rate 0 is allowed; blank is not."""
 	if rate_percent is None:
 		raise ValueError("excise rate is required")
 	return flt(flt(taxable_base) * flt(rate_percent) / 100.0, 2)
@@ -35,7 +35,7 @@ def capital_goods_annual_adjustment(
 ) -> float:
 	"""FTA capital-assets annual adjustment.
 
-	(VAT / years) × (actual taxable use % − intended %). Positive = extra
+	(VAT / years) x (actual taxable use % - intended %). Positive = extra
 	recovery (Box 9 up); negative = clawback.
 	"""
 	years = int(adjustment_years or 0)

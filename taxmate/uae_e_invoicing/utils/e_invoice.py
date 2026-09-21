@@ -435,6 +435,10 @@ def _invoice_uae_vat_amount(doc) -> float:
 	if not accounts:
 		return fallback
 	return flt(
-		sum(flt(row.get("base_tax_amount")) for row in (doc.get("taxes") or []) if row.get("account_head") in accounts),
+		sum(
+			flt(row.get("base_tax_amount"))
+			for row in (doc.get("taxes") or [])
+			if row.get("account_head") in accounts
+		),
 		2,
 	)

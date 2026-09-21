@@ -8,7 +8,6 @@ from pathlib import Path
 import frappe
 from frappe.modules.import_file import import_file_by_path
 
-
 WORKSPACE_FILES = (
 	"taxmate_settings/taxmate_settings.json",
 	"email/email.json",
@@ -283,7 +282,9 @@ def _upsert_workspace_shortcuts(
 	except Exception:
 		content = []
 
-	have = {block.get("data", {}).get("shortcut_name") for block in content if block.get("type") == "shortcut"}
+	have = {
+		block.get("data", {}).get("shortcut_name") for block in content if block.get("type") == "shortcut"
+	}
 	missing = [row for row in rows if row["label"] not in have]
 	if missing:
 		content = [block for block in content if not str(block.get("id") or "").startswith(block_prefix)]

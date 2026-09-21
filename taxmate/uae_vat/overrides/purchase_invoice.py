@@ -27,9 +27,7 @@ def _apply_establishment(doc):
 	if not hasattr(doc, "uae_establishment") or not frappe.db.exists("DocType", "UAE Establishment"):
 		return
 	if not doc.get("uae_establishment"):
-		head = frappe.db.get_value(
-			"UAE Establishment", {"company": doc.company, "is_head_office": 1}, "name"
-		)
+		head = frappe.db.get_value("UAE Establishment", {"company": doc.company, "is_head_office": 1}, "name")
 		if head:
 			doc.uae_establishment = head
 		return

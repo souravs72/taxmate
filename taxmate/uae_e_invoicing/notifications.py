@@ -122,8 +122,7 @@ def _mandate_todo_message(payload: dict) -> str:
 		elif reason == "asp_upcoming":
 			parts.append(
 				_(
-					"{0} is in the {1} e-invoicing cohort — appoint an ASP before {2} "
-					"({3} day(s) left)."
+					"{0} is in the {1} e-invoicing cohort — appoint an ASP before {2} ({3} day(s) left)."
 				).format(
 					company,
 					cohort,
@@ -140,10 +139,9 @@ def _mandate_todo_message(payload: dict) -> str:
 			)
 		elif reason == "go_live_upcoming":
 			parts.append(
-				_(
-					"Mandatory e-invoicing for the {0} cohort goes live on {1} "
-					"({2} day(s) left)."
-				).format(cohort, payload.get("go_live_date"), payload.get("days_to_go_live"))
+				_("Mandatory e-invoicing for the {0} cohort goes live on {1} ({2} day(s) left).").format(
+					cohort, payload.get("go_live_date"), payload.get("days_to_go_live")
+				)
 			)
 	return "{0}\n\n{1}".format(" ".join(parts), disclaimer)
 

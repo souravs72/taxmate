@@ -183,11 +183,7 @@ def apply_spa_role(user: str, spa_role: str) -> None:
 		frappe.throw(frappe._("System managers cannot be changed from TaxMate"), frappe.PermissionError)
 
 	doc = frappe.get_doc("User", user)
-	keep = [
-		row.role
-		for row in doc.roles
-		if row.role not in MANAGED_ROLES and row.role != "System Manager"
-	]
+	keep = [row.role for row in doc.roles if row.role not in MANAGED_ROLES and row.role != "System Manager"]
 	wanted = (*keep, *BUNDLE[spa_role])
 	current = tuple(row.role for row in doc.roles)
 	needs_home = (doc.redirect_url or "") != "/taxmate" or getattr(doc, "default_app", None) != "taxmate"
@@ -334,9 +330,7 @@ def _allow_reports() -> None:
 		if not frappe.db.exists("Report", report):
 			continue
 		for role in MARKER.values():
-			if frappe.db.exists(
-				"Has Role", {"parent": report, "parenttype": "Report", "role": role}
-			):
+			if frappe.db.exists("Has Role", {"parent": report, "parenttype": "Report", "role": role}):
 				continue
 			try:
 				frappe.get_doc(

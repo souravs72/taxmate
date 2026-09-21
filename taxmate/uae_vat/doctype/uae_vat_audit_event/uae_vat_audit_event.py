@@ -9,4 +9,6 @@ from frappe.model.document import Document
 class UAEVATAuditEvent(Document):
 	def before_insert(self):
 		if not self.flags.get("from_vat_audit"):
-			frappe.throw(_("VAT audit events are written automatically when recoverability or Box 6/7 values change."))
+			frappe.throw(
+				_("VAT audit events are written automatically when recoverability or Box 6/7 values change.")
+			)

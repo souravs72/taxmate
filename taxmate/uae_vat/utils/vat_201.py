@@ -123,7 +123,6 @@ def compute_vat_201(
 	}
 	box_10 = _reverse_charge_recoverable_input(filters)
 
-	box_1_amount = r2(sum(row["amount"] for row in box_1_rows))
 	box_1_vat_amount = r2(sum(row["vat_amount"] for row in box_1_rows))
 
 	totals = compute_totals(
@@ -266,7 +265,8 @@ def compute_vat_201(
 
 
 def append_vat_201_totals(detail_boxes: list[dict]) -> tuple[list[dict], dict[str, float]]:
-	"""Rebuild Boxes 8 and 11–14 from detail rows (used for VAT-group merges)."""
+	"""Rebuild Boxes 8 and 11-14 from detail rows (used for VAT-group merges)."""
+
 	def _vat(box_no: str) -> float:
 		return r2(sum(flt(row.get("vat_amount")) for row in detail_boxes if row.get("box_no") == box_no))
 
@@ -287,14 +287,48 @@ def append_vat_201_totals(detail_boxes: list[dict]) -> tuple[list[dict], dict[st
 		box_10_vat_amount=_vat("10"),
 	)
 	boxes = [dict(row) for row in detail_boxes]
-	boxes.append({"box_no": "8", "legend": _("Total value of due tax for the period"), "amount": 0, "vat_amount": totals["box_8_vat_amount"], "is_subtotal": 1})
-	boxes.append({"box_no": "11", "legend": _("Total value of recoverable tax for the period"), "amount": 0, "vat_amount": totals["box_11_vat_amount"], "is_subtotal": 1})
-	boxes.append({"box_no": "12", "legend": _("Net VAT due (or reclaimable) for the period"), "amount": 0, "vat_amount": totals["box_12_vat_amount"], "is_subtotal": 1})
-	boxes.append({"box_no": "13", "legend": _("Total value of recoverable tax for the period"), "amount": 0, "vat_amount": totals["box_13_vat_amount"], "is_subtotal": 1})
+	boxes.append(
+		{
+			"box_no": "8",
+			"legend": _("Total value of due tax for the period"),
+			"amount": 0,
+			"vat_amount": totals["box_8_vat_amount"],
+			"is_subtotal": 1,
+		}
+	)
+	boxes.append(
+		{
+			"box_no": "11",
+			"legend": _("Total value of recoverable tax for the period"),
+			"amount": 0,
+			"vat_amount": totals["box_11_vat_amount"],
+			"is_subtotal": 1,
+		}
+	)
+	boxes.append(
+		{
+			"box_no": "12",
+			"legend": _("Net VAT due (or reclaimable) for the period"),
+			"amount": 0,
+			"vat_amount": totals["box_12_vat_amount"],
+			"is_subtotal": 1,
+		}
+	)
+	boxes.append(
+		{
+			"box_no": "13",
+			"legend": _("Total value of recoverable tax for the period"),
+			"amount": 0,
+			"vat_amount": totals["box_13_vat_amount"],
+			"is_subtotal": 1,
+		}
+	)
 	boxes.append(
 		{
 			"box_no": "14",
-			"legend": _("Payable tax for the period") if totals["net_vat_due"] >= 0 else _("Refundable / reclaimable tax for the period"),
+			"legend": _("Payable tax for the period")
+			if totals["net_vat_due"] >= 0
+			else _("Refundable / reclaimable tax for the period"),
 			"amount": 0,
 			"vat_amount": totals["net_vat_due"],
 			"is_subtotal": 1,

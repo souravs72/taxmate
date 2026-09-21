@@ -85,7 +85,11 @@ class UAEESRFiling(Document):
 		half-finished filing (e.g. notification filed, report still pending)
 		would be frozen and unable to record the report later."""
 		if not self.notification_filed_on:
-			frappe.throw(_("Set 'Notification Filed On' before submitting -- the notification hasn't been recorded yet."))
+			frappe.throw(
+				_(
+					"Set 'Notification Filed On' before submitting -- the notification hasn't been recorded yet."
+				)
+			)
 		if not self.is_exempt and not self.report_filed_on:
 			frappe.throw(
 				_(

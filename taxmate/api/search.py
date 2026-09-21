@@ -77,20 +77,48 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Delivery Notes", "route": "/delivery-notes", "keywords": "dn delivery note despatch"},
 	{"label": "Customers", "route": "/customers", "keywords": "customer party"},
 	{"label": "Suppliers", "route": "/suppliers", "keywords": "supplier vendor purchase party"},
-	{"label": "Purchase Invoices", "route": "/purchase-invoices", "keywords": "purchase invoice bill pi vendor"},
+	{
+		"label": "Purchase Invoices",
+		"route": "/purchase-invoices",
+		"keywords": "purchase invoice bill pi vendor",
+	},
 	{"label": "Purchase Orders", "route": "/purchase-orders", "keywords": "purchase order po buying"},
-	{"label": "Purchase Receipts", "route": "/purchase-receipts", "keywords": "purchase receipt pr goods received grn"},
-	{"label": "Incoming e-Invoices", "route": "/incoming-invoices", "keywords": "incoming einvoice peppol received supplier bill asp"},
+	{
+		"label": "Purchase Receipts",
+		"route": "/purchase-receipts",
+		"keywords": "purchase receipt pr goods received grn",
+	},
+	{
+		"label": "Incoming e-Invoices",
+		"route": "/incoming-invoices",
+		"keywords": "incoming einvoice peppol received supplier bill asp",
+	},
 	{"label": "Invoices", "route": "/invoices", "keywords": "sales invoice bill"},
 	{"label": "Payments", "route": "/payments", "keywords": "payment receipt"},
 	{"label": "Receivables", "route": "/receivables", "keywords": "ar outstanding"},
 	{"label": "Payables", "route": "/payables", "keywords": "ap aged payable supplier outstanding"},
-	{"label": "Journal Entries", "route": "/journals", "keywords": "journal entry je voucher books ledger posting"},
-	{"label": "Chart of Accounts", "route": "/accounts", "keywords": "chart of accounts coa ledger account tree"},
-	{"label": "Reports", "route": "/reports", "keywords": "trial balance general ledger profit loss balance sheet cash flow reports vat 201 late filing esr compliance emaratax"},
+	{
+		"label": "Journal Entries",
+		"route": "/journals",
+		"keywords": "journal entry je voucher books ledger posting",
+	},
+	{
+		"label": "Chart of Accounts",
+		"route": "/accounts",
+		"keywords": "chart of accounts coa ledger account tree",
+	},
+	{
+		"label": "Reports",
+		"route": "/reports",
+		"keywords": "trial balance general ledger profit loss balance sheet cash flow reports vat 201 late filing esr compliance emaratax",
+	},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
 	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
-	{"label": "Tax Templates", "route": "/tax-templates", "keywords": "tax template vat sales purchase charges"},
+	{
+		"label": "Tax Templates",
+		"route": "/tax-templates",
+		"keywords": "tax template vat sales purchase charges",
+	},
 	{"label": "VAT 201", "route": "/vat-201", "keywords": "vat 201 fta filing return boxes deadline"},
 	{"label": "Corporate Tax", "route": "/ct-filings", "keywords": "corporate tax ct filing log worksheet"},
 	{"label": "ESR", "route": "/esr", "keywords": "esr economic substance notification report"},
@@ -98,7 +126,11 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Late Filings", "route": "/late-filings", "keywords": "late filing notice overdue fta"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
-	{"label": "Team", "route": "/team", "keywords": "users roles team staff invite admin finance manager accounts officer read-only owner accountant clerk viewer"},
+	{
+		"label": "Team",
+		"route": "/team",
+		"keywords": "users roles team staff invite admin finance manager accounts officer read-only owner accountant clerk viewer",
+	},
 	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
 )
 
@@ -160,7 +192,7 @@ def _nav_results(text: str, limit: int) -> list[dict[str, Any]]:
 
 
 def _doctype_list_results(text: str, limit: int) -> list[dict[str, Any]]:
-	"""Match DocType titles like AwesomeBar ‘List Customer’ — SPA lists only."""
+	"""Match DocType titles like AwesomeBar 'List Customer' — SPA lists only."""
 	out: list[dict[str, Any]] = []
 	can_read = set(frappe.get_user().get_can_read())
 	for doctype in _SPA_DOCTYPES:

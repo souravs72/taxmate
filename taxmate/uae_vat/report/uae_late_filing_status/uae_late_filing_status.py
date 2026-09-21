@@ -16,14 +16,38 @@ def execute(filters=None):
 
 def get_columns():
 	return [
-		{"label": _("Notice"), "fieldname": "name", "fieldtype": "Link", "options": "UAE Late Filing Notice", "width": 200},
-		{"label": _("Company"), "fieldname": "company", "fieldtype": "Link", "options": "Company", "width": 180},
+		{
+			"label": _("Notice"),
+			"fieldname": "name",
+			"fieldtype": "Link",
+			"options": "UAE Late Filing Notice",
+			"width": 200,
+		},
+		{
+			"label": _("Company"),
+			"fieldname": "company",
+			"fieldtype": "Link",
+			"options": "Company",
+			"width": 180,
+		},
 		{"label": _("Obligation"), "fieldname": "obligation", "fieldtype": "Data", "width": 140},
 		{"label": _("Due Date"), "fieldname": "due_date", "fieldtype": "Date", "width": 110},
 		{"label": _("Days Late"), "fieldname": "days_late", "fieldtype": "Int", "width": 100},
 		{"label": _("Status"), "fieldname": "status", "fieldtype": "Data", "width": 100},
-		{"label": _("Source"), "fieldname": "source_name", "fieldtype": "Dynamic Link", "options": "source_doctype", "width": 200},
-		{"label": _("Source Type"), "fieldname": "source_doctype", "fieldtype": "Link", "options": "DocType", "width": 180},
+		{
+			"label": _("Source"),
+			"fieldname": "source_name",
+			"fieldtype": "Dynamic Link",
+			"options": "source_doctype",
+			"width": 200,
+		},
+		{
+			"label": _("Source Type"),
+			"fieldname": "source_doctype",
+			"fieldtype": "Link",
+			"options": "DocType",
+			"width": 180,
+		},
 	]
 
 
@@ -38,6 +62,15 @@ def get_data(filters):
 	return frappe.get_list(
 		"UAE Late Filing Notice",
 		filters=conditions,
-		fields=["name", "company", "obligation", "due_date", "days_late", "status", "source_name", "source_doctype"],
+		fields=[
+			"name",
+			"company",
+			"obligation",
+			"due_date",
+			"days_late",
+			"status",
+			"source_name",
+			"source_doctype",
+		],
 		order_by="days_late desc, due_date asc",
 	)

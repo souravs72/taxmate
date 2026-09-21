@@ -129,6 +129,10 @@ def apply_box_9_recoverable(doc) -> None:
 	)
 	if hasattr(doc, "uae_box_9_taxable_amount"):
 		doc.uae_box_9_taxable_amount = flt(
-			sum(flt(item.get("base_net_amount")) for item, pct in zip(items, item_percents, strict=True) if flt(pct) > 0),
+			sum(
+				flt(item.get("base_net_amount"))
+				for item, pct in zip(items, item_percents, strict=True)
+				if flt(pct) > 0
+			),
 			2,
 		)

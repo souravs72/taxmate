@@ -31,9 +31,7 @@ INVOICE_CT_FIELDS = [
 
 CUSTOM_FIELDS = {
 	"Sales Invoice": INVOICE_CT_FIELDS,
-	"Purchase Invoice": [
-		field for field in INVOICE_CT_FIELDS if field["fieldname"] != "uae_ct_income_class"
-	]
+	"Purchase Invoice": [field for field in INVOICE_CT_FIELDS if field["fieldname"] != "uae_ct_income_class"]
 	+ [
 		{
 			"fieldname": "uae_ct_income_class",

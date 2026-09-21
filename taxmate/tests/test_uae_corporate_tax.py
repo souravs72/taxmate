@@ -2,9 +2,8 @@
 
 from __future__ import annotations
 
-import unittest
-
 import inspect
+import unittest
 
 from taxmate.uae_corporate_tax.utils.corporate_tax import (
 	compute_ct,
@@ -90,7 +89,7 @@ class TestQfzp(unittest.TestCase):
 		self.assertFalse(de_minimis_ok(60_000, 1_000_000))
 
 	def test_tax_on_non_qualifying_share_only(self):
-		# 4% NQ is within de minimis (5%). 200k taxable × 4% × 9% = 720.
+		# 4% NQ is within de minimis (5%). 200k taxable x 4% x 9% = 720.
 		# Standard regime would be 0 (200k is inside the AED 375k band).
 		tax, ok = qfzp_tax(200_000, 960_000, 40_000, 1_000_000)
 		self.assertTrue(ok)
@@ -149,7 +148,9 @@ class TestDueDate(unittest.TestCase):
 		self.assertEqual(filing_deadline_status("2026-09-30", 1, today="2026-10-01"), "Filed")
 		self.assertEqual(filing_deadline_status("2026-09-30", 0, today="2026-10-01"), "Overdue")
 		self.assertEqual(filing_deadline_status("2026-09-30", 0, today="2026-09-15", lead_days=30), "Due")
-		self.assertEqual(filing_deadline_status("2026-09-30", 0, today="2026-01-01", lead_days=30), "Upcoming")
+		self.assertEqual(
+			filing_deadline_status("2026-09-30", 0, today="2026-01-01", lead_days=30), "Upcoming"
+		)
 
 
 class TestAdjustmentsInCompute(unittest.TestCase):

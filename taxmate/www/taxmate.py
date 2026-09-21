@@ -18,11 +18,7 @@ from taxmate.api.permission import has_app_permission
 def get_context(context):
 	if frappe.session.user == "Guest":
 		path = frappe.request.path if frappe.request else "/taxmate"
-		query = (
-			frappe.request.query_string.decode()
-			if frappe.request and frappe.request.query_string
-			else ""
-		)
+		query = frappe.request.query_string.decode() if frappe.request and frappe.request.query_string else ""
 		target = path + (f"?{query}" if query else "")
 		frappe.local.flags.redirect_location = f"/login?redirect-to={target}"
 		raise frappe.Redirect

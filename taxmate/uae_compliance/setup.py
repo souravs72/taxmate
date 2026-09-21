@@ -77,7 +77,9 @@ def ensure_company_shareholder_register(company: str) -> None:
 	if frappe.db.get_value("Company", company, "country") != UAE_COUNTRY:
 		return
 
-	frappe.get_doc({"doctype": "UAE Shareholder Register", "company": company}).insert(ignore_permissions=True)
+	frappe.get_doc({"doctype": "UAE Shareholder Register", "company": company}).insert(
+		ignore_permissions=True
+	)
 
 
 def bootstrap_existing_uae_companies() -> None:

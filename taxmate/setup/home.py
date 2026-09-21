@@ -44,9 +44,7 @@ NUMBER_CARD_SPECS: tuple[dict[str, Any], ...] = (
 		"module": "UAE E-Invoicing",
 		"document_type": "UAE E-Invoice Log",
 		"function": "Count",
-		"filters_json": json.dumps(
-			[["UAE E-Invoice Log", "status", "in", ["Failed", "Rejected"]]]
-		),
+		"filters_json": json.dumps([["UAE E-Invoice Log", "status", "in", ["Failed", "Rejected"]]]),
 		"dynamic_filters_json": json.dumps(
 			[
 				[
@@ -163,9 +161,7 @@ UAE_SHORTCUTS: tuple[dict[str, Any], ...] = (
 		"label": "E-Invoices",
 		"type": "DocType",
 		"link_to": "UAE E-Invoice Log",
-		"stats_filter": json.dumps(
-			[["UAE E-Invoice Log", "status", "in", ["Failed", "Rejected"]]]
-		),
+		"stats_filter": json.dumps([["UAE E-Invoice Log", "status", "in", ["Failed", "Rejected"]]]),
 		"format": "{} Failed",
 		"color": "#e74c3c",
 	},
@@ -177,32 +173,131 @@ UAE_SHORTCUTS: tuple[dict[str, Any], ...] = (
 # Card Break followed by its links. Order is the Home layout.
 HOME_LINKS: tuple[dict[str, Any], ...] = (
 	{"type": "Card Break", "label": "UAE VAT"},
-	{"type": "Link", "label": "VAT 201 Filing Log", "link_type": "DocType", "link_to": "UAE VAT 201 Filing Log", "onboard": 1},
-	{"type": "Link", "label": "UAE VAT 201", "link_type": "Report", "link_to": "UAE VAT 201", "is_query_report": 1},
-	{"type": "Link", "label": "Late Filing Notice", "link_type": "DocType", "link_to": "UAE Late Filing Notice"},
-	{"type": "Link", "label": "Late Filing Status", "link_type": "Report", "link_to": "UAE Late Filing Status", "is_query_report": 1},
-	{"type": "Link", "label": "Customs Declaration", "link_type": "DocType", "link_to": "UAE Customs Declaration"},
-	{"type": "Link", "label": "Import VAT Explanation", "link_type": "Report", "link_to": "UAE Import VAT Explanation", "is_query_report": 1},
+	{
+		"type": "Link",
+		"label": "VAT 201 Filing Log",
+		"link_type": "DocType",
+		"link_to": "UAE VAT 201 Filing Log",
+		"onboard": 1,
+	},
+	{
+		"type": "Link",
+		"label": "UAE VAT 201",
+		"link_type": "Report",
+		"link_to": "UAE VAT 201",
+		"is_query_report": 1,
+	},
+	{
+		"type": "Link",
+		"label": "Late Filing Notice",
+		"link_type": "DocType",
+		"link_to": "UAE Late Filing Notice",
+	},
+	{
+		"type": "Link",
+		"label": "Late Filing Status",
+		"link_type": "Report",
+		"link_to": "UAE Late Filing Status",
+		"is_query_report": 1,
+	},
+	{
+		"type": "Link",
+		"label": "Customs Declaration",
+		"link_type": "DocType",
+		"link_to": "UAE Customs Declaration",
+	},
+	{
+		"type": "Link",
+		"label": "Import VAT Explanation",
+		"link_type": "Report",
+		"link_to": "UAE Import VAT Explanation",
+		"is_query_report": 1,
+	},
 	{"type": "Link", "label": "VAT Group", "link_type": "DocType", "link_to": "UAE VAT Group"},
 	{"type": "Link", "label": "Bad Debt Relief", "link_type": "DocType", "link_to": "UAE Bad Debt Relief"},
 	{"type": "Card Break", "label": "E-Invoicing"},
-	{"type": "Link", "label": "E-Invoice Log", "link_type": "DocType", "link_to": "UAE E-Invoice Log", "onboard": 1},
-	{"type": "Link", "label": "Incoming Invoice", "link_type": "DocType", "link_to": "UAE Incoming Invoice", "onboard": 1},
-	{"type": "Link", "label": "E-Invoice Contingency", "link_type": "DocType", "link_to": "UAE E-Invoice Contingency"},
-	{"type": "Link", "label": "E-Invoice Status", "link_type": "Report", "link_to": "UAE E-Invoice Status", "is_query_report": 1},
-	{"type": "Link", "label": "VAT 201 Reconciliation", "link_type": "Report", "link_to": "UAE E-Invoice VAT 201 Reconciliation", "is_query_report": 1},
-	{"type": "Link", "label": "EmaraTax Export", "link_type": "Report", "link_to": "EmaraTax Export", "is_query_report": 1},
+	{
+		"type": "Link",
+		"label": "E-Invoice Log",
+		"link_type": "DocType",
+		"link_to": "UAE E-Invoice Log",
+		"onboard": 1,
+	},
+	{
+		"type": "Link",
+		"label": "Incoming Invoice",
+		"link_type": "DocType",
+		"link_to": "UAE Incoming Invoice",
+		"onboard": 1,
+	},
+	{
+		"type": "Link",
+		"label": "E-Invoice Contingency",
+		"link_type": "DocType",
+		"link_to": "UAE E-Invoice Contingency",
+	},
+	{
+		"type": "Link",
+		"label": "E-Invoice Status",
+		"link_type": "Report",
+		"link_to": "UAE E-Invoice Status",
+		"is_query_report": 1,
+	},
+	{
+		"type": "Link",
+		"label": "VAT 201 Reconciliation",
+		"link_type": "Report",
+		"link_to": "UAE E-Invoice VAT 201 Reconciliation",
+		"is_query_report": 1,
+	},
+	{
+		"type": "Link",
+		"label": "EmaraTax Export",
+		"link_type": "Report",
+		"link_to": "EmaraTax Export",
+		"is_query_report": 1,
+	},
 	{"type": "Card Break", "label": "Corporate Tax"},
-	{"type": "Link", "label": "CT Settings", "link_type": "DocType", "link_to": "UAE CT Settings", "onboard": 1},
-	{"type": "Link", "label": "CT Filing Log", "link_type": "DocType", "link_to": "UAE CT Filing Log", "onboard": 1},
-	{"type": "Link", "label": "Corporate Tax Worksheet", "link_type": "Report", "link_to": "UAE Corporate Tax Worksheet", "is_query_report": 1},
+	{
+		"type": "Link",
+		"label": "CT Settings",
+		"link_type": "DocType",
+		"link_to": "UAE CT Settings",
+		"onboard": 1,
+	},
+	{
+		"type": "Link",
+		"label": "CT Filing Log",
+		"link_type": "DocType",
+		"link_to": "UAE CT Filing Log",
+		"onboard": 1,
+	},
+	{
+		"type": "Link",
+		"label": "Corporate Tax Worksheet",
+		"link_type": "Report",
+		"link_to": "UAE Corporate Tax Worksheet",
+		"is_query_report": 1,
+	},
 	{"type": "Link", "label": "Related Party", "link_type": "DocType", "link_to": "UAE Related Party"},
 	{"type": "Link", "label": "UBO Register", "link_type": "DocType", "link_to": "UAE UBO Register"},
 	{"type": "Link", "label": "ESR Filing", "link_type": "DocType", "link_to": "UAE ESR Filing"},
-	{"type": "Link", "label": "Compliance Status", "link_type": "Report", "link_to": "UAE Compliance Status", "is_query_report": 1},
+	{
+		"type": "Link",
+		"label": "Compliance Status",
+		"link_type": "Report",
+		"link_to": "UAE Compliance Status",
+		"is_query_report": 1,
+	},
 	{"type": "Link", "label": "FTA Audit Pack", "link_type": "DocType", "link_to": "UAE FTA Audit Pack"},
 	{"type": "Card Break", "label": "Accounting"},
-	{"type": "Link", "label": "Chart of Accounts", "link_type": "DocType", "link_to": "Account", "onboard": 1},
+	{
+		"type": "Link",
+		"label": "Chart of Accounts",
+		"link_type": "DocType",
+		"link_to": "Account",
+		"onboard": 1,
+	},
 	{"type": "Link", "label": "Company", "link_type": "DocType", "link_to": "Company", "onboard": 1},
 	{"type": "Link", "label": "Customer", "link_type": "DocType", "link_to": "Customer", "onboard": 1},
 	{"type": "Link", "label": "Supplier", "link_type": "DocType", "link_to": "Supplier", "onboard": 1},
@@ -213,15 +308,30 @@ HOME_LINKS: tuple[dict[str, Any], ...] = (
 	{"type": "Link", "label": "Warehouse", "link_type": "DocType", "link_to": "Warehouse", "onboard": 1},
 	{"type": "Link", "label": "Brand", "link_type": "DocType", "link_to": "Brand"},
 	{"type": "Link", "label": "Unit of Measure (UOM)", "link_type": "DocType", "link_to": "UOM"},
-	{"type": "Link", "label": "Stock Reconciliation", "link_type": "DocType", "link_to": "Stock Reconciliation"},
+	{
+		"type": "Link",
+		"label": "Stock Reconciliation",
+		"link_type": "DocType",
+		"link_to": "Stock Reconciliation",
+	},
 	{"type": "Card Break", "label": "CRM"},
 	{"type": "Link", "label": "Lead", "link_type": "DocType", "link_to": "Lead", "onboard": 1},
 	{"type": "Link", "label": "Customer Group", "link_type": "DocType", "link_to": "Customer Group"},
 	{"type": "Link", "label": "Territory", "link_type": "DocType", "link_to": "Territory"},
 	{"type": "Card Break", "label": "Data Import and Settings"},
 	{"type": "Link", "label": "Import Data", "link_type": "DocType", "link_to": "Data Import", "onboard": 1},
-	{"type": "Link", "label": "Opening Invoice Creation Tool", "link_type": "DocType", "link_to": "Opening Invoice Creation Tool"},
-	{"type": "Link", "label": "Chart of Accounts Importer", "link_type": "DocType", "link_to": "Chart of Accounts Importer"},
+	{
+		"type": "Link",
+		"label": "Opening Invoice Creation Tool",
+		"link_type": "DocType",
+		"link_to": "Opening Invoice Creation Tool",
+	},
+	{
+		"type": "Link",
+		"label": "Chart of Accounts Importer",
+		"link_type": "DocType",
+		"link_to": "Chart of Accounts Importer",
+	},
 	{"type": "Link", "label": "Letter Head", "link_type": "DocType", "link_to": "Letter Head"},
 	{"type": "Link", "label": "Email Account", "link_type": "DocType", "link_to": "Email Account"},
 	{"type": "Link", "label": "TaxMate Settings", "link_type": "DocType", "link_to": "TaxMate Settings"},
@@ -379,9 +489,7 @@ def split_shortcut_labels(
 	daily_labels = [row["label"] for row in merged if row.get("label") in daily_set]
 	uae_labels = [row["label"] for row in merged if row.get("label") in uae_set]
 	extra_labels = [
-		row["label"]
-		for row in merged
-		if row.get("label") and row["label"] not in daily_set | uae_set
+		row["label"] for row in merged if row.get("label") and row["label"] not in daily_set | uae_set
 	]
 	return daily_labels, uae_labels, extra_labels
 
@@ -422,9 +530,7 @@ def ensure_uae_home_workspace() -> None:
 	for row in cards:
 		home.append("number_cards", row)
 	chart_layout = [
-		(name, col)
-		for name, col in HOME_CHART_LAYOUT
-		if frappe.db.exists("Dashboard Chart", name)
+		(name, col) for name, col in HOME_CHART_LAYOUT if frappe.db.exists("Dashboard Chart", name)
 	]
 	home.charts = []
 	for name, _col in chart_layout:

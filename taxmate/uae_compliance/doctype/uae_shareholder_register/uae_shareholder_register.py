@@ -20,9 +20,7 @@ class UAEShareholderRegister(Document):
 			if flt(row.ownership_percentage) < 0:
 				frappe.throw(_("Row #{0}: ownership cannot be negative.").format(row.idx))
 			if not row.is_active and not row.ceased_on:
-				frappe.throw(
-					_("Row #{0}: set Ceased On for {1}.").format(row.idx, row.holder_name)
-				)
+				frappe.throw(_("Row #{0}: set Ceased On for {1}.").format(row.idx, row.holder_name))
 			if row.is_active and row.ceased_on:
 				frappe.throw(
 					_("Row #{0}: {1} has Ceased On but is still marked active.").format(
@@ -35,7 +33,9 @@ class UAEShareholderRegister(Document):
 				)
 			if cint(row.is_active):
 				active += 1
-		total_pct = sum(flt(row.ownership_percentage) for row in self.shareholders or [] if cint(row.is_active))
+		total_pct = sum(
+			flt(row.ownership_percentage) for row in self.shareholders or [] if cint(row.is_active)
+		)
 		if total_pct > 100.01:
 			frappe.throw(
 				_("Active legal ownership adds up to {0}%. It cannot exceed 100%.").format(

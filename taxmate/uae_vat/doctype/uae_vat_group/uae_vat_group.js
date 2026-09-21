@@ -18,7 +18,9 @@ frappe.ui.form.on("UAE VAT Group", {
 			);
 		} else if (frm.doc.docstatus === 0) {
 			frm.dashboard.set_headline_alert(
-				__("Draft election. Submit to lock membership before filing a group VAT 201. This does not register the group with the FTA."),
+				__(
+					"Draft election. Submit to lock membership before filing a group VAT 201. This does not register the group with the FTA."
+				),
 				"orange"
 			);
 		}

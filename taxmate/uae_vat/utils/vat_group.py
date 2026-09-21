@@ -38,7 +38,7 @@ def in_membership_window(as_of, from_date, to_date) -> bool:
 
 
 def merge_vat_201_boxes(results: list[dict]) -> list[dict]:
-	"""Sum non-total boxes by box_no. Caller rebuilds Boxes 8 and 11–14."""
+	"""Sum non-total boxes by box_no. Caller rebuilds Boxes 8 and 11-14."""
 	order: list[str] = []
 	by_box: dict[str, dict] = {}
 	skip = {"8", "11", "12", "13", "14"}
