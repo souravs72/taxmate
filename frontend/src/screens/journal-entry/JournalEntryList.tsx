@@ -5,6 +5,7 @@ import type { Filter } from "frappe-react-sdk";
 import { DT } from "../../lib/frappe";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -138,9 +139,11 @@ export default function JournalEntryList() {
         title={t("je.title")}
         sub={t("je.sub")}
         actions={
-          <button type="button" className="btn" onClick={() => nav("/journals/new")}>
-            ＋ {t("je.new")}
-          </button>
+          canWrite(session) ? (
+            <button type="button" className="btn" onClick={() => nav("/journals/new")}>
+              ＋ {t("je.new")}
+            </button>
+          ) : null
         }
       />
 

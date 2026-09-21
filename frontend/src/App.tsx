@@ -69,6 +69,8 @@ import UboRegisterList from "./screens/ubo/UboRegisterList";
 import UboRegisterDetail from "./screens/ubo/UboRegisterDetail";
 import LateFilingList from "./screens/late-filing/LateFilingList";
 import LateFilingDetail from "./screens/late-filing/LateFilingDetail";
+import TeamList from "./screens/team/TeamList";
+import TeamInvite from "./screens/team/TeamInvite";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -153,6 +155,8 @@ export default function App() {
           <Route path="/late-filings/:name" element={<LateFilingDetail />} />
           <Route path="/e-invoice-log" element={<EInvoiceLog />} />
           <Route path="/tax-settings" element={<TaxSettings />} />
+          <Route path="/team" element={<TeamList />} />
+          <Route path="/team/new" element={<TeamInvite />} />
           <Route path="/sales" element={<SalesHub />} />
           <Route path="/sales/customers" element={<Navigate to="/customers" replace />} />
           <Route path="/sales/invoices" element={<Navigate to="/invoices" replace />} />

@@ -39,4 +39,6 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/late-filings", key: "nav.lateFilings" },
   { type: "link", to: "/e-invoice-log", key: "nav.eInvoiceLog" },
   { type: "link", to: "/tax-settings", key: "nav.taxSettings" },
+  { type: "section", key: "nav.company" },
+  { type: "link", to: "/team", key: "nav.team" },
 ];

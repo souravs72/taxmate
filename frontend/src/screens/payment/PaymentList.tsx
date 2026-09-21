@@ -5,6 +5,7 @@ import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import {
   groupRow, useFilteredCount, useGroupedAggregate, useListParams, type FilterTuple,
 } from "../../lib/list";
@@ -156,14 +157,16 @@ export default function PaymentList() {
         title={t("pay.title")}
         sub={t("pay.sub")}
         actions={
-          <>
-            <button className="btn ghost" onClick={() => nav("/payments/new?type=Pay")}>
-              ＋ {t("pay.newOut")}
-            </button>
-            <button className="btn" onClick={() => nav("/payments/new")}>
-              ＋ {t("pay.new")}
-            </button>
-          </>
+          canWrite(session) ? (
+            <>
+              <button className="btn ghost" onClick={() => nav("/payments/new?type=Pay")}>
+                ＋ {t("pay.newOut")}
+              </button>
+              <button className="btn" onClick={() => nav("/payments/new")}>
+                ＋ {t("pay.new")}
+              </button>
+            </>
+          ) : null
         }
       />
 

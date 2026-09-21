@@ -9,6 +9,7 @@ import { t } from "../../i18n/strings";
 import { Card, PageHead } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
+import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 20;
 type Row = { name: string; customer_name?: string; tax_id?: string; customer_group?: string; primary_address?: string };
@@ -46,7 +47,7 @@ export default function CustomerList() {
       <PageHead
         title={t("cust.title")}
         sub={t("cust.sub")}
-        actions={<button className="btn" onClick={() => nav("/customers/new")}>＋ {t("cust.new")}</button>}
+        actions={<IfCanWrite><button className="btn" onClick={() => nav("/customers/new")}>＋ {t("cust.new")}</button></IfCanWrite>}
       />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>

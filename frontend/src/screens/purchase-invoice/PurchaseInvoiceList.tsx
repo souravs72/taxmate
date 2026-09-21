@@ -5,6 +5,7 @@ import type { Filter } from "frappe-react-sdk";
 import { DT } from "../../lib/frappe";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -187,9 +188,11 @@ export default function PurchaseInvoiceList() {
         title={t("pi.title")}
         sub={t("pi.sub")}
         actions={
-          <button type="button" className="btn" onClick={() => nav("/purchase-invoices/new")}>
-            ＋ {t("pi.new")}
-          </button>
+          canWrite(session) ? (
+            <button type="button" className="btn" onClick={() => nav("/purchase-invoices/new")}>
+              ＋ {t("pi.new")}
+            </button>
+          ) : null
         }
       />
 

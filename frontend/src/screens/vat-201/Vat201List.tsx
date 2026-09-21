@@ -11,6 +11,7 @@ import type { Filter } from "frappe-react-sdk";
 import { DT } from "../../lib/frappe";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -161,9 +162,11 @@ export default function Vat201List() {
         title={t("v201.title")}
         sub={t("v201.sub")}
         actions={
-          <button type="button" className="btn" onClick={() => nav("/vat-201/new")}>
-            ＋ {t("v201.new")}
-          </button>
+          canWrite(session) ? (
+            <button type="button" className="btn" onClick={() => nav("/vat-201/new")}>
+              ＋ {t("v201.new")}
+            </button>
+          ) : null
         }
       />
       {byStatus.ready && (

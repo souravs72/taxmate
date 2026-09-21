@@ -123,6 +123,10 @@ export const METHOD = {
   fetchEInvoiceDocuments: "taxmate.uae_e_invoicing.utils.e_invoice.fetch_asp_documents",
   getOrCreateVat201: "taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.get_or_create",
   generateVat201: "taxmate.uae_vat.doctype.uae_vat_201_filing_log.uae_vat_201_filing_log.generate_filing",
+  listUsers: "taxmate.api.users.list_users",
+  inviteUser: "taxmate.api.users.invite_user",
+  setUserRole: "taxmate.api.users.set_user_role",
+  setUserEnabled: "taxmate.api.users.set_user_enabled",
 } as const;
 
 /** Frappe error payloads are HTML and often several messages joined by <br>. */

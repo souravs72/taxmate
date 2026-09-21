@@ -20,6 +20,7 @@ import { BarRow, Card, Donut, ErrorBox, Legend, Loading, PageHead, Pill, StatTil
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 
 const PAGE = 20;
 const E_FAILED = ["Failed", "Rejected"];
@@ -215,7 +216,7 @@ export default function InvoiceList() {
       <PageHead
         title={t("inv.title")}
         sub={t("inv.sub")}
-        actions={<button className="btn" onClick={() => nav("/invoices/new")}>＋ {t("inv.new")}</button>}
+        actions={canWrite(session) ? <button className="btn" onClick={() => nav("/invoices/new")}>＋ {t("inv.new")}</button> : null}
       />
 
       {aggReady && (

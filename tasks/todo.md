@@ -224,3 +224,34 @@ Plan: `tasks/plan.md`
 - `frontend/src/screens/NotFound.tsx`
 
 **Estimated scope:** S
+
+## Phase 8 — Team access
+
+## Task 18: Users and four SPA roles
+
+**Description:** A UAE accounts firm should invite staff without Desk Role Manager. The SPA shows four roles — Owner, Accountant, Clerk, Viewer — each a bundle of Frappe roles. User stays off catalog `get_list`.
+
+**Acceptance criteria:**
+- [x] `get_session` returns `spa_role` (`owner` | `accountant` | `clerk` | `viewer`)
+- [x] Catalog actions `list_users` / `invite_user` / `set_user_role` / `set_user_enabled`; User is still not an allowed resource doctype
+- [x] Owner can invite, change role, and disable; Clerk and Viewer cannot
+- [x] `/team` list + invite form; rail link; search route; no `/app/`
+- [x] Viewer cannot submit; Clerk can submit but not cancel; Owner and Accountant can cancel
+- [x] Write-path API test for invite then set role
+
+**Verification:**
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_spa_users`
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_search`
+- [x] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 17
+
+**Files likely touched:**
+- `taxmate/setup/spa_roles.py`
+- `taxmate/api/users.py`
+- `taxmate/api/__init__.py`
+- `frontend/src/screens/team/`
+- `frontend/src/lib/roles.ts`
+
+**Estimated scope:** M
+

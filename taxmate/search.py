@@ -166,6 +166,9 @@ DENIED_SEARCH_DOCTYPES = frozenset(
 		"Branch",
 		"Designation",
 		"Department",
+		"User",
+		"Role",
+		"Has Role",
 	}
 )
 

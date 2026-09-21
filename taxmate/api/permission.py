@@ -13,7 +13,10 @@ def has_app_permission() -> bool:
 	"""
 	if frappe.session.user in (None, "Guest"):
 		return False
-	if "System Manager" in frappe.get_roles():
+	roles = set(frappe.get_roles())
+	if "System Manager" in roles or roles.intersection(
+		{"TaxMate Owner", "TaxMate Accountant", "TaxMate Clerk", "TaxMate Viewer"}
+	):
 		return True
 	return bool(
 		frappe.has_permission("Sales Invoice", "read")

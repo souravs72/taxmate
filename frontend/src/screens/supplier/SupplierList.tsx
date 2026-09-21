@@ -9,6 +9,7 @@ import { t } from "../../i18n/strings";
 import { Card, PageHead } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
+import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 20;
 type Row = { name: string; supplier_name?: string; tax_id?: string; supplier_group?: string; primary_address?: string };
@@ -47,7 +48,9 @@ export default function SupplierList() {
         title={t("supp.title")}
         sub={t("supp.sub")}
         actions={
-          <button type="button" className="btn" onClick={() => nav("/suppliers/new")}>＋ {t("supp.new")}</button>
+          <IfCanWrite>
+            <button type="button" className="btn" onClick={() => nav("/suppliers/new")}>＋ {t("supp.new")}</button>
+          </IfCanWrite>
         }
       />
       <Card bodyClass={null as unknown as string}>

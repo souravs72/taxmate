@@ -5,6 +5,7 @@ import { useFrappeAuth } from "frappe-react-sdk";
 import { useLang } from "../lib/i18n";
 import { toggleTheme } from "../lib/theme";
 import { useSession } from "../lib/session";
+import { canViewTeam, spaRoleOf } from "../lib/roles";
 import { NAV } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
@@ -41,6 +42,7 @@ const ICONS: Record<string, JSX.Element> = {
   "/late-filings": <Icon><path d="M9 2.5 16 15H2z"/><path d="M9 7v3.5M9 12.2v.6"/></Icon>,
   "/e-invoice-log": <Icon><path d="M9 2.5l5.5 2.2V10c0 3.3-2.4 5.7-5.5 6.5C5.9 15.7 3.5 13.3 3.5 10V4.7z" /><path d="M6.8 9 8.5 10.7 11.7 7.2" /></Icon>,
   "/tax-settings": <Icon><circle cx="9" cy="9" r="2.2" /><path d="M9 1.8v2.2M9 14v2.2M16.2 9H14M4 9H1.8" /></Icon>,
+  "/team": <Icon><circle cx="6" cy="6.5" r="2.2" /><circle cx="12" cy="6.5" r="2.2" /><path d="M2 16c0-2.4 1.8-4 4-4s4 1.6 4 4M10 16c0-2.4 1.8-4 4-4s4 1.6 4 4" /></Icon>,
 };
 
 const RAIL_KEY = "taxmate-rail";
@@ -52,11 +54,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const { lang, set: setLocale } = useLang();
   const { currentUser } = useFrappeAuth();
   const session = useSession();
-  const roleLabel = (session.roles ?? []).includes("Accounts Manager")
-    ? t("role.manager")
-    : (session.roles ?? []).includes("Accounts User")
-      ? t("role.accountant")
-      : (session.full_name || "");
+  const roleLabel = t(`role.${spaRoleOf(session)}`);
+  const nav = canViewTeam(session)
+    ? NAV
+    : NAV.filter((n) => n.type === "section" ? n.key !== "nav.company" : n.to !== "/team");
 
   useEffect(() => {
     try { localStorage.setItem(RAIL_KEY, collapsed ? "1" : "0"); } catch { /* ignore */ }
@@ -75,7 +76,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span>TaxMate</span>
         </div>
 
-        {NAV.map((n, i) =>
+        {nav.map((n, i) =>
           n.type === "section" ? (
             <div className="rsec" key={`s${i}`}>{t(n.key)}</div>
           ) : (

@@ -10,6 +10,7 @@ import { t } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
+import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 20;
 type Row = {
@@ -59,7 +60,7 @@ export default function ItemList() {
       <PageHead
         title={t("item.title")}
         sub={t("item.sub")}
-        actions={<button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button>}
+        actions={<IfCanWrite><button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button></IfCanWrite>}
       />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>

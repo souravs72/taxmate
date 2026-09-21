@@ -10,6 +10,7 @@ from taxmate.api.resource import require_login
 from taxmate.search import ALLOWED_SEARCH_DOCTYPES, DENIED_SEARCH_DOCTYPES, GLOBAL_SEARCH_DOCTYPES
 from taxmate.setup.financial_reports import CORE_REPORT_LINKS, TAXMATE_REPORT_LINKS
 from taxmate.setup.home import DAILY_SHORTCUTS, HOME_LINKS, UAE_SHORTCUTS
+from taxmate.setup.spa_roles import spa_role_of
 
 # Masters a books frontend needs that are not always in global search.
 _CORE_MASTERS: tuple[str, ...] = (
@@ -188,6 +189,10 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "make_delivery_note", "method": "taxmate.api.sales_order.make_delivery_note"},
 			{"name": "make_sales_invoice", "method": "taxmate.api.sales_order.make_sales_invoice"},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
+			{"name": "list_users", "method": "taxmate.api.users.list_users"},
+			{"name": "invite_user", "method": "taxmate.api.users.invite_user"},
+			{"name": "set_user_role", "method": "taxmate.api.users.set_user_role"},
+			{"name": "set_user_enabled", "method": "taxmate.api.users.set_user_enabled"},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
 			*_EXISTING_ACTIONS,
@@ -215,6 +220,7 @@ def get_session() -> dict[str, Any]:
 		"currency": currency,
 		"country": country,
 		"roles": frappe.get_roles(),
+		"spa_role": spa_role_of(),
 		# The SITE's today, not the browser's. Anything date-driven in the UI
 		# -- most of all whether an invoice is overdue -- has to agree with the
 		# server, and a viewer outside Asia/Dubai is a day off for part of it.

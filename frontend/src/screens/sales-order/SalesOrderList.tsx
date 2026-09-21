@@ -18,6 +18,7 @@ import {
 } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
+import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 20;
 
@@ -165,7 +166,9 @@ export default function SalesOrderList() {
         actions={
           <>
             <button className="btn ghost">{t("so.export")}</button>
-            <button className="btn" onClick={() => nav("/orders/new")}>＋ {t("so.new")}</button>
+            <IfCanWrite>
+              <button className="btn" onClick={() => nav("/orders/new")}>＋ {t("so.new")}</button>
+            </IfCanWrite>
           </>
         }
       />

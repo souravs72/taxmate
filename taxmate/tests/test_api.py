@@ -100,6 +100,7 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("company", session)
 		self.assertIn("roles", session)
 		self.assertTrue(session["roles"])
+		self.assertIn(session.get("spa_role"), ("owner", "accountant", "clerk", "viewer"))
 
 
 class TestApiResource(FrappeTestCase):
