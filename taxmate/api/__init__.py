@@ -188,6 +188,8 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "linked_documents", "method": "taxmate.api.sales_order.linked_documents"},
 			{"name": "make_delivery_note", "method": "taxmate.api.sales_order.make_delivery_note"},
 			{"name": "make_sales_invoice", "method": "taxmate.api.sales_order.make_sales_invoice"},
+			{"name": "make_purchase_receipt", "method": "taxmate.api.purchase_order.make_purchase_receipt"},
+			{"name": "make_purchase_invoice", "method": "taxmate.api.purchase_order.make_purchase_invoice"},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
 			{"name": "list_users", "method": "taxmate.api.users.list_users"},
 			{"name": "invite_user", "method": "taxmate.api.users.invite_user"},

@@ -1,7 +1,11 @@
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useFrappePostCall } from "frappe-react-sdk";
 
-import { DT } from "../../lib/frappe";
-import { useDoc } from "../../lib/resource";
+import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useInsert } from "../../lib/resource";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
@@ -15,6 +19,7 @@ type Doc = {
   name: string; supplier?: string; supplier_name?: string; transaction_date?: string;
   schedule_date?: string; company?: string; status?: string; currency?: string;
   grand_total?: number; net_total?: number; total_taxes_and_charges?: number;
+  docstatus?: number; per_received?: number; per_billed?: number;
   items?: Line[];
 };
 
@@ -28,7 +33,39 @@ function poPill(status?: string): string {
 export default function PurchaseOrderDetail() {
   const { name = "" } = useParams();
   const nav = useNavigate();
+  const session = useSession();
+  const writable = canWrite(session);
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.purchaseOrder, name);
+  const makePr = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePurchaseReceipt);
+  const makePi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePurchaseInvoice);
+  const create = useInsert();
+  const [busy, setBusy] = useState<"" | "pr" | "pi">("");
+  const [mapError, setMapError] = useState<unknown>(null);
+
+  async function createDownstream(kind: "pr" | "pi") {
+    setBusy(kind);
+    setMapError(null);
+    try {
+      const call = kind === "pr" ? makePr.call : makePi.call;
+      const doctype = kind === "pr" ? DT.purchaseReceipt : DT.purchaseInvoice;
+      const res = await call({ source_name: name });
+      const mapped = res?.message;
+      if (!mapped) throw new Error("The mapper returned nothing.");
+      const body: Record<string, unknown> = { ...(mapped as Record<string, unknown>) };
+      delete body.name;
+      delete body.doctype;
+      delete body.__islocal;
+      delete body.__unsaved;
+      const created = await create.createDoc(doctype, body);
+      const newName = (created as { name: string }).name;
+      if (kind === "pi") nav(`/purchase-invoices/${encodeURIComponent(newName)}`);
+      else nav(`/purchase-receipts/${encodeURIComponent(newName)}`);
+    } catch (err) {
+      setMapError(err);
+    } finally {
+      setBusy("");
+    }
+  }
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
@@ -45,12 +82,32 @@ export default function PurchaseOrderDetail() {
           </button>
         }
         title={data.supplier_name || data.supplier || data.name}
+        actions={
+          writable ? (
+            <>
+              <button type="button" className="btn ghost"
+                disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
+                onClick={() => void createDownstream("pr")}>
+                {busy === "pr" ? t("soc.saving") : t("po.receive")}
+              </button>
+              <button type="button" className="btn"
+                disabled={!!busy || data.docstatus !== 1 || (data.per_billed ?? 0) >= 100}
+                onClick={() => void createDownstream("pi")}>
+                {busy === "pi" ? t("soc.saving") : t("po.bill")}
+              </button>
+            </>
+          ) : null
+        }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
           <Pill cls={poPill(data.status)}>{data.status || "—"}</Pill>
         </p>
       </PageHead>
+
+      {(mapError || makePr.error || makePi.error) && (
+        <ErrorBox error={mapError ?? makePr.error ?? makePi.error} />
+      )}
 
       <FormLayout
         aside={

@@ -255,3 +255,28 @@ Plan: `tasks/plan.md`
 
 **Estimated scope:** M
 
+## Phase 9 — Buy cycle
+
+## Task 19: Purchase Order create and convert
+
+**Description:** A UAE firm must raise a PO, then receive and bill it, without Desk. List already exists; this slice adds create/submit and catalogued mappers to Receipt and Purchase Invoice.
+
+**Acceptance criteria:**
+- [x] `/purchase-orders/new` form: supplier, dates, tax template, items; insert then `workflow.submit`
+- [x] New button on the PO list (hidden for Viewer)
+- [x] Submitted PO can map to draft Purchase Receipt and Purchase Invoice via catalog actions
+- [x] Search still uses `/purchase-orders`; no `/app/`
+- [x] Write-path API test: insert PO, submit, `make_purchase_receipt` returns unsaved PR
+
+**Verification:**
+- [x] `bench --site taxmate.site run-tests --module taxmate.tests.test_api`
+- [x] `npx tsc --noEmit` in `frontend/`
+
+**Dependencies:** Task 18
+
+**Files likely touched:**
+- `taxmate/api/purchase_order.py`
+- `frontend/src/screens/purchase-order/`
+
+**Estimated scope:** M
+

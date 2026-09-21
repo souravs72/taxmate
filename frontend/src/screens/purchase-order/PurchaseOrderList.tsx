@@ -5,6 +5,7 @@ import type { Filter } from "frappe-react-sdk";
 import { DT } from "../../lib/frappe";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money, pct } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -190,7 +191,17 @@ export default function PurchaseOrderList() {
 
   return (
     <>
-      <PageHead title={t("po.title")} sub={t("po.sub")} />
+      <PageHead
+        title={t("po.title")}
+        sub={t("po.sub")}
+        actions={
+          canWrite(session) ? (
+            <button type="button" className="btn" onClick={() => nav("/purchase-orders/new")}>
+              ＋ {t("po.new")}
+            </button>
+          ) : null
+        }
+      />
 
       {agg.ready && (
         <div className="tiles">

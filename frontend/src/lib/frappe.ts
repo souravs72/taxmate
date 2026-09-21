@@ -116,6 +116,8 @@ export const METHOD = {
   draftPurchaseInvoiceFromIncoming: "taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",
   makeDeliveryNote: "taxmate.api.sales_order.make_delivery_note",
   makeSalesInvoice: "taxmate.api.sales_order.make_sales_invoice",
+  makePurchaseReceipt: "taxmate.api.purchase_order.make_purchase_receipt",
+  makePurchaseInvoice: "taxmate.api.purchase_order.make_purchase_invoice",
   awesomeSearch: "taxmate.api.search.awesome",
   generateEInvoice: "taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice",
   bulkGenerateEInvoices: "taxmate.uae_e_invoicing.utils.e_invoice.bulk_generate_e_invoices",

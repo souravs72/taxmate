@@ -84,6 +84,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.sales_order.linked_documents", methods)
 		self.assertIn("taxmate.api.sales_order.make_delivery_note", methods)
 		self.assertIn("taxmate.api.sales_order.make_sales_invoice", methods)
+		self.assertIn("taxmate.api.purchase_order.make_purchase_receipt", methods)
+		self.assertIn("taxmate.api.purchase_order.make_purchase_invoice", methods)
 		self.assertIn("taxmate.api.resource.group_by_count", methods)
 		self.assertFalse(any("rest" in row for row in catalog["resources"]))
 		self.assertFalse(is_allowed_doctype("User"))
@@ -505,6 +507,55 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		submitted = submit({"doctype": "Purchase Invoice", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
 		cancelled = cancel("Purchase Invoice", doc["name"])
+		self.assertEqual(cancelled["docstatus"], 2)
+
+	def test_purchase_order_insert_submit_then_make_receipt(self):
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+		from taxmate.api.purchase_order import make_purchase_receipt
+		from taxmate.api.workflow import cancel, submit
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		if not frappe.db.exists("Supplier", supplier):
+			self.skipTest(f"Missing supplier {supplier}")
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1}) or SERVICE_ITEM
+		doc = insert(
+			{
+				"doctype": "Purchase Order",
+				"company": company,
+				"supplier": supplier,
+				"transaction_date": "2026-11-15",
+				"schedule_date": "2026-11-30",
+				"currency": "AED",
+				"conversion_rate": 1,
+				"buying_price_list": "Standard Buying",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"items": [
+					{
+						"item_code": item,
+						"qty": 1,
+						"rate": 50,
+						"schedule_date": "2026-11-30",
+					}
+				],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		submitted = submit({"doctype": "Purchase Order", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+
+		mapped = make_purchase_receipt(submitted["name"])
+		self.assertEqual(mapped.get("doctype"), "Purchase Receipt")
+		self.assertEqual(int(mapped.get("docstatus") or 0), 0)
+		self.assertTrue(mapped.get("items"))
+		self.assertTrue(mapped.get("__islocal") or str(mapped.get("name") or "").startswith("new-"))
+
+		cancelled = cancel("Purchase Order", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
 
 	def test_journal_entry_insert_then_submit(self):
