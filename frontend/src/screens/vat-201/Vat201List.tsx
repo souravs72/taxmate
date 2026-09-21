@@ -160,7 +160,6 @@ export default function Vat201List() {
     <>
       <PageHead
         title={t("v201.title")}
-        sub={t("v201.sub")}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/vat-201/new")}>

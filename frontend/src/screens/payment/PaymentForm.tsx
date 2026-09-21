@@ -337,7 +337,6 @@ export default function PaymentForm() {
           </>
         }
         title={isNew ? t(`pay.new${type === "Pay" ? "Out" : ""}`) : name}
-        sub={t("pay.isMoney")}
         actions={
           <FormActions
             onDiscard={() => nav("/payments")}

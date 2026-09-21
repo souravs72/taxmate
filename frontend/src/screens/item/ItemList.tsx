@@ -59,7 +59,6 @@ export default function ItemList() {
     <>
       <PageHead
         title={t("item.title")}
-        sub={t("item.sub")}
         actions={<IfCanWrite><button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button></IfCanWrite>}
       />
       <Card bodyClass={null as unknown as string}>

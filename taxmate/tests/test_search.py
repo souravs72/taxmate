@@ -191,6 +191,7 @@ class TestAwesomeSearch(FrappeTestCase):
 			"/e-invoice-log",
 			"/tax-settings",
 			"/team",
+			"/profile",
 		}
 		self.assertEqual(expected, routes)
 		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))

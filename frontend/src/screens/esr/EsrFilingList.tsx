@@ -80,7 +80,7 @@ export default function EsrFilingList() {
   ];
   return (
     <>
-      <PageHead title={t("esr.title")} sub={t("esr.sub")} />
+      <PageHead title={t("esr.title")} />
       {byStatus.ready && (
         <div className="tiles">
           <StatTile colour="var(--bad)" tint="rgba(220,38,38,.12)" icon='<path d="M9 2.5 16 15H2z"/>' label={t("v201.tile.overdue")} value={overdue} foot={t("esr.tile.overdueFoot")} />

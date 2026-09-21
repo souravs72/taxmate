@@ -201,7 +201,7 @@ export default function ChartOfAccounts() {
 
   return (
     <>
-      <PageHead title={t("coa.title")} sub={t("coa.sub")} />
+      <PageHead title={t("coa.title")} />
 
       {byRoot.ready && (
         <div className="tiles">

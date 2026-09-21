@@ -137,7 +137,6 @@ export default function JournalEntryList() {
     <>
       <PageHead
         title={t("je.title")}
-        sub={t("je.sub")}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/journals/new")}>

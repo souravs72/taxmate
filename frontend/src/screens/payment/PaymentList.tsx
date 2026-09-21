@@ -155,7 +155,6 @@ export default function PaymentList() {
     <>
       <PageHead
         title={t("pay.title")}
-        sub={t("pay.sub")}
         actions={
           canWrite(session) ? (
             <>

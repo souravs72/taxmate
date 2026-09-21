@@ -25,7 +25,7 @@ export default function ReportList() {
 
   return (
     <>
-      <PageHead title={t("rpt.title")} sub={t("rpt.sub")} />
+      <PageHead title={t("rpt.title")} />
       {catalog.error && <ErrorBox error={catalog.error} onRetry={() => catalog.mutate()} />}
       {catalog.isLoading ? <Loading /> : books.length + uae.length === 0 ? (
         <Card><Empty label={t("rpt.empty")} /></Card>

@@ -75,7 +75,7 @@ export default function UboRegisterList() {
   ];
   return (
     <>
-      <PageHead title={t("ubo.title")} sub={t("ubo.sub")} />
+      <PageHead title={t("ubo.title")} />
       {byStatus.ready && (
         <div className="tiles">
           <StatTile colour="var(--c-billed)" tint="rgba(22,163,74,.13)" icon='<path d="M6.8 9 8.5 10.7 11.7 7.2"/>' label={t("ubo.tile.ok")} value={ok} foot={t("ubo.tile.okFoot")} />

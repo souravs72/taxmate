@@ -161,7 +161,6 @@ export default function JournalEntryForm() {
     <>
       <PageHead
         title={isNew ? t("je.new") : t("inv.edit")}
-        sub={t("je.formSub")}
         actions={
           <>
             <button type="button" className="btn ghost" onClick={() => nav("/journals")}>{t("soc.discard")}</button>

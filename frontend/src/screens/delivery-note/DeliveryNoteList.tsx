@@ -107,7 +107,7 @@ export default function DeliveryNoteList() {
 
   return (
     <>
-      <PageHead title={t("dn.listTitle")} sub={t("dn.listSub")} />
+      <PageHead title={t("dn.listTitle")} />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("dn.search")} />

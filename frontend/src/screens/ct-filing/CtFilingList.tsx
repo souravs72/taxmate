@@ -93,7 +93,7 @@ export default function CtFilingList() {
 
   return (
     <>
-      <PageHead title={t("ct.title")} sub={t("ct.sub")} />
+      <PageHead title={t("ct.title")} />
       {byDeadline.ready && (
         <div className="tiles">
           <StatTile colour="var(--bad)" tint="rgba(220,38,38,.12)" icon='<path d="M9 2.5 16 15H2z"/>' label={t("v201.tile.overdue")} value={overdue} foot={t("ct.tile.overdueFoot")} />

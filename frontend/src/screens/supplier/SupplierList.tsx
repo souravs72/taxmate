@@ -46,7 +46,6 @@ export default function SupplierList() {
     <>
       <PageHead
         title={t("supp.title")}
-        sub={t("supp.sub")}
         actions={
           <IfCanWrite>
             <button type="button" className="btn" onClick={() => nav("/suppliers/new")}>＋ {t("supp.new")}</button>

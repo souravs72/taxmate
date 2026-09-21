@@ -94,7 +94,7 @@ export default function WarehouseList() {
 
   return (
     <>
-      <PageHead title={t("wh.title")} sub={t("wh.sub")} />
+      <PageHead title={t("wh.title")} />
       {byKind.ready && (
         <div className="tiles">
           <StatTile colour="var(--brand)" tint="rgba(72,127,255,.14)"

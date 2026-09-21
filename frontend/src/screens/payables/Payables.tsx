@@ -83,7 +83,7 @@ export default function Payables() {
 
   return (
     <>
-      <PageHead title={t("ap.title")} sub={t("ap.sub")} />
+      <PageHead title={t("ap.title")} />
       {report.error && <ErrorBox error={report.error} onRetry={() => report.mutate()} />}
 
       {ready && (

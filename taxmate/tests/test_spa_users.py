@@ -13,11 +13,20 @@ import uuid
 
 import frappe
 from frappe.tests.utils import FrappeTestCase
+from frappe.utils import cint
 
 from taxmate.api import get_catalog, get_session
 from taxmate.api.resource import is_allowed_doctype
-from taxmate.api.users import invite_user, list_users, set_user_enabled, set_user_role
-from taxmate.setup.spa_roles import ensure_spa_roles, spa_role_of
+from taxmate.api.users import (
+	change_password,
+	get_profile,
+	invite_user,
+	list_users,
+	set_user_enabled,
+	set_user_role,
+	update_profile,
+)
+from taxmate.setup.spa_roles import MARKER, ensure_spa_roles, spa_role_of
 
 
 class TestSpaUsers(FrappeTestCase):
@@ -53,6 +62,9 @@ class TestSpaUsers(FrappeTestCase):
 		self.assertIn("taxmate.api.users.invite_user", methods)
 		self.assertIn("taxmate.api.users.set_user_role", methods)
 		self.assertIn("taxmate.api.users.set_user_enabled", methods)
+		self.assertIn("taxmate.api.users.get_profile", methods)
+		self.assertIn("taxmate.api.users.update_profile", methods)
+		self.assertIn("taxmate.api.users.change_password", methods)
 
 	def test_invite_then_set_role(self):
 		created = self._invite("clerk")
@@ -62,13 +74,43 @@ class TestSpaUsers(FrappeTestCase):
 			roles = frappe.get_roles(created["name"])
 			self.assertNotIn("System Manager", roles)
 			self.assertIn("TaxMate Clerk", roles)
+			self.assertNotIn("Accounts User", roles)
+			self.assertNotIn("Accounts Manager", roles)
+			user = frappe.get_doc("User", created["name"])
+			self.assertFalse(user.has_desk_access())
+			self.assertEqual(user.redirect_url, "/taxmate")
 			updated = set_user_role(user=created["name"], spa_role="accountant")
 			self.assertEqual(updated["spa_role"], "accountant")
 			self.assertEqual(spa_role_of(created["name"]), "accountant")
+			self.assertFalse(frappe.get_doc("User", created["name"]).has_desk_access())
 			disabled = set_user_enabled(user=created["name"], enabled=0)
 			self.assertEqual(disabled["enabled"], 0)
 			names = {row["name"] for row in list_users()}
 			self.assertIn(created["name"], names)
+		finally:
+			self._delete(created["name"])
+
+	def test_spa_roles_have_no_desk_administrator_does(self):
+		ensure_spa_roles()
+		for name in MARKER.values():
+			self.assertEqual(cint(frappe.db.get_value("Role", name, "desk_access")), 0)
+		self.assertTrue(frappe.get_doc("User", "Administrator").has_desk_access())
+
+	def test_invite_stores_mobile_and_last_name(self):
+		email = f"tm-full-{uuid.uuid4().hex[:8]}@example.com"
+		created = invite_user(
+			email=email,
+			first_name="Mariam",
+			last_name="Hassan",
+			mobile_no="+971500000001",
+			spa_role="viewer",
+			send_welcome_email=0,
+		)
+		try:
+			self.assertEqual(created["last_name"], "Hassan")
+			self.assertEqual(created["mobile_no"], "+971500000001")
+			self.assertEqual(created["spa_role"], "viewer")
+			self.assertFalse(frappe.get_doc("User", created["name"]).has_desk_access())
 		finally:
 			self._delete(created["name"])
 
@@ -151,3 +193,59 @@ class TestSpaUsers(FrappeTestCase):
 		finally:
 			frappe.set_user("Administrator")
 			self._delete(clerk["name"])
+
+	def test_update_own_profile(self):
+		created = self._invite("clerk")
+		try:
+			frappe.set_user(created["name"])
+			row = get_profile()
+			self.assertEqual(row["email"], created["name"])
+			updated = update_profile(
+				first_name="Noura",
+				last_name="Ali",
+				mobile_no="+971501111111",
+			)
+			self.assertEqual(updated["first_name"], "Noura")
+			self.assertEqual(updated["last_name"], "Ali")
+			self.assertEqual(updated["mobile_no"], "+971501111111")
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])
+
+	def test_invited_clerk_can_read_books(self):
+		"""Callers: bench run-tests --module taxmate.tests.test_spa_users.
+		API: frappe.has_permission after invite_user. Schema: Custom DocPerm
+		parent=Sales Invoice|Journal Entry, role=TaxMate Clerk|Viewer.
+		User: "Review the changes using best frappe skills and react skills
+		and commit and push. Create a pr to version-16"
+		"""
+		clerk = self._invite("clerk")
+		viewer = self._invite("viewer")
+		try:
+			frappe.set_user(clerk["name"])
+			self.assertTrue(is_allowed_doctype("Sales Invoice"))
+			self.assertTrue(frappe.has_permission("Sales Invoice", "read"))
+			self.assertTrue(frappe.has_permission("Sales Invoice", "create"))
+			self.assertTrue(frappe.has_permission("Journal Entry", "submit"))
+			frappe.set_user(viewer["name"])
+			self.assertTrue(frappe.has_permission("Sales Invoice", "read"))
+			self.assertFalse(frappe.has_permission("Sales Invoice", "write"))
+			self.assertFalse(frappe.has_permission("Sales Invoice", "create"))
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(clerk["name"])
+			self._delete(viewer["name"])
+
+	def test_change_password_rejects_wrong_current(self):
+		created = self._invite("viewer")
+		from frappe.utils.password import update_password
+
+		update_password(created["name"], "TaxMate-Old-Pass1!")
+		try:
+			frappe.set_user(created["name"])
+			with self.assertRaises(frappe.AuthenticationError):
+				change_password(old_password="wrong", new_password="TaxMate-New-Pass1!")
+			change_password(old_password="TaxMate-Old-Pass1!", new_password="TaxMate-New-Pass1!")
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])

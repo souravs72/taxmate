@@ -88,7 +88,7 @@ export default function LateFilingList() {
   ];
   return (
     <>
-      <PageHead title={t("lf.title")} sub={t("lf.sub")} />
+      <PageHead title={t("lf.title")} />
       {byStatus.ready && (
         <div className="tiles">
           <StatTile colour="var(--bad)" tint="rgba(220,38,38,.12)" icon='<path d="M9 2.5 16 15H2z"/>' label={t("v201.tile.overdue")} value={overdue} foot={t("lf.tile.overdueFoot")} />

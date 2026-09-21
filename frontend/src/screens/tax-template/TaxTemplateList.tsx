@@ -72,7 +72,7 @@ export default function TaxTemplateList() {
 
   return (
     <>
-      <PageHead title={t("tx.title")} sub={t("tx.sub")} />
+      <PageHead title={t("tx.title")} />
       <div className="tiles">
         <StatTile colour="var(--brand)" tint="rgba(72,127,255,.14)"
           icon='<path d="M3.5 2.5h8l3 3v10h-11z"/>'

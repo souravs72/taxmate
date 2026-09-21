@@ -130,6 +130,9 @@ export const METHOD = {
   inviteUser: "taxmate.api.users.invite_user",
   setUserRole: "taxmate.api.users.set_user_role",
   setUserEnabled: "taxmate.api.users.set_user_enabled",
+  getProfile: "taxmate.api.users.get_profile",
+  updateProfile: "taxmate.api.users.update_profile",
+  changePassword: "taxmate.api.users.change_password",
 } as const;
 
 /** Frappe error payloads are HTML and often several messages joined by <br>. */

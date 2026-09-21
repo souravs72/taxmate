@@ -73,6 +73,7 @@ import LateFilingList from "./screens/late-filing/LateFilingList";
 import LateFilingDetail from "./screens/late-filing/LateFilingDetail";
 import TeamList from "./screens/team/TeamList";
 import TeamInvite from "./screens/team/TeamInvite";
+import Profile from "./screens/team/Profile";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -161,6 +162,7 @@ export default function App() {
           <Route path="/tax-settings" element={<TaxSettings />} />
           <Route path="/team" element={<TeamList />} />
           <Route path="/team/new" element={<TeamInvite />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/sales" element={<SalesHub />} />
           <Route path="/sales/customers" element={<Navigate to="/customers" replace />} />
           <Route path="/sales/invoices" element={<Navigate to="/invoices" replace />} />

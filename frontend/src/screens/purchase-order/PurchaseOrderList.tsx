@@ -193,7 +193,6 @@ export default function PurchaseOrderList() {
     <>
       <PageHead
         title={t("po.title")}
-        sub={t("po.sub")}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/purchase-orders/new")}>

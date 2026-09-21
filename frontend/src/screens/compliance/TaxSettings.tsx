@@ -19,7 +19,7 @@ export default function TaxSettings() {
 
   return (
     <>
-      <PageHead title={t("nav.taxSettings")} sub={t("tax.sub")} />
+      <PageHead title={t("nav.taxSettings")} />
       <Card title={t("tax.asp")}>
         <ReadRow k={t("tax.provider")} v={data?.asp_provider || "—"} />
         <ReadRow k={t("tax.sandbox")} v={data?.sandbox_mode ? t("yes") : t("no")} />

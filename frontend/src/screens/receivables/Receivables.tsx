@@ -35,7 +35,7 @@ export default function Receivables() {
 
   return (
     <>
-      <PageHead title={t("ar.title")} sub={t("ar.sub")} />
+      <PageHead title={t("ar.title")} />
       {report.error && <ErrorBox error={report.error} onRetry={() => report.mutate()} />}
       <Card bodyClass={null as unknown as string}>
         {report.isLoading ? <Loading />

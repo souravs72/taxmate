@@ -87,7 +87,6 @@ export default function ReportRunner() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/reports")}>{t("rpt.title")}</button>}
         title={name}
-        sub={t("rpt.runSub")}
       />
       <Card>
         <div className="grid2">

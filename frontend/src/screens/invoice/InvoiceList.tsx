@@ -215,7 +215,6 @@ export default function InvoiceList() {
     <>
       <PageHead
         title={t("inv.title")}
-        sub={t("inv.sub")}
         actions={canWrite(session) ? <button className="btn" onClick={() => nav("/invoices/new")}>＋ {t("inv.new")}</button> : null}
       />
 

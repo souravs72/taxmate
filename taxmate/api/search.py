@@ -98,7 +98,8 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Late Filings", "route": "/late-filings", "keywords": "late filing notice overdue fta"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
 	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
-	{"label": "Team", "route": "/team", "keywords": "users roles team staff invite owner accountant clerk viewer"},
+	{"label": "Team", "route": "/team", "keywords": "users roles team staff invite admin finance manager accounts officer read-only owner accountant clerk viewer"},
+	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)

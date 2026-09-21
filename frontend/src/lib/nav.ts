@@ -7,6 +7,39 @@ export type NavEntry =
   | { type: "section"; key: string }
   | { type: "link"; to: string; key: string };
 
+export type NavLinkItem = { to: string; key: string };
+export type NavGroup = { key: string; links: NavLinkItem[] };
+
+export function groupedNav(entries: NavEntry[]): { top: NavLinkItem[]; groups: NavGroup[] } {
+  const top: NavLinkItem[] = [];
+  const groups: NavGroup[] = [];
+  let current: NavGroup | null = null;
+  for (const n of entries) {
+    if (n.type === "section") {
+      current = { key: n.key, links: [] };
+      groups.push(current);
+      continue;
+    }
+    if (!current) {
+      top.push({ to: n.to, key: n.key });
+      continue;
+    }
+    current.links.push({ to: n.to, key: n.key });
+  }
+  return { top, groups: groups.filter((g) => g.links.length > 0) };
+}
+
+export function groupForPath(groups: NavGroup[], path: string): string | null {
+  for (const group of groups) {
+    for (const link of group.links) {
+      if (path === link.to || (link.to !== "/" && path.startsWith(`${link.to}/`))) {
+        return group.key;
+      }
+    }
+  }
+  return null;
+}
+
 export const NAV: NavEntry[] = [
   { type: "link", to: "/", key: "nav.dashboard" },
   { type: "section", key: "nav.sales" },

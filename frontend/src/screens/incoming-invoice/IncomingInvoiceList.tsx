@@ -143,7 +143,7 @@ export default function IncomingInvoiceList() {
 
   return (
     <>
-      <PageHead title={t("in.title")} sub={t("in.sub")} />
+      <PageHead title={t("in.title")} />
 
       {agg.ready && (
         <div className="tiles">

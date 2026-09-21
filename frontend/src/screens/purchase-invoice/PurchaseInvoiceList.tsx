@@ -186,7 +186,6 @@ export default function PurchaseInvoiceList() {
     <>
       <PageHead
         title={t("pi.title")}
-        sub={t("pi.sub")}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/purchase-invoices/new")}>

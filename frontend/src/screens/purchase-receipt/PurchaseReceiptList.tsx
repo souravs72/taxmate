@@ -170,7 +170,6 @@ export default function PurchaseReceiptList() {
     <>
       <PageHead
         title={t("pr.title")}
-        sub={t("pr.sub")}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/purchase-receipts/new")}>

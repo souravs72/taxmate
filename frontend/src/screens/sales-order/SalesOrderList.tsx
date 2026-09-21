@@ -162,7 +162,6 @@ export default function SalesOrderList() {
     <>
       <PageHead
         title={t("so.title")}
-        sub={t("so.sub")}
         actions={
           <>
             <button className="btn ghost">{t("so.export")}</button>

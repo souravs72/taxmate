@@ -45,7 +45,7 @@ export default function EInvoiceLog() {
 
   return (
     <>
-      <PageHead title={t("nav.eInvoiceLog")} sub={t("elog.sub")} />
+      <PageHead title={t("nav.eInvoiceLog")} />
       <Card>
         <DataTable
           rows={rows}

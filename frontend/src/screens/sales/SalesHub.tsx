@@ -34,7 +34,6 @@ export default function SalesHub() {
     <>
       <PageHead
         title={t("hub.title")}
-        sub={t("hub.sub")}
         actions={
           <>
             <button className="btn ghost" onClick={() => nav("/customers/new")}>{t("hub.newCustomer")}</button>

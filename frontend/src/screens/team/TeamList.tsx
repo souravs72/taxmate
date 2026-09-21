@@ -11,13 +11,14 @@ import { METHOD } from "../../lib/frappe";
 import { canManageUsers, canViewTeam, SPA_ROLES, type SpaRole } from "../../lib/roles";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, PageHead, Pill } from "../../components/ui";
+import { Card, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { DataTable, type Column } from "../../components/DataTable";
 
 type TeamUser = {
   name: string;
   email?: string;
   full_name?: string;
+  mobile_no?: string | null;
   enabled?: number;
   spa_role?: SpaRole;
   last_active?: string | null;
@@ -35,6 +36,8 @@ export default function TeamList() {
   const setEnabled = useFrappePostCall<{ message: TeamUser }>(METHOD.setUserEnabled);
   const rows = allowed ? (list.data?.message ?? []) : [];
 
+  if (!session.user) return <Loading />;
+
   async function changeRole(user: string, spa_role: SpaRole) {
     await setRole.call({ user, spa_role });
     await list.mutate();
@@ -48,6 +51,7 @@ export default function TeamList() {
   const columns: Column<TeamUser>[] = [
     { key: "name", header: t("team.col.name"), cell: (u) => u.full_name || u.name },
     { key: "email", header: t("team.col.email"), className: "mono", cell: (u) => u.email || u.name },
+    { key: "mobile", header: t("team.col.mobile"), cell: (u) => u.mobile_no || "—" },
     {
       key: "role",
       header: t("team.col.role"),
@@ -96,11 +100,10 @@ export default function TeamList() {
     <>
       <PageHead
         title={t("team.title")}
-        sub={t("team.sub")}
         actions={
           owner ? (
             <button type="button" className="btn" onClick={() => nav("/team/new")}>
-              ＋ {t("team.invite")}
+              {t("team.invite")}
             </button>
           ) : null
         }

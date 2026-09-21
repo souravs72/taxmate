@@ -68,13 +68,15 @@ doctype_list_js = {
 # Home Pages
 # ----------
 
-# application home page (will override Website Settings)
-# home_page = "login"
-
-# website user home page (by Role)
-# role_home_page = {
-# 	"Role": "home_page"
-# }
+# Importers: Frappe boot / login (get_home_page_via_hooks). Callers: Website User
+# login after invite. Schema: User.redirect_url, User.default_app, Role.desk_access=0
+# on TaxMate markers. User: "Review the changes using best frappe skills and react
+# skills and commit and push. Create a pr to version-16"
+# Do not set role_home_page: Administrator's get_roles() includes every Role, so
+# that hook would send Desk Administrator to /taxmate. No other file defines
+# role_home_page (grep taxmate/). website_user_home_page returns None for
+# Administrator so Desk login is unchanged.
+get_website_user_home_page = "taxmate.setup.spa_roles.website_user_home_page"
 
 # Generators
 # ----------
