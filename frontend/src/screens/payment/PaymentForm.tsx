@@ -331,9 +331,9 @@ export default function PaymentForm() {
       <PageHead
         eyebrow={
           <>
-            <a onClick={() => nav("/payments")} style={{ color: "var(--brand)", cursor: "pointer" }}>
+            <button type="button" className="btn quiet" onClick={() => nav("/payments")}>
               {t("nav.payments")}
-            </a>{" / "}{isNew ? t(`pay.new${type === "Pay" ? "Out" : ""}`) : name}
+            </button>{" / "}{isNew ? t(`pay.new${type === "Pay" ? "Out" : ""}`) : name}
           </>
         }
         title={isNew ? t(`pay.new${type === "Pay" ? "Out" : ""}`) : name}

@@ -66,9 +66,9 @@ export default function PaymentDetail() {
       <PageHead
         eyebrow={
           <>
-            <a onClick={() => nav("/payments")} style={{ color: "var(--brand)", cursor: "pointer" }}>
+            <button type="button" className="btn quiet" onClick={() => nav("/payments")}>
               {t("nav.payments")}
-            </a>{" / "}{data.name}
+            </button>{" / "}{data.name}
           </>
         }
         title={data.party_name || data.party}
@@ -170,8 +170,7 @@ export default function PaymentDetail() {
                         <tr key={r.name ?? i}>
                           <td className="inv">
                             {link
-                              ? <b><a style={{ color: "var(--brand)", cursor: "pointer" }}
-                                      onClick={() => nav(link)}>{r.reference_name}</a></b>
+                              ? <b><button type="button" className="btn quiet" onClick={() => nav(link)}>{r.reference_name}</button></b>
                               : <b>{r.reference_name}</b>}
                             <span>{r.reference_doctype}{r.payment_term ? ` · ${r.payment_term}` : ""}</span>
                           </td>

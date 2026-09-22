@@ -144,9 +144,9 @@ export default function InvoiceDetail() {
       <PageHead
         eyebrow={
           <>
-            <a onClick={() => nav("/invoices")} style={{ color: "var(--brand)", cursor: "pointer" }}>
+            <button type="button" className="btn quiet" onClick={() => nav("/invoices")}>
               {t("nav.invoices")}
-            </a>{" / "}{data.name}
+            </button>{" / "}{data.name}
           </>
         }
         title={data.customer_name || data.customer}
@@ -193,10 +193,10 @@ export default function InvoiceDetail() {
           </span>
           {data.po_no && <span className="pill p-flat">PO · {data.po_no}</span>}
           {data.return_against && (
-            <a className="pill p-flat" style={{ cursor: "pointer" }}
+            <button type="button" className="pill p-flat"
                onClick={() => nav(`/invoices/${encodeURIComponent(data.return_against!)}`)}>
-              ↩ {data.return_against}
-            </a>
+              {data.return_against}
+            </button>
           )}
         </p>
       </PageHead>

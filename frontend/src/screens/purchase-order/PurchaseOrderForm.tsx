@@ -229,7 +229,7 @@ export default function PurchaseOrderForm() {
           <div className="addrow">
             <button type="button" className="btn ghost sm"
               onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-              ＋ {t("soc.addLine")}
+              {t("soc.addLine")}
             </button>
           </div>
         </Card>

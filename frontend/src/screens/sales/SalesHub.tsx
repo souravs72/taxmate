@@ -38,7 +38,7 @@ export default function SalesHub() {
           <>
             <button className="btn ghost" onClick={() => nav("/customers/new")}>{t("hub.newCustomer")}</button>
             <button className="btn ghost" onClick={() => nav("/payments/new")}>{t("hub.receive")}</button>
-            <button className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
+            <button className="btn" onClick={() => nav("/invoices/new")}>{t("hub.newSale")}</button>
           </>
         }
       />

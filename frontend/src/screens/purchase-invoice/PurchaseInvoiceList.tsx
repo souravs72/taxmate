@@ -189,7 +189,7 @@ export default function PurchaseInvoiceList() {
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/purchase-invoices/new")}>
-              ＋ {t("pi.new")}
+              {t("pi.new")}
             </button>
           ) : null
         }

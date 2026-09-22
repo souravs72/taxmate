@@ -157,8 +157,11 @@ export default function Payables() {
                 <tbody>
                   {rows.map((r, i) => {
                     const voucher = String(r.voucher_no ?? r.voucher_no_link ?? "");
+                    const open = voucher ? () => nav(`/purchase-invoices/${encodeURIComponent(voucher)}`) : undefined;
                     return (
-                      <tr key={`${voucher}-${i}`}>
+                      <tr key={`${voucher}-${i}`} tabIndex={open ? 0 : undefined}
+                        onClick={open}
+                        onKeyDown={open ? (e) => { if (e.key === "Enter") open(); } : undefined}>
                         <td><span className="ordno">{voucher}</span></td>
                         <td className="cust">{String(r.party || r.supplier_name || "")}</td>
                         <td className="dt">{date(String(r.posting_date || r.invoice_date || ""))}</td>
@@ -166,7 +169,7 @@ export default function Payables() {
                         <td className="n tot">{money(Number(r.invoiced || r.invoice_amount || r.grand_total || 0))}</td>
                         <td className="n">{money(Number(r.outstanding || r.outstanding_amount || 0))}</td>
                         <td className="n">{String(r.age ?? r.ageing ?? "—")}</td>
-                        <td>
+                        <td onClick={(e) => e.stopPropagation()}>
                           {voucher && (
                             <button type="button" className="btn ghost sm"
                               onClick={() => nav(`/payments/new?type=Pay&invoice=${encodeURIComponent(voucher)}`)}>

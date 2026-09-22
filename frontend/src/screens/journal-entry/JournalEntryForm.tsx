@@ -283,7 +283,7 @@ export default function JournalEntryForm() {
             </table>
           </div>
           <button type="button" className="btn ghost sm" onClick={() => setLines((r) => [...r, blank(defaultCc)])}>
-            ＋ {t("soc.addLine")}
+            {t("soc.addLine")}
           </button>
         </Card>
       </FormLayout>

@@ -12,7 +12,7 @@ import GlobalSearch from "./GlobalSearch";
 
 const Icon = ({ children }: { children: React.ReactNode }) => (
   <svg className="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"
-       strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
 );
 
 const ICONS: Record<string, JSX.Element> = {
@@ -107,6 +107,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className={`app${collapsed ? " collapsed" : ""}`}>
+      <a className="skip" href="#taxmate-main">{t("a11y.skip")}</a>
       <nav className="rail">
         <div className="rbrand">
           <span className="mark">T</span>
@@ -137,7 +138,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setOpen((prev) => ({ ...prev, [g.key]: !prev[g.key] }))}
               >
                 <span>{t(g.key)}</span>
-                <svg className="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6">
+                <svg className="chev" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
                   <path d="M4 2.5 8.5 6 4 9.5" />
                 </svg>
               </button>
@@ -201,7 +202,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="page" key={lang}>{children}</div>
+        <div className="page" id="taxmate-main" tabIndex={-1} key={lang}>{children}</div>
       </div>
     </div>
   );

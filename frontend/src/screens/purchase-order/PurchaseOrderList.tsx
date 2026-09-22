@@ -196,7 +196,7 @@ export default function PurchaseOrderList() {
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/purchase-orders/new")}>
-              ＋ {t("po.new")}
+              {t("po.new")}
             </button>
           ) : null
         }

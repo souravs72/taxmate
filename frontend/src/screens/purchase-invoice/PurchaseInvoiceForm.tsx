@@ -253,7 +253,7 @@ export default function PurchaseInvoiceForm() {
         title={isNew ? t("pi.new") : (doc?.supplier_name || supplier || name)}
         actions={
           <>
-            <button type="button" className="btn quiet" onClick={() => nav("/purchase-invoices")}>{t("soc.discard")}</button>
+            <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices")}>{t("soc.discard")}</button>
             <button type="button" className="btn ghost" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
@@ -325,7 +325,7 @@ export default function PurchaseInvoiceForm() {
           </div>
         </Card>
 
-        <Card num={3} title={t("inv.lines")} bodyClass={null as unknown as string}>
+        <Card num={3} title={t("inv.lines")} bodyClass={null}>
           <div className="twrap">
             <table>
               <thead>
@@ -382,7 +382,7 @@ export default function PurchaseInvoiceForm() {
           </div>
           <div className="addrow">
             <button type="button" className="btn ghost sm" onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-              ＋ {t("soc.addLine")}
+              {t("soc.addLine")}
             </button>
           </div>
         </Card>

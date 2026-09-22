@@ -80,7 +80,7 @@ export function FormActions({
   const blocked = !!busy || ready === false;
   return (
     <>
-      <button className="btn quiet" onClick={onDiscard}>{t("soc.discard")}</button>
+      <button className="btn ghost" onClick={onDiscard}>{t("soc.discard")}</button>
       {extra}
       {onSave && (
         <button className="btn ghost" disabled={blocked} onClick={onSave}>

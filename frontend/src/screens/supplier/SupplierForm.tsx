@@ -195,7 +195,7 @@ export default function SupplierForm() {
         title={isNew ? t("supp.new") : form.supplier_name || name}
         actions={
           <>
-            <button type="button" className="btn quiet" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
+            <button type="button" className="btn ghost" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
             <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>

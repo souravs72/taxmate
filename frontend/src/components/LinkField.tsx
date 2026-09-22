@@ -50,6 +50,7 @@ export default function LinkField({
         disabled={disabled}
         value={open ? q : value}
         placeholder={placeholder ?? t("search.placeholder")}
+        aria-label={placeholder ?? t("search.placeholder")}
         onFocus={() => { setQ(value); setOpen(true); }}
         onChange={(e) => { setQ(e.target.value); setOpen(true); }}
         onBlur={() => window.setTimeout(() => setOpen(false), 180)}

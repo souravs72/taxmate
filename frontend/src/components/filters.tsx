@@ -19,10 +19,11 @@ export function SearchFilter({ value, onChange, placeholder }: {
 }) {
   return (
     <div className="fsearch">
-      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7">
+      <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
         <circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" />
       </svg>
       <input className="ctl" type="search" value={value} placeholder={placeholder}
+        aria-label={placeholder}
         onChange={(e) => onChange(e.target.value)} />
     </div>
   );
@@ -45,14 +46,14 @@ export function SelectFilter<T extends string>({ value, onChange, allLabel, opti
 }
 
 /** A link-search filter that can actually be cleared again. */
-export function LinkFilter({ doctype, value, onChange, placeholder, clearLabel }: {
+export function LinkFilter({ doctype, value, onChange, placeholder, clearLabel, filters }: {
   doctype: string; value: string; onChange: (v: string) => void;
-  placeholder: string; clearLabel?: string;
+  placeholder: string; clearLabel?: string; filters?: unknown;
 }) {
   return (
-    <div style={{ minWidth: 190, display: "flex", gap: 6, alignItems: "center" }}>
+    <div style={{ minWidth: 0, display: "flex", gap: 6, alignItems: "center" }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <LinkField doctype={doctype} value={value} placeholder={placeholder} onChange={onChange} />
+        <LinkField doctype={doctype} value={value} placeholder={placeholder} filters={filters} onChange={onChange} />
       </div>
       {value && (
         <button className="rm" aria-label={clearLabel ?? t("filter.clear")} onClick={() => onChange("")}>

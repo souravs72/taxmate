@@ -164,7 +164,7 @@ export default function SalesOrderCreate() {
   return (
     <>
       <PageHead
-        eyebrow={<><a onClick={() => nav("/orders")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.salesOrders")}</a></>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/orders")}>{t("nav.salesOrders")}</button>}
         title={t("soc.title")}
         actions={
           <>
@@ -291,7 +291,7 @@ export default function SalesOrderCreate() {
                       </td>
                       <td className="n" style={{ fontWeight: 600 }}>{money(l.qty * l.rate)}</td>
                       <td>
-                        <button className="rm" aria-label="Remove"
+                        <button type="button" className="rm" aria-label={t("inv.remove")}
                           onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
                       </td>
                     </tr>
@@ -302,7 +302,7 @@ export default function SalesOrderCreate() {
             <div className="addrow">
               <button className="btn ghost sm"
                 onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-                ＋ {t("soc.addLine")}
+                {t("soc.addLine")}
               </button>
             </div>
           </Card>

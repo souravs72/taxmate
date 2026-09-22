@@ -48,7 +48,7 @@ export default function SupplierList() {
         title={t("supp.title")}
         actions={
           <IfCanWrite>
-            <button type="button" className="btn" onClick={() => nav("/suppliers/new")}>＋ {t("supp.new")}</button>
+            <button type="button" className="btn" onClick={() => nav("/suppliers/new")}>{t("supp.new")}</button>
           </IfCanWrite>
         }
       />

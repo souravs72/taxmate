@@ -159,10 +159,10 @@ export default function PaymentList() {
           canWrite(session) ? (
             <>
               <button className="btn ghost" onClick={() => nav("/payments/new?type=Pay")}>
-                ＋ {t("pay.newOut")}
+                {t("pay.newOut")}
               </button>
               <button className="btn" onClick={() => nav("/payments/new")}>
-                ＋ {t("pay.new")}
+                {t("pay.new")}
               </button>
             </>
           ) : null

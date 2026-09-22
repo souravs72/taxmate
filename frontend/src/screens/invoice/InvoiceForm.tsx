@@ -259,11 +259,11 @@ export default function InvoiceForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav("/invoices")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.invoices")}</a>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/invoices")}>{t("nav.invoices")}</button>}
         title={isNew ? t("inv.new") : (doc?.customer_name || customer || name)}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/invoices")}>{t("soc.discard")}</button>
+            <button className="btn ghost" onClick={() => nav("/invoices")}>{t("soc.discard")}</button>
             {!locked && (
               <button className="btn ghost" disabled={busy || !ready} onClick={() => void save()}>
                 {busy ? t("soc.saving") : t("soc.save")}
@@ -346,7 +346,7 @@ export default function InvoiceForm() {
             </div>
           </Card>
 
-          <Card num={3} title={t("inv.lines")} bodyClass={null as unknown as string}>
+          <Card num={3} title={t("inv.lines")} bodyClass={null}>
             <div className="twrap">
               <table>
                 <thead>
@@ -410,7 +410,7 @@ export default function InvoiceForm() {
             {!locked && (
               <div className="addrow">
                 <button className="btn ghost sm" onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-                  ＋ {t("soc.addLine")}
+                  {t("soc.addLine")}
                 </button>
               </div>
             )}

@@ -160,7 +160,7 @@ export default function Vat201List() {
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/vat-201/new")}>
-              ＋ {t("v201.new")}
+              {t("v201.new")}
             </button>
           ) : null
         }

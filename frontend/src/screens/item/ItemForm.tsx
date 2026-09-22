@@ -188,11 +188,11 @@ export default function ItemForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav("/catalogue/items")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.items")}</a>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/catalogue/items")}>{t("nav.items")}</button>}
         title={isNew ? t("item.new") : form.item_name || name}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/catalogue/items")}>{t("soc.discard")}</button>
+            <button className="btn ghost" onClick={() => nav("/catalogue/items")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>

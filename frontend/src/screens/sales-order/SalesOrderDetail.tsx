@@ -89,9 +89,9 @@ export default function SalesOrderDetail() {
       <PageHead
         eyebrow={
           <>
-            <a onClick={() => nav("/orders")} style={{ color: "var(--brand)", cursor: "pointer" }}>
+            <button type="button" className="btn quiet" onClick={() => nav("/orders")}>
               {t("nav.salesOrders")}
-            </a>{" / "}{data.name}
+            </button>{" / "}{data.name}
           </>
         }
         title={data.customer_name || data.customer}
@@ -154,8 +154,8 @@ export default function SalesOrderDetail() {
               linked.map((p) => (
                 <div key={p.name} className="mono" style={{ fontSize: 12 }}>
                   {p.kind === "si" ? (
-                    <a style={{ color: "var(--brand)", cursor: "pointer" }}
-                       onClick={() => nav(`/invoices/${encodeURIComponent(p.name)}`)}>{p.name}</a>
+                    <button type="button" className="btn quiet"
+                       onClick={() => nav(`/invoices/${encodeURIComponent(p.name)}`)}>{p.name}</button>
                   ) : p.name}
                 </div>
               ))

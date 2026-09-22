@@ -30,8 +30,7 @@ export default function DeliveryNoteDetail() {
     <>
       <PageHead
         title={data.name}
-        eyebrow={t("dn.title")}
-        actions={<button className="btn ghost" onClick={() => nav(-1)}>{t("common.back")}</button>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/delivery-notes")}>{t("dn.title")}</button>}
       />
       <FormLayout
         aside={
@@ -45,7 +44,7 @@ export default function DeliveryNoteDetail() {
         }
       >
         <Card title={t("dn.items")}>
-          <table className="dt">
+          <table>
             <thead>
               <tr><th>{t("dn.item")}</th><th>{t("dn.qty")}</th><th>{t("dn.amount")}</th></tr>
             </thead>

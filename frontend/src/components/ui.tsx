@@ -29,7 +29,7 @@ export function Card({
   title, hint, num, children, bodyClass,
 }: {
   title?: React.ReactNode; hint?: React.ReactNode; num?: number;
-  children: React.ReactNode; bodyClass?: string;
+  children: React.ReactNode; bodyClass?: string | null;
 }) {
   return (
     <section className="card">
@@ -47,7 +47,7 @@ export function Card({
 /* ── State ────────────────────────────────────────────────────────────── */
 
 export function Loading({ label }: { label?: string }) {
-  return <div style={{ padding: 28, textAlign: "center", color: "var(--faint)", fontSize: 13 }}>
+  return <div className="empty" role="status" aria-live="polite">
     {label ?? t("list.loading")}
   </div>;
 }
@@ -64,7 +64,7 @@ export function Empty({ label }: { label: string }) {
 export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
   const lines = readableError(error);
   return (
-    <div className="alert" style={{ background: "var(--bad-bg)", flexDirection: "column", gap: 8 }}>
+    <div className="alert" role="alert" style={{ background: "var(--bad-bg)", flexDirection: "column", gap: 8 }}>
       <b>{t("error.title")}</b>
       <ul style={{ margin: 0, paddingInlineStart: 18, color: "var(--muted)" }}>
         {lines.map((l, i) => <li key={i}>{l}</li>)}
@@ -91,7 +91,7 @@ export function StatTile({
       <div className="row">
         <span className="bdg" style={{ background: colour }}>
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor"
-               strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"
+               strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
                dangerouslySetInnerHTML={{ __html: icon }} />
         </span>
         <span style={{ minWidth: 0 }}>

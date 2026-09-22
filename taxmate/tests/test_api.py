@@ -268,6 +268,32 @@ class TestApiReportsAndHome(FrappeTestCase):
 		)
 		self.assertIn("result", result)
 
+	def test_balance_sheet_runs_monthly(self):
+		from taxmate.api.reports import run_report
+
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company")
+		fiscal_year = frappe.db.get_value("Fiscal Year", {"disabled": 0}, "name")
+		if not fiscal_year:
+			self.skipTest("No Fiscal Year")
+		result = run_report(
+			"Balance Sheet",
+			{
+				"company": company,
+				"filter_based_on": "Date Range",
+				"periodicity": "Monthly",
+				"from_fiscal_year": fiscal_year,
+				"to_fiscal_year": fiscal_year,
+				"period_start_date": "2026-01-01",
+				"period_end_date": "2026-09-22",
+				"accumulated_values": 1,
+			},
+		)
+		self.assertIn("result", result)
+		columns = {col.get("fieldname") for col in result.get("columns") or [] if isinstance(col, dict)}
+		self.assertTrue(any("jan" in (name or "").lower() or "2026" in (name or "") for name in columns))
+
 	def test_uae_late_filing_status_runs_with_object_filters(self):
 		from taxmate.api.reports import run_report
 

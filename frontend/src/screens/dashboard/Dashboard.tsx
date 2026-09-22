@@ -22,6 +22,8 @@ import { getLocale } from "../../lib/i18n";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { SplitBar, Spark, TrendChart, whole } from "../../components/charts";
+import AccountantDashboard from "./AccountantDashboard";
+import { DashSwitch, useDashMode } from "./DashSwitch";
 import "./dashboard.css";
 
 /* ── Payload ─────────────────────────────────────────────────────────── */
@@ -124,7 +126,12 @@ function daysText(days: number | null): string {
 
 /* ── Screen ──────────────────────────────────────────────────────────── */
 
+/** Home screen: the owner or the accountant view (see DashSwitch). */
 export default function Dashboard() {
+  return useDashMode() === "accountant" ? <AccountantDashboard /> : <OwnerDashboard />;
+}
+
+function OwnerDashboard() {
   const nav = useNavigate();
   const session = useSession();
   const [params, setParams] = useSearchParams();
@@ -157,9 +164,10 @@ export default function Dashboard() {
         sub={session.company ? `${session.company} · ${date(session.today)}` : date(session.today)}
         actions={
           <>
+            <DashSwitch />
             <button type="button" className="btn ghost" onClick={() => nav("/payments/new")}>{t("hub.receive")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices/new")}>{t("od.newBill")}</button>
-            <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
+            <button type="button" className="btn" onClick={() => nav("/invoices/new")}>{t("hub.newSale")}</button>
           </>
         }
       />

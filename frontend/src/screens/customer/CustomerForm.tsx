@@ -192,11 +192,11 @@ export default function CustomerForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav("/customers")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.customers")}</a>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/customers")}>{t("nav.customers")}</button>}
         title={isNew ? t("cust.new") : form.customer_name || name}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
+            <button className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
