@@ -97,6 +97,11 @@ export const DT = {
   itemTaxTemplate: "Item Tax Template",
   fiscalYear: "Fiscal Year",
   termsAndConditions: "Terms and Conditions",
+  uaeRelatedParty: "UAE Related Party",
+  uaeVatGroup: "UAE VAT Group",
+  uaeBadDebt: "UAE Bad Debt Relief",
+  uaeCustoms: "UAE Customs Declaration",
+  uaeCapitalGoods: "UAE Capital Goods Adjustment",
   supplierQuotation: "Supplier Quotation",
   lead: "Lead",
   bom: "BOM",
@@ -175,6 +180,7 @@ export const METHOD = {
   makeSupplierQuotationPO: "taxmate.api.supplier_quotation.make_purchase_order",
   convertLeadToCustomer: "taxmate.api.lead.convert_to_customer",
 } as const;
+
 
 /** Frappe error payloads are HTML and often several messages joined by <br>. */
 export function readableError(err: unknown): string[] {

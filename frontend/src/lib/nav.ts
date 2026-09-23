@@ -103,6 +103,11 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/late-filings", key: "nav.lateFilings" },
   { type: "link", to: "/e-invoice-log", key: "nav.eInvoiceLog" },
   { type: "link", to: "/tax-settings", key: "nav.taxSettings" },
+  { type: "link", to: "/uae-related-parties", key: "nav.uaeRelatedParties" },
+  { type: "link", to: "/uae-vat-groups", key: "nav.uaeVatGroups" },
+  { type: "link", to: "/uae-bad-debt-relief", key: "nav.uaeBadDebt" },
+  { type: "link", to: "/uae-customs-declarations", key: "nav.uaeCustoms" },
+  { type: "link", to: "/uae-capital-goods-adjustments", key: "nav.uaeCapitalGoods" },
   { type: "section", key: "nav.company" },
   { type: "link", to: "/team", key: "nav.team" },
 ];

@@ -1474,3 +1474,37 @@ class TestPhase21Lead(FrappeTestCase):
 		catalog = get_catalog()
 		methods = {a["name"] for a in catalog.get("actions", [])}
 		self.assertIn("convert_lead_to_customer", methods)
+
+
+class TestPhase22UaeCompliance(FrappeTestCase):
+	"""Phase 22: UAE compliance DocTypes catalogued and searchable."""
+
+	def test_uae_related_party_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Related Party"))
+
+	def test_uae_vat_group_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE VAT Group"))
+
+	def test_uae_bad_debt_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Bad Debt Relief"))
+
+	def test_uae_customs_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Customs Declaration"))
+
+	def test_uae_capital_goods_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Capital Goods Adjustment"))
+
+	def test_uae_related_party_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("UAE Related Party", fields=["name", "company", "party"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_uae_vat_group_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("UAE VAT Group", fields=["name", "representative_company"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)

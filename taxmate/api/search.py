@@ -66,6 +66,11 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Terms and Conditions": "/terms-and-conditions/{name}",
 	"Supplier Quotation": "/supplier-quotations/{name}",
 	"Lead": "/leads/{name}",
+	"UAE Related Party": "/uae-related-parties/{name}",
+	"UAE VAT Group": "/uae-vat-groups/{name}",
+	"UAE Bad Debt Relief": "/uae-bad-debt-relief/{name}",
+	"UAE Customs Declaration": "/uae-customs-declarations/{name}",
+	"UAE Capital Goods Adjustment": "/uae-capital-goods-adjustments/{name}",
 	"BOM": "/boms/{name}",
 	"Work Order": "/work-orders/{name}",
 }
@@ -119,6 +124,11 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Terms and Conditions": "/terms-and-conditions",
 	"Supplier Quotation": "/supplier-quotations",
 	"Lead": "/leads",
+	"UAE Related Party": "/uae-related-parties",
+	"UAE VAT Group": "/uae-vat-groups",
+	"UAE Bad Debt Relief": "/uae-bad-debt-relief",
+	"UAE Customs Declaration": "/uae-customs-declarations",
+	"UAE Capital Goods Adjustment": "/uae-capital-goods-adjustments",
 	"BOM": "/boms",
 	"Work Order": "/work-orders",
 }

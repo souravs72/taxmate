@@ -1832,6 +1832,68 @@ const en: Record<string, string> = {
   "lead.col.date": "Date",
   "lead.namePh": "e.g. John Smith",
   "lead.convert": "Convert to Customer",
+  // UAE compliance nav (Phase 22)
+  "nav.uaeRelatedParties": "Related Parties",
+  "nav.uaeVatGroups": "VAT Groups",
+  "nav.uaeBadDebt": "Bad Debt Relief",
+  "nav.uaeCustoms": "Customs Declarations",
+  "nav.uaeCapitalGoods": "Capital Goods Adj.",
+
+  // UAE Related Party
+  "urp.title": "Related Parties",
+  "urp.new": "New related party",
+  "urp.empty": "No related parties.",
+  "urp.col.company": "Company",
+  "urp.col.partyType": "Party type",
+  "urp.col.party": "Party",
+  "urp.col.relationship": "Relationship",
+  "urp.docComplete": "Documentation",
+  "urp.docCompleteLabel": "Documentation complete",
+
+  // UAE VAT Group
+  "uvg.title": "VAT Groups",
+  "uvg.new": "New VAT group",
+  "uvg.empty": "No VAT groups.",
+  "uvg.col.representative": "Representative company",
+  "uvg.col.trn": "Group TRN",
+  "uvg.col.electionDate": "Election date",
+
+  // UAE Bad Debt Relief
+  "ubd.title": "Bad Debt Relief",
+  "ubd.new": "New bad debt record",
+  "ubd.empty": "No bad debt records.",
+  "ubd.col.company": "Company",
+  "ubd.col.invoice": "Sales invoice",
+  "ubd.col.dueDate": "Due date",
+  "ubd.col.writeOffDate": "Write-off date",
+  "ubd.col.taxable": "Taxable amount",
+  "ubd.col.vat": "VAT amount",
+  "ubd.col.notes": "Notes",
+
+  // UAE Customs Declaration
+  "ucd.title": "Customs Declarations",
+  "ucd.new": "New customs declaration",
+  "ucd.empty": "No customs declarations.",
+  "ucd.col.company": "Company",
+  "ucd.col.date": "Date",
+  "ucd.col.declNo": "Declaration no.",
+  "ucd.col.supplier": "Supplier",
+  "ucd.col.invoice": "Purchase invoice",
+  "ucd.col.taxable": "Taxable amount",
+  "ucd.col.vat": "VAT amount",
+  "ucd.col.notes": "Notes",
+
+  // UAE Capital Goods Adjustment
+  "ucg.title": "Capital Goods Adjustments",
+  "ucg.new": "New adjustment",
+  "ucg.empty": "No adjustments.",
+  "ucg.col.company": "Company",
+  "ucg.col.period": "Period",
+  "ucg.col.periodStart": "Period start",
+  "ucg.col.periodEnd": "Period end",
+  "ucg.col.amount": "Adjustment amount",
+  "ucg.col.vatAdj": "VAT adjustment",
+  "ucg.col.notes": "Notes",
 
 };
 
@@ -3611,6 +3673,68 @@ const ar: Record<string, string> = {
   "lead.col.date": "التاريخ",
   "lead.namePh": "مثل: محمد أحمد",
   "lead.convert": "تحويل إلى عميل",
+  // UAE compliance nav (Phase 22)
+  "nav.uaeRelatedParties": "الأطراف المرتبطة",
+  "nav.uaeVatGroups": "مجموعات ضريبة القيمة",
+  "nav.uaeBadDebt": "تخفيف الديون المعدومة",
+  "nav.uaeCustoms": "تصريحات جمركية",
+  "nav.uaeCapitalGoods": "تعديلات السلع الرأسمالية",
+
+  // UAE Related Party
+  "urp.title": "الأطراف المرتبطة",
+  "urp.new": "طرف مرتبط جديد",
+  "urp.empty": "لا توجد أطراف مرتبطة.",
+  "urp.col.company": "الشركة",
+  "urp.col.partyType": "نوع الطرف",
+  "urp.col.party": "الطرف",
+  "urp.col.relationship": "العلاقة",
+  "urp.docComplete": "الوثائق",
+  "urp.docCompleteLabel": "الوثائق مكتملة",
+
+  // UAE VAT Group
+  "uvg.title": "مجموعات ضريبة القيمة",
+  "uvg.new": "مجموعة جديدة",
+  "uvg.empty": "لا توجد مجموعات.",
+  "uvg.col.representative": "شركة التمثيل",
+  "uvg.col.trn": "رقم التسجيل الضريبي",
+  "uvg.col.electionDate": "تاريخ الاختيار",
+
+  // UAE Bad Debt Relief
+  "ubd.title": "تخفيف الديون المعدومة",
+  "ubd.new": "سجل دين معدوم جديد",
+  "ubd.empty": "لا توجد سجلات.",
+  "ubd.col.company": "الشركة",
+  "ubd.col.invoice": "فاتورة مبيعات",
+  "ubd.col.dueDate": "تاريخ الاستحقاق",
+  "ubd.col.writeOffDate": "تاريخ الشطب",
+  "ubd.col.taxable": "المبلغ الخاضع للضريبة",
+  "ubd.col.vat": "مبلغ ضريبة القيمة",
+  "ubd.col.notes": "ملاحظات",
+
+  // UAE Customs Declaration
+  "ucd.title": "تصريحات جمركية",
+  "ucd.new": "تصريح جديد",
+  "ucd.empty": "لا توجد تصريحات.",
+  "ucd.col.company": "الشركة",
+  "ucd.col.date": "التاريخ",
+  "ucd.col.declNo": "رقم التصريح",
+  "ucd.col.supplier": "المورد",
+  "ucd.col.invoice": "فاتورة شراء",
+  "ucd.col.taxable": "المبلغ الخاضع للضريبة",
+  "ucd.col.vat": "مبلغ ضريبة القيمة",
+  "ucd.col.notes": "ملاحظات",
+
+  // UAE Capital Goods Adjustment
+  "ucg.title": "تعديلات السلع الرأسمالية",
+  "ucg.new": "تعديل جديد",
+  "ucg.empty": "لا توجد تعديلات.",
+  "ucg.col.company": "الشركة",
+  "ucg.col.period": "الفترة",
+  "ucg.col.periodStart": "بداية الفترة",
+  "ucg.col.periodEnd": "نهاية الفترة",
+  "ucg.col.amount": "مبلغ التعديل",
+  "ucg.col.vatAdj": "تعديل ضريبة القيمة",
+  "ucg.col.notes": "ملاحظات",
 
 };
 

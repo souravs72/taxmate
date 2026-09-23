@@ -154,6 +154,16 @@ import WorkOrderDetail from "./screens/work-order/WorkOrderDetail";
 import LeadList from "./screens/lead/LeadList";
 import LeadForm from "./screens/lead/LeadForm";
 import LeadDetail from "./screens/lead/LeadDetail";
+import UaeRelatedPartyList from "./screens/uae-related-party/UaeRelatedPartyList";
+import UaeRelatedPartyForm from "./screens/uae-related-party/UaeRelatedPartyForm";
+import UaeVatGroupList from "./screens/uae-vat-group/UaeVatGroupList";
+import UaeVatGroupForm from "./screens/uae-vat-group/UaeVatGroupForm";
+import UaeBadDebtList from "./screens/uae-bad-debt/UaeBadDebtList";
+import UaeBadDebtForm from "./screens/uae-bad-debt/UaeBadDebtForm";
+import UaeCustomsList from "./screens/uae-customs/UaeCustomsList";
+import UaeCustomsForm from "./screens/uae-customs/UaeCustomsForm";
+import UaeCapitalGoodsList from "./screens/uae-capital-goods/UaeCapitalGoodsList";
+import UaeCapitalGoodsForm from "./screens/uae-capital-goods/UaeCapitalGoodsForm";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -362,6 +372,27 @@ export default function App() {
           <Route path="/work-orders/new" element={<WorkOrderForm />} />
           <Route path="/work-orders/:name/edit" element={<WorkOrderForm />} />
           <Route path="/work-orders/:name" element={<WorkOrderDetail />} />
+          {/* Phase 22: UAE Compliance write screens */}
+          <Route path="/uae-related-parties" element={<UaeRelatedPartyList />} />
+          <Route path="/uae-related-parties/new" element={<UaeRelatedPartyForm />} />
+          <Route path="/uae-related-parties/:name/edit" element={<UaeRelatedPartyForm />} />
+          <Route path="/uae-related-parties/:name" element={<UaeRelatedPartyForm />} />
+          <Route path="/uae-vat-groups" element={<UaeVatGroupList />} />
+          <Route path="/uae-vat-groups/new" element={<UaeVatGroupForm />} />
+          <Route path="/uae-vat-groups/:name/edit" element={<UaeVatGroupForm />} />
+          <Route path="/uae-vat-groups/:name" element={<UaeVatGroupForm />} />
+          <Route path="/uae-bad-debt-relief" element={<UaeBadDebtList />} />
+          <Route path="/uae-bad-debt-relief/new" element={<UaeBadDebtForm />} />
+          <Route path="/uae-bad-debt-relief/:name/edit" element={<UaeBadDebtForm />} />
+          <Route path="/uae-bad-debt-relief/:name" element={<UaeBadDebtForm />} />
+          <Route path="/uae-customs-declarations" element={<UaeCustomsList />} />
+          <Route path="/uae-customs-declarations/new" element={<UaeCustomsForm />} />
+          <Route path="/uae-customs-declarations/:name/edit" element={<UaeCustomsForm />} />
+          <Route path="/uae-customs-declarations/:name" element={<UaeCustomsForm />} />
+          <Route path="/uae-capital-goods-adjustments" element={<UaeCapitalGoodsList />} />
+          <Route path="/uae-capital-goods-adjustments/new" element={<UaeCapitalGoodsForm />} />
+          <Route path="/uae-capital-goods-adjustments/:name/edit" element={<UaeCapitalGoodsForm />} />
+          <Route path="/uae-capital-goods-adjustments/:name" element={<UaeCapitalGoodsForm />} />
           {/* Phase 21: Lead */}
           <Route path="/leads" element={<LeadList />} />
           <Route path="/leads/new" element={<LeadForm />} />
