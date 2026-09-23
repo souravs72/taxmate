@@ -119,9 +119,8 @@ const ROUTE: Record<string, string> = {
 };
 const docRoute = (doctype: string, name: string) => (ROUTE[doctype] ? `${ROUTE[doctype]}/${encodeURIComponent(name)}` : null);
 
-/** ERPNext's Bank Reconciliation Tool. TaxMate has no bank-matching screen of its own yet. */
-const BANK_REC_DESK = "/app/bank-reconciliation-tool";
-const openBankRec = () => window.open(BANK_REC_DESK, "_blank", "noopener");
+/** TaxMate SPA bank reconciliation route (Phase 14). */
+const openBankRec = () => { window.location.href = "/taxmate/bank-reconciliation"; };
 
 const AGE = ["var(--od-age-0)", "var(--od-age-1)", "var(--od-age-2)", "var(--od-age-3)", "var(--od-age-4)"];
 
@@ -185,7 +184,7 @@ export default function AccountantDashboard() {
         actions={
           <>
             <DashSwitch />
-            <button type="button" className="btn ghost" onClick={openBankRec}>{t("ad.reconcileBank")} ↗</button>
+            <button type="button" className="btn ghost" onClick={openBankRec}>{t("ad.reconcileBank")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/journals/new")}>{t("ad.journal")}</button>
             <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
           </>
@@ -358,7 +357,7 @@ function CloseCard({ d, cur }: { d: Payload; cur: string }) {
   const action = (s: Step): { label: string; go: () => void } | null => {
     if (s.ok) return null;
     switch (s.key) {
-      case "bank": return { label: t("ad.a.reconcile") + " ↗", go: openBankRec };
+      case "bank": return { label: t("ad.a.reconcile"), go: openBankRec };
       case "drafts": return { label: t("ad.a.review"), go: () => nav(draftsTo) };
       case "payments": return { label: t("ad.a.allocate"), go: () => scrollTo("ad-unalloc") };
       case "vat": return { label: t("ad.a.generate"), go: () => nav("/vat-201/new") };

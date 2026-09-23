@@ -125,6 +125,23 @@ import SupplierGroupList from "./screens/supplier-group/SupplierGroupList";
 import SupplierGroupForm from "./screens/supplier-group/SupplierGroupForm";
 import TerritoryList from "./screens/territory/TerritoryList";
 import TerritoryForm from "./screens/territory/TerritoryForm";
+import TaxTemplateForm from "./screens/tax-template/TaxTemplateForm";
+import TaxCategoryList from "./screens/tax-category/TaxCategoryList";
+import TaxCategoryForm from "./screens/tax-category/TaxCategoryForm";
+import ItemTaxTemplateList from "./screens/item-tax-template/ItemTaxTemplateList";
+import ItemTaxTemplateDetail from "./screens/item-tax-template/ItemTaxTemplateDetail";
+import AddressList from "./screens/address/AddressList";
+import AddressForm from "./screens/address/AddressForm";
+import AddressDetail from "./screens/address/AddressDetail";
+import ContactList from "./screens/contact/ContactList";
+import ContactForm from "./screens/contact/ContactForm";
+import ContactDetail from "./screens/contact/ContactDetail";
+import FiscalYearList from "./screens/fiscal-year/FiscalYearList";
+import FiscalYearDetail from "./screens/fiscal-year/FiscalYearDetail";
+import AccountForm from "./screens/account/AccountForm";
+import BankReconciliation from "./screens/bank-reconciliation/BankReconciliation";
+import TermsAndConditionsList from "./screens/terms/TermsAndConditionsList";
+import TermsAndConditionsForm from "./screens/terms/TermsAndConditionsForm";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -293,6 +310,32 @@ export default function App() {
           <Route path="/territories/new" element={<TerritoryForm />} />
           <Route path="/territories/:name/edit" element={<TerritoryForm />} />
           <Route path="/territories/:name" element={<TerritoryForm />} />
+          {/* Phase 11-15 wiring */}
+          <Route path="/tax-templates/:kind/new" element={<TaxTemplateForm />} />
+          <Route path="/tax-templates/:kind/:name/edit" element={<TaxTemplateForm />} />
+          <Route path="/tax-categories" element={<TaxCategoryList />} />
+          <Route path="/tax-categories/new" element={<TaxCategoryForm />} />
+          <Route path="/tax-categories/:name/edit" element={<TaxCategoryForm />} />
+          <Route path="/tax-categories/:name" element={<TaxCategoryForm />} />
+          <Route path="/item-tax-templates" element={<ItemTaxTemplateList />} />
+          <Route path="/item-tax-templates/:name" element={<ItemTaxTemplateDetail />} />
+          <Route path="/addresses" element={<AddressList />} />
+          <Route path="/addresses/new" element={<AddressForm />} />
+          <Route path="/addresses/:name/edit" element={<AddressForm />} />
+          <Route path="/addresses/:name" element={<AddressDetail />} />
+          <Route path="/contacts" element={<ContactList />} />
+          <Route path="/contacts/new" element={<ContactForm />} />
+          <Route path="/contacts/:name/edit" element={<ContactForm />} />
+          <Route path="/contacts/:name" element={<ContactDetail />} />
+          <Route path="/fiscal-years" element={<FiscalYearList />} />
+          <Route path="/fiscal-years/:name" element={<FiscalYearDetail />} />
+          <Route path="/accounts/new" element={<AccountForm />} />
+          <Route path="/accounts/:name/edit" element={<AccountForm />} />
+          <Route path="/bank-reconciliation" element={<BankReconciliation />} />
+          <Route path="/terms-and-conditions" element={<TermsAndConditionsList />} />
+          <Route path="/terms-and-conditions/new" element={<TermsAndConditionsForm />} />
+          <Route path="/terms-and-conditions/:name/edit" element={<TermsAndConditionsForm />} />
+          <Route path="/terms-and-conditions/:name" element={<TermsAndConditionsForm />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

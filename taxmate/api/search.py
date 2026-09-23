@@ -57,6 +57,13 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Customer Group": "/customer-groups/{name}",
 	"Supplier Group": "/supplier-groups/{name}",
 	"Territory": "/territories/{name}",
+	# Phase 11-15 new screens
+	"Tax Category": "/tax-categories/{name}",
+	"Item Tax Template": "/item-tax-templates/{name}",
+	"Address": "/addresses/{name}",
+	"Contact": "/contacts/{name}",
+	"Fiscal Year": "/fiscal-years/{name}",
+	"Terms and Conditions": "/terms-and-conditions/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -99,6 +106,13 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Customer Group": "/customer-groups",
 	"Supplier Group": "/supplier-groups",
 	"Territory": "/territories",
+	# Phase 11-15 new screens
+	"Tax Category": "/tax-categories",
+	"Item Tax Template": "/item-tax-templates",
+	"Address": "/addresses",
+	"Contact": "/contacts",
+	"Fiscal Year": "/fiscal-years",
+	"Terms and Conditions": "/terms-and-conditions",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -181,6 +195,19 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Customer Groups", "route": "/customer-groups", "keywords": "customer group category classification party"},
 	{"label": "Supplier Groups", "route": "/supplier-groups", "keywords": "supplier group vendor category classification"},
 	{"label": "Territories", "route": "/territories", "keywords": "territory region zone sales area geography"},
+	# Phase 11
+	{"label": "Tax Categories", "route": "/tax-categories", "keywords": "tax category vat reverse charge uae"},
+	{"label": "Item Tax Templates", "route": "/item-tax-templates", "keywords": "item tax template rate exemption zero rated"},
+	# Phase 12
+	{"label": "Addresses", "route": "/addresses", "keywords": "address billing shipping emirate location"},
+	{"label": "Contacts", "route": "/contacts", "keywords": "contact person phone email mobile"},
+	# Phase 13
+	{"label": "Fiscal Years", "route": "/fiscal-years", "keywords": "fiscal year period accounting year"},
+	{"label": "Chart of Accounts New", "route": "/accounts/new", "keywords": "create account leaf coa opening balance"},
+	# Phase 14
+	{"label": "Bank Reconciliation", "route": "/bank-reconciliation", "keywords": "bank reconciliation statement clearance uncleared"},
+	# Phase 15
+	{"label": "Terms and Conditions", "route": "/terms-and-conditions", "keywords": "terms conditions sales note template payment"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)
