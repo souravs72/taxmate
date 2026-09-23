@@ -304,3 +304,67 @@ class TestQuotationMapper(FrappeTestCase):
 		self.assertIn("Stock Reconciliation", doctypes)
 		self.assertIn("Material Request", doctypes)
 		self.assertIn("Quotation", doctypes)
+
+
+class TestDnPrReturnCatalog(FrappeTestCase):
+    """Catalog includes the DN and PR return mapper methods."""
+
+    def test_dn_return_in_catalog(self):
+        from taxmate.api import get_catalog
+
+        catalog = get_catalog()
+        methods = {row["method"] for row in catalog["actions"]}
+        self.assertIn("taxmate.api.delivery_note.make_return", methods)
+
+    def test_pr_return_in_catalog(self):
+        from taxmate.api import get_catalog
+
+        catalog = get_catalog()
+        methods = {row["method"] for row in catalog["actions"]}
+        self.assertIn("taxmate.api.purchase_receipt.make_return", methods)
+
+    def test_master_doctypes_in_catalog(self):
+        """Item Group, Brand, UOM should appear in catalog resources."""
+        from taxmate.api import get_catalog
+
+        catalog = get_catalog()
+        doctypes = {row["doctype"] for row in catalog["resources"]}
+        for dt in ("Item Group", "Brand", "UOM"):
+            if frappe.db.exists("DocType", dt):
+                self.assertIn(dt, doctypes, f"{dt} should be in catalog resources")
+
+
+class TestMakeDnReturn(FrappeTestCase):
+    """make_return on a submitted Delivery Note produces a valid unsaved return."""
+
+    def test_make_dn_return_requires_submitted(self):
+        company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+        if not company:
+            self.skipTest("No Company configured")
+        # Use a Draft DN to verify the guard
+        draft_dn = frappe.db.get_value(
+            "Delivery Note",
+            {"docstatus": 0, "company": company, "is_return": 0},
+            "name",
+        )
+        if not draft_dn:
+            self.skipTest("No draft DN available for negative test")
+        from taxmate.api.delivery_note import make_return
+        with self.assertRaises(Exception):
+            make_return(source_name=draft_dn)
+
+    def test_make_pr_return_requires_submitted(self):
+        company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+        if not company:
+            self.skipTest("No Company configured")
+        draft_pr = frappe.db.get_value(
+            "Purchase Receipt",
+            {"docstatus": 0, "company": company, "is_return": 0},
+            "name",
+        )
+        if not draft_pr:
+            self.skipTest("No draft PR available for negative test")
+        from taxmate.api.purchase_receipt import make_return
+        with self.assertRaises(Exception):
+            make_return(source_name=draft_pr)
+

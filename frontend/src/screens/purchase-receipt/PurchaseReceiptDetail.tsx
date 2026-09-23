@@ -23,7 +23,7 @@ type Doc = {
   name: string; supplier?: string; supplier_name?: string; posting_date?: string;
   company?: string; status?: string; currency?: string; docstatus?: number;
   grand_total?: number; net_total?: number; total_taxes_and_charges?: number;
-  per_billed?: number; set_warehouse?: string; items?: Line[];
+  per_billed?: number; is_return?: number; set_warehouse?: string; items?: Line[];
 };
 
 function prPill(status?: string): string {
@@ -105,6 +105,12 @@ export default function PurchaseReceiptDetail() {
             {submitted && writable && (data.per_billed ?? 0) < 100 && (
               <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
                 {busyPi ? t("soc.saving") : t("pr.createPi")}
+              </button>
+            )}
+            {submitted && !data.is_return && writable && (
+              <button type="button" className="btn ghost"
+                onClick={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/return`)}>
+                {t("pr.return")}
               </button>
             )}
             {submitted && canCancel && (

@@ -20,7 +20,7 @@ type Doc = {
   name: string; customer?: string; customer_name?: string; posting_date?: string;
   company?: string; status?: string; docstatus?: number; currency?: string;
   grand_total?: number; net_total?: number; total_taxes_and_charges?: number;
-  per_billed?: number; set_warehouse?: string; items?: Line[];
+  per_billed?: number; is_return?: number; set_warehouse?: string; items?: Line[];
 };
 
 function dnPill(status?: string): string {
@@ -102,6 +102,12 @@ export default function DeliveryNoteDetail() {
             {submitted && writable && (data.per_billed ?? 0) < 100 && (
               <button type="button" className="btn" disabled={busySi} onClick={() => void createInvoice()}>
                 {busySi ? t("soc.saving") : t("dn.createSi")}
+              </button>
+            )}
+            {submitted && !data.is_return && writable && (
+              <button type="button" className="btn ghost"
+                onClick={() => nav(`/delivery-notes/${encodeURIComponent(name)}/return`)}>
+                {t("dn.return")}
               </button>
             )}
             {submitted && canCancel && (

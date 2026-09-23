@@ -33,9 +33,16 @@ import Receivables from "./screens/receivables/Receivables";
 import Payables from "./screens/payables/Payables";
 import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
+import ItemGroupList from "./screens/item-group/ItemGroupList";
+import ItemGroupForm from "./screens/item-group/ItemGroupForm";
+import BrandList from "./screens/brand/BrandList";
+import BrandForm from "./screens/brand/BrandForm";
+import UomList from "./screens/uom/UomList";
+import UomForm from "./screens/uom/UomForm";
 import DeliveryNoteList from "./screens/delivery-note/DeliveryNoteList";
 import DeliveryNoteDetail from "./screens/delivery-note/DeliveryNoteDetail";
 import DeliveryNoteForm from "./screens/delivery-note/DeliveryNoteForm";
+import DeliveryNoteReturn from "./screens/delivery-note/DeliveryNoteReturn";
 import StockEntryList from "./screens/stock-entry/StockEntryList";
 import StockEntryForm from "./screens/stock-entry/StockEntryForm";
 import StockEntryDetail from "./screens/stock-entry/StockEntryDetail";
@@ -62,6 +69,7 @@ import PurchaseOrderForm from "./screens/purchase-order/PurchaseOrderForm";
 import PurchaseReceiptList from "./screens/purchase-receipt/PurchaseReceiptList";
 import PurchaseReceiptDetail from "./screens/purchase-receipt/PurchaseReceiptDetail";
 import PurchaseReceiptForm from "./screens/purchase-receipt/PurchaseReceiptForm";
+import PurchaseReceiptReturn from "./screens/purchase-receipt/PurchaseReceiptReturn";
 import JournalEntryList from "./screens/journal-entry/JournalEntryList";
 import JournalEntryDetail from "./screens/journal-entry/JournalEntryDetail";
 import JournalEntryForm from "./screens/journal-entry/JournalEntryForm";
@@ -121,6 +129,7 @@ export default function App() {
           <Route path="/orders/:name" element={<SalesOrderDetail />} />
           <Route path="/delivery-notes" element={<DeliveryNoteList />} />
           <Route path="/delivery-notes/new" element={<DeliveryNoteForm />} />
+          <Route path="/delivery-notes/:name/return" element={<DeliveryNoteReturn />} />
           <Route path="/delivery-notes/:name/edit" element={<DeliveryNoteForm />} />
           <Route path="/delivery-notes/:name" element={<DeliveryNoteDetail />} />
           <Route path="/customers" element={<CustomerList />} />
@@ -134,6 +143,7 @@ export default function App() {
           <Route path="/purchase-orders/:name" element={<PurchaseOrderDetail />} />
           <Route path="/purchase-receipts" element={<PurchaseReceiptList />} />
           <Route path="/purchase-receipts/new" element={<PurchaseReceiptForm />} />
+          <Route path="/purchase-receipts/:name/return" element={<PurchaseReceiptReturn />} />
           <Route path="/purchase-receipts/:name/edit" element={<PurchaseReceiptForm />} />
           <Route path="/purchase-receipts/:name" element={<PurchaseReceiptDetail />} />
           <Route path="/purchase-invoices" element={<PurchaseInvoiceList />} />
@@ -168,6 +178,15 @@ export default function App() {
           <Route path="/tax-templates/:kind/:name" element={<TaxTemplateDetail />} />
           <Route path="/catalogue/items" element={<ItemList />} />
           <Route path="/catalogue/items/:name" element={<ItemForm />} />
+          <Route path="/catalogue/item-groups" element={<ItemGroupList />} />
+          <Route path="/catalogue/item-groups/new" element={<ItemGroupForm />} />
+          <Route path="/catalogue/item-groups/:name" element={<ItemGroupForm />} />
+          <Route path="/catalogue/brands" element={<BrandList />} />
+          <Route path="/catalogue/brands/new" element={<BrandForm />} />
+          <Route path="/catalogue/brands/:name" element={<BrandForm />} />
+          <Route path="/catalogue/uoms" element={<UomList />} />
+          <Route path="/catalogue/uoms/new" element={<UomForm />} />
+          <Route path="/catalogue/uoms/:name" element={<UomForm />} />
           <Route path="/vat-201" element={<Vat201List />} />
           <Route path="/vat-201/new" element={<Vat201Form />} />
           <Route path="/vat-201/:name" element={<Vat201Detail />} />

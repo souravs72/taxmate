@@ -31,6 +31,7 @@ type Doc = {
   docstatus?: number;
   total_amount?: number;
   items?: Line[];
+  additional_costs?: { expense_account?: string; description?: string; amount?: number }[];
 };
 
 function sePill(ds?: number): string {
@@ -109,6 +110,9 @@ export default function StockEntryDetail() {
         <Card bodyClass="cbody">
           <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("se.summary")}</h2>
           <SumRow k={t("se.total")} v={money(total)} />
+            {(data.additional_costs ?? []).length > 0 && (
+              <SumRow k={t("se.totalCosts")} v={money((data.additional_costs ?? []).reduce((s, c) => s + (Number(c.amount) || 0), 0))} />
+            )}
         </Card>
       }>
         <Card>
@@ -149,6 +153,30 @@ export default function StockEntryDetail() {
             </table>
           </div>
         </Card>
+        {(data.additional_costs ?? []).length > 0 && (
+          <Card title={t("se.costs")}>
+            <div className="twrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t("se.costAccount")}</th>
+                    <th>{t("se.costDesc")}</th>
+                    <th className="n">{t("se.costAmt")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data.additional_costs ?? []).map((c, i) => (
+                    <tr key={i}>
+                      <td>{c.expense_account || "—"}</td>
+                      <td>{c.description || "—"}</td>
+                      <td className="n">{money(c.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
       </FormLayout>
     </>
   );

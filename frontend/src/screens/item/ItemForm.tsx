@@ -9,12 +9,15 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
 
+const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
+
 type ItemDoc = {
   name: string;
   item_code?: string;
   item_name?: string;
   item_group?: string;
   stock_uom?: string;
+  brand?: string;
   is_stock_item?: number;
   is_sales_item?: number;
   is_purchase_item?: number;
@@ -26,7 +29,10 @@ type ItemDoc = {
   hs_code?: string;
   sac_code?: string;
   standard_rate?: number;
+  safety_stock?: number;
   item_defaults?: { company?: string; default_warehouse?: string }[];
+  barcodes?: { barcode?: string }[];
+  reorder_levels?: { warehouse?: string; warehouse_reorder_level?: number; warehouse_reorder_qty?: number; material_request_type?: string }[];
 };
 
 export default function ItemForm() {
@@ -87,6 +93,7 @@ export default function ItemForm() {
     item_name: "",
     item_group: "",
     stock_uom: "Nos",
+    brand: "",
     is_stock_item: 0 as 0 | 1,
     is_sales_item: 1 as 0 | 1,
     is_purchase_item: 1 as 0 | 1,
@@ -99,6 +106,11 @@ export default function ItemForm() {
     hs_code: "",
     sac_code: "",
     standard_rate: 0,
+    barcode: "",
+    safety_stock: 0,
+    reorder_warehouse: "",
+    reorder_level: 0,
+    reorder_qty: 0,
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -132,6 +144,7 @@ export default function ItemForm() {
       item_name: d.item_name || "",
       item_group: d.item_group || "",
       stock_uom: d.stock_uom || "Nos",
+      brand: d.brand || "",
       is_stock_item: (d.is_stock_item || 0) as 0 | 1,
       is_sales_item: ((d.is_sales_item ?? 1) || 0) as 0 | 1,
       is_purchase_item: ((d.is_purchase_item ?? 1) || 0) as 0 | 1,
@@ -144,6 +157,11 @@ export default function ItemForm() {
       hs_code: d.hs_code || "",
       sac_code: d.sac_code || "",
       standard_rate: priceRow ? Number(priceRow.price_list_rate) || 0 : d.standard_rate || 0,
+      barcode: (d.barcodes ?? [])[0]?.barcode || "",
+      safety_stock: Number(d.safety_stock) || 0,
+      reorder_warehouse: (d.reorder_levels ?? [])[0]?.warehouse || "",
+      reorder_level: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_level) || 0,
+      reorder_qty: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_qty) || 0,
     });
   }, [existing.data, priceRow, session.company]);
 
@@ -162,6 +180,7 @@ export default function ItemForm() {
         item_name: form.item_name,
         item_group: form.item_group,
         stock_uom: form.stock_uom,
+        brand: form.brand || undefined,
         is_stock_item: form.is_stock_item,
         is_sales_item: form.is_sales_item,
         is_purchase_item: form.is_purchase_item,
@@ -173,6 +192,16 @@ export default function ItemForm() {
         hs_code: form.hs_code || undefined,
         sac_code: form.sac_code || undefined,
         standard_rate: form.standard_rate,
+        safety_stock: form.safety_stock || undefined,
+        barcodes: form.barcode ? [{ barcode: form.barcode }] : undefined,
+        reorder_levels: form.reorder_warehouse
+          ? [{
+              warehouse: form.reorder_warehouse,
+              warehouse_reorder_level: form.reorder_level || 0,
+              warehouse_reorder_qty: form.reorder_qty || 0,
+              material_request_type: "Purchase",
+            }]
+          : undefined,
         item_defaults: session.company
           ? [{
               company: session.company,
@@ -257,8 +286,24 @@ export default function ItemForm() {
           </Field>
           <Field label={t("item.uom")} required>
             <select className="ctl" value={form.stock_uom} onChange={(e) => set("stock_uom", e.target.value)}>
-              {(uoms.data ?? [{ name: "Nos" }]).map((u) => <option key={u.name} value={u.name}>{u.name}</option>)}
+              {(() => {
+                const all = (uoms.data ?? []).map((u) => u.name);
+                const preferred = COMMON_UOMS.filter((u) => all.includes(u) || all.length === 0);
+                // Always include current value if missing from preferred
+                const visible = preferred.includes(form.stock_uom) ? preferred : [form.stock_uom, ...preferred];
+                return visible.map((u) => <option key={u} value={u}>{u}</option>);
+              })()}
             </select>
+          </Field>
+          <Field label={t("item.brand")}>
+            <LinkField
+              doctype={DT.brand}
+              value={form.brand}
+              onChange={(v) => set("brand", v)}
+            />
+          </Field>
+          <Field label={t("item.barcode")}>
+            <input className="ctl" value={form.barcode} onChange={(e) => set("barcode", e.target.value)} placeholder="e.g. 6290001234567" />
           </Field>
           <Field label={t("item.col.stock")}>
             <select className="ctl" value={String(form.is_stock_item)} onChange={(e) => set("is_stock_item", Number(e.target.value))}>
@@ -347,8 +392,36 @@ export default function ItemForm() {
           <Field label={t("item.col.rate")}>
             <input className="ctl" value={form.standard_rate} onChange={(e) => set("standard_rate", parseNum(e.target.value))} />
           </Field>
+          {!!form.is_stock_item && (
+            <Field label={t("item.safetyStock")}>
+              <input className="ctl" type="number" min={0} value={form.safety_stock}
+                onChange={(e) => set("safety_stock", parseNum(e.target.value))} />
+            </Field>
+          )}
         </div>
       </Card>
+      {!!form.is_stock_item && (
+        <Card title={t("item.reorder")}>
+          <div className="grid2">
+            <Field label={t("item.reorderWh")}>
+              <LinkField
+                doctype={DT.warehouse}
+                value={form.reorder_warehouse}
+                onChange={(v) => set("reorder_warehouse", v)}
+                filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
+              />
+            </Field>
+            <Field label={t("item.reorderLevel")}>
+              <input className="ctl" type="number" min={0} value={form.reorder_level}
+                onChange={(e) => set("reorder_level", parseNum(e.target.value))} />
+            </Field>
+            <Field label={t("item.reorderQty")}>
+              <input className="ctl" type="number" min={0} value={form.reorder_qty}
+                onChange={(e) => set("reorder_qty", parseNum(e.target.value))} />
+            </Field>
+          </div>
+        </Card>
+      )}
     </>
   );
 }

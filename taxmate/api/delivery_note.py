@@ -48,3 +48,26 @@ def make_sales_invoice(source_name: str) -> dict[str, Any]:
 	)
 
 	return _as_data(erp_make_sales_invoice(name, target_doc=None, args=None))
+
+
+@frappe.whitelist(methods=["POST"])
+def make_return(source_name: str) -> dict:
+	"""Map a submitted Delivery Note to an unsaved Sales Return (negative DN)."""
+	require_login()
+	name = _require_name(source_name, "Delivery Note")
+	assert_allowed_doctype("Delivery Note")
+
+	doc = frappe.get_doc("Delivery Note", name)
+	doc.check_permission("read")
+	if cint(doc.docstatus) != 1:
+		frappe.throw(_("Submit the Delivery Note before creating a return."))
+	if cint(doc.get("is_return")):
+		frappe.throw(_("{0} is already a return document.").format(name))
+	if not frappe.has_permission("Delivery Note", "create"):
+		frappe.throw(_("Not permitted to create {0}").format(_("Delivery Note")), frappe.PermissionError)
+
+	from erpnext.stock.doctype.delivery_note.delivery_note import (
+		make_sales_return as erp_make_sales_return,
+	)
+
+	return _as_data(erp_make_sales_return(name))

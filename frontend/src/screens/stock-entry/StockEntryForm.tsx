@@ -30,6 +30,12 @@ type Line = {
   t_warehouse: string;
 };
 
+type CostLine = {
+  expense_account: string;
+  description: string;
+  amount: number;
+};
+
 type Doc = {
   name: string;
   stock_entry_type?: string;
@@ -45,12 +51,17 @@ type Doc = {
     s_warehouse?: string;
     t_warehouse?: string;
   }[];
+  additional_costs?: { expense_account?: string; description?: string; amount?: number }[];
 };
 
 const today = toIsoDate(new Date());
 
 function blankLine(): Line {
   return { item_code: "", qty: 1, basic_rate: 0, s_warehouse: "", t_warehouse: "" };
+}
+
+function blankCost(): CostLine {
+  return { expense_account: "", description: "", amount: 0 };
 }
 
 export default function StockEntryForm() {
@@ -73,6 +84,7 @@ export default function StockEntryForm() {
   const [fromWarehouse, setFromWarehouse] = useState("");
   const [toWarehouse, setToWarehouse] = useState("");
   const [lines, setLines] = useState<Line[]>([blankLine()]);
+  const [costs, setCosts] = useState<CostLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -91,6 +103,12 @@ export default function StockEntryForm() {
       t_warehouse: it.t_warehouse || "",
     }));
     setLines(ls.length ? ls : [blankLine()]);
+    const cs = (d.additional_costs ?? []).map((c: { expense_account?: string; description?: string; amount?: number }) => ({
+      expense_account: c.expense_account || "",
+      description: c.description || "",
+      amount: Number(c.amount) || 0,
+    }));
+    setCosts(cs);
   }, [existing.data]);
 
   const needSrc = purpose === "Material Issue" || purpose === "Material Transfer";
@@ -134,6 +152,11 @@ export default function StockEntryForm() {
         basic_rate: needTgt && !needSrc ? l.basic_rate : undefined,
         s_warehouse: l.s_warehouse,
         t_warehouse: l.t_warehouse,
+      })),
+      additional_costs: costs.filter((c) => c.expense_account && c.amount).map((c) => ({
+        expense_account: c.expense_account,
+        description: c.description || undefined,
+        amount: c.amount,
       })),
     };
   }
@@ -192,6 +215,9 @@ export default function StockEntryForm() {
             <Card bodyClass="cbody">
               <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("se.summary")}</h2>
               <SumRow k={t("se.total")} v={money(totalValue)} />
+            {costs.length > 0 && (
+              <SumRow k={t("se.totalCosts")} v={money(costs.reduce((s, c) => s + c.amount, 0))} />
+            )}
             </Card>
             <ReadinessCard checks={checks} title={t("soc.ready")} caption={t("se.readyCap")} />
           </>
@@ -301,6 +327,53 @@ export default function StockEntryForm() {
             </button>
           </div>
         </Card>
+        {(purpose === "Material Receipt") && (
+          <Card num={3} title={t("se.costs")} bodyClass={null as unknown as string}>
+            <div className="twrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>{t("se.costAccount")}</th>
+                    <th>{t("se.costDesc")}</th>
+                    <th className="n">{t("se.costAmt")}</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {costs.map((c, i) => (
+                    <tr key={i}>
+                      <td style={{ minWidth: 200 }}>
+                        <LinkField
+                          doctype={DT.account}
+                          value={c.expense_account}
+                          onChange={(v) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
+                          filters={[["account_type", "in", "Expense Account,Expenses Included In Valuation"], ["is_group", "=", 0]] as never}
+                        />
+                      </td>
+                      <td>
+                        <input className="ctl mini" style={{ width: 160 }} value={c.description}
+                          onChange={(e) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
+                      </td>
+                      <td className="n">
+                        <input className="ctl mini nn" style={{ width: 100 }} value={c.amount}
+                          onChange={(e) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, amount: parseNum(e.target.value) } : x))} />
+                      </td>
+                      <td>
+                        <button type="button" className="rm" aria-label={t("inv.remove")}
+                          onClick={() => setCosts((cs) => cs.filter((_, j) => j !== i))}>✕</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="addrow">
+              <button type="button" className="btn ghost sm" onClick={() => setCosts((cs) => [...cs, blankCost()])}>
+                {t("se.addCost")}
+              </button>
+            </div>
+          </Card>
+        )}
       </FormLayout>
     </>
   );
