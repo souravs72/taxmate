@@ -8,6 +8,8 @@ export const CORE_BOOK_REPORTS = [
   "Cash Flow",
   "Customer Ledger Summary",
   "Supplier Ledger Summary",
+  "Stock Balance",
+  "Stock Ledger",
 ] as const;
 
 export const UAE_CATALOG_REPORTS = [
@@ -46,6 +48,8 @@ const REPORT_BLURB: Record<string, string> = {
   "Cash Flow": "rpt.d.cashFlow",
   "Customer Ledger Summary": "rpt.d.customerLedger",
   "Supplier Ledger Summary": "rpt.d.supplierLedger",
+  "Stock Balance": "rpt.d.stockBalance",
+  "Stock Ledger": "rpt.d.stockLedger",
   "UAE VAT 201": "rpt.d.vat201",
   "UAE Late Filing Status": "rpt.d.lateFiling",
   "UAE Group VAT Status": "rpt.d.groupVat",
@@ -91,6 +95,8 @@ export type FilterCtx = {
   sla?: string;
   electSbr?: boolean;
   electQfzp?: boolean;
+  warehouse?: string;
+  itemCode?: string;
 };
 
 export type ReportCaps = {
@@ -109,6 +115,8 @@ export type ReportCaps = {
   sla: readonly string[];
   ctElections: boolean;
   tree: boolean;
+  warehouse: boolean;
+  itemCode: boolean;
 };
 
 const LATE_STATUS = ["Due", "Overdue", "Cleared"] as const;
@@ -120,12 +128,13 @@ export function reportCaps(report: string): ReportCaps {
   const tb = report === "Trial Balance";
   const gl = report === "General Ledger";
   const none = [] as const;
+  const stock = report === "Stock Balance" || report === "Stock Ledger";
   return {
     dates: !["UAE Late Filing Status", "UAE Group VAT Status", "UAE E-Invoice Status", "UAE Compliance Status"].includes(report),
     periodChips: statement || tb || gl || report === "Customer Ledger Summary" || report === "Supplier Ledger Summary"
       || report === "UAE VAT 201" || report === "UAE Import VAT Explanation"
       || report === "UAE E-Invoice VAT 201 Reconciliation" || report === "EmaraTax Export"
-      || report === "UAE Corporate Tax Worksheet",
+      || report === "UAE Corporate Tax Worksheet" || stock,
     periodicity: statement,
     costCenter: statement || tb || gl,
     account: gl,
@@ -142,6 +151,8 @@ export function reportCaps(report: string): ReportCaps {
     sla: report === "UAE E-Invoice Status" ? SLA : none,
     ctElections: report === "UAE Corporate Tax Worksheet",
     tree: statement || tb,
+    warehouse: stock,
+    itemCode: stock,
   };
 }
 
@@ -215,7 +226,18 @@ export function bookFilters(report: string, ctx: FilterCtx): Record<string, unkn
       elect_qfzp: ctx.electQfzp ? 1 : 0,
     };
   }
+  if (report === "Stock Balance" || report === "Stock Ledger") {
+    return stockFilters(report, ctx);
+  }
   return { company, from_date: fromDate, to_date: toDate };
+}
+
+export function stockFilters(_report: string, ctx: FilterCtx): Record<string, unknown> {
+  const { company, fromDate, toDate } = ctx;
+  const out: Record<string, unknown> = { company, from_date: fromDate, to_date: toDate };
+  if (ctx.warehouse) out.warehouse = ctx.warehouse;
+  if (ctx.itemCode) out.item_code = ctx.itemCode;
+  return out;
 }
 
 export function chipRange(

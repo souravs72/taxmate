@@ -74,6 +74,7 @@ export default function PurchaseInvoiceDetail() {
 
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
@@ -130,6 +131,13 @@ export default function PurchaseInvoiceDetail() {
                 {t("pi.pay")}
               </button>
             )}
+            {/* DebitNoteForm route. User: Implement the plan… complete all the to-dos. */}
+            {submitted && (
+              <button type="button" className="btn ghost"
+                onClick={() => nav(`/purchase-invoices/${encodeURIComponent(name)}/return`)}>
+                {t("pi.debit")}
+              </button>
+            )}
             <button type="button" className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
               {t("inv.print")}
             </button>
@@ -137,6 +145,17 @@ export default function PurchaseInvoiceDetail() {
               <button type="button" className="btn quiet" disabled={cancelCall.loading}
                 onClick={() => void cancelCall.call({ doctype: DT.purchaseInvoice, name }).then(refresh)}>
                 {t("inv.cancel")}
+              </button>
+            )}
+            {data.docstatus === 2 && canSubmit && (
+              <button type="button" className="btn ghost" disabled={amendCall.loading}
+                onClick={async () => {
+                  const res = await amendCall.call({ doctype: DT.purchaseInvoice, name });
+                  const newName = res?.message?.name;
+                  if (newName) nav(`/purchase-invoices/${encodeURIComponent(newName)}`);
+                  else refresh();
+                }}>
+                {t("inv.amend")}
               </button>
             )}
           </>

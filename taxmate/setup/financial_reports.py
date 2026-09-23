@@ -20,6 +20,8 @@ CORE_REPORT_LINKS: tuple[tuple[str, str], ...] = (
 	("Customer Ledger", "Customer Ledger Summary"),
 	("Supplier Ledger", "Supplier Ledger Summary"),
 	("UAE VAT 201", "UAE VAT 201"),
+	("Stock Balance", "Stock Balance"),
+	("Stock Ledger", "Stock Ledger"),
 )
 
 # TaxMate UAE script reports — appended under a UAE Tax section.

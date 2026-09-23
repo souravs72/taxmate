@@ -86,6 +86,11 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.sales_order.make_sales_invoice", methods)
 		self.assertIn("taxmate.api.purchase_order.make_purchase_receipt", methods)
 		self.assertIn("taxmate.api.purchase_order.make_purchase_invoice", methods)
+		# Catalogued for SPA DN→SI / PR→PI / item on-hand (Phase 0–3).
+		# User: Implement the plan as specified… complete all the to-dos.
+		self.assertIn("taxmate.api.delivery_note.make_sales_invoice", methods)
+		self.assertIn("taxmate.api.purchase_receipt.make_purchase_invoice", methods)
+		self.assertIn("taxmate.api.stock.item_qty", methods)
 		self.assertIn("taxmate.api.resource.group_by_count", methods)
 		self.assertFalse(any("rest" in row for row in catalog["resources"]))
 		self.assertFalse(is_allowed_doctype("User"))
@@ -706,6 +711,131 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		self.assertEqual(submitted["docstatus"], 1)
 		cancelled = cancel("Purchase Receipt", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
+
+	def test_delivery_note_insert_submit_then_make_sales_invoice(self):
+		from taxmate.api.delivery_note import make_sales_invoice as make_dn_sales_invoice
+		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+		from frappe.utils import cint
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		customer = frappe.db.get_value("Customer", {"disabled": 0})
+		if not customer:
+			self.skipTest("need a customer")
+		# Prefer non-stock so DN submit needs no Bin. User: Implement the plan… complete all the to-dos.
+		item = (
+			frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1, "is_stock_item": 0})
+			or SERVICE_ITEM
+		)
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0})
+		if not warehouse:
+			self.skipTest("need a leaf warehouse for the company")
+
+		if cint(frappe.db.get_value("Item", item, "is_stock_item")):
+			supplier = frappe.db.get_value("Supplier", {"disabled": 0})
+			if not supplier:
+				self.skipTest("need a supplier to seed stock")
+			pr = insert(
+				{
+					"doctype": "Purchase Receipt",
+					"company": company,
+					"supplier": supplier,
+					"posting_date": "2026-09-14",
+					"set_posting_time": 1,
+					"set_warehouse": warehouse,
+					"currency": "AED",
+					"conversion_rate": 1,
+					"buying_price_list": "Standard Buying",
+					"price_list_currency": "AED",
+					"plc_conversion_rate": 1,
+					"items": [{"item_code": item, "qty": 2, "rate": 40, "warehouse": warehouse}],
+				}
+			)
+			submit({"doctype": "Purchase Receipt", "name": pr["name"]})
+
+		doc = insert(
+			{
+				"doctype": "Delivery Note",
+				"company": company,
+				"customer": customer,
+				"posting_date": "2026-09-15",
+				"set_posting_time": 1,
+				"set_warehouse": warehouse,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"selling_price_list": "Standard Selling",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"items": [
+					{
+						"item_code": item,
+						"qty": 1,
+						"rate": 50,
+						"warehouse": warehouse,
+					}
+				],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		submitted = submit({"doctype": "Delivery Note", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+
+		mapped = make_dn_sales_invoice(submitted["name"])
+		self.assertEqual(mapped.get("doctype"), "Sales Invoice")
+		self.assertTrue(mapped.get("items"))
+
+		si = insert({**mapped, "doctype": "Sales Invoice", "name": None})
+		self.assertEqual(si["docstatus"], 0)
+		si_sub = submit({"doctype": "Sales Invoice", "name": si["name"]})
+		self.assertEqual(si_sub["docstatus"], 1)
+
+		cancel("Sales Invoice", si["name"])
+		cancel("Delivery Note", doc["name"])
+
+	def test_purchase_receipt_submit_then_make_purchase_invoice(self):
+		from taxmate.api.purchase_receipt import make_purchase_invoice as make_pr_pi
+		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		if not frappe.db.exists("Supplier", supplier):
+			self.skipTest(f"Missing supplier {supplier}")
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1, "is_stock_item": 1}) or SERVICE_ITEM
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0})
+		if not warehouse:
+			self.skipTest("need a leaf warehouse for the company")
+
+		doc = insert(
+			{
+				"doctype": "Purchase Receipt",
+				"company": company,
+				"supplier": supplier,
+				"posting_date": "2026-09-16",
+				"set_posting_time": 1,
+				"set_warehouse": warehouse,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"buying_price_list": "Standard Buying",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"items": [{"item_code": item, "qty": 1, "rate": 40, "warehouse": warehouse}],
+			}
+		)
+		submitted = submit({"doctype": "Purchase Receipt", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+		mapped = make_pr_pi(submitted["name"])
+		self.assertEqual(mapped.get("doctype"), "Purchase Invoice")
+		self.assertTrue(mapped.get("items"))
+		cancel("Purchase Receipt", doc["name"])
 
 	def test_draft_purchase_invoice_from_incoming(self):
 		import json

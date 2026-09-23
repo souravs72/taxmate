@@ -1,12 +1,12 @@
 /**
- * Create a Purchase Order. Catalog insert then workflow.submit.
+ * Create / edit a Purchase Order. Catalog insert then workflow.submit.
  */
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { useDocList, useInsert } from "../../lib/resource";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
@@ -36,6 +36,8 @@ export default function PurchaseOrderForm() {
   const nav = useNavigate();
   const session = useSession();
   const canSubmit = canSubmitSales(session.roles);
+  const { name: editName } = useParams<{ name?: string }>();
+  const isEdit = !!editName;
 
   const [supplier, setSupplier] = useState("");
   const [orderDate, setOrderDate] = useState(today);
@@ -44,12 +46,29 @@ export default function PurchaseOrderForm() {
   const [party, setParty] = useState<Party>({});
   const [lines, setLines] = useState<Line[]>([]);
 
+  type PoDoc = { name: string; supplier?: string; transaction_date?: string; schedule_date?: string; taxes_and_charges?: string; docstatus?: number; items?: (Line & { name?: string })[]; };
+  const existing = useDoc<PoDoc>(DT.purchaseOrder, isEdit ? editName : undefined, isEdit ? editName : null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (isEdit && existing.data && !loaded) {
+      const d = existing.data;
+      if (d.docstatus !== 0) { nav(`/purchase-orders/${encodeURIComponent(editName!)}`, { replace: true }); return; }
+      setSupplier(d.supplier ?? "");
+      setOrderDate(d.transaction_date ?? today);
+      setRequiredBy(d.schedule_date ?? plus(14));
+      setTaxTemplate(d.taxes_and_charges ?? "");
+      setLines((d.items ?? []).map((l) => ({ item_code: l.item_code ?? "", item_name: l.item_name, uom: l.uom, qty: l.qty ?? 1, rate: l.rate ?? 0 })));
+      setLoaded(true);
+    }
+  }, [isEdit, existing.data, loaded, nav, editName]);
+
   const templates = useDocList<{ name: string }>(DT.purchaseTaxTemplate, { fields: ["name"], limit: 50 });
   const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const create = useInsert();
+  const update = useSave();
   const submitCall = useFrappePostCall<{ message: { name: string } }>(METHOD.submit);
-  const busy = create.loading || submitCall.loading;
+  const busy = create.loading || update.loading || submitCall.loading;
 
   useEffect(() => {
     if (!supplier) return;
@@ -106,7 +125,7 @@ export default function PurchaseOrderForm() {
   const ready = checks.every(([, ok]) => ok);
 
   async function save(shouldSubmit: boolean) {
-    const created = await create.createDoc(DT.purchaseOrder, {
+    const doc = {
       supplier,
       transaction_date: orderDate,
       schedule_date: requiredBy,
@@ -121,11 +140,19 @@ export default function PurchaseOrderForm() {
         uom: l.uom,
         schedule_date: requiredBy,
       })),
-    }) as { name: string };
-    if (shouldSubmit) {
-      await submitCall.call({ doc: { doctype: DT.purchaseOrder, name: created.name } });
+    };
+    let finalName: string;
+    if (isEdit && editName) {
+      await update.updateDoc(DT.purchaseOrder, editName, doc);
+      finalName = editName;
+    } else {
+      const created = await create.createDoc(DT.purchaseOrder, doc) as { name: string };
+      finalName = created.name;
     }
-    nav(`/purchase-orders/${encodeURIComponent(created.name)}`);
+    if (shouldSubmit) {
+      await submitCall.call({ doc: { doctype: DT.purchaseOrder, name: finalName } });
+    }
+    nav(`/purchase-orders/${encodeURIComponent(finalName)}`);
   }
 
   return (

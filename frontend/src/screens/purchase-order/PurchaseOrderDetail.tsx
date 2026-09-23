@@ -38,6 +38,10 @@ export default function PurchaseOrderDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.purchaseOrder, name);
   const makePr = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePurchaseReceipt);
   const makePi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePurchaseInvoice);
+  const submitCall = useFrappePostCall(METHOD.submit);
+  const cancelCall = useFrappePostCall(METHOD.cancel);
+  const canSubmit = canWrite(session);
+  const canCancel = canWrite(session);
   const create = useInsert();
   const [busy, setBusy] = useState<"" | "pr" | "pi">("");
   const [mapError, setMapError] = useState<unknown>(null);
@@ -85,6 +89,18 @@ export default function PurchaseOrderDetail() {
         actions={
           writable ? (
             <>
+              {data.docstatus === 0 && (
+                <button type="button" className="btn ghost"
+                  onClick={() => nav(`/purchase-orders/${encodeURIComponent(name)}/edit`)}>
+                  {t("po.edit")}
+                </button>
+              )}
+              {data.docstatus === 0 && canSubmit && (
+                <button type="button" className="btn" disabled={submitCall.loading}
+                  onClick={() => void submitCall.call({ doc: { doctype: DT.purchaseOrder, name } }).then(() => mutate())}>
+                  {t("inv.submit")}
+                </button>
+              )}
               <button type="button" className="btn ghost"
                 disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
                 onClick={() => void createDownstream("pr")}>
@@ -95,6 +111,12 @@ export default function PurchaseOrderDetail() {
                 onClick={() => void createDownstream("pi")}>
                 {busy === "pi" ? t("soc.saving") : t("po.bill")}
               </button>
+              {data.docstatus === 1 && canCancel && (
+                <button type="button" className="btn quiet" disabled={cancelCall.loading}
+                  onClick={() => void cancelCall.call({ doctype: DT.purchaseOrder, name }).then(() => mutate())}>
+                  {t("po.cancel")}
+                </button>
+              )}
             </>
           ) : null
         }

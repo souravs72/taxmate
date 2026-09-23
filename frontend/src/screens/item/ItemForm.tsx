@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { DT } from "../../lib/frappe";
+import { useFrappeGetCall } from "frappe-react-sdk";
+import { DT, METHOD } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
+import { useSession } from "../../lib/session";
 import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type ItemDoc = {
   name: string;
@@ -13,17 +16,23 @@ type ItemDoc = {
   item_group?: string;
   stock_uom?: string;
   is_stock_item?: number;
+  is_sales_item?: number;
+  is_purchase_item?: number;
+  description?: string;
+  valuation_method?: string;
   uae_item_type?: string;
   is_zero_rated?: number;
   is_exempt?: number;
   hs_code?: string;
   sac_code?: string;
   standard_rate?: number;
+  item_defaults?: { company?: string; default_warehouse?: string }[];
 };
 
 export default function ItemForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
+  const session = useSession();
   const isNew = name === "new";
   const existing = useDoc<ItemDoc>(DT.item, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
@@ -79,6 +88,11 @@ export default function ItemForm() {
     item_group: "",
     stock_uom: "Nos",
     is_stock_item: 0 as 0 | 1,
+    is_sales_item: 1 as 0 | 1,
+    is_purchase_item: 1 as 0 | 1,
+    default_warehouse: "",
+    description: "",
+    valuation_method: "",
     uae_item_type: "Service",
     is_zero_rated: 0 as 0 | 1,
     is_exempt: 0 as 0 | 1,
@@ -89,6 +103,11 @@ export default function ItemForm() {
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
+  const onHand = useFrappeGetCall<{ message: { total: number; warehouses: { warehouse: string; actual_qty: number }[] } }>(
+    METHOD.itemQty,
+    !isNew && form.is_stock_item ? { item_code: name } : undefined,
+    !isNew && form.is_stock_item ? `item-qty-${name}` : null,
+  );
 
   /* One effect, not two.
      Item.standard_rate is only read at insert; once an Item Price exists that
@@ -103,12 +122,22 @@ export default function ItemForm() {
   useEffect(() => {
     const d = existing.data;
     if (!d) return;
+    // Prefer company-matched Item Default (ERPNext child). Callers: App /catalogue/items/:name.
+    // User: Complete everything and make frontend completely comprehensive and complete
+    const companyWh = (d.item_defaults ?? []).find((r) => r.company === session.company)?.default_warehouse
+      || (d.item_defaults ?? [])[0]?.default_warehouse
+      || "";
     setForm({
       item_code: d.item_code || d.name,
       item_name: d.item_name || "",
       item_group: d.item_group || "",
       stock_uom: d.stock_uom || "Nos",
       is_stock_item: (d.is_stock_item || 0) as 0 | 1,
+      is_sales_item: ((d.is_sales_item ?? 1) || 0) as 0 | 1,
+      is_purchase_item: ((d.is_purchase_item ?? 1) || 0) as 0 | 1,
+      default_warehouse: companyWh,
+      description: d.description || "",
+      valuation_method: d.valuation_method || "",
       uae_item_type: d.uae_item_type || "Service",
       is_zero_rated: (d.is_zero_rated || 0) as 0 | 1,
       is_exempt: (d.is_exempt || 0) as 0 | 1,
@@ -116,7 +145,7 @@ export default function ItemForm() {
       sac_code: d.sac_code || "",
       standard_rate: priceRow ? Number(priceRow.price_list_rate) || 0 : d.standard_rate || 0,
     });
-  }, [existing.data, priceRow]);
+  }, [existing.data, priceRow, session.company]);
 
   const ready =
     !!form.item_code && !!form.item_name && !!form.item_group && !!form.stock_uom &&
@@ -134,13 +163,22 @@ export default function ItemForm() {
         item_group: form.item_group,
         stock_uom: form.stock_uom,
         is_stock_item: form.is_stock_item,
-        is_sales_item: 1,
+        is_sales_item: form.is_sales_item,
+        is_purchase_item: form.is_purchase_item,
+        description: form.description || undefined,
+        valuation_method: form.is_stock_item && form.valuation_method ? form.valuation_method : undefined,
         uae_item_type: form.uae_item_type,
         is_zero_rated: form.is_zero_rated,
         is_exempt: form.is_exempt,
         hs_code: form.hs_code || undefined,
         sac_code: form.sac_code || undefined,
         standard_rate: form.standard_rate,
+        item_defaults: session.company
+          ? [{
+              company: session.company,
+              default_warehouse: form.default_warehouse || undefined,
+            }]
+          : undefined,
       };
       const doc = isNew
         ? await create.createDoc(DT.item, payload)
@@ -208,6 +246,9 @@ export default function ItemForm() {
           <Field label={t("item.col.name")} required>
             <input className="ctl" value={form.item_name} onChange={(e) => set("item_name", e.target.value)} />
           </Field>
+          <Field label={t("item.description")}>
+            <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />
+          </Field>
           <Field label={t("item.col.group")} required>
             <select className="ctl" value={form.item_group} onChange={(e) => set("item_group", e.target.value)}>
               <option value="" />
@@ -225,6 +266,56 @@ export default function ItemForm() {
               <option value="1">{t("yes")}</option>
             </select>
           </Field>
+          <Field label={t("item.sell")}>
+            <select className="ctl" value={String(form.is_sales_item)} onChange={(e) => set("is_sales_item", Number(e.target.value))} aria-label={t("item.sell")}>
+              <option value="0">{t("no")}</option>
+              <option value="1">{t("yes")}</option>
+            </select>
+          </Field>
+          <Field label={t("item.buy")}>
+            <select className="ctl" value={String(form.is_purchase_item)} onChange={(e) => set("is_purchase_item", Number(e.target.value))} aria-label={t("item.buy")}>
+              <option value="0">{t("no")}</option>
+              <option value="1">{t("yes")}</option>
+            </select>
+          </Field>
+          {!!form.is_stock_item && (
+            <Field label={t("item.valuation")}>
+              <select
+                className="ctl"
+                value={form.valuation_method}
+                onChange={(e) => set("valuation_method", e.target.value)}
+                aria-label={t("item.valuation")}
+              >
+                <option value="">{t("item.valuation.default")}</option>
+                <option value="FIFO">{t("item.valuation.fifo")}</option>
+                <option value="Moving Average">{t("item.valuation.moving")}</option>
+              </select>
+            </Field>
+          )}
+          {!!form.is_stock_item && (
+            <Field label={t("item.defaultWh")}>
+              <LinkField
+                doctype={DT.warehouse}
+                value={form.default_warehouse}
+                onChange={(v) => set("default_warehouse", v)}
+                filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
+              />
+            </Field>
+          )}
+          {!isNew && !!form.is_stock_item && onHand.data?.message && (
+            <Field label={t("item.onHand")}>
+              <div className="ctl" style={{ background: "var(--bg-faint)", cursor: "default" }}>
+                {t("item.onHandTotal")}: {onHand.data.message.total ?? 0}
+                {(onHand.data.message.warehouses ?? []).length > 0 && (
+                  <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", fontSize: 12, color: "var(--faint)" }}>
+                    {onHand.data.message.warehouses.map((r) => (
+                      <li key={r.warehouse}>{r.warehouse}: {r.actual_qty}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Field>
+          )}
           <Field label={t("item.kind")} required>
             <select className="ctl" value={form.uae_item_type} onChange={(e) => set("uae_item_type", e.target.value)}>
               <option value="Goods">{t("item.goods")}</option>

@@ -7,6 +7,8 @@ import {
 import type { SalesOrder, SalesOrderItem } from "../../types/erpnext";
 import { DT, METHOD } from "../../lib/frappe";
 import { useDoc, useInsert } from "../../lib/resource";
+import { useSession } from "../../lib/session";
+import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, money, pct, qty } from "../../lib/format";
 import { SO_PILL_CLASS, isLate, toUiStatus } from "../../lib/status";
 import { t } from "../../i18n/strings";
@@ -37,7 +39,12 @@ export default function SalesOrderDetail() {
      each button maps, inserts the draft, then opens it.                   */
   const makeDn = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeDeliveryNote);
   const makeSi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeSalesInvoice);
+  const submitCall = useFrappePostCall(METHOD.submit);
+  const cancelCall = useFrappePostCall(METHOD.cancel);
   const create = useInsert();
+  const session = useSession();
+  const canSubmit = canSubmitSales(session.roles);
+  const canCancel = canCancelSales(session.roles);
   const [busy, setBusy] = useState<"" | "dn" | "si">("");
   const [mapError, setMapError] = useState<unknown>(null);
 
@@ -97,6 +104,18 @@ export default function SalesOrderDetail() {
         title={data.customer_name || data.customer}
         actions={
           <>
+            {data.docstatus === 0 && (
+              <button type="button" className="btn ghost"
+                onClick={() => nav(`/orders/${encodeURIComponent(name)}/edit`)}>
+                {t("so.edit")}
+              </button>
+            )}
+            {data.docstatus === 0 && canSubmit && (
+              <button type="button" className="btn" disabled={submitCall.loading}
+                onClick={() => void submitCall.call({ doc: { doctype: DT.salesOrder, name } }).then(() => mutate())}>
+                {t("inv.submit")}
+              </button>
+            )}
             {/* Same gate ERPNext's own buttons use: at 100% every row's
                 mapper condition is false and the result has no items.   */}
             <button className="btn ghost"
@@ -109,6 +128,12 @@ export default function SalesOrderDetail() {
               onClick={() => void createDownstream("si")}>
               {busy === "si" ? t("soc.saving") : t("sod.createSi")}
             </button>
+            {data.docstatus === 1 && canCancel && (
+              <button type="button" className="btn quiet" disabled={cancelCall.loading}
+                onClick={() => void cancelCall.call({ doctype: DT.salesOrder, name }).then(() => mutate())}>
+                {t("so.cancel")}
+              </button>
+            )}
           </>
         }
       >

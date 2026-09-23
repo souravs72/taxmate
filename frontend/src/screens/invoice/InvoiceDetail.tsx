@@ -94,6 +94,7 @@ export default function InvoiceDetail() {
 
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
   const einvoiceCall = useFrappePostCall(METHOD.generateEInvoice);
   const syncCall = useFrappePostCall(METHOD.syncEInvoiceStatus);
   const fetchCall = useFrappePostCall(METHOD.fetchEInvoiceDocuments);
@@ -180,6 +181,17 @@ export default function InvoiceDetail() {
               <button className="btn quiet" disabled={cancelCall.loading}
                 onClick={() => void cancelCall.call({ doctype: DT.salesInvoice, name }).then(refresh)}>
                 {t("inv.cancel")}
+              </button>
+            )}
+            {data.docstatus === 2 && canSubmit && (
+              <button className="btn ghost" disabled={amendCall.loading}
+                onClick={async () => {
+                  const res = await amendCall.call({ doctype: DT.salesInvoice, name });
+                  const newName = res?.message?.name;
+                  if (newName) nav(`/invoices/${encodeURIComponent(newName)}`);
+                  else refresh();
+                }}>
+                {t("inv.amend")}
               </button>
             )}
           </>

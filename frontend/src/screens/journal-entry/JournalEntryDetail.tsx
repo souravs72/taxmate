@@ -46,6 +46,7 @@ export default function JournalEntryDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.journalEntry, name);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
@@ -85,6 +86,17 @@ export default function JournalEntryDetail() {
               <button type="button" className="btn quiet" disabled={cancelCall.loading}
                 onClick={() => void cancelCall.call({ doctype: DT.journalEntry, name }).then(() => mutate())}>
                 {t("inv.cancel")}
+              </button>
+            )}
+            {data.docstatus === 2 && canSubmit && (
+              <button type="button" className="btn ghost" disabled={amendCall.loading}
+                onClick={async () => {
+                  const res = await amendCall.call({ doctype: DT.journalEntry, name });
+                  const newName = res?.message?.name;
+                  if (newName) nav(`/journal-entries/${encodeURIComponent(newName)}`);
+                  else void mutate();
+                }}>
+                {t("inv.amend")}
               </button>
             )}
           </>

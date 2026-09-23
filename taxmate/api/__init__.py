@@ -47,6 +47,10 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"ToDo",
 	"Delivery Note",
 	"UAE Tax Settings",
+	"Stock Entry",
+	"Stock Reconciliation",
+	"Material Request",
+	"Quotation",
 )
 
 # Existing TaxMate whitelist methods (not re-wrapped).
@@ -188,6 +192,12 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "make_sales_invoice", "method": "taxmate.api.sales_order.make_sales_invoice"},
 			{"name": "make_purchase_receipt", "method": "taxmate.api.purchase_order.make_purchase_receipt"},
 			{"name": "make_purchase_invoice", "method": "taxmate.api.purchase_order.make_purchase_invoice"},
+			{"name": "make_dn_sales_invoice", "method": "taxmate.api.delivery_note.make_sales_invoice"},
+			{"name": "make_pr_purchase_invoice", "method": "taxmate.api.purchase_receipt.make_purchase_invoice"},
+			{"name": "item_qty", "method": "taxmate.api.stock.item_qty"},
+			{"name": "make_quotation_so", "method": "taxmate.api.quotation.make_sales_order"},
+			{"name": "make_mr_purchase_order", "method": "taxmate.api.material_request.make_purchase_order"},
+			{"name": "make_mr_stock_entry", "method": "taxmate.api.material_request.make_stock_entry"},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
 			{"name": "list_users", "method": "taxmate.api.users.list_users"},
 			{"name": "invite_user", "method": "taxmate.api.users.invite_user"},

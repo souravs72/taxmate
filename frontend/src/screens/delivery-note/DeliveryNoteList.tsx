@@ -5,12 +5,15 @@ import type { Filter } from "frappe-react-sdk";
 import { DT } from "../../lib/frappe";
 import { useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money, pct } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, MiniBar, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
+
+/* Callers: App.tsx /delivery-notes. API: DT.deliveryNote list. User: Implement the plan… complete all the to-dos. */
 
 const PAGE = 20;
 
@@ -107,7 +110,16 @@ export default function DeliveryNoteList() {
 
   return (
     <>
-      <PageHead title={t("dn.listTitle")} />
+      <PageHead
+        title={t("dn.listTitle")}
+        actions={
+          canWrite(session) ? (
+            <button type="button" className="btn" onClick={() => nav("/delivery-notes/new")}>
+              {t("dn.new")}
+            </button>
+          ) : null
+        }
+      />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("dn.search")} />

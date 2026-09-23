@@ -1,37 +1,35 @@
 /**
- * Purchase Receipt create/edit.
- * Callers: App.tsx import ~L62; routes /purchase-receipts/new and /:name/edit;
- * PurchaseReceiptDetail navigates to /edit for drafts.
- * Existing create-only form is replaced here for edit support (no separate file).
- * Schema: { supplier, posting_date YYYY-MM-DD, set_warehouse, items:[{item_code, qty, rate, uom, warehouse}] }
- * User: "Implement the plan as specified, it is attached for your reference. Do NOT edit the plan file itself. … Don't stop until you have completed all the to-dos."
+ * Delivery Note create/edit.
+ * Routes: /delivery-notes/new, /delivery-notes/:name/edit (App.tsx).
+ * Persist: insert/save on DT.deliveryNote then METHOD.submit.
+ * User instruction: Implement the plan as specified… complete all the to-dos.
  */
 import { useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
+import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales, canWrite } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
+import LinkField from "../../components/LinkField";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
-import LinkField from "../../components/LinkField";
 
 type Line = { item_code: string; item_name?: string; uom?: string; qty: number; rate: number; warehouse?: string };
 type Party = {
-  supplier_address?: string;
+  customer_address?: string;
   taxes_and_charges?: string;
-  buying_price_list?: string;
+  selling_price_list?: string;
   tax_id?: string;
   currency?: string;
 };
 
 const today = toIsoDate(new Date());
 
-export default function PurchaseReceiptForm() {
+export default function DeliveryNoteForm() {
   const { name = "new" } = useParams();
   const isNew = name === "new";
   const editing = !isNew;
@@ -41,24 +39,23 @@ export default function PurchaseReceiptForm() {
 
   const existing = useDoc<{
     name: string;
-    supplier?: string;
+    customer?: string;
     posting_date?: string;
     set_warehouse?: string;
     taxes_and_charges?: string;
     docstatus?: number;
     items?: Line[];
-  }>(DT.purchaseReceipt, isNew ? undefined : name, isNew ? null : name);
+  }>(DT.deliveryNote, isNew ? undefined : name, isNew ? null : name);
 
-  const [supplier, setSupplier] = useState("");
+  const [customer, setCustomer] = useState("");
   const [postingDate, setPostingDate] = useState(today);
   const [warehouse, setWarehouse] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
   const [party, setParty] = useState<Party>({});
   const [lines, setLines] = useState<Line[]>([{ item_code: "", qty: 1, rate: 0 }]);
-  const [hydrated, setHydrated] = useState(isNew);
+  const [hydrated, setHydrated] = useState(!editing);
   const [saveError, setSaveError] = useState<unknown>(null);
 
-  const templates = useDocList<{ name: string }>(DT.purchaseTaxTemplate, { fields: ["name"], limit: 50 });
   const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const create = useInsert();
@@ -69,7 +66,7 @@ export default function PurchaseReceiptForm() {
   useEffect(() => {
     if (!editing || !existing.data || hydrated) return;
     const d = existing.data;
-    setSupplier(d.supplier || "");
+    setCustomer(d.customer || "");
     setPostingDate(d.posting_date || today);
     setWarehouse(d.set_warehouse || "");
     setTaxTemplate(d.taxes_and_charges || "");
@@ -89,12 +86,12 @@ export default function PurchaseReceiptForm() {
   }, [editing, existing.data, hydrated]);
 
   useEffect(() => {
-    if (!supplier) return;
+    if (!customer) return;
     partyCall
       .call({
-        party: supplier,
-        party_type: "Supplier",
-        doctype: DT.purchaseReceipt,
+        party: customer,
+        party_type: "Customer",
+        doctype: DT.deliveryNote,
         company: session.company,
         posting_date: postingDate,
       })
@@ -105,7 +102,7 @@ export default function PurchaseReceiptForm() {
       })
       .catch(() => undefined);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supplier]);
+  }, [customer]);
 
   async function pickItem(idx: number, item_code: string) {
     setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, item_code } : l)));
@@ -114,10 +111,10 @@ export default function PurchaseReceiptForm() {
       const r = await itemCall.call({
         ctx: {
           item_code,
-          supplier,
-          doctype: DT.purchaseReceipt,
+          customer,
+          doctype: DT.deliveryNote,
           company: session.company,
-          buying_price_list: party.buying_price_list,
+          selling_price_list: party.selling_price_list,
           currency: party.currency,
           transaction_date: postingDate,
           warehouse,
@@ -145,10 +142,10 @@ export default function PurchaseReceiptForm() {
 
   const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
   const checks = [
-    [t("nav.suppliers"), !!supplier],
-    [t("inv.date"), !!postingDate],
-    [t("nav.warehouses"), !!warehouse],
-    [t("inv.lines"), lines.length > 0 && lines.every((l) => l.item_code)],
+    [t("dn.customer"), !!customer],
+    [t("dn.date"), !!postingDate],
+    [t("dn.warehouse"), !!warehouse],
+    [t("dn.items"), lines.length > 0 && lines.every((l) => l.item_code)],
   ] as const;
   const ready = checks.every(([, ok]) => ok);
 
@@ -158,18 +155,18 @@ export default function PurchaseReceiptForm() {
   if (editing && existing.isLoading && !hydrated) return <Loading />;
   if (editing && existing.error) return <ErrorBox error={existing.error} onRetry={() => existing.mutate()} />;
   if (editing && existing.data && existing.data.docstatus !== 0) {
-    return <Navigate to={`/purchase-receipts/${encodeURIComponent(name)}`} replace />;
+    return <Navigate to={`/delivery-notes/${encodeURIComponent(name)}`} replace />;
   }
 
   function buildBody() {
     return {
-      supplier,
+      customer,
       posting_date: postingDate,
       set_posting_time: 1,
       set_warehouse: warehouse,
       taxes_and_charges: taxTemplate || undefined,
-      supplier_address: party.supplier_address,
-      buying_price_list: party.buying_price_list,
+      customer_address: party.customer_address,
+      selling_price_list: party.selling_price_list,
       company: session.company || undefined,
       currency: party.currency || session.currency || undefined,
       items: lines.map((l) => ({
@@ -187,15 +184,15 @@ export default function PurchaseReceiptForm() {
     try {
       let docName = name;
       if (editing) {
-        await update.updateDoc(DT.purchaseReceipt, name, buildBody());
+        await update.updateDoc(DT.deliveryNote, name, buildBody());
       } else {
-        const created = (await create.createDoc(DT.purchaseReceipt, buildBody())) as { name: string };
+        const created = (await create.createDoc(DT.deliveryNote, buildBody())) as { name: string };
         docName = created.name;
       }
       if (shouldSubmit && docName) {
-        await submitCall.call({ doc: { doctype: DT.purchaseReceipt, name: docName } });
+        await submitCall.call({ doc: { doctype: DT.deliveryNote, name: docName } });
       }
-      nav(`/purchase-receipts/${encodeURIComponent(docName)}`);
+      nav(`/delivery-notes/${encodeURIComponent(docName)}`);
     } catch (err) {
       setSaveError(err);
     }
@@ -210,15 +207,15 @@ export default function PurchaseReceiptForm() {
           <button
             type="button"
             className="btn quiet"
-            onClick={() => nav(editing ? `/purchase-receipts/${encodeURIComponent(name)}` : "/purchase-receipts")}
+            onClick={() => nav(editing ? `/delivery-notes/${encodeURIComponent(name)}` : "/delivery-notes")}
           >
-            {t("nav.purchaseReceipts")}
+            {t("dn.listTitle")}
           </button>
         }
-        title={editing ? t("pr.editTitle") : t("pr.new")}
+        title={editing ? t("dn.editTitle") : t("dn.newTitle")}
         actions={
           <FormActions
-            onDiscard={() => nav(editing ? `/purchase-receipts/${encodeURIComponent(name)}` : "/purchase-receipts")}
+            onDiscard={() => nav(editing ? `/delivery-notes/${encodeURIComponent(name)}` : "/delivery-notes")}
             onSave={() => void save(false)}
             onSubmit={canSubmit ? () => void save(true) : undefined}
             busy={busy}
@@ -232,8 +229,8 @@ export default function PurchaseReceiptForm() {
         aside={
           <>
             <Card bodyClass="cbody">
-              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("soc.summary")}</h2>
-              <SumRow k={t("sod.net")} v={money(net)} />
+              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("dn.summary")}</h2>
+              <SumRow k={t("dn.net")} v={money(net)} />
             </Card>
             <ReadinessCard
               checks={checks.map(([label, ok]) => ({ label, ok }))}
@@ -243,17 +240,17 @@ export default function PurchaseReceiptForm() {
           </>
         }
       >
-        <Card num={1} title={t("pi.who")}>
+        <Card num={1} title={t("dn.header")}>
           <div className="grid2">
-            <Field label={t("nav.suppliers")} required>
-              <LinkField doctype={DT.supplier} value={supplier} onChange={setSupplier} />
+            <Field label={t("dn.customer")} required>
+              <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} />
             </Field>
-            <Field label={t("pi.supplierTrn")}>
+            <Field label={t("dn.customerTrn")}>
               <input className="ctl readonly" readOnly value={party.tax_id || ""} />
             </Field>
-            <Field label={t("inv.date")} required htmlFor="pr-posting-date">
+            <Field label={t("dn.date")} required htmlFor="dn-posting-date">
               <input
-                id="pr-posting-date"
+                id="dn-posting-date"
                 name="posting_date"
                 className="ctl"
                 type="date"
@@ -261,7 +258,7 @@ export default function PurchaseReceiptForm() {
                 onChange={(e) => setPostingDate(e.target.value)}
               />
             </Field>
-            <Field label={t("nav.warehouses")} required>
+            <Field label={t("dn.warehouse")} required>
               <LinkField
                 doctype={DT.warehouse}
                 value={warehouse}
@@ -269,36 +266,19 @@ export default function PurchaseReceiptForm() {
                 filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
               />
             </Field>
-            <Field label={t("f.taxTemplate")} htmlFor="pr-tax-template">
-              <select
-                id="pr-tax-template"
-                name="taxes_and_charges"
-                className="ctl"
-                value={taxTemplate}
-                onChange={(e) => setTaxTemplate(e.target.value)}
-                aria-label={t("f.taxTemplate")}
-              >
-                <option value="" />
-                {(templates.data ?? []).map((x) => (
-                  <option key={x.name} value={x.name}>
-                    {x.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
           </div>
         </Card>
-        <Card num={2} title={t("inv.lines")} bodyClass={null as unknown as string}>
+        <Card num={2} title={t("dn.items")} bodyClass={null as unknown as string}>
           <div className="twrap">
             <table>
               <thead>
                 <tr>
                   <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th>{t("nav.warehouses")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th className="n">{t("sod.col.rate")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
+                  <th>{t("dn.item")}</th>
+                  <th>{t("dn.warehouse")}</th>
+                  <th className="n">{t("dn.qty")}</th>
+                  <th className="n">{t("dn.rate")}</th>
+                  <th className="n">{t("dn.amount")}</th>
                   <th />
                 </tr>
               </thead>
@@ -327,6 +307,7 @@ export default function PurchaseReceiptForm() {
                         onChange={(e) =>
                           setLines((ls) => ls.map((x, j) => (j === i ? { ...x, qty: parseNum(e.target.value) } : x)))
                         }
+                        aria-label={t("dn.qty")}
                       />
                     </td>
                     <td className="n">
@@ -337,6 +318,7 @@ export default function PurchaseReceiptForm() {
                         onChange={(e) =>
                           setLines((ls) => ls.map((x, j) => (j === i ? { ...x, rate: parseNum(e.target.value) } : x)))
                         }
+                        aria-label={t("dn.rate")}
                       />
                     </td>
                     <td className="n" style={{ fontWeight: 600 }}>
@@ -346,7 +328,7 @@ export default function PurchaseReceiptForm() {
                       <button
                         type="button"
                         className="rm"
-                        aria-label={t("inv.remove")}
+                        aria-label={t("dn.removeLine")}
                         onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}
                       >
                         ✕
@@ -363,7 +345,7 @@ export default function PurchaseReceiptForm() {
               className="btn ghost sm"
               onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0, warehouse }])}
             >
-              {t("soc.addLine")}
+              {t("dn.addLine")}
             </button>
           </div>
         </Card>

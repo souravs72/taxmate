@@ -1,6 +1,8 @@
 /**
  * TaxMate SPA root router.
- * Routes under /taxmate: orders, customers, suppliers, invoices, payments, and the rest of the books.
+ * Callers: main.tsx mounts <App />. Routes DeliveryNoteForm at /delivery-notes/new and /:name/edit.
+ * Schema: React Router paths only; DN form uses DT.deliveryNote + METHOD.submit.
+ * User: "Implement the plan as specified, it is attached for your reference… complete all the to-dos."
  */
 import { useEffect } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
@@ -33,10 +35,26 @@ import ItemList from "./screens/item/ItemList";
 import ItemForm from "./screens/item/ItemForm";
 import DeliveryNoteList from "./screens/delivery-note/DeliveryNoteList";
 import DeliveryNoteDetail from "./screens/delivery-note/DeliveryNoteDetail";
+import DeliveryNoteForm from "./screens/delivery-note/DeliveryNoteForm";
+import StockEntryList from "./screens/stock-entry/StockEntryList";
+import StockEntryForm from "./screens/stock-entry/StockEntryForm";
+import StockEntryDetail from "./screens/stock-entry/StockEntryDetail";
+import StockReconciliationList from "./screens/stock-reconciliation/StockReconciliationList";
+import StockReconciliationForm from "./screens/stock-reconciliation/StockReconciliationForm";
+import StockReconciliationDetail from "./screens/stock-reconciliation/StockReconciliationDetail";
+import QuotationList from "./screens/quotation/QuotationList";
+import QuotationForm from "./screens/quotation/QuotationForm";
+import QuotationDetail from "./screens/quotation/QuotationDetail";
+import MaterialRequestList from "./screens/material-request/MaterialRequestList";
+import MaterialRequestForm from "./screens/material-request/MaterialRequestForm";
+import MaterialRequestDetail from "./screens/material-request/MaterialRequestDetail";
+import WarehouseForm from "./screens/warehouse/WarehouseForm";
 import PurchaseInvoiceList from "./screens/purchase-invoice/PurchaseInvoiceList";
 import PurchaseInvoiceForm from "./screens/purchase-invoice/PurchaseInvoiceForm";
 import PurchaseInvoiceDetail from "./screens/purchase-invoice/PurchaseInvoiceDetail";
+import DebitNoteForm from "./screens/purchase-invoice/DebitNoteForm";
 import IncomingInvoiceList from "./screens/incoming-invoice/IncomingInvoiceList";
+// Callers: App Routes /purchase-invoices/:name/return. No other DebitNote. User: Implement the plan… complete all the to-dos.
 import IncomingInvoiceDetail from "./screens/incoming-invoice/IncomingInvoiceDetail";
 import PurchaseOrderList from "./screens/purchase-order/PurchaseOrderList";
 import PurchaseOrderDetail from "./screens/purchase-order/PurchaseOrderDetail";
@@ -102,6 +120,8 @@ export default function App() {
           <Route path="/orders/new" element={<SalesOrderCreate />} />
           <Route path="/orders/:name" element={<SalesOrderDetail />} />
           <Route path="/delivery-notes" element={<DeliveryNoteList />} />
+          <Route path="/delivery-notes/new" element={<DeliveryNoteForm />} />
+          <Route path="/delivery-notes/:name/edit" element={<DeliveryNoteForm />} />
           <Route path="/delivery-notes/:name" element={<DeliveryNoteDetail />} />
           <Route path="/customers" element={<CustomerList />} />
           <Route path="/customers/:name" element={<CustomerForm />} />
@@ -114,9 +134,11 @@ export default function App() {
           <Route path="/purchase-orders/:name" element={<PurchaseOrderDetail />} />
           <Route path="/purchase-receipts" element={<PurchaseReceiptList />} />
           <Route path="/purchase-receipts/new" element={<PurchaseReceiptForm />} />
+          <Route path="/purchase-receipts/:name/edit" element={<PurchaseReceiptForm />} />
           <Route path="/purchase-receipts/:name" element={<PurchaseReceiptDetail />} />
           <Route path="/purchase-invoices" element={<PurchaseInvoiceList />} />
           <Route path="/purchase-invoices/new" element={<PurchaseInvoiceForm />} />
+          <Route path="/purchase-invoices/:name/return" element={<DebitNoteForm />} />
           <Route path="/purchase-invoices/:name/edit" element={<PurchaseInvoiceForm />} />
           <Route path="/purchase-invoices/:name" element={<PurchaseInvoiceDetail />} />
           <Route path="/invoices" element={<InvoiceList />} />
@@ -139,6 +161,8 @@ export default function App() {
           <Route path="/reports" element={<ReportList />} />
           <Route path="/reports/:report" element={<ReportRunner />} />
           <Route path="/warehouses" element={<WarehouseList />} />
+          <Route path="/warehouses/new" element={<WarehouseForm />} />
+          <Route path="/warehouses/:name/edit" element={<WarehouseForm />} />
           <Route path="/warehouses/:name" element={<WarehouseDetail />} />
           <Route path="/tax-templates" element={<TaxTemplateList />} />
           <Route path="/tax-templates/:kind/:name" element={<TaxTemplateDetail />} />
@@ -164,6 +188,24 @@ export default function App() {
           <Route path="/sales/customers" element={<Navigate to="/customers" replace />} />
           <Route path="/sales/invoices" element={<Navigate to="/invoices" replace />} />
           <Route path="/sales/receivables" element={<Navigate to="/receivables" replace />} />
+          <Route path="/stock-entries" element={<StockEntryList />} />
+          <Route path="/stock-entries/new" element={<StockEntryForm />} />
+          <Route path="/stock-entries/:name/edit" element={<StockEntryForm />} />
+          <Route path="/stock-entries/:name" element={<StockEntryDetail />} />
+          <Route path="/stock-reconciliations" element={<StockReconciliationList />} />
+          <Route path="/stock-reconciliations/new" element={<StockReconciliationForm />} />
+          <Route path="/stock-reconciliations/:name/edit" element={<StockReconciliationForm />} />
+          <Route path="/stock-reconciliations/:name" element={<StockReconciliationDetail />} />
+          <Route path="/quotations" element={<QuotationList />} />
+          <Route path="/quotations/new" element={<QuotationForm />} />
+          <Route path="/quotations/:name/edit" element={<QuotationForm />} />
+          <Route path="/quotations/:name" element={<QuotationDetail />} />
+          <Route path="/material-requests" element={<MaterialRequestList />} />
+          <Route path="/material-requests/new" element={<MaterialRequestForm />} />
+          <Route path="/material-requests/:name/edit" element={<MaterialRequestForm />} />
+          <Route path="/material-requests/:name" element={<MaterialRequestDetail />} />
+          <Route path="/orders/:name/edit" element={<SalesOrderCreate />} />
+          <Route path="/purchase-orders/:name/edit" element={<PurchaseOrderForm />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

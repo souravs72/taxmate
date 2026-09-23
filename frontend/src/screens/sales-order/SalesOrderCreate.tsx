@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { useDocList, useInsert } from "../../lib/resource";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { money, parseNum, toIsoDate } from "../../lib/format";
 import { UAE_EMIRATES } from "../../types/uae";
@@ -38,6 +38,8 @@ const plus = (days: number) => {
 export default function SalesOrderCreate() {
   const nav = useNavigate();
   const session = useSession();
+  const { name: editName } = useParams<{ name?: string }>();
+  const isEdit = !!editName;
 
   const [customer, setCustomer] = useState("");
   const [orderDate, setOrderDate] = useState(today);
@@ -47,6 +49,25 @@ export default function SalesOrderCreate() {
   const [emirate, setEmirate] = useState("");
   const [party, setParty] = useState<PartyDetails>({});
   const [lines, setLines] = useState<Line[]>([]);
+
+  /* Load existing doc when in edit mode */
+  type SoDoc = { name: string; customer?: string; transaction_date?: string; delivery_date?: string; po_no?: string; taxes_and_charges?: string; vat_emirate?: string; docstatus?: number; items?: (Line & { name?: string })[]; };
+  const existing = useDoc<SoDoc>(DT.salesOrder, isEdit ? editName : undefined, isEdit ? editName : null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (isEdit && existing.data && !loaded) {
+      const d = existing.data;
+      if (d.docstatus !== 0) { nav(`/orders/${encodeURIComponent(editName!)}`, { replace: true }); return; }
+      setCustomer(d.customer ?? "");
+      setOrderDate(d.transaction_date ?? today);
+      setDeliveryDate(d.delivery_date ?? plus(21));
+      setPoNo(d.po_no ?? "");
+      setTaxTemplate(d.taxes_and_charges ?? "");
+      setEmirate(d.vat_emirate ?? "");
+      setLines((d.items ?? []).map((l) => ({ item_code: l.item_code ?? "", item_name: l.item_name, uom: l.uom, qty: l.qty ?? 1, rate: l.rate ?? 0 })));
+      setLoaded(true);
+    }
+  }, [isEdit, existing.data, loaded, nav, editName]);
 
   const customers = useDocList<{ name: string; customer_name: string }>(DT.customer, {
     fields: ["name", "customer_name"],
@@ -74,8 +95,9 @@ export default function SalesOrderCreate() {
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.itemDetails);
 
   const create = useInsert();
+  const update = useSave();
   const submitCall = useFrappePostCall<{ message: { name: string } }>(METHOD.submit);
-  const busy = create.loading || submitCall.loading;
+  const busy = create.loading || update.loading || submitCall.loading;
 
   useEffect(() => {
     if (!customer) return;
@@ -154,11 +176,18 @@ export default function SalesOrderCreate() {
         delivery_date: deliveryDate,
       })),
     };
-    const created = await create.createDoc(DT.salesOrder, doc) as { name: string };
-    if (shouldSubmit) {
-      await submitCall.call({ doc: { doctype: DT.salesOrder, name: created.name } });
+    let finalName: string;
+    if (isEdit && editName) {
+      await update.updateDoc(DT.salesOrder, editName, doc);
+      finalName = editName;
+    } else {
+      const created = await create.createDoc(DT.salesOrder, doc) as { name: string };
+      finalName = created.name;
     }
-    nav(`/orders/${encodeURIComponent(created.name)}`);
+    if (shouldSubmit) {
+      await submitCall.call({ doc: { doctype: DT.salesOrder, name: finalName } });
+    }
+    nav(`/orders/${encodeURIComponent(finalName)}`);
   }
 
   return (

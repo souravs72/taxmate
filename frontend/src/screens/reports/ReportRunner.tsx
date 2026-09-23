@@ -116,6 +116,8 @@ export default function ReportRunner() {
     : "Monthly";
   const costCenter = get("cc");
   const account = get("account");
+  const warehouse = get("wh");
+  const itemCode = get("item");
   const partyType = get("ptype") || (caps.party === "typed" ? "" : caps.party || "");
   const party = get("party");
   const voucherNo = get("vn");
@@ -137,12 +139,12 @@ export default function ReportRunner() {
     return bookFilters(name, {
       company, fiscalYear, fromDate, toDate, periodicity, costCenter, account,
       partyType, party, voucherNo, categorizeBy, showZeros, accumulated, showGroups,
-      status, sla, electSbr, electQfzp,
+      status, sla, electSbr, electQfzp, warehouse, itemCode,
     });
   }, [
     name, company, fiscalYear, fromDate, toDate, periodicity, costCenter, account,
     partyType, party, voucherNo, categorizeBy, showZeros, accumulated, showGroups,
-    status, sla, electSbr, electQfzp,
+    status, sla, electSbr, electQfzp, warehouse, itemCode,
   ]);
 
   const run = useFrappeGetCall<{ message: Payload }>(
@@ -266,6 +268,27 @@ export default function ReportRunner() {
                 placeholder={t("rpt.account")}
                 filters={companyFilters}
                 onChange={(v) => set("account", v)}
+              />
+            </Field>
+          )}
+          {caps.warehouse && (
+            <Field label={t("rpt.warehouse")}>
+              <LinkFilter
+                doctype={DT.warehouse}
+                value={warehouse}
+                placeholder={t("rpt.warehouse")}
+                filters={companyFilters}
+                onChange={(v) => set("wh", v)}
+              />
+            </Field>
+          )}
+          {caps.itemCode && (
+            <Field label={t("rpt.item")}>
+              <LinkFilter
+                doctype={DT.item}
+                value={itemCode}
+                placeholder={t("rpt.item")}
+                onChange={(v) => set("item", v)}
               />
             </Field>
           )}
