@@ -2191,6 +2191,8 @@ const en: Record<string, string> = {
   "prule.check.applyOn": "Apply on selected",
   "prule.check.target": "Target set",
 
+  "ad.bank.allClear": "All {n} accounts are matched — nothing waiting.",
+  "ad.bank.othersClear": "{n} other accounts are already clear.",
 };
 
 const ar: Record<string, string> = {
@@ -4342,6 +4344,8 @@ const ar: Record<string, string> = {
   "soc.noteBody": "يبدأ الإبلاغ لدى الهيئة من فاتورة المبيعات. هذا الأمر يثبت السعر والكمية وتاريخ التسليم فقط.",
   "soc.pickItem": "اختر صنفاً",
 
+  "ad.bank.allClear": "تمت مطابقة كل الحسابات ({n}) — لا يوجد شيء بانتظارك.",
+  "ad.bank.othersClear": "{n} حسابات أخرى مطابقة بالفعل.",
 };
 
 export const t = makeT(en, ar);

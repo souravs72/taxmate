@@ -319,7 +319,6 @@ function ProfitCard({ d, view, cur }: { d: Payload; view: View; cur: string }) {
   const nm = p.revenue ? (np / p.revenue) * 100 : 0;
   const nmPrev = p.prev.revenue ? (npPrev / p.prev.revenue) * 100 : 0;
   const gm = p.revenue ? ((p.revenue - p.cogs) / p.revenue) * 100 : 0;
-  const opex = p.expenses - p.cogs;
   const dNp = change(np, npPrev);
   const pts = nm - nmPrev;
 
@@ -350,34 +349,36 @@ function ProfitCard({ d, view, cur }: { d: Payload; view: View; cur: string }) {
           </div>
         )}
       </div>
-      {p.revenue > 0 && (
-        <div className="od-split">
-          <span className="od-k">{t("od.split")}</span>
-          <SplitBar
-            ariaLabel={t("od.split")}
-            segments={[
-              { label: t("od.cogs"), value: p.cogs, colour: C.exp },
-              { label: t("od.opex"), value: opex, colour: C.opex },
-              { label: t("od.np"), value: Math.max(0, np), colour: C.profit },
-            ]}
-          />
-          <div className="od-legend3">
-            {[
-              [t("od.cogs"), p.cogs, C.exp],
-              [t("od.opex"), opex, C.opex],
-              [t("od.np"), np, C.profit],
-            ].map(([label, v, colour]) => (
-              <div key={label as string}>
-                <i className="sw" style={{ background: colour as string }} />
-                <span>
-                  <span className="od-muted">{label as string}</span>
-                  <b className="num">{pctText(((v as number) / p.revenue) * 100)} · {whole(v as number)}</b>
-                </span>
-              </div>
-            ))}
+      {p.revenue > 0 && (() => {
+        const cogsAmt = Math.abs(p.cogs);
+        const opexAmt = Math.max(0, Math.abs(p.expenses) - cogsAmt);
+        const profitAmt = Math.max(0, np);
+        const parts: [string, number, string][] = [
+          [t("od.cogs"), cogsAmt, C.exp],
+          [t("od.opex"), opexAmt, C.opex],
+          [t("od.np"), profitAmt, C.profit],
+        ];
+        return (
+          <div className="od-split">
+            <span className="od-k">{t("od.split")}</span>
+            <SplitBar
+              ariaLabel={t("od.split")}
+              segments={parts.map(([label, value, colour]) => ({ label, value, colour }))}
+            />
+            <div className="od-legend3">
+              {parts.map(([label, v, colour]) => (
+                <div key={label}>
+                  <i className="sw" style={{ background: colour }} />
+                  <span>
+                    <span className="od-muted">{label}</span>
+                    <b className="num">{pctText((v / p.revenue) * 100)} · {whole(v)}</b>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </section>
   );
 }

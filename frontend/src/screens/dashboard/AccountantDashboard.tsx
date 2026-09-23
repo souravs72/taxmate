@@ -203,11 +203,11 @@ export default function AccountantDashboard() {
             <VatCard d={d} cur={cur} />
             <HealthCard health={d.health} cur={cur} />
           </div>
-          <BankCard banks={d.banks} cur={cur} />
           <div className="od-row od-row-1-1">
             <UnallocCard data={d.unallocated} cur={cur} />
             <FixesCard data={d.fixes} cur={cur} />
           </div>
+          <BankCard banks={d.banks} cur={cur} />
           <div className="od-row od-row-1-1">
             <PartyAgeCard title={t("ad.arByCustomer")} col={t("ad.customer")} data={d.ageing.receivable} base="/customers" link={t("od.viewAr")} to="/receivables" />
             <PartyAgeCard title={t("ad.apBySupplier")} col={t("ad.supplier")} data={d.ageing.payable} base="/suppliers" link={t("od.viewAp")} to="/payables" />
@@ -275,25 +275,32 @@ function Queues({ d, cur }: { d: Payload; cur: string }) {
     },
   ];
 
+  /* Only surface queues that need attention — zero tiles just add clutter. */
+  const open = tiles.filter((tl) => (tl.value ?? 0) > 0);
+  if (open.length === 0) {
+    return (
+      <div className="ad-queues-clear" role="status">
+        <span className="ad-queues-clear-mark" aria-hidden="true">✓</span>
+        <span>{t("ad.queuesClear")}</span>
+      </div>
+    );
+  }
   return (
     <div className="ad-queues">
-      {tiles.map((tl) => {
-        const clear = tl.value === 0;
-        return (
-          <button key={tl.key} type="button" className={`ad-q ad-q-${clear ? "ok" : tl.tone}`} onClick={tl.go} disabled={tl.value == null}>
-            <span className="ad-q-top">
-              <span className="ad-q-ic">
-                <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"
-                  strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: tl.icon }} />
-              </span>
-              <span className="ad-q-n">{tl.value ?? "—"}</span>
+      {open.map((tl) => (
+        <button key={tl.key} type="button" className={`ad-q ad-q-${tl.tone}`} onClick={tl.go}>
+          <span className="ad-q-top">
+            <span className="ad-q-ic">
+              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"
+                strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: tl.icon }} />
             </span>
-            <span className="ad-q-l">{tl.label}</span>
-            <span className="ad-q-s">{tl.sub}</span>
-            {tl.value ? <span className="ad-q-go">{tl.cta} →</span> : null}
-          </button>
-        );
-      })}
+            <span className="ad-q-n">{tl.value}</span>
+          </span>
+          <span className="ad-q-l">{tl.label}</span>
+          <span className="ad-q-s">{tl.sub}</span>
+          <span className="ad-q-go">{tl.cta} →</span>
+        </button>
+      ))}
     </div>
   );
 }
@@ -535,53 +542,82 @@ function HealthCard({ health, cur }: { health: Health[] | null; cur: string }) {
 /* ── Bank reconciliation ─────────────────────────────────────────────── */
 
 function BankCard({ banks, cur }: { banks: Payload["banks"]; cur: string }) {
-  const nav = useNavigate();
+  if (!banks) {
+    return (
+      <section className="card" id="ad-bank">
+        <div className="chead"><h2>{t("ad.bank")}</h2></div>
+        <div className="cbody"><p className="od-note">{t("od.noAccess")}</p></div>
+      </section>
+    );
+  }
+  if (banks.length === 0) {
+    return (
+      <section className="card" id="ad-bank">
+        <div className="chead"><h2>{t("ad.bank")}</h2></div>
+        <Empty label={t("ad.bank.none")} />
+      </section>
+    );
+  }
+
+  /* Prefer accounts that still need matching; keep cash/GL rows out of the way. */
+  const needsWork = banks.filter((b) => (b.unreconciled ?? 0) > 0 || (b.unreconciled_amount ?? 0) > 0);
+  const clearN = banks.length - needsWork.length;
+  const rows = (needsWork.length ? needsWork : banks.slice(0, 4)).slice(0, 6);
+
   return (
     <section className="card" id="ad-bank">
       <div className="chead">
         <h2>{t("ad.bank")}</h2>
-        <span className="hint">{t("ad.bank.sub")}</span>
+        <button type="button" className="btn quiet sm" onClick={openBankRec}>
+          {needsWork.length ? t("ad.a.reconcile") : t("ad.a.view")} ↗
+        </button>
       </div>
-      {!banks ? <div className="cbody"><p className="od-note">{t("od.noAccess")}</p></div>
-        : banks.length === 0 ? <Empty label={t("ad.bank.none")} />
-        : (
-          <div className="ad-scroll">
-            <div className="ad-tbl ad-tbl-bank" role="table" aria-label={t("ad.bank")}>
-              <div className="tr" role="row">
-                <span className="th" role="columnheader">{t("ad.bank.account")}</span>
-                <span className="th" role="columnheader">{t("ad.bank.book")}</span>
-                <span className="th" role="columnheader">{t("ad.bank.lines")}</span>
-                <span className="th" role="columnheader">{t("ad.bank.openAmt")}</span>
-                <span className="th" role="columnheader">{t("ad.bank.last")}</span>
-                <span className="th" role="columnheader">{t("ad.bank.to")}</span>
-                <span className="th" role="columnheader"><span className="sr">{t("ad.action")}</span></span>
+      {needsWork.length === 0 ? (
+        <div className="cbody">
+          <p className="od-note">{fill(t("ad.bank.allClear"), { n: banks.length })}</p>
+          <div className="ad-bank-sum">
+            {banks.slice(0, 4).map((b) => (
+              <div key={b.account}>
+                <span className="ad-ellip">{b.label}</span>
+                <b className="num">{b.currency && b.currency !== cur ? `${b.currency} ` : ""}{money(b.balance)}</b>
               </div>
-              {banks.map((b) => {
-                const isCash = b.type === "Cash" || !b.bank_account;
-                const open = b.unreconciled ?? 0;
-                return (
-                  <div key={b.account} className="tr" role="row">
-                    <span className="td" role="cell">
-                      <b className="ad-ellip">{b.label}{b.mask && <span className="mono od-muted"> ••{b.mask}</span>}</b>
-                      <span className="od-muted ad-ellip">{isCash ? (b.type === "Cash" ? t("ad.bank.cash") : t("ad.bank.noLink")) : fill(t("ad.bank.linked"), { n: b.bank_account ?? "" })}</span>
-                    </span>
-                    <span className="td" role="cell">{b.currency && b.currency !== cur ? `${b.currency} ` : ""}{money(b.balance)}</span>
-                    <span className={`td ${open ? "od-bad" : "od-good"}`} role="cell">{isCash || b.unreconciled == null ? "—" : open}</span>
-                    <span className={`td ${b.unreconciled_amount ? "od-bad" : ""}`} role="cell">{isCash || b.unreconciled_amount == null ? "—" : money(b.unreconciled_amount)}</span>
-                    <span className="td" role="cell">{b.last_statement ? date(b.last_statement) : "—"}</span>
-                    <span className="td" role="cell">{b.reconciled_to ? date(b.reconciled_to) : "—"}</span>
-                    <span className="td" role="cell">
-                      {isCash
-                        ? <button type="button" className="btn ghost sm" onClick={() => nav(`/accounts/${encodeURIComponent(b.account)}`)}>{t("ad.a.ledger")}</button>
-                        : <button type="button" className="btn ghost sm" onClick={openBankRec}>{open ? t("ad.a.reconcile") : t("ad.a.view")} ↗</button>}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
+            ))}
           </div>
-        )}
-      <p className="od-note ad-pad ad-pb">{t("ad.bank.note")}</p>
+        </div>
+      ) : (
+        <div className="ad-scroll">
+          <div className="ad-tbl ad-tbl-bank-lite" role="table" aria-label={t("ad.bank")}>
+            <div className="tr" role="row">
+              <span className="th" role="columnheader">{t("ad.bank.account")}</span>
+              <span className="th" role="columnheader">{t("ad.bank.book")}</span>
+              <span className="th" role="columnheader">{t("ad.bank.lines")}</span>
+              <span className="th" role="columnheader">{t("ad.bank.openAmt")}</span>
+              <span className="th" role="columnheader"><span className="sr">{t("ad.action")}</span></span>
+            </div>
+            {rows.map((b) => {
+              const open = b.unreconciled ?? 0;
+              return (
+                <div key={b.account} className="tr" role="row">
+                  <span className="td" role="cell">
+                    <b className="ad-ellip">{b.label}</b>
+                  </span>
+                  <span className="td" role="cell">{b.currency && b.currency !== cur ? `${b.currency} ` : ""}{money(b.balance)}</span>
+                  <span className={`td ${open ? "od-bad" : ""}`} role="cell">{open || "—"}</span>
+                  <span className={`td ${b.unreconciled_amount ? "od-bad" : ""}`} role="cell">
+                    {b.unreconciled_amount == null ? "—" : money(b.unreconciled_amount)}
+                  </span>
+                  <span className="td" role="cell">
+                    <button type="button" className="btn ghost sm" onClick={openBankRec}>{t("ad.a.reconcile")}</button>
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {clearN > 0 && needsWork.length > 0 ? (
+        <p className="od-note ad-pad ad-pb">{fill(t("ad.bank.othersClear"), { n: clearN })}</p>
+      ) : null}
     </section>
   );
 }

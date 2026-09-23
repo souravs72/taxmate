@@ -153,3 +153,17 @@
 @media (max-width:560px){.ad-cal{grid-template-columns:1fr}}
 
 @media (prefers-reduced-motion:reduce){.adash *{scroll-behavior:auto}}
+
+.ad-queues-clear{
+  display:flex; align-items:center; gap:10px; padding:12px 16px;
+  border:1px solid var(--border); border-radius:var(--r); background:var(--surface);
+  font-size:13px; color:var(--muted);
+}
+.ad-queues-clear-mark{
+  width:22px; height:22px; border-radius:50%; display:grid; place-items:center;
+  background:var(--ok-bg); color:var(--ok); font-size:12px; font-weight:700;
+}
+.ad-bank-sum{display:flex; flex-direction:column; gap:8px; margin-block-start:12px}
+.ad-bank-sum > div{display:flex; justify-content:space-between; gap:12px; font-size:13px}
+.ad-bank-sum .num{font-variant-numeric:tabular-nums; font-weight:600}
+.ad-tbl-bank-lite{--cols:minmax(140px,2.2fr) minmax(88px,1fr) minmax(64px,.7fr) minmax(96px,1fr) minmax(88px,.8fr)}
