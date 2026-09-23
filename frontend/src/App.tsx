@@ -103,6 +103,12 @@ import BankAccountForm from "./screens/bank-account/BankAccountForm";
 import ModeOfPaymentList from "./screens/mode-of-payment/ModeOfPaymentList";
 import ModeOfPaymentDetail from "./screens/mode-of-payment/ModeOfPaymentDetail";
 import ModeOfPaymentForm from "./screens/mode-of-payment/ModeOfPaymentForm";
+import PaymentTermsTemplateList from "./screens/payment-terms-template/PaymentTermsTemplateList";
+import PaymentTermsTemplateForm from "./screens/payment-terms-template/PaymentTermsTemplateForm";
+import PaymentTermsTemplateDetail from "./screens/payment-terms-template/PaymentTermsTemplateDetail";
+import PriceListList from "./screens/price-list/PriceListList";
+import PriceListForm from "./screens/price-list/PriceListForm";
+import PriceListDetail from "./screens/price-list/PriceListDetail";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -239,6 +245,14 @@ export default function App() {
           <Route path="/modes-of-payment/new" element={<ModeOfPaymentForm />} />
           <Route path="/modes-of-payment/:name/edit" element={<ModeOfPaymentForm />} />
           <Route path="/modes-of-payment/:name" element={<ModeOfPaymentDetail />} />
+          <Route path="/payment-terms-templates" element={<PaymentTermsTemplateList />} />
+          <Route path="/payment-terms-templates/new" element={<PaymentTermsTemplateForm />} />
+          <Route path="/payment-terms-templates/:name/edit" element={<PaymentTermsTemplateForm />} />
+          <Route path="/payment-terms-templates/:name" element={<PaymentTermsTemplateDetail />} />
+          <Route path="/price-lists" element={<PriceListList />} />
+          <Route path="/price-lists/new" element={<PriceListForm />} />
+          <Route path="/price-lists/:name/edit" element={<PriceListForm />} />
+          <Route path="/price-lists/:name" element={<PriceListDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

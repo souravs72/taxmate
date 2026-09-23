@@ -74,6 +74,8 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/catalogue/brands", key: "nav.brands" },
   { type: "link", to: "/catalogue/uoms", key: "nav.uoms" },
   { type: "link", to: "/warehouses", key: "nav.warehouses" },
+  { type: "link", to: "/price-lists", key: "nav.priceLists" },
+  { type: "link", to: "/payment-terms-templates", key: "nav.paymentTermsTemplates" },
   { type: "link", to: "/tax-templates", key: "nav.taxTemplates" },
   { type: "section", key: "nav.compliance" },
   { type: "link", to: "/vat-201", key: "nav.vat201" },

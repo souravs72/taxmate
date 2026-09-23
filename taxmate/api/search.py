@@ -48,6 +48,8 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"UAE Late Filing Notice": "/late-filings/{name}",
 	"Bank Account": "/bank-accounts/{name}",
 	"Mode of Payment": "/modes-of-payment/{name}",
+	"Payment Terms Template": "/payment-terms-templates/{name}",
+	"Price List": "/price-lists/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -81,6 +83,8 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"UAE Late Filing Notice": "/late-filings",
 	"Bank Account": "/bank-accounts",
 	"Mode of Payment": "/modes-of-payment",
+	"Payment Terms Template": "/payment-terms-templates",
+	"Price List": "/price-lists",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -154,6 +158,8 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
 	{"label": "Bank Accounts", "route": "/bank-accounts", "keywords": "bank account banking cash gl"},
 	{"label": "Modes of Payment", "route": "/modes-of-payment", "keywords": "mode of payment cash bank general payment method"},
+	{"label": "Payment Terms Templates", "route": "/payment-terms-templates", "keywords": "payment terms template net 30 days due date credit period"},
+	{"label": "Price Lists", "route": "/price-lists", "keywords": "price list selling buying rate currency standard"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)

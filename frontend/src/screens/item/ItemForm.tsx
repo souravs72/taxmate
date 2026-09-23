@@ -11,6 +11,12 @@ import LinkField from "../../components/LinkField";
 
 const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
 
+type UomConvRow = {
+  _key: string;
+  uom: string;
+  conversion_factor: number;
+};
+
 type ItemDoc = {
   name: string;
   item_code?: string;
@@ -30,6 +36,7 @@ type ItemDoc = {
   sac_code?: string;
   standard_rate?: number;
   safety_stock?: number;
+  uoms?: { uom?: string; conversion_factor?: number }[];
   item_defaults?: { company?: string; default_warehouse?: string }[];
   barcodes?: { barcode?: string }[];
   reorder_levels?: { warehouse?: string; warehouse_reorder_level?: number; warehouse_reorder_qty?: number; material_request_type?: string }[];
@@ -114,7 +121,10 @@ export default function ItemForm() {
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [uomRows, setUomRows] = useState<UomConvRow[]>([]);
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
+  let _uomKey = 0;
+  const newUomKey = () => `u${++_uomKey}`;
   const onHand = useFrappeGetCall<{ message: { total: number; warehouses: { warehouse: string; actual_qty: number }[] } }>(
     METHOD.itemQty,
     !isNew && form.is_stock_item ? { item_code: name } : undefined,
@@ -163,6 +173,16 @@ export default function ItemForm() {
       reorder_level: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_level) || 0,
       reorder_qty: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_qty) || 0,
     });
+    // Load UOM conversions (exclude the stock UOM row which ERPNext auto-adds with factor 1)
+    setUomRows(
+      (d.uoms ?? [])
+        .filter((r) => r.uom && r.uom !== d.stock_uom)
+        .map((r) => ({
+          _key: `u${Math.random()}`,
+          uom: r.uom || "",
+          conversion_factor: Number(r.conversion_factor) || 1,
+        }))
+    );
   }, [existing.data, priceRow, session.company]);
 
   const ready =
@@ -201,6 +221,13 @@ export default function ItemForm() {
               warehouse_reorder_qty: form.reorder_qty || 0,
               material_request_type: "Purchase",
             }]
+          : undefined,
+        uoms: uomRows.length > 0
+          ? [
+              // ERPNext expects the stock UOM row first with factor 1
+              { uom: form.stock_uom, conversion_factor: 1 },
+              ...uomRows.filter((r) => r.uom && r.conversion_factor > 0).map(({ _key: _k, ...r }) => r),
+            ]
           : undefined,
         item_defaults: session.company
           ? [{
@@ -422,6 +449,82 @@ export default function ItemForm() {
           </div>
         </Card>
       )}
+      <Card title={t("item.uomConversions")}>
+        <p style={{ color: "var(--faint)", fontSize: 12, marginBottom: 8 }}>
+          {t("item.uom.factorHint")
+            .replace("{uom}", "case")
+            .replace("{stockUom}", form.stock_uom || "stock UOM")}
+          {" — "}
+          1 case = X {form.stock_uom || "nos"}
+        </p>
+        {uomRows.length === 0 ? (
+          <p style={{ color: "var(--faint)", marginBottom: 8 }}>{t("item.uomConversions")}: —</p>
+        ) : (
+          <table className="data-table" style={{ marginBottom: 8 }}>
+            <thead>
+              <tr>
+                <th>{t("item.uom.uom")}</th>
+                <th>{t("item.uom.factor")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {uomRows.map((r) => (
+                <tr key={r._key}>
+                  <td>
+                    <select
+                      className="ctl"
+                      value={r.uom}
+                      onChange={(e) =>
+                        setUomRows((rs) =>
+                          rs.map((row) => row._key === r._key ? { ...row, uom: e.target.value } : row)
+                        )
+                      }
+                    >
+                      <option value="" />
+                      {(uoms.data ?? []).map((u) => (
+                        <option key={u.name} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      className="ctl"
+                      type="number"
+                      min={0.0001}
+                      step={0.001}
+                      value={r.conversion_factor}
+                      onChange={(e) =>
+                        setUomRows((rs) =>
+                          rs.map((row) => row._key === r._key ? { ...row, conversion_factor: Number(e.target.value) } : row)
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => setUomRows((rs) => rs.filter((row) => row._key !== r._key))}
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() =>
+            setUomRows((rs) => [...rs, { _key: newUomKey(), uom: "", conversion_factor: 1 }])
+          }
+        >
+          {t("item.addUom")}
+        </button>
+      </Card>
     </>
   );
 }

@@ -1063,3 +1063,163 @@ class TestPhase1BankingMasters(FrappeTestCase):
 		self.assertEqual(fetched["account_name"], f"TM Test Bank {uid}")
 
 		frappe.delete_doc("Bank Account", doc["name"], force=True)
+
+
+class TestPhase2PaymentTermsTemplate(FrappeTestCase):
+	"""Phase 2: Payment Terms Template insert with terms rows."""
+
+	def test_payment_terms_template_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Payment Terms Template"))
+
+	def test_payment_terms_template_insert_with_rows(self):
+		"""Insert a PTT with two term rows; verify child rows saved.
+
+		The `payment_term` column is a Link to the "Payment Term" master which
+		must exist independently.  The terms child table only requires
+		`invoice_portion` and `due_date_based_on` — the link is optional.
+		"""
+		uid = uuid.uuid4().hex[:8]
+		# Reuse an existing Payment Term master if available, else leave blank.
+		existing_pt = frappe.db.get_value("Payment Term", {}, "name")
+		doc = insert(
+			{
+				"doctype": "Payment Terms Template",
+				"template_name": f"TM Net 30 {uid}",
+				"terms": [
+					{
+						"payment_term": existing_pt or "",
+						"due_date_based_on": "Day(s) after invoice date",
+						"invoice_portion": 30,
+						"credit_days": 0,
+					},
+					{
+						"payment_term": existing_pt or "",
+						"due_date_based_on": "Day(s) after invoice date",
+						"invoice_portion": 70,
+						"credit_days": 30,
+					},
+				],
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Payment Terms Template", doc["name"])
+		self.assertEqual(fetched["template_name"], f"TM Net 30 {uid}")
+		terms = fetched.get("terms", [])
+		self.assertEqual(len(terms), 2)
+		total_portion = sum(float(r["invoice_portion"]) for r in terms)
+		self.assertAlmostEqual(total_portion, 100.0)
+		frappe.delete_doc("Payment Terms Template", doc["name"], force=True)
+
+
+class TestPhase3PriceListAndItemPrice(FrappeTestCase):
+	"""Phase 3: Price List insert; Item Price via catalog."""
+
+	def test_price_list_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Price List"))
+
+	def test_price_list_insert(self):
+		"""Insert a selling price list and verify it is gettable."""
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Price List",
+				"price_list_name": f"TM Selling {uid}",
+				"currency": "AED",
+				"selling": 1,
+				"buying": 0,
+				"enabled": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Price List", doc["name"])
+		self.assertEqual(fetched["currency"], "AED")
+		self.assertEqual(fetched["selling"], 1)
+		frappe.delete_doc("Price List", doc["name"], force=True)
+
+	def test_item_price_insert_for_price_list(self):
+		"""Insert an Item Price against the existing Standard Selling price list."""
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1}, "name")
+		if not item:
+			self.skipTest("No sales item available")
+		pl = frappe.db.get_value("Price List", {"selling": 1, "enabled": 1}, "name")
+		if not pl:
+			self.skipTest("No enabled selling price list")
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Item Price",
+				"item_code": item,
+				"price_list": pl,
+				"price_list_rate": 99.5,
+				"selling": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item Price", doc["name"])
+		self.assertAlmostEqual(float(fetched["price_list_rate"]), 99.5)
+		frappe.delete_doc("Item Price", doc["name"], force=True)
+
+
+class TestPhase4CreditLimits(FrappeTestCase):
+	"""Phase 4: Customer credit_limits child table saved via insert/save."""
+
+	def test_customer_credit_limit_insert(self):
+		"""Insert a customer with a credit limit row and verify it persists."""
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No company for credit limit test")
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Customer",
+				"customer_name": f"TM CL Test {uid}",
+				"customer_type": "Company",
+				"credit_limits": [
+					{
+						"company": company,
+						"credit_limit": 50000,
+						"bypass_credit_limit_check": 0,
+					}
+				],
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Customer", doc["name"])
+		limits = fetched.get("credit_limits", [])
+		self.assertTrue(len(limits) > 0, "credit_limits not saved")
+		self.assertAlmostEqual(float(limits[0]["credit_limit"]), 50000)
+		frappe.delete_doc("Customer", doc["name"], force=True)
+
+
+class TestPhase5MultiUOM(FrappeTestCase):
+	"""Phase 5: UOM conversion rows saved on Item."""
+
+	def test_item_uom_conversion_insert(self):
+		"""Insert a stock item with a UOM conversion row (Box = 12 Nos)."""
+		uid = uuid.uuid4().hex[:8]
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		doc = insert(
+			{
+				"doctype": "Item",
+				"item_code": f"TM-UOM-{uid}",
+				"item_name": f"TM UOM Test {uid}",
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"uoms": [
+					{"uom": "Nos", "conversion_factor": 1},
+					{"uom": "Box", "conversion_factor": 12},
+				],
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item", doc["name"])
+		uom_rows = fetched.get("uoms", [])
+		uom_names = [r["uom"] for r in uom_rows]
+		self.assertIn("Box", uom_names)
+		box_row = next((r for r in uom_rows if r["uom"] == "Box"), None)
+		self.assertIsNotNone(box_row)
+		self.assertAlmostEqual(float(box_row["conversion_factor"]), 12)
+		frappe.delete_doc("Item", doc["name"], force=True)

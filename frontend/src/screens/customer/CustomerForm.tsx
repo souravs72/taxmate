@@ -6,6 +6,13 @@ import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 
+type CreditLimitRow = {
+  _key: string;
+  company: string;
+  credit_limit: number;
+  bypass_credit_limit_check: 0 | 1;
+};
+
 type CustomerDoc = {
   name: string;
   customer_name?: string;
@@ -22,6 +29,7 @@ type CustomerDoc = {
   uae_in_designated_zone?: 0 | 1;
   customer_primary_address?: string;
   customer_primary_contact?: string;
+  credit_limits?: { company?: string; credit_limit?: number; bypass_credit_limit_check?: 0 | 1 }[];
 };
 
 type AddressDoc = {
@@ -71,8 +79,12 @@ export default function CustomerForm() {
     email_id: "",
     phone: "",
   });
+  const [creditLimits, setCreditLimits] = useState<CreditLimitRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+
+  let _clKey = 0;
+  const newClKey = () => `cl${++_clKey}`;
 
   useEffect(() => {
     const d = existing.data;
@@ -91,6 +103,14 @@ export default function CustomerForm() {
       uae_fz_beneficiary_id: d.uae_fz_beneficiary_id || "",
       uae_in_designated_zone: d.uae_in_designated_zone || 0,
     }));
+    setCreditLimits(
+      (d.credit_limits ?? []).map((r) => ({
+        _key: `cl${Math.random()}`,
+        company: r.company || "",
+        credit_limit: Number(r.credit_limit) || 0,
+        bypass_credit_limit_check: (r.bypass_credit_limit_check ?? 0) as 0 | 1,
+      }))
+    );
   }, [existing.data]);
 
   const addrName = existing.data?.customer_primary_address;
@@ -132,6 +152,9 @@ export default function CustomerForm() {
         uae_peppol_id: form.uae_peppol_id || undefined,
         uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
         uae_in_designated_zone: form.uae_in_designated_zone,
+        credit_limits: creditLimits.length > 0
+          ? creditLimits.map(({ _key: _k, ...r }) => r)
+          : undefined,
       };
       const cust = isNew
         ? await create.createDoc(DT.customer, payload)
@@ -287,6 +310,86 @@ export default function CustomerForm() {
             <input className="ctl" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
           </Field>
         </div>
+      </Card>
+
+      <Card num={4} title={t("cust.creditLimits")}>
+        {creditLimits.length === 0 ? (
+          <p style={{ color: "var(--faint)", marginBottom: 8 }}>{t("cust.noCreditLimits")}</p>
+        ) : (
+          <table className="data-table" style={{ marginBottom: 8 }}>
+            <thead>
+              <tr>
+                <th>{t("cust.cl.company")}</th>
+                <th>{t("cust.cl.limit")}</th>
+                <th>{t("cust.cl.bypass")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {creditLimits.map((r) => (
+                <tr key={r._key}>
+                  <td>
+                    <input
+                      className="ctl"
+                      value={r.company}
+                      onChange={(e) =>
+                        setCreditLimits((ls) =>
+                          ls.map((l) => l._key === r._key ? { ...l, company: e.target.value } : l)
+                        )
+                      }
+                      placeholder={t("cust.cl.company")}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="ctl"
+                      type="number"
+                      min={0}
+                      value={r.credit_limit}
+                      onChange={(e) =>
+                        setCreditLimits((ls) =>
+                          ls.map((l) => l._key === r._key ? { ...l, credit_limit: Number(e.target.value) } : l)
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!!r.bypass_credit_limit_check}
+                      onChange={(e) =>
+                        setCreditLimits((ls) =>
+                          ls.map((l) => l._key === r._key ? { ...l, bypass_credit_limit_check: e.target.checked ? 1 : 0 } : l)
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => setCreditLimits((ls) => ls.filter((l) => l._key !== r._key))}
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() =>
+            setCreditLimits((ls) => [
+              ...ls,
+              { _key: newClKey(), company: "", credit_limit: 0, bypass_credit_limit_check: 0 },
+            ])
+          }
+        >
+          {t("cust.addCreditLimit")}
+        </button>
       </Card>
     </>
   );
