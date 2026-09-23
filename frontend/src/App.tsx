@@ -154,6 +154,30 @@ import WorkOrderDetail from "./screens/work-order/WorkOrderDetail";
 import LeadList from "./screens/lead/LeadList";
 import LeadForm from "./screens/lead/LeadForm";
 import LeadDetail from "./screens/lead/LeadDetail";
+// Phase 17 — Pick List
+import PickListList from "./screens/pick-list/PickListList";
+import PickListForm from "./screens/pick-list/PickListForm";
+import PickListDetail from "./screens/pick-list/PickListDetail";
+// Phase 19 — POS
+import PosProfileList from "./screens/pos-profile/PosProfileList";
+import PosProfileDetail from "./screens/pos-profile/PosProfileDetail";
+import PosInvoiceList from "./screens/pos-invoice/PosInvoiceList";
+import PosInvoiceForm from "./screens/pos-invoice/PosInvoiceForm";
+import PosReturnForm from "./screens/pos-invoice/PosReturnForm";
+// Phase 20 — Loyalty
+import LoyaltyProgramList from "./screens/loyalty-program/LoyaltyProgramList";
+import LoyaltyProgramForm from "./screens/loyalty-program/LoyaltyProgramForm";
+import LoyaltyProgramDetail from "./screens/loyalty-program/LoyaltyProgramDetail";
+import LoyaltyPointEntryList from "./screens/loyalty-point-entry/LoyaltyPointEntryList";
+// Phase 24 — Currency Exchange
+import CurrencyExchangeList from "./screens/currency-exchange/CurrencyExchangeList";
+import CurrencyExchangeForm from "./screens/currency-exchange/CurrencyExchangeForm";
+// Phase 25 — Fixed Assets
+import AssetCategoryList from "./screens/asset-category/AssetCategoryList";
+import AssetCategoryForm from "./screens/asset-category/AssetCategoryForm";
+import AssetList from "./screens/asset/AssetList";
+import AssetForm from "./screens/asset/AssetForm";
+import AssetDetail from "./screens/asset/AssetDetail";
 import UaeRelatedPartyList from "./screens/uae-related-party/UaeRelatedPartyList";
 import UaeRelatedPartyForm from "./screens/uae-related-party/UaeRelatedPartyForm";
 import UaeVatGroupList from "./screens/uae-vat-group/UaeVatGroupList";
@@ -398,6 +422,36 @@ export default function App() {
           <Route path="/leads/new" element={<LeadForm />} />
           <Route path="/leads/:name/edit" element={<LeadForm />} />
           <Route path="/leads/:name" element={<LeadDetail />} />
+          {/* Phase 17: Pick List */}
+          <Route path="/pick-lists" element={<PickListList />} />
+          <Route path="/pick-lists/new" element={<PickListForm />} />
+          <Route path="/pick-lists/:name/edit" element={<PickListForm />} />
+          <Route path="/pick-lists/:name" element={<PickListDetail />} />
+          {/* Phase 19: POS */}
+          <Route path="/pos-profiles" element={<PosProfileList />} />
+          <Route path="/pos-profiles/:name" element={<PosProfileDetail />} />
+          <Route path="/pos-invoices" element={<PosInvoiceList />} />
+          <Route path="/pos-invoices/new" element={<PosInvoiceForm />} />
+          <Route path="/pos-invoices/:name/edit" element={<PosInvoiceForm />} />
+          <Route path="/pos-invoices/:name/return" element={<PosReturnForm />} />
+          {/* Phase 20: Loyalty */}
+          <Route path="/loyalty-programs" element={<LoyaltyProgramList />} />
+          <Route path="/loyalty-programs/new" element={<LoyaltyProgramForm />} />
+          <Route path="/loyalty-programs/:name/edit" element={<LoyaltyProgramForm />} />
+          <Route path="/loyalty-programs/:name" element={<LoyaltyProgramDetail />} />
+          <Route path="/loyalty-point-entries" element={<LoyaltyPointEntryList />} />
+          {/* Phase 24: Currency Exchange */}
+          <Route path="/currency-exchanges" element={<CurrencyExchangeList />} />
+          <Route path="/currency-exchanges/new" element={<CurrencyExchangeForm />} />
+          <Route path="/currency-exchanges/:name/edit" element={<CurrencyExchangeForm />} />
+          {/* Phase 25: Fixed Assets */}
+          <Route path="/asset-categories" element={<AssetCategoryList />} />
+          <Route path="/asset-categories/new" element={<AssetCategoryForm />} />
+          <Route path="/asset-categories/:name/edit" element={<AssetCategoryForm />} />
+          <Route path="/assets" element={<AssetList />} />
+          <Route path="/assets/new" element={<AssetForm />} />
+          <Route path="/assets/:name/edit" element={<AssetForm />} />
+          <Route path="/assets/:name" element={<AssetDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

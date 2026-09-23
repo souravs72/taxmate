@@ -109,6 +109,11 @@ export const DT = {
   posInvoice: "POS Invoice",
   posProfile: "POS Profile",
   loyaltyProgram: "Loyalty Program",
+  loyaltyPointEntry: "Loyalty Point Entry",
+  pickList: "Pick List",
+  currencyExchange: "Currency Exchange",
+  assetCategory: "Asset Category",
+  asset: "Asset",
 } as const;
 
 /**
@@ -179,6 +184,9 @@ export const METHOD = {
   markCleared: "taxmate.api.bank_reconciliation.mark_cleared",
   makeSupplierQuotationPO: "taxmate.api.supplier_quotation.make_purchase_order",
   convertLeadToCustomer: "taxmate.api.lead.convert_to_customer",
+  makePickListFromDn: "taxmate.api.pick_list.make_pick_list_from_dn",
+  setPickListItemLocations: "taxmate.api.pick_list.set_item_locations",
+  getFeatureFlags: "taxmate.api.settings.get_feature_flags",
 } as const;
 
 

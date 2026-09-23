@@ -73,6 +73,14 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"UAE Capital Goods Adjustment": "/uae-capital-goods-adjustments/{name}",
 	"BOM": "/boms/{name}",
 	"Work Order": "/work-orders/{name}",
+	"Pick List": "/pick-lists/{name}",
+	"POS Invoice": "/pos-invoices/{name}",
+	"POS Profile": "/pos-profiles/{name}",
+	"Loyalty Program": "/loyalty-programs/{name}",
+	"Loyalty Point Entry": "/loyalty-point-entries/{name}",
+	"Currency Exchange": "/currency-exchanges/{name}/edit",
+	"Asset Category": "/asset-categories/{name}/edit",
+	"Asset": "/assets/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -131,6 +139,14 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"UAE Capital Goods Adjustment": "/uae-capital-goods-adjustments",
 	"BOM": "/boms",
 	"Work Order": "/work-orders",
+	"Pick List": "/pick-lists",
+	"POS Invoice": "/pos-invoices",
+	"POS Profile": "/pos-profiles",
+	"Loyalty Program": "/loyalty-programs",
+	"Loyalty Point Entry": "/loyalty-point-entries",
+	"Currency Exchange": "/currency-exchanges",
+	"Asset Category": "/asset-categories",
+	"Asset": "/assets",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -239,6 +255,14 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "UAE Bad Debt Relief", "route": "/uae-bad-debt-relief", "keywords": "bad debt vat relief write off"},
 	{"label": "UAE Customs Declarations", "route": "/uae-customs-declarations", "keywords": "customs declaration import vat"},
 	{"label": "UAE Capital Goods Adjustments", "route": "/uae-capital-goods-adjustments", "keywords": "capital goods adjustment vat"},
+	{"label": "Pick Lists", "route": "/pick-lists", "keywords": "pick list picking delivery"},
+	{"label": "POS Invoices", "route": "/pos-invoices", "keywords": "pos point of sale invoice retail"},
+	{"label": "POS Profiles", "route": "/pos-profiles", "keywords": "pos profile point of sale setup"},
+	{"label": "Loyalty Programs", "route": "/loyalty-programs", "keywords": "loyalty program points rewards"},
+	{"label": "Loyalty Points", "route": "/loyalty-point-entries", "keywords": "loyalty points entries"},
+	{"label": "Currency Exchange", "route": "/currency-exchanges", "keywords": "currency exchange rate forex fx"},
+	{"label": "Assets", "route": "/assets", "keywords": "fixed asset asset register"},
+	{"label": "Asset Categories", "route": "/asset-categories", "keywords": "asset category fixed assets"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)

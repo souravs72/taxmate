@@ -230,6 +230,14 @@ class TestAwesomeSearch(FrappeTestCase):
 			"/uae-bad-debt-relief",
 			"/uae-customs-declarations",
 			"/uae-capital-goods-adjustments",
+			"/pick-lists",
+			"/pos-invoices",
+			"/pos-profiles",
+			"/loyalty-programs",
+			"/loyalty-point-entries",
+			"/currency-exchanges",
+			"/assets",
+			"/asset-categories",
 		}
 		self.assertEqual(expected, routes)
 		self.assertFalse(any(cstr(route).startswith("/app/") for route in routes))

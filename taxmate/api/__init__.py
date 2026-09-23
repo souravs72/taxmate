@@ -66,6 +66,14 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Lead",
 	"BOM",
 	"Work Order",
+	"Pick List",
+	"POS Profile",
+	"POS Invoice",
+	"Loyalty Program",
+	"Loyalty Point Entry",
+	"Currency Exchange",
+	"Asset Category",
+	"Asset",
 )
 
 # Existing TaxMate whitelist methods (not re-wrapped).
@@ -222,6 +230,18 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "mark_cleared", "method": "taxmate.api.bank_reconciliation.mark_cleared"},
 			{"name": "make_supplier_quotation_po", "method": "taxmate.api.supplier_quotation.make_purchase_order"},
 			{"name": "convert_lead_to_customer", "method": "taxmate.api.lead.convert_to_customer"},
+			{
+				"name": "make_pick_list_from_dn",
+				"method": "taxmate.api.pick_list.make_pick_list_from_dn",
+			},
+			{
+				"name": "set_pick_list_item_locations",
+				"method": "taxmate.api.pick_list.set_item_locations",
+			},
+			{
+				"name": "get_feature_flags",
+				"method": "taxmate.api.settings.get_feature_flags",
+			},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
 			{"name": "list_users", "method": "taxmate.api.users.list_users"},
 			{"name": "invite_user", "method": "taxmate.api.users.invite_user"},

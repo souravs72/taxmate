@@ -1,8 +1,18 @@
 /**
  * Sidebar entries for shipped SPA routes only.
- * Accounting groups are added when those screens exist
- * (see tasks/plan.md). Do not point at placeholders.
+ * Feature flags from taxmate.api.settings.get_feature_flags gate optional packs.
+ * A missing flag key is treated as enabled (fail-open) to avoid hiding nav on error.
  */
+
+export interface FeatureFlags {
+  enable_pos?: boolean;
+  enable_serial?: boolean;
+  enable_loyalty?: boolean;
+  enable_bom?: boolean;
+  enable_assets?: boolean;
+  enable_pick_list?: boolean;
+}
+
 export type NavEntry =
   | { type: "section"; key: string }
   | { type: "link"; to: string; key: string };
@@ -40,7 +50,7 @@ export function groupForPath(groups: NavGroup[], path: string): string | null {
   return null;
 }
 
-export const NAV: NavEntry[] = [
+const _BASE_NAV: NavEntry[] = [
   { type: "link", to: "/", key: "nav.dashboard" },
   { type: "section", key: "nav.sales" },
   { type: "link", to: "/customers", key: "nav.customers" },
@@ -68,6 +78,7 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/landed-cost-vouchers", key: "nav.landedCostVouchers" },
   { type: "link", to: "/boms", key: "nav.boms" },
   { type: "link", to: "/work-orders", key: "nav.workOrders" },
+  { type: "link", to: "/pick-lists", key: "nav.pickLists" },
   // Quotation under Sales; stock nav for SE/SR/MR. Callers: AppShell. User: Implement the plan… complete all the to-dos.
   { type: "section", key: "nav.accounting" },
   { type: "link", to: "/journals", key: "nav.journals" },
@@ -76,6 +87,7 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/bank-reconciliation", key: "nav.bankReconciliation" },
   { type: "link", to: "/fiscal-years", key: "nav.fiscalYears" },
   { type: "link", to: "/accounts", key: "nav.accounts" },
+  { type: "link", to: "/currency-exchanges", key: "nav.currencyExchanges" },
   { type: "link", to: "/reports", key: "nav.reports" },
   { type: "section", key: "nav.masters" },
   { type: "link", to: "/catalogue/items", key: "nav.items" },
@@ -108,6 +120,54 @@ export const NAV: NavEntry[] = [
   { type: "link", to: "/uae-bad-debt-relief", key: "nav.uaeBadDebt" },
   { type: "link", to: "/uae-customs-declarations", key: "nav.uaeCustoms" },
   { type: "link", to: "/uae-capital-goods-adjustments", key: "nav.uaeCapitalGoods" },
+  { type: "section", key: "nav.pos" },
+  { type: "link", to: "/pos-invoices", key: "nav.posInvoices" },
+  { type: "link", to: "/pos-profiles", key: "nav.posProfiles" },
+  { type: "link", to: "/loyalty-programs", key: "nav.loyaltyPrograms" },
+  { type: "link", to: "/loyalty-point-entries", key: "nav.loyaltyPointEntries" },
+  { type: "section", key: "nav.fixedAssets" },
+  { type: "link", to: "/assets", key: "nav.assets" },
+  { type: "link", to: "/asset-categories", key: "nav.assetCategories" },
   { type: "section", key: "nav.company" },
   { type: "link", to: "/team", key: "nav.team" },
 ];
+
+/**
+ * Returns a filtered nav array respecting feature flags.
+ * Callers: AppShell. User: "Implement the plan… complete all the to-dos."
+ */
+export function buildNav(flags: FeatureFlags = {}): NavEntry[] {
+  const enabled = (k: keyof FeatureFlags) => flags[k] !== false;
+
+  const gated: Record<string, boolean> = {
+    "nav.pickLists": enabled("enable_pick_list"),
+    "nav.boms": enabled("enable_bom"),
+    "nav.workOrders": enabled("enable_bom"),
+    "nav.serialNos": enabled("enable_serial"),
+    "nav.batches": enabled("enable_serial"),
+    "nav.posInvoices": enabled("enable_pos"),
+    "nav.posProfiles": enabled("enable_pos"),
+    "nav.loyaltyPrograms": enabled("enable_loyalty"),
+    "nav.loyaltyPointEntries": enabled("enable_loyalty"),
+    "nav.assets": enabled("enable_assets"),
+    "nav.assetCategories": enabled("enable_assets"),
+    // Sections: keep only if at least one link inside is enabled
+    "nav.pos": enabled("enable_pos") || enabled("enable_loyalty"),
+    "nav.fixedAssets": enabled("enable_assets"),
+  };
+
+  return _BASE_NAV.filter((e) => {
+    if (e.key in gated) return gated[e.key];
+    return true;
+  });
+}
+
+/** Default nav (all packs enabled). Kept for backward-compat. */
+export const NAV: NavEntry[] = buildNav({
+  enable_pos: true,
+  enable_serial: true,
+  enable_loyalty: true,
+  enable_bom: true,
+  enable_assets: true,
+  enable_pick_list: true,
+});

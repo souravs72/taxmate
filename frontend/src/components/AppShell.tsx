@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useFrappeAuth } from "frappe-react-sdk";
+import { useFrappeAuth, useFrappeGetCall } from "frappe-react-sdk";
 
 import { useLang } from "../lib/i18n";
 import { toggleTheme } from "../lib/theme";
 import { useSession } from "../lib/session";
 import { canViewTeam, spaRoleOf } from "../lib/roles";
-import { NAV, groupedNav, groupForPath } from "../lib/nav";
+import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
 
@@ -71,9 +71,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const session = useSession();
   const roleLabel = t(`role.${spaRoleOf(session)}`);
+  const { data: flagData } = useFrappeGetCall<{ message: FeatureFlags }>(
+    "taxmate.api.settings.get_feature_flags",
+    {},
+    "feature-flags",
+    { revalidateOnFocus: false }
+  );
+  const flags: FeatureFlags = flagData?.message ?? {};
+  const baseNav = buildNav(flags);
   const nav = canViewTeam(session)
-    ? NAV
-    : NAV.filter((n) => n.type === "section" ? n.key !== "nav.company" : n.to !== "/team");
+    ? baseNav
+    : baseNav.filter((n) => n.type === "section" ? n.key !== "nav.company" : n.to !== "/team");
   const { top, groups } = useMemo(() => groupedNav(nav), [nav]);
   const activeGroup = groupForPath(groups, location.pathname);
 
