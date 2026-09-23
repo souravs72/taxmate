@@ -17,6 +17,7 @@ import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string };
 type Doc = {
@@ -89,37 +90,33 @@ export default function PurchaseReceiptDetail() {
         }
         title={data.supplier_name || data.supplier || data.name}
         actions={
-          <>
-            {draft && writable && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/edit`)}>
-                {t("inv.edit")}
-              </button>
-            )}
-            {draft && canSubmit && (
-              <button type="button" className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.purchaseReceipt, name } }).then(() => mutate())}>
-                {submitCall.loading ? t("soc.saving") : t("inv.submit")}
-              </button>
-            )}
-            {submitted && writable && (data.per_billed ?? 0) < 100 && (
-              <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
-                {busyPi ? t("soc.saving") : t("pr.createPi")}
-              </button>
-            )}
-            {submitted && !data.is_return && writable && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/return`)}>
-                {t("pr.return")}
-              </button>
-            )}
-            {submitted && canCancel && (
-              <button type="button" className="btn quiet" disabled={cancelCall.loading}
-                onClick={() => void cancelCall.call({ doctype: DT.purchaseReceipt, name }).then(() => mutate())}>
-                {cancelCall.loading ? t("soc.saving") : t("inv.cancel")}
-              </button>
-            )}
-          </>
+          <DetailActions
+            draft={draft}
+            submitted={submitted}
+            cancelled={data.docstatus === 2}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={writable}
+            busy={submitCall.loading || cancelCall.loading || busyPi}
+            onEdit={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseReceipt, name } }).then(() => mutate())}
+            onCancel={() => void cancelCall.call({ doctype: DT.purchaseReceipt, name }).then(() => mutate())}
+            extra={
+              <>
+                {submitted && writable && (data.per_billed ?? 0) < 100 && (
+                  <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
+                    {busyPi ? t("soc.saving") : t("pr.createPi")}
+                  </button>
+                )}
+                {submitted && !data.is_return && writable && (
+                  <button type="button" className="btn ghost"
+                    onClick={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/return`)}>
+                    {t("pr.return")}
+                  </button>
+                )}
+              </>
+            }
+          />
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

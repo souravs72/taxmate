@@ -210,6 +210,8 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "change_password", "method": "taxmate.api.users.change_password"},
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
+			{"name": "owner_dashboard", "method": "taxmate.api.owner_dashboard.get_owner_dashboard"},
+			{"name": "accountant_dashboard", "method": "taxmate.api.accountant_dashboard.get_accountant_dashboard"},
 			*_EXISTING_ACTIONS,
 		],
 	}

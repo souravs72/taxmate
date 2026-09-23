@@ -11,11 +11,12 @@ import { useFrappePostCall } from "frappe-react-sdk";
 import { DT, METHOD } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
-import { canCancelSales, canSubmitSales } from "../../lib/roles";
+import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; uom?: string;
@@ -61,6 +62,9 @@ export default function StockEntryDetail() {
 
   const draft = data.docstatus === 0;
   const submitted = data.docstatus === 1;
+  const cancelled = data.docstatus === 2;
+  const writable = canWrite(session);
+  const busy = submitCall.loading || cancelCall.loading;
   const total = data.total_amount
     ?? (data.items ?? []).reduce((s, l) => s + (Number(l.amount) || 0), 0);
 
@@ -74,26 +78,18 @@ export default function StockEntryDetail() {
         }
         title={data.stock_entry_type || data.name}
         actions={
-          <>
-            {draft && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/stock-entries/${encodeURIComponent(name)}/edit`)}>
-                {t("inv.edit")}
-              </button>
-            )}
-            {draft && canSubmit && (
-              <button type="button" className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.stockEntry, name } }).then(() => mutate())}>
-                {t("inv.submit")}
-              </button>
-            )}
-            {submitted && canCancel && (
-              <button type="button" className="btn quiet" disabled={cancelCall.loading}
-                onClick={() => void cancelCall.call({ doctype: DT.stockEntry, name }).then(() => mutate())}>
-                {t("inv.cancel")}
-              </button>
-            )}
-          </>
+          <DetailActions
+            draft={draft}
+            submitted={submitted}
+            cancelled={cancelled}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={writable}
+            busy={busy}
+            onEdit={() => nav(`/stock-entries/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.stockEntry, name } }).then(() => mutate())}
+            onCancel={() => void cancelCall.call({ doctype: DT.stockEntry, name }).then(() => mutate())}
+          />
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

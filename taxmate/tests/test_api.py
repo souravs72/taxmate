@@ -92,6 +92,9 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.purchase_receipt.make_purchase_invoice", methods)
 		self.assertIn("taxmate.api.stock.item_qty", methods)
 		self.assertIn("taxmate.api.resource.group_by_count", methods)
+		# Phase 0: role-specific dashboard actions catalogued.
+		self.assertIn("taxmate.api.owner_dashboard.get_owner_dashboard", methods)
+		self.assertIn("taxmate.api.accountant_dashboard.get_accountant_dashboard", methods)
 		self.assertFalse(any("rest" in row for row in catalog["resources"]))
 		self.assertFalse(is_allowed_doctype("User"))
 		self.assertFalse(is_allowed_doctype("Data Import"))
@@ -989,3 +992,74 @@ class TestSalesOrderApi(FrappeTestCase):
 		self.assertEqual(fetched["docstatus"], 0)
 		self.assertEqual(str(fetched["period_start"]), period_start)
 		self.assertEqual(get_or_create(company, period_start, period_end), name)
+
+
+class TestPhase1BankingMasters(FrappeTestCase):
+	"""Phase 1: Bank Account and Mode of Payment list/get via catalog resource API."""
+
+	def test_mode_of_payment_list(self):
+		"""get_list on Mode of Payment returns rows with expected fields."""
+		rows = get_list("Mode of Payment", fields=["name", "type", "enabled"], limit_page_length=5)
+		# Every ERPNext install has at least one MoP (Cash).
+		if not rows:
+			self.skipTest("No Mode of Payment fixtures on this site")
+		for row in rows:
+			self.assertIn("name", row)
+			self.assertIn("type", row)
+
+	def test_mode_of_payment_get(self):
+		"""get on first Mode of Payment returns the expected fields."""
+		rows = get_list("Mode of Payment", fields=["name"], limit_page_length=1)
+		if not rows:
+			self.skipTest("No Mode of Payment fixtures on this site")
+		name = rows[0]["name"]
+		doc = get("Mode of Payment", name)
+		self.assertEqual(doc["name"], name)
+		self.assertIn("type", doc)
+
+	def test_bank_account_list_allowed(self):
+		"""Bank Account is an allowed catalog doctype."""
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Bank Account"))
+
+	def test_bank_account_insert_skiptest_if_no_company(self):
+		"""Insert a Bank Account; skip if no company, bank, or GL account available."""
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value(
+			"Company", {}, "name"
+		)
+		if not company:
+			self.skipTest("No company available for bank account test")
+
+		# Bank Account autoname requires a bank record.
+		bank = frappe.db.get_value("Bank", {}, "name")
+		if not bank:
+			self.skipTest("No Bank fixture on this site")
+
+		# A GL account of type Bank not already linked to another Bank Account is needed.
+		used_accounts = frappe.db.get_all("Bank Account", filters={"company": company}, pluck="account")
+		gl_account = frappe.db.get_value(
+			"Account",
+			{"company": company, "account_type": "Bank", "is_group": 0, "name": ["not in", used_accounts or [""]]},
+			"name",
+		)
+		if not gl_account:
+			self.skipTest("No unused Bank-type GL account for company")
+
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Bank Account",
+				"account_name": f"TM Test Bank {uid}",
+				"company": company,
+				"bank": bank,
+				"account": gl_account,
+				"is_company_account": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		self.assertEqual(doc.get("company"), company)
+
+		fetched = get("Bank Account", doc["name"])
+		self.assertEqual(fetched["account_name"], f"TM Test Bank {uid}")
+
+		frappe.delete_doc("Bank Account", doc["name"], force=True)

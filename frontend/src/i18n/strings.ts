@@ -1488,6 +1488,8 @@ const en: Record<string, string> = {
   "uom.whole": "Must be whole number",
 
   // Nav keys for new masters
+  "nav.bankAccounts": "Bank Accounts",
+  "nav.modesOfPayment": "Modes of Payment",
   "nav.itemGroups": "Item Groups",
   "nav.brands": "Brands",
   "nav.uoms": "Units of Measure",
@@ -1512,6 +1514,52 @@ const en: Record<string, string> = {
 
   // Stock Reconciliation
   "sr.differenceAccount": "Difference account",
+  // Bank Account
+  "ba.title": "Bank Accounts",
+  "ba.sub": "Company bank accounts used for payments and receipts.",
+  "ba.new": "New bank account",
+  "ba.newTitle": "New bank account",
+  "ba.editTitle": "Edit bank account",
+  "ba.search": "Search bank accounts",
+  "ba.empty": "No bank accounts.",
+  "ba.col.accountName": "Account name",
+  "ba.col.bank": "Bank",
+  "ba.col.account": "GL account",
+  "ba.col.company": "Company",
+  "ba.col.accountType": "Account type",
+  "ba.col.disabled": "Disabled",
+  "ba.accountName": "Account name",
+  "ba.accountNamePh": "e.g. Emirates NBD Current",
+  "ba.bank": "Bank",
+  "ba.bankPh": "Search bank",
+  "ba.account": "GL account",
+  "ba.accountPh": "Search account",
+  "ba.companyPh": "Search company",
+  "ba.accountTypePh": "e.g. Bank",
+  "ba.isCompanyAccount": "Company account",
+  "ba.disabledLabel": "Disabled",
+  "ba.disabled": "Disabled",
+  "ba.active": "Active",
+  "ba.companyAccount": "Company account",
+
+  // Mode of Payment
+  "mop.title": "Modes of Payment",
+  "mop.sub": "Cash, bank transfer, and other payment methods.",
+  "mop.new": "New mode",
+  "mop.newTitle": "New mode of payment",
+  "mop.editTitle": "Edit mode of payment",
+  "mop.search": "Search modes of payment",
+  "mop.empty": "No modes of payment.",
+  "mop.col.name": "Mode",
+  "mop.col.type": "Type",
+  "mop.col.enabled": "Enabled",
+  "mop.name": "Mode name",
+  "mop.namePh": "e.g. Bank Transfer",
+  "mop.type": "Type",
+  "mop.enabledLabel": "Enabled",
+  "mop.enabled": "Enabled",
+  "mop.disabled": "Disabled",
+
 };
 
 const ar: Record<string, string> = {
@@ -2950,6 +2998,8 @@ const ar: Record<string, string> = {
   "uom.col.whole": "أعداد صحيحة فقط؟",
   "uom.name": "اسم وحدة القياس",
   "uom.whole": "يجب أن يكون عدداً صحيحاً",
+  "nav.bankAccounts": "الحسابات البنكية",
+  "nav.modesOfPayment": "طرق الدفع",
   "nav.itemGroups": "مجموعات الأصناف",
   "nav.brands": "العلامات التجارية",
   "nav.uoms": "وحدات القياس",
@@ -2970,6 +3020,52 @@ const ar: Record<string, string> = {
 
   // Stock Reconciliation
   "sr.differenceAccount": "حساب الفروق",
+  // Bank Account (AR)
+  "ba.title": "الحسابات البنكية",
+  "ba.sub": "حسابات الشركة البنكية المستخدمة للمدفوعات والمقبوضات.",
+  "ba.new": "حساب بنكي جديد",
+  "ba.newTitle": "حساب بنكي جديد",
+  "ba.editTitle": "تعديل الحساب البنكي",
+  "ba.search": "بحث في الحسابات البنكية",
+  "ba.empty": "لا توجد حسابات بنكية.",
+  "ba.col.accountName": "اسم الحساب",
+  "ba.col.bank": "البنك",
+  "ba.col.account": "حساب المحاسبة",
+  "ba.col.company": "الشركة",
+  "ba.col.accountType": "نوع الحساب",
+  "ba.col.disabled": "معطّل",
+  "ba.accountName": "اسم الحساب",
+  "ba.accountNamePh": "مثل: الإمارات NBD جاري",
+  "ba.bank": "البنك",
+  "ba.bankPh": "ابحث عن بنك",
+  "ba.account": "حساب المحاسبة",
+  "ba.accountPh": "ابحث عن حساب",
+  "ba.companyPh": "ابحث عن شركة",
+  "ba.accountTypePh": "مثل: بنك",
+  "ba.isCompanyAccount": "حساب الشركة",
+  "ba.disabledLabel": "معطّل",
+  "ba.disabled": "معطّل",
+  "ba.active": "نشط",
+  "ba.companyAccount": "حساب الشركة",
+
+  // Mode of Payment (AR)
+  "mop.title": "طرق الدفع",
+  "mop.sub": "النقد والتحويل البنكي وغيرها من طرق الدفع.",
+  "mop.new": "طريقة دفع جديدة",
+  "mop.newTitle": "طريقة دفع جديدة",
+  "mop.editTitle": "تعديل طريقة الدفع",
+  "mop.search": "بحث في طرق الدفع",
+  "mop.empty": "لا توجد طرق دفع.",
+  "mop.col.name": "الطريقة",
+  "mop.col.type": "النوع",
+  "mop.col.enabled": "مفعّلة",
+  "mop.name": "اسم الطريقة",
+  "mop.namePh": "مثل: تحويل بنكي",
+  "mop.type": "النوع",
+  "mop.enabledLabel": "مفعّلة",
+  "mop.enabled": "مفعّلة",
+  "mop.disabled": "معطّلة",
+
 };
 
 export const t = makeT(en, ar);

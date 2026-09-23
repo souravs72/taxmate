@@ -63,6 +63,7 @@ export const DT = {
   incomingInvoice: "UAE Incoming Invoice",
   paymentEntryRef: "Payment Entry Reference",
   modeOfPayment: "Mode of Payment",
+  bankAccount: "Bank Account",
   taxTemplate: "Sales Taxes and Charges Template",
   purchaseTaxTemplate: "Purchase Taxes and Charges Template",
   warehouse: "Warehouse",

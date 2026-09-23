@@ -97,6 +97,12 @@ import LateFilingDetail from "./screens/late-filing/LateFilingDetail";
 import TeamList from "./screens/team/TeamList";
 import TeamInvite from "./screens/team/TeamInvite";
 import Profile from "./screens/team/Profile";
+import BankAccountList from "./screens/bank-account/BankAccountList";
+import BankAccountDetail from "./screens/bank-account/BankAccountDetail";
+import BankAccountForm from "./screens/bank-account/BankAccountForm";
+import ModeOfPaymentList from "./screens/mode-of-payment/ModeOfPaymentList";
+import ModeOfPaymentDetail from "./screens/mode-of-payment/ModeOfPaymentDetail";
+import ModeOfPaymentForm from "./screens/mode-of-payment/ModeOfPaymentForm";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -225,6 +231,14 @@ export default function App() {
           <Route path="/material-requests/:name" element={<MaterialRequestDetail />} />
           <Route path="/orders/:name/edit" element={<SalesOrderCreate />} />
           <Route path="/purchase-orders/:name/edit" element={<PurchaseOrderForm />} />
+          <Route path="/bank-accounts" element={<BankAccountList />} />
+          <Route path="/bank-accounts/new" element={<BankAccountForm />} />
+          <Route path="/bank-accounts/:name/edit" element={<BankAccountForm />} />
+          <Route path="/bank-accounts/:name" element={<BankAccountDetail />} />
+          <Route path="/modes-of-payment" element={<ModeOfPaymentList />} />
+          <Route path="/modes-of-payment/new" element={<ModeOfPaymentForm />} />
+          <Route path="/modes-of-payment/:name/edit" element={<ModeOfPaymentForm />} />
+          <Route path="/modes-of-payment/:name" element={<ModeOfPaymentDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

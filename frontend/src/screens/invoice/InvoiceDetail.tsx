@@ -10,6 +10,7 @@ import { EINVOICE_CHIP, INV_PILL_CLASS, invoiceUiStatus, isInvoiceOverdue } from
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 /** The pipeline the e-invoice walks, in order. */
 const PIPE = ["Generated", "Queued", "Submitted", "Accepted"] as const;
@@ -152,49 +153,41 @@ export default function InvoiceDetail() {
         }
         title={data.customer_name || data.customer}
         actions={
-          <>
-            {draft && (
-              <button className="btn ghost" onClick={() => nav(`/invoices/${encodeURIComponent(name)}/edit`)}>
-                {t("inv.edit")}
-              </button>
-            )}
-            {draft && canSubmit && (
-              <button className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.salesInvoice, name } }).then(refresh)}>
-                {t("inv.submit")}
-              </button>
-            )}
-            {submitted && outstanding > 0 && (
-              <button className="btn" onClick={() => nav(`/payments/new?invoice=${encodeURIComponent(name)}`)}>
-                {t("inv.receive")}
-              </button>
-            )}
-            {submitted && !data.is_return && (
-              <button className="btn ghost" onClick={() => nav(`/invoices/${encodeURIComponent(name)}/return`)}>
-                {t("inv.credit")}
-              </button>
-            )}
-            <button className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
-              {t("inv.print")}
-            </button>
-            {submitted && canCancel && (
-              <button className="btn quiet" disabled={cancelCall.loading}
-                onClick={() => void cancelCall.call({ doctype: DT.salesInvoice, name }).then(refresh)}>
-                {t("inv.cancel")}
-              </button>
-            )}
-            {data.docstatus === 2 && canSubmit && (
-              <button className="btn ghost" disabled={amendCall.loading}
-                onClick={async () => {
-                  const res = await amendCall.call({ doctype: DT.salesInvoice, name });
-                  const newName = res?.message?.name;
-                  if (newName) nav(`/invoices/${encodeURIComponent(newName)}`);
-                  else refresh();
-                }}>
-                {t("inv.amend")}
-              </button>
-            )}
-          </>
+          <DetailActions
+            draft={draft}
+            submitted={submitted}
+            cancelled={data.docstatus === 2}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={true}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading}
+            onEdit={() => nav(`/invoices/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.salesInvoice, name } }).then(refresh)}
+            onCancel={() => void cancelCall.call({ doctype: DT.salesInvoice, name }).then(refresh)}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.salesInvoice, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/invoices/${encodeURIComponent(newName)}`);
+              else refresh();
+            }}
+            extra={
+              <>
+                {submitted && outstanding > 0 && (
+                  <button className="btn" onClick={() => nav(`/payments/new?invoice=${encodeURIComponent(name)}`)}>
+                    {t("inv.receive")}
+                  </button>
+                )}
+                {submitted && !data.is_return && (
+                  <button className="btn ghost" onClick={() => nav(`/invoices/${encodeURIComponent(name)}/return`)}>
+                    {t("inv.credit")}
+                  </button>
+                )}
+                <button className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
+                  {t("inv.print")}
+                </button>
+              </>
+            }
+          />
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginTop: 7 }}>

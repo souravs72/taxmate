@@ -46,6 +46,8 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"UAE ESR Filing": "/esr/{name}",
 	"UAE UBO Register": "/ubo/{name}",
 	"UAE Late Filing Notice": "/late-filings/{name}",
+	"Bank Account": "/bank-accounts/{name}",
+	"Mode of Payment": "/modes-of-payment/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -77,6 +79,8 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"UAE ESR Filing": "/esr",
 	"UAE UBO Register": "/ubo",
 	"UAE Late Filing Notice": "/late-filings",
+	"Bank Account": "/bank-accounts",
+	"Mode of Payment": "/modes-of-payment",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -148,6 +152,8 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 		"keywords": "users roles team staff invite admin finance manager accounts officer read-only owner accountant clerk viewer",
 	},
 	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
+	{"label": "Bank Accounts", "route": "/bank-accounts", "keywords": "bank account banking cash gl"},
+	{"label": "Modes of Payment", "route": "/modes-of-payment", "keywords": "mode of payment cash bank general payment method"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)

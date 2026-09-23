@@ -64,6 +64,8 @@ export const NAV: NavEntry[] = [
   // Quotation under Sales; stock nav for SE/SR/MR. Callers: AppShell. User: Implement the plan… complete all the to-dos.
   { type: "section", key: "nav.accounting" },
   { type: "link", to: "/journals", key: "nav.journals" },
+  { type: "link", to: "/bank-accounts", key: "nav.bankAccounts" },
+  { type: "link", to: "/modes-of-payment", key: "nav.modesOfPayment" },
   { type: "link", to: "/accounts", key: "nav.accounts" },
   { type: "link", to: "/reports", key: "nav.reports" },
   { type: "section", key: "nav.masters" },
