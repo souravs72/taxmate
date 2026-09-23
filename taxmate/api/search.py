@@ -233,6 +233,12 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Work Orders", "route": "/work-orders", "keywords": "work order manufacture production job"},
 	# Phase 21
 	{"label": "Leads", "route": "/leads", "keywords": "lead prospect crm potential customer sales inquiry"},
+	# Phase 22 — UAE compliance write screens
+	{"label": "UAE Related Parties", "route": "/uae-related-parties", "keywords": "ct corporate tax related party disclosure"},
+	{"label": "UAE VAT Groups", "route": "/uae-vat-groups", "keywords": "vat group representative trn"},
+	{"label": "UAE Bad Debt Relief", "route": "/uae-bad-debt-relief", "keywords": "bad debt vat relief write off"},
+	{"label": "UAE Customs Declarations", "route": "/uae-customs-declarations", "keywords": "customs declaration import vat"},
+	{"label": "UAE Capital Goods Adjustments", "route": "/uae-capital-goods-adjustments", "keywords": "capital goods adjustment vat"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)
