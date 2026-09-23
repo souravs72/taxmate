@@ -27,6 +27,7 @@ type CustomerDoc = {
   uae_peppol_id?: string;
   uae_fz_beneficiary_id?: string;
   uae_in_designated_zone?: 0 | 1;
+  selling_price_list?: string;
   customer_primary_address?: string;
   customer_primary_contact?: string;
   credit_limits?: { company?: string; credit_limit?: number; bypass_credit_limit_check?: 0 | 1 }[];
@@ -51,10 +52,20 @@ export default function CustomerForm() {
   const existing = useDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
-  const settings = useDoc<{ customer_group?: string; territory?: string }>(DT.sellingSettings, DT.sellingSettings);
+  const settings = useDoc<{ customer_group?: string; territory?: string; selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
   const groups = useDocList<{ name: string }>(DT.customerGroup, {
     fields: ["name"],
     filters: [["is_group", "=", 0]],
+    limit: 50,
+  });
+  const territories = useDocList<{ name: string }>(DT.territory, {
+    fields: ["name"],
+    filters: [["is_group", "=", 0]],
+    limit: 50,
+  });
+  const priceLists = useDocList<{ name: string }>(DT.priceList, {
+    fields: ["name"],
+    filters: [["selling", "=", 1]],
     limit: 50,
   });
   const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
@@ -67,6 +78,8 @@ export default function CustomerForm() {
     customer_group: "",
     tax_id: "",
     payment_terms: "",
+    territory: "",
+    selling_price_list: "",
     trade_license_number: "",
     legal_registration_identifier: "",
     legal_registration_identifier_type: "CRN",
@@ -96,6 +109,8 @@ export default function CustomerForm() {
       customer_group: d.customer_group || "",
       tax_id: d.tax_id || "",
       payment_terms: d.payment_terms || "",
+      territory: d.territory || "",
+      selling_price_list: d.selling_price_list || "",
       trade_license_number: d.trade_license_number || "",
       legal_registration_identifier: d.legal_registration_identifier || "",
       legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
@@ -143,7 +158,8 @@ export default function CustomerForm() {
         customer_name: form.customer_name,
         customer_type: form.customer_type,
         customer_group: group,
-        territory,
+        territory: form.territory || territory,
+        selling_price_list: form.selling_price_list || undefined,
         tax_id: form.tax_id || undefined,
         payment_terms: form.payment_terms || undefined,
         trade_license_number: form.trade_license_number || undefined,
@@ -253,6 +269,18 @@ export default function CustomerForm() {
             <select className="ctl" value={form.payment_terms} onChange={(e) => set("payment_terms", e.target.value)}>
               <option value="" />
               {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </select>
+          </Field>
+          <Field label={t("f.territory")}>
+            <select className="ctl" value={form.territory} onChange={(e) => set("territory", e.target.value)}>
+              <option value="" />
+              {(territories.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </select>
+          </Field>
+          <Field label={t("f.sellingPriceList")}>
+            <select className="ctl" value={form.selling_price_list} onChange={(e) => set("selling_price_list", e.target.value)}>
+              <option value="" />
+              {(priceLists.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </select>
           </Field>
         </div>

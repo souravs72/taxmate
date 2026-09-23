@@ -1,114 +1,115 @@
 /* ─────────────────────────────────────────────────────────────────────
    TaxMate design tokens — single source of truth.
-   Mirrors claude/ui-design-system.md in the project.
-   Chart colours are deliberately NOT the brand hue: paired with the
-   cyan "Delivered" the brand blue fails the colour-blind separation
-   floor (ΔE 14, floor 15). Do not "fix" that by unifying them.
+   Professional slate / fintech palette. Brand blue is desaturated
+   (#2563EB light / #3B82F6 dark) — not neon. Charts use teal/slate/amber.
    ───────────────────────────────────────────────────────────────────── */
 
 :root {
-  --bg: #f3f4f6;
+  --bg: #F8FAFC;
   --surface: #ffffff;
-  --sunk: #f9fafb;
-  --hover: #f4f7ff;
+  --sunk: #F1F5F9;
+  --hover: #EFF6FF;
   --input: #ffffff;
 
-  --text: #111827;
-  --muted: #6b7280;
-  --faint: #9ca3af;
+  --text: #0F172A;
+  --muted: #475569;
+  --faint: #94A3B8;
 
-  --border: #e5e7eb;
-  --border-2: #d1d5db;
+  --border: #E2E8F0;
+  --border-2: #CBD5E1;
 
-  --brand: #487fff;
-  --brand-hover: #2f6bf5;
+  --brand: #2563EB;
+  --brand-hover: #1D4ED8;
   --brand-ink: #ffffff;
-  --brand-soft: #e8f0ff;
-  --brand-line: #b9d0ff;
+  --brand-soft: #EFF6FF;
+  --brand-line: #BFDBFE;
 
-  --ok: #16a34a;
-  --ok-bg: #dcfce7;
-  --warn: #d97706;
-  --warn-bg: #fdf0d9;
-  --bad: #dc2626;
-  --bad-bg: #fee2e2;
-  --info: #0284c7;
-  --info-bg: #e0f2fe;
+  --ok: #16A34A;
+  --ok-bg: #DCFCE7;
+  --warn: #B45309;
+  --warn-bg: #FEF3C7;
+  --bad: #DC2626;
+  --bad-bg: #FEE2E2;
+  --info: #0284C7;
+  --info-bg: #E0F2FE;
 
-  --c-draft: #d97706;
-  --c-confirmed: #4f46e5;
-  --c-delivered: #0891b2;
-  --c-billed: #16a34a;
-  --track: #eef0f4;
+  /* Document / fulfilment status — deliberately distinct from brand */
+  --c-draft: #B45309;
+  --c-confirmed: #2563EB;
+  --c-delivered: #0D9488;
+  --c-billed: #16A34A;
+  --track: #E2E8F0;
 
   --r: 10px;
   --r-sm: 8px;
-  --railw: 264px;
+  --railw: 256px;
 
   --ui: "Inter", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* ── Auto dark ───────────────────────────────────────────────────────── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #0b0f18;
-    --surface: #141a25;
-    --sunk: #10151f;
-    --hover: #1a2233;
-    --input: #1a2130;
-    --text: #e8ecf4;
-    --muted: #98a2b6;
-    --faint: #6b768c;
-    --border: #222a39;
-    --border-2: #2e3849;
-    --brand: #6e9bff;
-    --brand-hover: #85adff;
-    --brand-ink: #0b0f18;
-    --brand-soft: #17233d;
-    --brand-line: #2c3f68;
-    --ok: #4ade80;
-    --ok-bg: #10281a;
-    --warn: #f0b429;
-    --warn-bg: #2c2312;
-    --bad: #f87171;
-    --bad-bg: #2d1416;
-    --info: #38bdf8;
-    --info-bg: #0c2839;
-    --c-draft: #c97a06;
-    --c-confirmed: #6f6cf0;
-    --c-delivered: #0f93b0;
-    --c-billed: #1f9e4a;
-    --track: #1d2534;
+    --bg: #020617;
+    --surface: #0B1220;
+    --sunk: #0F172A;
+    --hover: #1E293B;
+    --input: #0F172A;
+    --text: #E2E8F0;
+    --muted: #94A3B8;
+    --faint: #64748B;
+    --border: #1E293B;
+    --border-2: #334155;
+    --brand: #3B82F6;
+    --brand-hover: #60A5FA;
+    --brand-ink: #0F172A;
+    --brand-soft: #172554;
+    --brand-line: #1E40AF;
+    --ok: #22C55E;
+    --ok-bg: #052E16;
+    --warn: #F59E0B;
+    --warn-bg: #1C1A09;
+    --bad: #F87171;
+    --bad-bg: #2D1414;
+    --info: #38BDF8;
+    --info-bg: #082F49;
+    --c-draft: #F59E0B;
+    --c-confirmed: #60A5FA;
+    --c-delivered: #2DD4BF;
+    --c-billed: #4ADE80;
+    --track: #1E293B;
   }
 }
 
+/* ── Explicit dark ───────────────────────────────────────────────────── */
 :root[data-theme="dark"] {
-  --bg: #0b0f18;
-  --surface: #141a25;
-  --sunk: #10151f;
-  --hover: #1a2233;
-  --input: #1a2130;
-  --text: #e8ecf4;
-  --muted: #98a2b6;
-  --faint: #6b768c;
-  --border: #222a39;
-  --border-2: #2e3849;
-  --brand: #6e9bff;
-  --brand-hover: #85adff;
-  --brand-ink: #0b0f18;
-  --brand-soft: #17233d;
-  --brand-line: #2c3f68;
-  --ok: #4ade80;
-  --ok-bg: #10281a;
-  --warn: #f0b429;
-  --warn-bg: #2c2312;
-  --bad: #f87171;
-  --bad-bg: #2d1416;
-  --info: #38bdf8;
-  --info-bg: #0c2839;
-  --c-draft: #c97a06;
-  --c-confirmed: #6f6cf0;
-  --c-delivered: #0f93b0;
-  --c-billed: #1f9e4a;
-  --track: #1d2534;
+  --bg: #020617;
+  --surface: #0B1220;
+  --sunk: #0F172A;
+  --hover: #1E293B;
+  --input: #0F172A;
+  --text: #E2E8F0;
+  --muted: #94A3B8;
+  --faint: #64748B;
+  --border: #1E293B;
+  --border-2: #334155;
+  --brand: #3B82F6;
+  --brand-hover: #60A5FA;
+  --brand-ink: #0F172A;
+  --brand-soft: #172554;
+  --brand-line: #1E40AF;
+  --ok: #22C55E;
+  --ok-bg: #052E16;
+  --warn: #F59E0B;
+  --warn-bg: #1C1A09;
+  --bad: #F87171;
+  --bad-bg: #2D1414;
+  --info: #38BDF8;
+  --info-bg: #082F49;
+  --c-draft: #F59E0B;
+  --c-confirmed: #60A5FA;
+  --c-delivered: #2DD4BF;
+  --c-billed: #4ADE80;
+  --track: #1E293B;
 }

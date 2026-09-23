@@ -19,6 +19,8 @@ type SupplierDoc = {
   uae_peppol_id?: string;
   uae_fz_beneficiary_id?: string;
   uae_in_designated_zone?: 0 | 1;
+  territory?: string;
+  country?: string;
   supplier_primary_address?: string;
   supplier_primary_contact?: string;
 };
@@ -48,6 +50,11 @@ export default function SupplierForm() {
     filters: [["is_group", "=", 0]],
     limit: 50,
   });
+  const territories = useDocList<{ name: string }>(DT.territory, {
+    fields: ["name"],
+    filters: [["is_group", "=", 0]],
+    limit: 50,
+  });
   const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
   const create = useInsert();
   const update = useSave();
@@ -58,6 +65,8 @@ export default function SupplierForm() {
     supplier_group: "",
     tax_id: "",
     payment_terms: "",
+    territory: "",
+    country: "United Arab Emirates",
     trade_license_number: "",
     legal_registration_identifier: "",
     legal_registration_identifier_type: "CRN",
@@ -83,6 +92,8 @@ export default function SupplierForm() {
       supplier_group: d.supplier_group || "",
       tax_id: d.tax_id || "",
       payment_terms: d.payment_terms || "",
+      territory: d.territory || "",
+      country: d.country || "United Arab Emirates",
       trade_license_number: d.trade_license_number || "",
       legal_registration_identifier: d.legal_registration_identifier || "",
       legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
@@ -119,6 +130,8 @@ export default function SupplierForm() {
       const group = form.supplier_group || settings.data?.supplier_group;
       const payload = {
         supplier_name: form.supplier_name,
+        territory: form.territory || undefined,
+        country: form.country || "United Arab Emirates",
         supplier_type: form.supplier_type,
         supplier_group: group,
         tax_id: form.tax_id || undefined,
@@ -230,6 +243,15 @@ export default function SupplierForm() {
               <option value="" />
               {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </select>
+          </Field>
+          <Field label={t("f.territory")}>
+            <select className="ctl" value={form.territory} onChange={(e) => set("territory", e.target.value)}>
+              <option value="" />
+              {(territories.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </select>
+          </Field>
+          <Field label={t("f.country")}>
+            <input className="ctl" value={form.country} onChange={(e) => set("country", e.target.value)} />
           </Field>
         </div>
       </Card>

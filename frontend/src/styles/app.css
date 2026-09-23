@@ -37,21 +37,25 @@ svg{display:block}
 .app.collapsed .rbrand span:last-child{display:none}
 .app.collapsed .rbrand{justify-content:center; padding-inline:0}
 
+/* Callers: AppShell NavLink.rlink. Rail UX: softer active, transition, improved tooltips. */
 .rlink{
-  display:flex; align-items:center; gap:11px; padding:9px 11px; border-radius:9px;
-  color:var(--muted); font-size:13.5px; font-weight:500; white-space:nowrap; cursor:pointer; position:relative;
+  display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:8px;
+  color:var(--muted); font-size:13px; font-weight:500; white-space:nowrap; cursor:pointer; position:relative;
+  text-decoration:none; transition:background 150ms ease, color 150ms ease;
 }
 .rlink:hover{background:var(--hover); color:var(--text)}
-.rlink.on{background:var(--brand); color:#fff; font-weight:600}
-.rlink .ic{width:18px; height:18px; flex:none}
+/* Active: brand-soft bg + brand text — professional, not full neon fill */
+.rlink.on{background:var(--brand-soft); color:var(--brand); font-weight:600}
+/* Lucide icon wrapper: flex-center so SVGs sit precisely */
+.rlink .ic{width:18px; height:18px; flex:none; display:flex; align-items:center; justify-content:center; color:inherit}
 .app.collapsed .rlink{justify-content:center; padding-inline:0}
-.app.collapsed .rlink span{display:none}
+.app.collapsed .rlink span:not(.ic){display:none}
 .app.collapsed .rlink:hover::after{
-  content:attr(data-tip); position:absolute; inset-inline-start:calc(100% + 8px); top:50%; transform:translateY(-50%);
-  background:var(--text); color:var(--surface); font-size:12px; font-weight:500; padding:4px 9px; border-radius:6px;
-  white-space:nowrap; z-index:40; pointer-events:none;
+  content:attr(data-tip); position:absolute; inset-inline-start:calc(100% + 10px); top:50%; transform:translateY(-50%);
+  background:var(--text); color:var(--surface); font-size:12px; font-weight:500; padding:5px 10px; border-radius:6px;
+  white-space:nowrap; z-index:40; pointer-events:none; box-shadow:0 4px 12px rgba(0,0,0,.18);
 }
-[dir="rtl"] .app.collapsed .rlink:hover::after{inset-inline-start:auto; inset-inline-end:calc(100% + 8px)}
+[dir="rtl"] .app.collapsed .rlink:hover::after{inset-inline-start:auto; inset-inline-end:calc(100% + 10px)}
 /* Importers: AppShell grouped rail. Schema: button.rsec + .rgroup.
    User: "Can we group the sidebar rather than showing all options" */
 .rsec{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); padding:16px 11px 6px; white-space:nowrap; display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; background:transparent; border:0; cursor:pointer; text-align:start}

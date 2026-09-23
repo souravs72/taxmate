@@ -68,11 +68,11 @@ const VIEWS: View[] = ["growth", "report", "margin"];
 /* ── Colours (tokens; see dashboard.css) ─────────────────────────────── */
 
 const C = {
-  rev: "var(--c-confirmed)",
-  exp: "var(--c-draft)",
-  profit: "var(--c-billed)",
-  cashIn: "var(--c-delivered)",
-  opex: "var(--od-age-3)",
+  rev: "var(--c-confirmed)",      /* brand blue — invoiced/revenue */
+  exp: "var(--c-draft)",          /* amber — bills/expenses */
+  profit: "var(--c-billed)",      /* green — net profit */
+  cashIn: "var(--c-delivered)",   /* teal — cash received */
+  opex: "var(--c-draft)",         /* amber (same family as expenses) */
   age: ["var(--od-age-0)", "var(--od-age-1)", "var(--od-age-2)", "var(--od-age-3)", "var(--od-age-4)"],
 };
 
@@ -434,10 +434,10 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
   const tiles: {
     key: keyof Payload["flows"]; colour: string; tint: string; upGood: boolean; to: string; icon: string; ratio: number | null;
   }[] = [
-    { key: "invoiced", colour: C.rev, tint: "rgba(79,70,229,.12)", upGood: true, to: "/invoices", icon: '<path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3M6.5 9.5h5M6.5 12.5h3.5"/>', ratio: gm },
-    { key: "bills", colour: C.exp, tint: "rgba(217,119,6,.12)", upGood: false, to: "/purchase-invoices", icon: '<path d="M3 10l1.5-6.5h9L15 10v5H3z"/><path d="M3 10h4l1 1.5h2l1-1.5h4"/>', ratio: f.bills && rev ? (f.bills.value / rev) * 100 : null },
-    { key: "received", colour: C.cashIn, tint: "rgba(8,145,178,.12)", upGood: true, to: "/payments?type=Receive", icon: '<path d="M9 3v8M6 8l3 3 3-3M4 15h10"/>', ratio: f.received && rev ? (f.received.value / rev) * 100 : null },
-    { key: "paid", colour: C.opex, tint: "rgba(234,88,12,.11)", upGood: false, to: "/payments?type=Pay", icon: '<path d="M9 11V3M6 6l3-3 3 3M4 15h10"/>', ratio: f.paid && f.bills?.value ? (f.paid.value / f.bills.value) * 100 : null },
+    { key: "invoiced", colour: C.rev,    tint: "rgba(37,99,235,.08)",   upGood: true,  to: "/invoices",              icon: '<path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3M6.5 9.5h5M6.5 12.5h3.5"/>', ratio: gm },
+    { key: "bills",    colour: C.exp,    tint: "rgba(180,83,9,.08)",    upGood: false, to: "/purchase-invoices",      icon: '<path d="M3 10l1.5-6.5h9L15 10v5H3z"/><path d="M3 10h4l1 1.5h2l1-1.5h4"/>',      ratio: f.bills && rev ? (f.bills.value / rev) * 100 : null },
+    { key: "received", colour: C.cashIn, tint: "rgba(13,148,136,.08)",  upGood: true,  to: "/payments?type=Receive",  icon: '<path d="M9 3v8M6 8l3 3 3-3M4 15h10"/>',                                          ratio: f.received && rev ? (f.received.value / rev) * 100 : null },
+    { key: "paid",     colour: C.opex,   tint: "rgba(180,83,9,.07)",    upGood: false, to: "/payments?type=Pay",      icon: '<path d="M9 11V3M6 6l3-3 3 3M4 15h10"/>',                                          ratio: f.paid && f.bills?.value ? (f.paid.value / f.bills.value) * 100 : null },
   ];
 
   return (
@@ -463,8 +463,13 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
                 {!flow ? t("od.noAccess")
                   : view === "growth" ? (
                     <>
-                      <span className={`delta ${dlt == null ? "" : (dlt >= 0) === tl.upGood ? "up" : "down"}`}>{deltaText(dlt)}</span>
-                      {fill(t("od.vsPrev"), { v: `${cur} ${whole(flow.prev)}` })}
+                      {/* Only show delta when prev > 0; otherwise it would mislead (∞ %) */}
+                      {dlt != null && flow.prev > 0 && (
+                        <span className={`delta ${(dlt >= 0) === tl.upGood ? "up" : "down"}`}>{deltaText(dlt)}</span>
+                      )}
+                      {flow.prev > 0
+                        ? fill(t("od.vsPrev"), { v: `${cur} ${whole(flow.prev)}` })
+                        : <span className="od-muted">{t("od.noPrior")}</span>}
                     </>
                   ) : view === "report" ? (
                     <>

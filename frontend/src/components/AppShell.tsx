@@ -9,41 +9,7 @@ import { canViewTeam, spaRoleOf } from "../lib/roles";
 import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
-
-const Icon = ({ children }: { children: React.ReactNode }) => (
-  <svg className="ic" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.5"
-       strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{children}</svg>
-);
-
-const ICONS: Record<string, JSX.Element> = {
-  "/": <Icon><path d="M2.5 7.5 9 2.5l6.5 5V16h-13z" /></Icon>,
-  "/customers": <Icon><circle cx="9" cy="6" r="2.8" /><path d="M3 16c0-3.3 2.8-5 6-5s6 1.7 6 5" /></Icon>,
-  "/orders": <Icon><path d="M3.5 2.5h11v13h-11z" /><path d="M6 6h6M6 9h6M6 12h3.5" /></Icon>,
-  "/delivery-notes": <Icon><path d="M2 6h8v6H2zM10 8h2.5L15.5 10.5v1.5H10z" /><circle cx="4.5" cy="13.5" r="1.3" /><circle cx="13" cy="13.5" r="1.3" /></Icon>,
-  "/invoices": <Icon><path d="M3.5 2.5h8l3 3v10h-11z" /><path d="M6 9h6M6 12h3.5" /></Icon>,
-  "/payments": <Icon><path d="M2.5 5h13v8h-13z" /><path d="M2.5 8h13" /></Icon>,
-  "/receivables": <Icon><path d="M3 15V8.5M7.5 15V3.5M12 15V10M15.5 15h-13" /></Icon>,
-  "/suppliers": <Icon><path d="M4 15.5V8l5-3 5 3v7.5"/><path d="M4 8l5 3 5-3M9 11v4.5" /></Icon>,
-  "/purchase-orders": <Icon><path d="M3.5 2.5h11v13h-11z"/><path d="M6 6h6M6 9h6M6 12h3.5"/></Icon>,
-  "/purchase-receipts": <Icon><path d="M2 6h8v6H2zM10 8h2.5L15.5 10.5v1.5H10z"/><circle cx="4.5" cy="13.5" r="1.3"/><circle cx="13" cy="13.5" r="1.3"/></Icon>,
-  "/incoming-invoices": <Icon><path d="M3 4.5h12v11H3z"/><path d="M6 2.5v4M12 2.5v4M6 9h6"/></Icon>,
-  "/purchase-invoices": <Icon><path d="M3.5 2.5h8l3 3v10h-11z"/><path d="M6 9h6M6 12h4"/></Icon>,
-  "/payables": <Icon><path d="M3 15V8.5M7.5 15V3.5M12 15V10M15.5 15h-13"/></Icon>,
-  "/journals": <Icon><path d="M3.5 2.5h11v13h-11z"/><path d="M6 6h6M6 9h4.5M6 12h6"/></Icon>,
-  "/accounts": <Icon><path d="M3 15.5V8l6-4 6 4v7.5"/><path d="M3 8l6 4 6-4"/></Icon>,
-  "/reports": <Icon><path d="M3 15V8.5M7.5 15V3.5M12 15V10M15.5 15h-13"/></Icon>,
-  "/catalogue/items": <Icon><path d="M3 4.5h12v9H3z" /><path d="M6 8h6" /></Icon>,
-  "/warehouses": <Icon><path d="M3 14.5V6l6-3.5 6 3.5v8.5"/><path d="M3 6l6 3.5L15 6"/></Icon>,
-  "/tax-templates": <Icon><path d="M3.5 2.5h8l3 3v10h-11z"/><path d="M6 9h6"/></Icon>,
-  "/vat-201": <Icon><path d="M3.5 3.5h11v11h-11z"/><path d="M3.5 7h11M7 3.5V7"/></Icon>,
-  "/ct-filings": <Icon><path d="M3.5 2.5h11v13h-11z"/><path d="M6 6h6M6 9h4"/></Icon>,
-  "/esr": <Icon><path d="M3 15.5V8l6-4 6 4v7.5"/><path d="M3 8l6 4 6-4"/></Icon>,
-  "/ubo": <Icon><circle cx="9" cy="6" r="2.8"/><path d="M3 16c0-3.3 2.8-5 6-5s6 1.7 6 5"/></Icon>,
-  "/late-filings": <Icon><path d="M9 2.5 16 15H2z"/><path d="M9 7v3.5M9 12.2v.6"/></Icon>,
-  "/e-invoice-log": <Icon><path d="M9 2.5l5.5 2.2V10c0 3.3-2.4 5.7-5.5 6.5C5.9 15.7 3.5 13.3 3.5 10V4.7z" /><path d="M6.8 9 8.5 10.7 11.7 7.2" /></Icon>,
-  "/tax-settings": <Icon><circle cx="9" cy="9" r="2.2" /><path d="M9 1.8v2.2M9 14v2.2M16.2 9H14M4 9H1.8" /></Icon>,
-  "/team": <Icon><circle cx="6" cy="6.5" r="2.2" /><circle cx="12" cy="6.5" r="2.2" /><path d="M2 16c0-2.4 1.8-4 4-4s4 1.6 4 4M10 16c0-2.4 1.8-4 4-4s4 1.6 4 4" /></Icon>,
-};
+import { navIcon } from "./navIcons";
 
 const RAIL_KEY = "taxmate-rail";
 const OPEN_KEY = "taxmate-nav-open";
@@ -130,7 +96,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             data-tip={t(n.key)}
             className={({ isActive }) => `rlink${isActive ? " on" : ""}`}
           >
-            {ICONS[n.to]}
+            <span className="ic">{navIcon(n.to)}</span>
             <span>{t(n.key)}</span>
           </NavLink>
         ))}
@@ -157,7 +123,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   data-tip={t(n.key)}
                   className={({ isActive }) => `rlink${isActive ? " on" : ""}`}
                 >
-                  {ICONS[n.to]}
+                  <span className="ic">{navIcon(n.to)}</span>
                   <span>{t(n.key)}</span>
                 </NavLink>
               ))}
