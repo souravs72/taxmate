@@ -42,6 +42,10 @@ ALLOWED_SEARCH_DOCTYPES = frozenset(
 		"Item Group",
 		"Brand",
 		"UOM",
+		"Serial No",
+		"Batch",
+		"Landed Cost Voucher",
+		"Pricing Rule",
 		"Terms and Conditions",
 		"Payment Terms Template",
 		"Mode of Payment",
@@ -199,6 +203,13 @@ GLOBAL_SEARCH_DOCTYPES = [
 	"Asset",
 	"UAE E-Invoice Log",
 	"UAE CT Filing Log",
+	"Serial No",
+	"Batch",
+	"Landed Cost Voucher",
+	"Pricing Rule",
+	"Customer Group",
+	"Supplier Group",
+	"Territory",
 ]
 
 

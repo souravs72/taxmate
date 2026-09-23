@@ -36,6 +36,11 @@ type ItemDoc = {
   sac_code?: string;
   standard_rate?: number;
   safety_stock?: number;
+  has_serial_no?: number;
+  has_batch_no?: number;
+  serial_no_series?: string;
+  create_new_batch?: number;
+  batch_number_series?: string;
   uoms?: { uom?: string; conversion_factor?: number }[];
   item_defaults?: { company?: string; default_warehouse?: string }[];
   barcodes?: { barcode?: string }[];
@@ -118,6 +123,11 @@ export default function ItemForm() {
     reorder_warehouse: "",
     reorder_level: 0,
     reorder_qty: 0,
+    has_serial_no: 0 as 0 | 1,
+    has_batch_no: 0 as 0 | 1,
+    serial_no_series: "",
+    create_new_batch: 0 as 0 | 1,
+    batch_number_series: "",
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -130,6 +140,14 @@ export default function ItemForm() {
     !isNew && form.is_stock_item ? { item_code: name } : undefined,
     !isNew && form.is_stock_item ? `item-qty-${name}` : null,
   );
+
+  // Check whether SLE exists for this item (limit 1) — serial/batch flags cannot change once stock is posted.
+  const sleList = useDocList<{ name: string }>(
+    DT.stockLedgerEntry,
+    { fields: ["name"], filters: [["item_code", "=", name]] as never, limit: 1 },
+    !isNew ? `sle-exists-${name}` : null,
+  );
+  const hasSle = !isNew && (sleList.data ?? []).length > 0;
 
   /* One effect, not two.
      Item.standard_rate is only read at insert; once an Item Price exists that
@@ -172,6 +190,11 @@ export default function ItemForm() {
       reorder_warehouse: (d.reorder_levels ?? [])[0]?.warehouse || "",
       reorder_level: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_level) || 0,
       reorder_qty: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_qty) || 0,
+      has_serial_no: (d.has_serial_no || 0) as 0 | 1,
+      has_batch_no: (d.has_batch_no || 0) as 0 | 1,
+      serial_no_series: d.serial_no_series || "",
+      create_new_batch: (d.create_new_batch || 0) as 0 | 1,
+      batch_number_series: d.batch_number_series || "",
     });
     // Load UOM conversions (exclude the stock UOM row which ERPNext auto-adds with factor 1)
     setUomRows(
@@ -213,6 +236,11 @@ export default function ItemForm() {
         sac_code: form.sac_code || undefined,
         standard_rate: form.standard_rate,
         safety_stock: form.safety_stock || undefined,
+        has_serial_no: form.is_stock_item ? form.has_serial_no : 0,
+        has_batch_no: form.is_stock_item ? form.has_batch_no : 0,
+        serial_no_series: form.is_stock_item && form.has_serial_no ? form.serial_no_series || undefined : undefined,
+        create_new_batch: form.is_stock_item && form.has_batch_no ? form.create_new_batch : 0,
+        batch_number_series: form.is_stock_item && form.has_batch_no ? form.batch_number_series || undefined : undefined,
         barcodes: form.barcode ? [{ barcode: form.barcode }] : undefined,
         reorder_levels: form.reorder_warehouse
           ? [{
@@ -446,6 +474,62 @@ export default function ItemForm() {
               <input className="ctl" type="number" min={0} value={form.reorder_qty}
                 onChange={(e) => set("reorder_qty", parseNum(e.target.value))} />
             </Field>
+          </div>
+        </Card>
+      )}
+      {!!form.is_stock_item && (
+        <Card title={t("item.serialBatch")}>
+          {hasSle && (
+            <p style={{ color: "var(--warning, #b45309)", marginBottom: 8, fontSize: 13 }}>
+              {t("item.sleWarning")}
+            </p>
+          )}
+          <div className="grid2">
+            <Field label={t("item.hasSerialNo")}>
+              <select className="ctl" value={String(form.has_serial_no)}
+                disabled={hasSle}
+                onChange={(e) => {
+                  set("has_serial_no", Number(e.target.value));
+                  if (!Number(e.target.value)) set("serial_no_series", "");
+                }}>
+                <option value="0">{t("no")}</option>
+                <option value="1">{t("yes")}</option>
+              </select>
+            </Field>
+            {!!form.has_serial_no && (
+              <Field label={t("item.serialNoSeries")}>
+                <input className="ctl" value={form.serial_no_series}
+                  onChange={(e) => set("serial_no_series", e.target.value)}
+                  placeholder="e.g. SN-.####" />
+              </Field>
+            )}
+            <Field label={t("item.hasBatchNo")}>
+              <select className="ctl" value={String(form.has_batch_no)}
+                disabled={hasSle}
+                onChange={(e) => {
+                  set("has_batch_no", Number(e.target.value));
+                  if (!Number(e.target.value)) { set("create_new_batch", 0); set("batch_number_series", ""); }
+                }}>
+                <option value="0">{t("no")}</option>
+                <option value="1">{t("yes")}</option>
+              </select>
+            </Field>
+            {!!form.has_batch_no && (
+              <>
+                <Field label={t("item.createNewBatch")}>
+                  <select className="ctl" value={String(form.create_new_batch)}
+                    onChange={(e) => set("create_new_batch", Number(e.target.value))}>
+                    <option value="0">{t("no")}</option>
+                    <option value="1">{t("yes")}</option>
+                  </select>
+                </Field>
+                <Field label={t("item.batchNumberSeries")}>
+                  <input className="ctl" value={form.batch_number_series}
+                    onChange={(e) => set("batch_number_series", e.target.value)}
+                    placeholder="e.g. BN-.####" />
+                </Field>
+              </>
+            )}
           </div>
         </Card>
       )}

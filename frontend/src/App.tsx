@@ -109,6 +109,22 @@ import PaymentTermsTemplateDetail from "./screens/payment-terms-template/Payment
 import PriceListList from "./screens/price-list/PriceListList";
 import PriceListForm from "./screens/price-list/PriceListForm";
 import PriceListDetail from "./screens/price-list/PriceListDetail";
+import SerialNoList from "./screens/serial-no/SerialNoList";
+import SerialNoDetail from "./screens/serial-no/SerialNoDetail";
+import BatchList from "./screens/batch/BatchList";
+import BatchDetail from "./screens/batch/BatchDetail";
+import LandedCostVoucherList from "./screens/landed-cost-voucher/LandedCostVoucherList";
+import LandedCostVoucherForm from "./screens/landed-cost-voucher/LandedCostVoucherForm";
+import LandedCostVoucherDetail from "./screens/landed-cost-voucher/LandedCostVoucherDetail";
+import PricingRuleList from "./screens/pricing-rule/PricingRuleList";
+import PricingRuleForm from "./screens/pricing-rule/PricingRuleForm";
+import PricingRuleDetail from "./screens/pricing-rule/PricingRuleDetail";
+import CustomerGroupList from "./screens/customer-group/CustomerGroupList";
+import CustomerGroupForm from "./screens/customer-group/CustomerGroupForm";
+import SupplierGroupList from "./screens/supplier-group/SupplierGroupList";
+import SupplierGroupForm from "./screens/supplier-group/SupplierGroupForm";
+import TerritoryList from "./screens/territory/TerritoryList";
+import TerritoryForm from "./screens/territory/TerritoryForm";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -253,6 +269,30 @@ export default function App() {
           <Route path="/price-lists/new" element={<PriceListForm />} />
           <Route path="/price-lists/:name/edit" element={<PriceListForm />} />
           <Route path="/price-lists/:name" element={<PriceListDetail />} />
+          <Route path="/serial-nos" element={<SerialNoList />} />
+          <Route path="/serial-nos/:name" element={<SerialNoDetail />} />
+          <Route path="/batches" element={<BatchList />} />
+          <Route path="/batches/:name" element={<BatchDetail />} />
+          <Route path="/landed-cost-vouchers" element={<LandedCostVoucherList />} />
+          <Route path="/landed-cost-vouchers/new" element={<LandedCostVoucherForm />} />
+          <Route path="/landed-cost-vouchers/:name/edit" element={<LandedCostVoucherForm />} />
+          <Route path="/landed-cost-vouchers/:name" element={<LandedCostVoucherDetail />} />
+          <Route path="/pricing-rules" element={<PricingRuleList />} />
+          <Route path="/pricing-rules/new" element={<PricingRuleForm />} />
+          <Route path="/pricing-rules/:name/edit" element={<PricingRuleForm />} />
+          <Route path="/pricing-rules/:name" element={<PricingRuleDetail />} />
+          <Route path="/customer-groups" element={<CustomerGroupList />} />
+          <Route path="/customer-groups/new" element={<CustomerGroupForm />} />
+          <Route path="/customer-groups/:name/edit" element={<CustomerGroupForm />} />
+          <Route path="/customer-groups/:name" element={<CustomerGroupForm />} />
+          <Route path="/supplier-groups" element={<SupplierGroupList />} />
+          <Route path="/supplier-groups/new" element={<SupplierGroupForm />} />
+          <Route path="/supplier-groups/:name/edit" element={<SupplierGroupForm />} />
+          <Route path="/supplier-groups/:name" element={<SupplierGroupForm />} />
+          <Route path="/territories" element={<TerritoryList />} />
+          <Route path="/territories/new" element={<TerritoryForm />} />
+          <Route path="/territories/:name/edit" element={<TerritoryForm />} />
+          <Route path="/territories/:name" element={<TerritoryForm />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

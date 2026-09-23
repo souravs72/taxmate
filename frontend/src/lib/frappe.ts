@@ -87,6 +87,12 @@ export const DT = {
   esrFiling: "UAE ESR Filing",
   uboRegister: "UAE UBO Register",
   lateFiling: "UAE Late Filing Notice",
+  serialNo: "Serial No",
+  batch: "Batch",
+  landedCostVoucher: "Landed Cost Voucher",
+  pricingRule: "Pricing Rule",
+  territory: "Territory",
+  stockLedgerEntry: "Stock Ledger Entry",
 } as const;
 
 /**

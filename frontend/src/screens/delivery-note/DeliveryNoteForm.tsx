@@ -18,7 +18,7 @@ import LinkField from "../../components/LinkField";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 
-type Line = { item_code: string; item_name?: string; uom?: string; qty: number; rate: number; warehouse?: string };
+type Line = { item_code: string; item_name?: string; uom?: string; qty: number; rate: number; warehouse?: string; batch_no?: string; serial_no?: string };
 type Party = {
   customer_address?: string;
   taxes_and_charges?: string;
@@ -79,6 +79,8 @@ export default function DeliveryNoteForm() {
             qty: Number(row.qty) || 1,
             rate: Number(row.rate) || 0,
             warehouse: (row as unknown as { warehouse?: string }).warehouse || d.set_warehouse || "",
+            batch_no: (row as unknown as { batch_no?: string }).batch_no || "",
+            serial_no: (row as unknown as { serial_no?: string }).serial_no || "",
           }))
         : [{ item_code: "", qty: 1, rate: 0 }],
     );
@@ -175,6 +177,8 @@ export default function DeliveryNoteForm() {
         rate: l.rate,
         uom: l.uom,
         warehouse: l.warehouse || warehouse || undefined,
+        batch_no: l.batch_no || undefined,
+        serial_no: l.serial_no || undefined,
       })),
     };
   }
@@ -279,6 +283,8 @@ export default function DeliveryNoteForm() {
                   <th className="n">{t("dn.qty")}</th>
                   <th className="n">{t("dn.rate")}</th>
                   <th className="n">{t("dn.amount")}</th>
+                  <th>{t("dn.batchNo")}</th>
+                  <th>{t("dn.serialNo")}</th>
                   <th />
                 </tr>
               </thead>
@@ -323,6 +329,14 @@ export default function DeliveryNoteForm() {
                     </td>
                     <td className="n" style={{ fontWeight: 600 }}>
                       {money(l.qty * l.rate)}
+                    </td>
+                    <td style={{ minWidth: 100 }}>
+                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
+                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, batch_no: e.target.value } : x))} />
+                    </td>
+                    <td style={{ minWidth: 100 }}>
+                      <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
+                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, serial_no: e.target.value } : x))} />
                     </td>
                     <td>
                       <button

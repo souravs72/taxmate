@@ -28,6 +28,8 @@ type Line = {
   basic_rate: number;
   s_warehouse: string;
   t_warehouse: string;
+  batch_no?: string;
+  serial_no?: string;
 };
 
 type CostLine = {
@@ -50,6 +52,8 @@ type Doc = {
     basic_rate?: number;
     s_warehouse?: string;
     t_warehouse?: string;
+    batch_no?: string;
+    serial_no?: string;
   }[];
   additional_costs?: { expense_account?: string; description?: string; amount?: number }[];
 };
@@ -57,7 +61,7 @@ type Doc = {
 const today = toIsoDate(new Date());
 
 function blankLine(): Line {
-  return { item_code: "", qty: 1, basic_rate: 0, s_warehouse: "", t_warehouse: "" };
+  return { item_code: "", qty: 1, basic_rate: 0, s_warehouse: "", t_warehouse: "", batch_no: "", serial_no: "" };
 }
 
 function blankCost(): CostLine {
@@ -101,6 +105,8 @@ export default function StockEntryForm() {
       basic_rate: Number(it.basic_rate) || 0,
       s_warehouse: it.s_warehouse || "",
       t_warehouse: it.t_warehouse || "",
+      batch_no: it.batch_no || "",
+      serial_no: it.serial_no || "",
     }));
     setLines(ls.length ? ls : [blankLine()]);
     const cs = (d.additional_costs ?? []).map((c: { expense_account?: string; description?: string; amount?: number }) => ({
@@ -152,6 +158,8 @@ export default function StockEntryForm() {
         basic_rate: needTgt && !needSrc ? l.basic_rate : undefined,
         s_warehouse: l.s_warehouse,
         t_warehouse: l.t_warehouse,
+        batch_no: l.batch_no || undefined,
+        serial_no: l.serial_no || undefined,
       })),
       additional_costs: costs.filter((c) => c.expense_account && c.amount).map((c) => ({
         expense_account: c.expense_account,
@@ -276,6 +284,8 @@ export default function StockEntryForm() {
                   {needTgt && !needSrc && <th className="n">{t("se.basicRate")}</th>}
                   {needSrc && <th>{t("se.warehouse.source")}</th>}
                   {needTgt && <th>{t("se.warehouse.target")}</th>}
+                  <th>{t("se.batchNo")}</th>
+                  <th>{t("se.serialNo")}</th>
                   <th />
                 </tr>
               </thead>
@@ -311,6 +321,14 @@ export default function StockEntryForm() {
                           value={l.t_warehouse} onChange={(v) => setLine(i, { t_warehouse: v })} />
                       </td>
                     )}
+                    <td style={{ minWidth: 120 }}>
+                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
+                        onChange={(e) => setLine(i, { batch_no: e.target.value })} />
+                    </td>
+                    <td style={{ minWidth: 120 }}>
+                      <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
+                        onChange={(e) => setLine(i, { serial_no: e.target.value })} />
+                    </td>
                     <td>
                       <button type="button" className="rm" aria-label={t("inv.remove")}
                         onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>

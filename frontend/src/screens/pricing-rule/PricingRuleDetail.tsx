@@ -1,0 +1,80 @@
+/**
+ * Pricing Rule detail. Route: /pricing-rules/:name
+ * API: useDoc on "Pricing Rule". Callers: App.tsx. Phase 9.
+ */
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { DT } from "../../lib/frappe";
+import { useDoc } from "../../lib/resource";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import { t } from "../../i18n/strings";
+import { Card, Loading, ErrorBox, PageHead } from "../../components/ui";
+
+type Doc = {
+  apply_on?: string;
+  item_code?: string;
+  item_group?: string;
+  brand?: string;
+  customer?: string;
+  min_qty?: number;
+  rate_or_discount?: string;
+  discount_percentage?: number;
+  discount_amount?: number;
+  rate?: number;
+  valid_from?: string;
+  valid_upto?: string;
+  priority?: number;
+  disable?: number;
+  company?: string;
+};
+
+export default function PricingRuleDetail() {
+  const { name = "" } = useParams();
+  const nav = useNavigate();
+  const session = useSession();
+  const doc = useDoc<Doc>(DT.pricingRule, name, name);
+
+  if (doc.isLoading) return <Loading />;
+  if (doc.error) return <ErrorBox error={doc.error} onRetry={() => doc.mutate()} />;
+  const d = doc.data ?? {};
+
+  return (
+    <>
+      <PageHead
+        title={name}
+        eyebrow={<Link to="/pricing-rules">{t("pr.title")}</Link>}
+        actions={
+          canWrite(session) ? (
+            <button type="button" className="btn" onClick={() => nav(`/pricing-rules/${encodeURIComponent(name)}/edit`)}>
+              {t("form.edit")}
+            </button>
+          ) : null
+        }
+      />
+      <Card num={1} title={t("pr.details")}>
+        <div className="fields">
+          <label>{t("pr.applyOn")}<span>{d.apply_on ?? ""}</span></label>
+          {d.item_code && <label>{t("pr.itemCode")}<span>{d.item_code}</span></label>}
+          {d.item_group && <label>{t("pr.itemGroup")}<span>{d.item_group}</span></label>}
+          {d.brand && <label>{t("pr.brand")}<span>{d.brand}</span></label>}
+          {d.customer && <label>{t("pr.customer")}<span>{d.customer}</span></label>}
+          <label>{t("pr.minQty")}<span>{d.min_qty ?? 0}</span></label>
+          <label>{t("pr.rateOrDiscount")}<span>{d.rate_or_discount ?? ""}</span></label>
+          {d.rate_or_discount === "Discount Percentage" && (
+            <label>{t("pr.discountPct")}<span>{d.discount_percentage ?? 0}%</span></label>
+          )}
+          {d.rate_or_discount === "Discount Amount" && (
+            <label>{t("pr.discountAmt")}<span>{d.discount_amount ?? 0}</span></label>
+          )}
+          {d.rate_or_discount === "Rate" && (
+            <label>{t("pr.rate")}<span>{d.rate ?? 0}</span></label>
+          )}
+          <label>{t("pr.validFrom")}<span>{d.valid_from ?? ""}</span></label>
+          <label>{t("pr.validUpto")}<span>{d.valid_upto ?? ""}</span></label>
+          <label>{t("pr.priority")}<span>{d.priority ?? 0}</span></label>
+          <label>{t("pr.col.active")}<span>{d.disable ? t("pr.disabled") : t("pr.enabled")}</span></label>
+        </div>
+      </Card>
+    </>
+  );
+}

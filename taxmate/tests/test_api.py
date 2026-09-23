@@ -1223,3 +1223,150 @@ class TestPhase5MultiUOM(FrappeTestCase):
 		self.assertIsNotNone(box_row)
 		self.assertAlmostEqual(float(box_row["conversion_factor"]), 12)
 		frappe.delete_doc("Item", doc["name"], force=True)
+
+
+class TestPhase6SerialBatchOnItem(FrappeTestCase):
+	"""Phase 6: has_serial_no / has_batch_no flags saved on Item."""
+
+	def test_item_serial_no_flag_insert(self):
+		"""Insert a serialised stock item and verify has_serial_no=1."""
+		uid = uuid.uuid4().hex[:8]
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		doc = insert(
+			{
+				"doctype": "Item",
+				"item_code": f"TM-SN-{uid}",
+				"item_name": f"TM Serial Test {uid}",
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"has_serial_no": 1,
+				"serial_no_series": f"SN-TM-{uid}-.####",
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item", doc["name"])
+		self.assertEqual(int(fetched.get("has_serial_no", 0)), 1)
+		frappe.delete_doc("Item", doc["name"], force=True)
+
+	def test_item_batch_flag_insert(self):
+		"""Insert a batched stock item and verify has_batch_no=1."""
+		uid = uuid.uuid4().hex[:8]
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		doc = insert(
+			{
+				"doctype": "Item",
+				"item_code": f"TM-BN-{uid}",
+				"item_name": f"TM Batch Test {uid}",
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"has_batch_no": 1,
+				"create_new_batch": 1,
+				"batch_number_series": f"BN-TM-{uid}-.####",
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item", doc["name"])
+		self.assertEqual(int(fetched.get("has_batch_no", 0)), 1)
+		frappe.delete_doc("Item", doc["name"], force=True)
+
+
+class TestPhase7SerialBatchMasters(FrappeTestCase):
+	"""Phase 7: Serial No and Batch are catalogued and listable."""
+
+	def test_serial_no_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Serial No"))
+
+	def test_batch_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Batch"))
+
+	def test_serial_no_get_list(self):
+		rows = get_list("Serial No", fields=["name", "item_code"], limit=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_batch_get_list(self):
+		rows = get_list("Batch", fields=["name", "item"], limit=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase8LandedCostVoucher(FrappeTestCase):
+	"""Phase 8: Landed Cost Voucher is catalogued and insertable."""
+
+	def test_lcv_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Landed Cost Voucher"))
+
+	def test_lcv_get_list(self):
+		rows = get_list("Landed Cost Voucher", fields=["name", "posting_date"], limit=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase9PricingRule(FrappeTestCase):
+	"""Phase 9: Pricing Rule is catalogued and insertable."""
+
+	def test_pricing_rule_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Pricing Rule"))
+
+	def test_pricing_rule_get_list(self):
+		rows = get_list("Pricing Rule", fields=["name", "title", "apply_on", "disable"], limit=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_pricing_rule_insert(self):
+		"""Insert a discount-on-item pricing rule and verify it is retrievable."""
+		uid = uuid.uuid4().hex[:8]
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1}, "name")
+		if not item:
+			self.skipTest("No sales item available")
+		doc = insert(
+			{
+				"doctype": "Pricing Rule",
+				"title": f"TM PR Test {uid}",
+				"apply_on": "Item Code",
+				"price_or_product_discount": "Price",
+				"selling": 1,
+				"buying": 0,
+				"rate_or_discount": "Discount Percentage",
+				"discount_percentage": 10,
+				"items": [{"item_code": item}],
+				"min_qty": 0,
+				"max_qty": 0,
+				"priority": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Pricing Rule", doc["name"])
+		self.assertAlmostEqual(float(fetched.get("discount_percentage", 0)), 10)
+		frappe.delete_doc("Pricing Rule", doc["name"], force=True)
+
+
+class TestPhase10PartyGeoMasters(FrappeTestCase):
+	"""Phase 10: Customer Group, Supplier Group, Territory are catalogued."""
+
+	def test_customer_group_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Customer Group"))
+
+	def test_supplier_group_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Supplier Group"))
+
+	def test_territory_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Territory"))
+
+	def test_customer_group_get_list(self):
+		rows = get_list("Customer Group", fields=["name", "is_group", "parent_customer_group"], limit=20, filters=[])
+		self.assertIsInstance(rows, list)
+		self.assertTrue(len(rows) > 0, "Expected at least one Customer Group")
+
+	def test_supplier_group_get_list(self):
+		rows = get_list("Supplier Group", fields=["name", "is_group", "parent_supplier_group"], limit=20, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_territory_get_list(self):
+		rows = get_list("Territory", fields=["name", "is_group", "parent_territory"], limit=20, filters=[])
+		self.assertIsInstance(rows, list)

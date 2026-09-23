@@ -50,6 +50,13 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Mode of Payment": "/modes-of-payment/{name}",
 	"Payment Terms Template": "/payment-terms-templates/{name}",
 	"Price List": "/price-lists/{name}",
+	"Serial No": "/serial-nos/{name}",
+	"Batch": "/batches/{name}",
+	"Landed Cost Voucher": "/landed-cost-vouchers/{name}",
+	"Pricing Rule": "/pricing-rules/{name}",
+	"Customer Group": "/customer-groups/{name}",
+	"Supplier Group": "/supplier-groups/{name}",
+	"Territory": "/territories/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -85,6 +92,13 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Mode of Payment": "/modes-of-payment",
 	"Payment Terms Template": "/payment-terms-templates",
 	"Price List": "/price-lists",
+	"Serial No": "/serial-nos",
+	"Batch": "/batches",
+	"Landed Cost Voucher": "/landed-cost-vouchers",
+	"Pricing Rule": "/pricing-rules",
+	"Customer Group": "/customer-groups",
+	"Supplier Group": "/supplier-groups",
+	"Territory": "/territories",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -160,6 +174,13 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Modes of Payment", "route": "/modes-of-payment", "keywords": "mode of payment cash bank general payment method"},
 	{"label": "Payment Terms Templates", "route": "/payment-terms-templates", "keywords": "payment terms template net 30 days due date credit period"},
 	{"label": "Price Lists", "route": "/price-lists", "keywords": "price list selling buying rate currency standard"},
+	{"label": "Serial Numbers", "route": "/serial-nos", "keywords": "serial no number serialised traceable lot"},
+	{"label": "Batches", "route": "/batches", "keywords": "batch lot expiry manufacturing date"},
+	{"label": "Landed Cost Vouchers", "route": "/landed-cost-vouchers", "keywords": "landed cost voucher lcv freight customs duty charges allocation"},
+	{"label": "Pricing Rules", "route": "/pricing-rules", "keywords": "pricing rule discount rate promotion item customer brand"},
+	{"label": "Customer Groups", "route": "/customer-groups", "keywords": "customer group category classification party"},
+	{"label": "Supplier Groups", "route": "/supplier-groups", "keywords": "supplier group vendor category classification"},
+	{"label": "Territories", "route": "/territories", "keywords": "territory region zone sales area geography"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)

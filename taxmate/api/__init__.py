@@ -52,6 +52,11 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Stock Reconciliation",
 	"Material Request",
 	"Quotation",
+	"Serial No",
+	"Batch",
+	"Landed Cost Voucher",
+	"Pricing Rule",
+	"Stock Ledger Entry",
 )
 
 # Existing TaxMate whitelist methods (not re-wrapped).

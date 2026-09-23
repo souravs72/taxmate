@@ -18,7 +18,7 @@ import LinkField from "../../components/LinkField";
 const PURPOSES = ["Opening Stock", "Stock Reconciliation"] as const;
 type Purpose = (typeof PURPOSES)[number];
 
-type Line = { item_code: string; warehouse: string; qty: number; valuation_rate: number; };
+type Line = { item_code: string; warehouse: string; qty: number; valuation_rate: number; batch_no?: string; };
 type Doc = {
   name: string; purpose?: string; posting_date?: string; docstatus?: number;
   difference_account?: string;
@@ -26,7 +26,7 @@ type Doc = {
 };
 
 const today = toIsoDate(new Date());
-const blank = (): Line => ({ item_code: "", warehouse: "", qty: 1, valuation_rate: 0 });
+const blank = (): Line => ({ item_code: "", warehouse: "", qty: 1, valuation_rate: 0, batch_no: "" });
 
 export default function StockReconciliationForm() {
   const { name = "new" } = useParams();
@@ -60,6 +60,7 @@ export default function StockReconciliationForm() {
       warehouse: it.warehouse || "",
       qty: Number(it.qty) || 1,
       valuation_rate: Number(it.valuation_rate) || 0,
+      batch_no: (it as unknown as { batch_no?: string }).batch_no || "",
     }));
     setLines(ls.length ? ls : [blank()]);
   }, [existing.data]);
@@ -92,6 +93,7 @@ export default function StockReconciliationForm() {
           warehouse: l.warehouse,
           qty: l.qty,
           valuation_rate: l.valuation_rate,
+          batch_no: l.batch_no || undefined,
         })),
       };
       const docname = isNew
@@ -182,6 +184,7 @@ export default function StockReconciliationForm() {
                   <th>{t("sr.warehouse")}</th>
                   <th className="n">{t("sr.qty")}</th>
                   <th className="n">{t("sr.rate")}</th>
+                  <th>{t("sr.batchNo")}</th>
                   <th />
                 </tr>
               </thead>
@@ -206,6 +209,10 @@ export default function StockReconciliationForm() {
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 100 }} value={l.valuation_rate}
                         onChange={(e) => setLine(i, { valuation_rate: parseNum(e.target.value) })} />
+                    </td>
+                    <td style={{ minWidth: 100 }}>
+                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
+                        onChange={(e) => setLine(i, { batch_no: e.target.value })} />
                     </td>
                     <td>
                       <button type="button" className="rm" aria-label={t("inv.remove")}
