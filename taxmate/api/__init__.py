@@ -57,6 +57,10 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Landed Cost Voucher",
 	"Pricing Rule",
 	"Stock Ledger Entry",
+	"Supplier Quotation",
+	"Lead",
+	"BOM",
+	"Work Order",
 )
 
 # Existing TaxMate whitelist methods (not re-wrapped).
@@ -211,6 +215,8 @@ def get_catalog() -> dict[str, Any]:
 				"method": "taxmate.api.bank_reconciliation.get_uncleared_transactions",
 			},
 			{"name": "mark_cleared", "method": "taxmate.api.bank_reconciliation.mark_cleared"},
+			{"name": "make_supplier_quotation_po", "method": "taxmate.api.supplier_quotation.make_purchase_order"},
+			{"name": "convert_lead_to_customer", "method": "taxmate.api.lead.convert_to_customer"},
 			{"name": "awesome_search", "method": "taxmate.api.search.awesome"},
 			{"name": "list_users", "method": "taxmate.api.users.list_users"},
 			{"name": "invite_user", "method": "taxmate.api.users.invite_user"},

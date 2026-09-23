@@ -97,6 +97,13 @@ export const DT = {
   itemTaxTemplate: "Item Tax Template",
   fiscalYear: "Fiscal Year",
   termsAndConditions: "Terms and Conditions",
+  supplierQuotation: "Supplier Quotation",
+  lead: "Lead",
+  bom: "BOM",
+  workOrder: "Work Order",
+  posInvoice: "POS Invoice",
+  posProfile: "POS Profile",
+  loyaltyProgram: "Loyalty Program",
 } as const;
 
 /**
@@ -165,6 +172,8 @@ export const METHOD = {
   changePassword: "taxmate.api.users.change_password",
   getUnclearedTransactions: "taxmate.api.bank_reconciliation.get_uncleared_transactions",
   markCleared: "taxmate.api.bank_reconciliation.mark_cleared",
+  makeSupplierQuotationPO: "taxmate.api.supplier_quotation.make_purchase_order",
+  convertLeadToCustomer: "taxmate.api.lead.convert_to_customer",
 } as const;
 
 /** Frappe error payloads are HTML and often several messages joined by <br>. */

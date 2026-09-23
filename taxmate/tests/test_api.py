@@ -1414,3 +1414,63 @@ class TestPhase11BankReconciliation(FrappeTestCase):
 	def test_terms_and_conditions_allowed(self):
 		from taxmate.api.resource import is_allowed_doctype
 		self.assertTrue(is_allowed_doctype("Terms and Conditions"))
+
+
+class TestPhase16SupplierQuotation(FrappeTestCase):
+	"""Phase 16: Supplier Quotation catalogued and API."""
+
+	def test_supplier_quotation_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Supplier Quotation"))
+
+	def test_supplier_quotation_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("Supplier Quotation", fields=["name", "supplier", "status"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_make_supplier_quotation_po_catalogued(self):
+		from taxmate.api import get_catalog
+		catalog = get_catalog()
+		methods = {a["name"] for a in catalog.get("actions", [])}
+		self.assertIn("make_supplier_quotation_po", methods)
+
+
+class TestPhase18BomWorkOrder(FrappeTestCase):
+	"""Phase 18: BOM and Work Order lifted from denied search."""
+
+	def test_bom_not_denied(self):
+		from taxmate.search import DENIED_SEARCH_DOCTYPES
+		self.assertNotIn("BOM", DENIED_SEARCH_DOCTYPES)
+
+	def test_work_order_not_denied(self):
+		from taxmate.search import DENIED_SEARCH_DOCTYPES
+		self.assertNotIn("Work Order", DENIED_SEARCH_DOCTYPES)
+
+	def test_bom_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("BOM", fields=["name", "item"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_work_order_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("Work Order", fields=["name", "production_item", "status"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase21Lead(FrappeTestCase):
+	"""Phase 21: Lead lifted from denied search; convert_to_customer catalogued."""
+
+	def test_lead_not_denied(self):
+		from taxmate.search import DENIED_SEARCH_DOCTYPES
+		self.assertNotIn("Lead", DENIED_SEARCH_DOCTYPES)
+
+	def test_lead_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("Lead", fields=["name", "lead_name", "status"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_convert_lead_to_customer_catalogued(self):
+		from taxmate.api import get_catalog
+		catalog = get_catalog()
+		methods = {a["name"] for a in catalog.get("actions", [])}
+		self.assertIn("convert_lead_to_customer", methods)

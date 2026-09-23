@@ -142,6 +142,18 @@ import AccountForm from "./screens/account/AccountForm";
 import BankReconciliation from "./screens/bank-reconciliation/BankReconciliation";
 import TermsAndConditionsList from "./screens/terms/TermsAndConditionsList";
 import TermsAndConditionsForm from "./screens/terms/TermsAndConditionsForm";
+import SupplierQuotationList from "./screens/supplier-quotation/SupplierQuotationList";
+import SupplierQuotationForm from "./screens/supplier-quotation/SupplierQuotationForm";
+import SupplierQuotationDetail from "./screens/supplier-quotation/SupplierQuotationDetail";
+import BomList from "./screens/bom/BomList";
+import BomForm from "./screens/bom/BomForm";
+import BomDetail from "./screens/bom/BomDetail";
+import WorkOrderList from "./screens/work-order/WorkOrderList";
+import WorkOrderForm from "./screens/work-order/WorkOrderForm";
+import WorkOrderDetail from "./screens/work-order/WorkOrderDetail";
+import LeadList from "./screens/lead/LeadList";
+import LeadForm from "./screens/lead/LeadForm";
+import LeadDetail from "./screens/lead/LeadDetail";
 import NotFound from "./screens/NotFound";
 
 export default function App() {
@@ -336,6 +348,25 @@ export default function App() {
           <Route path="/terms-and-conditions/new" element={<TermsAndConditionsForm />} />
           <Route path="/terms-and-conditions/:name/edit" element={<TermsAndConditionsForm />} />
           <Route path="/terms-and-conditions/:name" element={<TermsAndConditionsForm />} />
+          {/* Phase 16: Supplier Quotation */}
+          <Route path="/supplier-quotations" element={<SupplierQuotationList />} />
+          <Route path="/supplier-quotations/new" element={<SupplierQuotationForm />} />
+          <Route path="/supplier-quotations/:name/edit" element={<SupplierQuotationForm />} />
+          <Route path="/supplier-quotations/:name" element={<SupplierQuotationDetail />} />
+          {/* Phase 18: BOM + Work Order */}
+          <Route path="/boms" element={<BomList />} />
+          <Route path="/boms/new" element={<BomForm />} />
+          <Route path="/boms/:name/edit" element={<BomForm />} />
+          <Route path="/boms/:name" element={<BomDetail />} />
+          <Route path="/work-orders" element={<WorkOrderList />} />
+          <Route path="/work-orders/new" element={<WorkOrderForm />} />
+          <Route path="/work-orders/:name/edit" element={<WorkOrderForm />} />
+          <Route path="/work-orders/:name" element={<WorkOrderDetail />} />
+          {/* Phase 21: Lead */}
+          <Route path="/leads" element={<LeadList />} />
+          <Route path="/leads/new" element={<LeadForm />} />
+          <Route path="/leads/:name/edit" element={<LeadForm />} />
+          <Route path="/leads/:name" element={<LeadDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

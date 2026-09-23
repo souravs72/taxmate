@@ -64,6 +64,10 @@ _SPA_DOC_ROUTES: dict[str, str] = {
 	"Contact": "/contacts/{name}",
 	"Fiscal Year": "/fiscal-years/{name}",
 	"Terms and Conditions": "/terms-and-conditions/{name}",
+	"Supplier Quotation": "/supplier-quotations/{name}",
+	"Lead": "/leads/{name}",
+	"BOM": "/boms/{name}",
+	"Work Order": "/work-orders/{name}",
 }
 
 _SPA_LIST_ROUTES: dict[str, str] = {
@@ -113,6 +117,10 @@ _SPA_LIST_ROUTES: dict[str, str] = {
 	"Contact": "/contacts",
 	"Fiscal Year": "/fiscal-years",
 	"Terms and Conditions": "/terms-and-conditions",
+	"Supplier Quotation": "/supplier-quotations",
+	"Lead": "/leads",
+	"BOM": "/boms",
+	"Work Order": "/work-orders",
 }
 
 # In-app pages (AwesomeBar “pages” feel) — SPA routes only.
@@ -208,6 +216,13 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Bank Reconciliation", "route": "/bank-reconciliation", "keywords": "bank reconciliation statement clearance uncleared"},
 	# Phase 15
 	{"label": "Terms and Conditions", "route": "/terms-and-conditions", "keywords": "terms conditions sales note template payment"},
+	# Phase 16
+	{"label": "Supplier Quotations", "route": "/supplier-quotations", "keywords": "supplier quotation rfq request for quotation vendor price"},
+	# Phase 17/18
+	{"label": "BOMs", "route": "/boms", "keywords": "bill of materials bom manufacturing component"},
+	{"label": "Work Orders", "route": "/work-orders", "keywords": "work order manufacture production job"},
+	# Phase 21
+	{"label": "Leads", "route": "/leads", "keywords": "lead prospect crm potential customer sales inquiry"},
 )
 
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)
