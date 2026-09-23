@@ -13,12 +13,18 @@ export const SPA_ROLES: SpaRole[] = ["owner", "accountant", "clerk", "viewer"];
  * a provider because the client's own owner would have been assigned
  * `TaxMate Owner`.
  */
-export function isAppProvider(session: { spa_role?: string; roles?: string[] } | undefined): boolean {
+export function isAppProvider(session: {
+  spa_role?: string;
+  roles?: string[];
+  user?: string;
+} | undefined): boolean {
+  // Frappe boot user "Administrator" is TaxMate (the SaaS provider), not a client.
+  if (session?.user === "Administrator") return true;
   const roles = session?.roles ?? [];
-  if (roles.includes("Administrator")) return true;
   const hasTaxMateRole = roles.some((r) =>
     ["TaxMate Owner", "TaxMate Accountant", "TaxMate Clerk", "TaxMate Viewer"].includes(r),
   );
+  // System Manager without a TaxMate marker = provider staff, not client Owner.
   if (roles.includes("System Manager") && !hasTaxMateRole) return true;
   return false;
 }
