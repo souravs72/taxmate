@@ -42,7 +42,7 @@ export default function PricingRuleDetail() {
     <>
       <PageHead
         title={name}
-        eyebrow={<Link to="/pricing-rules">{t("pr.title")}</Link>}
+        eyebrow={<Link to="/pricing-rules">{t("prule.title")}</Link>}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav(`/pricing-rules/${encodeURIComponent(name)}/edit`)}>
@@ -51,28 +51,28 @@ export default function PricingRuleDetail() {
           ) : null
         }
       />
-      <Card num={1} title={t("pr.details")}>
+      <Card num={1} title={t("prule.details")}>
         <div className="fields">
-          <label>{t("pr.applyOn")}<span>{d.apply_on ?? ""}</span></label>
-          {d.item_code && <label>{t("pr.itemCode")}<span>{d.item_code}</span></label>}
-          {d.item_group && <label>{t("pr.itemGroup")}<span>{d.item_group}</span></label>}
-          {d.brand && <label>{t("pr.brand")}<span>{d.brand}</span></label>}
-          {d.customer && <label>{t("pr.customer")}<span>{d.customer}</span></label>}
-          <label>{t("pr.minQty")}<span>{d.min_qty ?? 0}</span></label>
-          <label>{t("pr.rateOrDiscount")}<span>{d.rate_or_discount ?? ""}</span></label>
+          <label>{t("prule.applyOn")}<span>{d.apply_on ?? ""}</span></label>
+          {d.item_code && <label>{t("prule.itemCode")}<span>{d.item_code}</span></label>}
+          {d.item_group && <label>{t("prule.itemGroup")}<span>{d.item_group}</span></label>}
+          {d.brand && <label>{t("prule.brand")}<span>{d.brand}</span></label>}
+          {d.customer && <label>{t("prule.customer")}<span>{d.customer}</span></label>}
+          <label>{t("prule.minQty")}<span>{d.min_qty ?? 0}</span></label>
+          <label>{t("prule.rateOrDiscount")}<span>{d.rate_or_discount ?? ""}</span></label>
           {d.rate_or_discount === "Discount Percentage" && (
-            <label>{t("pr.discountPct")}<span>{d.discount_percentage ?? 0}%</span></label>
+            <label>{t("prule.discountPct")}<span>{d.discount_percentage ?? 0}%</span></label>
           )}
           {d.rate_or_discount === "Discount Amount" && (
-            <label>{t("pr.discountAmt")}<span>{d.discount_amount ?? 0}</span></label>
+            <label>{t("prule.discountAmt")}<span>{d.discount_amount ?? 0}</span></label>
           )}
           {d.rate_or_discount === "Rate" && (
-            <label>{t("pr.rate")}<span>{d.rate ?? 0}</span></label>
+            <label>{t("prule.rate")}<span>{d.rate ?? 0}</span></label>
           )}
-          <label>{t("pr.validFrom")}<span>{d.valid_from ?? ""}</span></label>
-          <label>{t("pr.validUpto")}<span>{d.valid_upto ?? ""}</span></label>
-          <label>{t("pr.priority")}<span>{d.priority ?? 0}</span></label>
-          <label>{t("pr.col.active")}<span>{d.disable ? t("pr.disabled") : t("pr.enabled")}</span></label>
+          <label>{t("prule.validFrom")}<span>{d.valid_from ?? ""}</span></label>
+          <label>{t("prule.validUpto")}<span>{d.valid_upto ?? ""}</span></label>
+          <label>{t("prule.priority")}<span>{d.priority ?? 0}</span></label>
+          <label>{t("prule.col.active")}<span>{d.disable ? t("prule.disabled") : t("prule.enabled")}</span></label>
         </div>
       </Card>
     </>

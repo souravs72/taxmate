@@ -85,8 +85,8 @@ export default function PricingRuleForm() {
   }, [existing.data]);
 
   const checks = useMemo(() => [
-    { label: t("pr.check.applyOn"), ok: !!applyOn },
-    { label: t("pr.check.target"), ok: applyOn === "Item Code" ? !!itemCode : applyOn === "Item Group" ? !!itemGroup : !!brand },
+    { label: t("prule.check.applyOn"), ok: !!applyOn },
+    { label: t("prule.check.target"), ok: applyOn === "Item Code" ? !!itemCode : applyOn === "Item Group" ? !!itemGroup : !!brand },
   ], [applyOn, itemCode, itemGroup, brand]);
 
   const ready = checks.every((c) => c.ok);
@@ -132,7 +132,7 @@ export default function PricingRuleForm() {
   return (
     <>
       <PageHead
-        title={isNew ? t("pr.new") : name}
+        title={isNew ? t("prule.new") : name}
         actions={
           <>
             <button type="button" className="btn ghost" disabled={busy} onClick={() => nav(-1)}>{t("form.cancel")}</button>
@@ -143,83 +143,83 @@ export default function PricingRuleForm() {
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <ReadinessCard checks={checks} />
-        <Card num={1} title={t("pr.details")}>
+        <Card num={1} title={t("prule.details")}>
           <div className="fields">
-            <Field label={t("pr.applyOn")} required htmlFor="pr-apply">
+            <Field label={t("prule.applyOn")} required htmlFor="pr-apply">
               <select id="pr-apply" className="ctl" value={applyOn} onChange={(e) => setApplyOn(e.target.value)}>
                 {APPLY_ON_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </Field>
             {applyOn === "Item Code" && (
-              <Field label={t("pr.itemCode")} required>
+              <Field label={t("prule.itemCode")} required>
                 <LinkField doctype={DT.item} value={itemCode} onChange={setItemCode} />
               </Field>
             )}
             {applyOn === "Item Group" && (
-              <Field label={t("pr.itemGroup")} required>
+              <Field label={t("prule.itemGroup")} required>
                 <LinkField doctype={DT.itemGroup} value={itemGroup} onChange={setItemGroup} />
               </Field>
             )}
             {applyOn === "Brand" && (
-              <Field label={t("pr.brand")} required>
+              <Field label={t("prule.brand")} required>
                 <input className="ctl" value={brand} onChange={(e) => setBrand(e.target.value)} />
               </Field>
             )}
-            <Field label={t("pr.customer")}>
+            <Field label={t("prule.customer")}>
               <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} />
             </Field>
-            <Field label={t("pr.minQty")} htmlFor="pr-minqty">
+            <Field label={t("prule.minQty")} htmlFor="pr-minqty">
               <input id="pr-minqty" className="ctl nn" type="number" min={0} value={minQty}
                 onChange={(e) => setMinQty(parseNum(e.target.value))} />
             </Field>
           </div>
         </Card>
-        <Card num={2} title={t("pr.discount")}>
+        <Card num={2} title={t("prule.discount")}>
           <div className="fields">
-            <Field label={t("pr.rateOrDiscount")} htmlFor="pr-rod">
+            <Field label={t("prule.rateOrDiscount")} htmlFor="pr-rod">
               <select id="pr-rod" className="ctl" value={rateOrDiscount} onChange={(e) => setRateOrDiscount(e.target.value)}>
                 {RATE_DISCOUNT_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
               </select>
             </Field>
             {rateOrDiscount === "Discount Percentage" && (
-              <Field label={t("pr.discountPct")} htmlFor="pr-dpct">
+              <Field label={t("prule.discountPct")} htmlFor="pr-dpct">
                 <input id="pr-dpct" className="ctl nn" type="number" min={0} max={100} value={discountPct}
                   onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
               </Field>
             )}
             {rateOrDiscount === "Discount Amount" && (
-              <Field label={t("pr.discountAmt")} htmlFor="pr-damt">
+              <Field label={t("prule.discountAmt")} htmlFor="pr-damt">
                 <input id="pr-damt" className="ctl nn" type="number" min={0} value={discountAmt}
                   onChange={(e) => setDiscountAmt(parseNum(e.target.value))} />
               </Field>
             )}
             {rateOrDiscount === "Rate" && (
-              <Field label={t("pr.rate")} htmlFor="pr-rate">
+              <Field label={t("prule.rate")} htmlFor="pr-rate">
                 <input id="pr-rate" className="ctl nn" type="number" min={0} value={rate}
                   onChange={(e) => setRate(parseNum(e.target.value))} />
               </Field>
             )}
           </div>
         </Card>
-        <Card num={3} title={t("pr.validity")}>
+        <Card num={3} title={t("prule.validity")}>
           <div className="fields">
-            <Field label={t("pr.validFrom")} htmlFor="pr-vfrom">
+            <Field label={t("prule.validFrom")} htmlFor="pr-vfrom">
               <input id="pr-vfrom" className="ctl" type="date" value={validFrom}
                 onChange={(e) => setValidFrom(e.target.value)} />
             </Field>
-            <Field label={t("pr.validUpto")} htmlFor="pr-vupto">
+            <Field label={t("prule.validUpto")} htmlFor="pr-vupto">
               <input id="pr-vupto" className="ctl" type="date" value={validUpto}
                 onChange={(e) => setValidUpto(e.target.value)} />
             </Field>
-            <Field label={t("pr.priority")} htmlFor="pr-prio">
+            <Field label={t("prule.priority")} htmlFor="pr-prio">
               <input id="pr-prio" className="ctl nn" type="number" min={1} value={priority}
                 onChange={(e) => setPriority(parseNum(e.target.value))} />
             </Field>
-            <Field label={t("pr.disable")}>
+            <Field label={t("prule.disable")}>
               <label className="toggle">
                 <input type="checkbox" checked={disable === 1}
                   onChange={(e) => setDisable(e.target.checked ? 1 : 0)} />
-                {t("pr.disable")}
+                {t("prule.disable")}
               </label>
             </Field>
           </div>

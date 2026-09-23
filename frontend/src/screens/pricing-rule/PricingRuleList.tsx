@@ -36,29 +36,29 @@ export default function PricingRuleList() {
   const count = useDocCount(DT.pricingRule, filters as never);
 
   const columns: Column<Row>[] = [
-    { key: "name", header: t("pr.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "apply_on", header: t("pr.col.applyOn"), cell: (r) => r.apply_on ?? "" },
-    { key: "item_code", header: t("pr.col.item"), cell: (r) => r.item_code || r.item_group || "" },
-    { key: "discount_percentage", header: t("pr.col.discount"), cell: (r) => r.discount_percentage != null ? `${r.discount_percentage}%` : "" },
-    { key: "priority", header: t("pr.col.priority"), cell: (r) => String(r.priority ?? "") },
-    { key: "disable", header: t("pr.col.active"), cell: (r) => r.disable ? t("pr.disabled") : t("pr.enabled") },
+    { key: "name", header: t("prule.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
+    { key: "apply_on", header: t("prule.col.applyOn"), cell: (r) => r.apply_on ?? "" },
+    { key: "item_code", header: t("prule.col.item"), cell: (r) => r.item_code || r.item_group || "" },
+    { key: "discount_percentage", header: t("prule.col.discount"), cell: (r) => r.discount_percentage != null ? `${r.discount_percentage}%` : "" },
+    { key: "priority", header: t("prule.col.priority"), cell: (r) => String(r.priority ?? "") },
+    { key: "disable", header: t("prule.col.active"), cell: (r) => r.disable ? t("prule.disabled") : t("prule.enabled") },
   ];
 
   return (
     <>
       <PageHead
-        title={t("pr.title")}
+        title={t("prule.title")}
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/pricing-rules/new")}>
-              {t("pr.new")}
+              {t("prule.new")}
             </button>
           ) : null
         }
       />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
-          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("pr.search")} />
+          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("prule.search")} />
         </FilterBar>
         {list.isLoading ? (
           <Loading />
@@ -68,7 +68,7 @@ export default function PricingRuleList() {
             rowKey={(r) => r.name}
             onOpen={(r) => nav(`/pricing-rules/${encodeURIComponent(r.name)}`)}
             state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-            emptyLabel={t("pr.empty")}
+            emptyLabel={t("prule.empty")}
             columns={columns}
           />
         )}
