@@ -10,12 +10,19 @@ import { useListParams } from "../../lib/list";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
+import { money } from "../../lib/format";
 import { Card, Loading, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 
 const PAGE = 30;
-type Row = { name: string; posting_date?: string; grand_total?: number; docstatus?: number };
+/** LCV has no grand_total; charges roll up on total_taxes_and_charges. */
+type Row = {
+  name: string;
+  posting_date?: string;
+  total_taxes_and_charges?: number;
+  docstatus?: number;
+};
 
 export default function LandedCostVoucherList() {
   const nav = useNavigate();
@@ -28,7 +35,7 @@ export default function LandedCostVoucherList() {
   if (q.trim()) filters.push(["name", "like", `%${q.trim()}%`]);
 
   const list = useDocList<Row>(DT.landedCostVoucher, {
-    fields: ["name", "posting_date", "grand_total", "docstatus"],
+    fields: ["name", "posting_date", "total_taxes_and_charges", "docstatus"],
     filters: filters as never,
     orderBy: { field: "posting_date", order: "desc" },
     limit: PAGE,
@@ -39,7 +46,11 @@ export default function LandedCostVoucherList() {
   const columns: Column<Row>[] = [
     { key: "name", header: t("lcv.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
     { key: "posting_date", header: t("lcv.col.date"), cell: (r) => r.posting_date ?? "" },
-    { key: "grand_total", header: t("lcv.col.total"), cell: (r) => String(r.grand_total ?? "") },
+    {
+      key: "total",
+      header: t("lcv.col.total"),
+      cell: (r) => money(r.total_taxes_and_charges),
+    },
     { key: "docstatus", header: t("lcv.col.status"), cell: (r) => {
       const cls = r.docstatus === 1 ? "p-submitted" : r.docstatus === 2 ? "p-cancelled" : "p-draft";
       const lbl = r.docstatus === 1 ? "Submitted" : r.docstatus === 2 ? "Cancelled" : "Draft";

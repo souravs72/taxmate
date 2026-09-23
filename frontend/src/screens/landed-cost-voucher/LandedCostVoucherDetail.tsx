@@ -77,7 +77,7 @@ export default function LandedCostVoucherDetail() {
         <div className="fields">
           <label>{t("lcv.col.date")}<span>{String(d.posting_date ?? "")}</span></label>
           <label>{t("lcv.distributeOn")}<span>{String(d.distribute_charges_based_on ?? "")}</span></label>
-          <label>{t("lcv.col.total")}<span>{money(Number(d.grand_total ?? 0))}</span></label>
+          <label>{t("lcv.col.total")}<span>{money(Number(d.total_taxes_and_charges ?? 0))}</span></label>
         </div>
       </Card>
       <Card num={2} title={t("lcv.receipts")}>

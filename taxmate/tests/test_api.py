@@ -1300,7 +1300,13 @@ class TestPhase8LandedCostVoucher(FrappeTestCase):
 		self.assertTrue(is_allowed_doctype("Landed Cost Voucher"))
 
 	def test_lcv_get_list(self):
-		rows = get_list("Landed Cost Voucher", fields=["name", "posting_date"], limit_page_length=5, filters=[])
+		# LCV has total_taxes_and_charges, not grand_total (SPA list uses this field).
+		rows = get_list(
+			"Landed Cost Voucher",
+			fields=["name", "posting_date", "total_taxes_and_charges", "docstatus"],
+			limit_page_length=5,
+			filters=[],
+		)
 		self.assertIsInstance(rows, list)
 
 
