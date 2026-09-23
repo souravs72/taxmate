@@ -150,6 +150,7 @@ export function navIcon(to: string): ReactNode {
     case "/loyalty-point-entries": return ico(Award);
     case "/assets": return ico(Boxes);
     case "/asset-categories": return ico(FolderTree);
+    case "/company": return ico(Settings);
     case "/team": return ico(Users);
     default: return ico(CircleDot);
   }

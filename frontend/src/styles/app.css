@@ -24,10 +24,12 @@ svg{display:block}
 
 .rail{
   background:var(--surface); border-inline-end:1px solid var(--border);
-  padding:14px 12px; display:flex; flex-direction:column; gap:2px;
-  position:sticky; top:env(safe-area-inset-top, 0px); align-self:start;
-  max-height:100vh; overflow-y:auto; overflow-x:hidden;
+  padding:0; display:flex; flex-direction:column;
+  position:sticky; top:env(safe-area-inset-top, 0px); height:100dvh;
+  overflow:hidden; flex:none;
 }
+.rbrand{padding:14px 12px 10px; flex:none}
+.rail-body{flex:1; overflow-y:auto; overflow-x:hidden; padding:0 12px 14px; display:flex; flex-direction:column; gap:2px; min-height:0}
 @media (max-width:900px){
   .rail{flex-direction:row; overflow-x:auto; padding:10px 12px; gap:6px; align-items:center; border-inline-end:0; border-block-end:1px solid var(--border)}
   .rail .rsec,.rail .rfoot{display:none}
@@ -532,3 +534,33 @@ td.pick{width:38px; padding-inline-end:0}
 .rpt-sheet .rpt-open:hover td{background:var(--hover)}
 .rpt-sheet .rpt-open:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
 .rpt-sheet td:first-child{white-space:normal; max-width:360px}
+
+/* ── User menu (top-right avatar + dropdown) ─────────────────────────── */
+.umwrap{position:relative}
+.umavbtn{
+  width:34px; height:34px; border-radius:50%; border:2px solid var(--border-2);
+  background:var(--brand-soft); color:var(--brand);
+  display:grid; place-items:center; font-size:12px; font-weight:700; cursor:pointer;
+  transition:border-color .15s;
+}
+.umavbtn:hover,.umavbtn[aria-expanded="true"]{border-color:var(--brand)}
+.umdrop{
+  position:absolute; inset-inline-end:0; top:calc(100% + 8px); min-width:200px;
+  background:var(--surface); border:1px solid var(--border-2);
+  border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,.18);
+  padding:6px; z-index:50; display:flex; flex-direction:column; gap:1px;
+}
+.umdrop-header{padding:10px 12px 8px; border-block-end:1px solid var(--border); margin-block-end:4px}
+.umdrop-name{font-size:13px; font-weight:600; color:var(--text); display:block}
+.umdrop-role{font-size:11.5px; color:var(--muted); display:block; margin-block-start:1px}
+.umdrop-item{
+  display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px;
+  border:0; background:transparent; color:var(--text); font:inherit; font-size:13px;
+  border-radius:8px; cursor:pointer; text-align:start; text-decoration:none;
+}
+.umdrop-item:hover{background:var(--hover)}
+.umdrop-item.danger{color:var(--bad)}
+.umdrop-item.danger:hover{background:var(--bad-bg)}
+.umdrop-sep{height:1px; background:var(--border); margin:4px 6px}
+.umdrop-ic{width:16px; height:16px; flex:none; display:flex; align-items:center; justify-content:center; color:var(--muted)}
+.umdrop-item.danger .umdrop-ic{color:var(--bad)}

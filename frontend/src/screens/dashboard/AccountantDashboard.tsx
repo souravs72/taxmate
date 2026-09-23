@@ -369,6 +369,7 @@ function CloseCard({ d, cur }: { d: Payload; cur: string }) {
       case "payments": return { label: t("ad.a.allocate"), go: () => scrollTo("ad-unalloc") };
       case "vat": return { label: t("ad.a.generate"), go: () => nav("/vat-201/new") };
       case "suspense": return { label: t("ad.a.open"), go: () => nav("/accounts") };
+      case "lock": return { label: t("ad.a.lockBooks"), go: () => nav("/company") };
       default: return null;
     }
   };

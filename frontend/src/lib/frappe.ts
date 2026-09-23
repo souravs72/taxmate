@@ -114,6 +114,7 @@ export const DT = {
   currencyExchange: "Currency Exchange",
   assetCategory: "Asset Category",
   asset: "Asset",
+  company: "Company",
 } as const;
 
 /**

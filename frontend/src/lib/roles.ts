@@ -4,17 +4,40 @@ export type SpaRole = "owner" | "accountant" | "clerk" | "viewer";
 
 export const SPA_ROLES: SpaRole[] = ["owner", "accountant", "clerk", "viewer"];
 
+/**
+ * Returns true when the current user is the *application provider* —
+ * i.e. the TaxMate SaaS team, not a client employee.
+ *
+ * Heuristic: `Administrator` always qualifies (Frappe super-user).
+ * A `System Manager` without any TaxMate-specific role is also treated as
+ * a provider because the client's own owner would have been assigned
+ * `TaxMate Owner`.
+ */
+export function isAppProvider(session: { spa_role?: string; roles?: string[] } | undefined): boolean {
+  const roles = session?.roles ?? [];
+  if (roles.includes("Administrator")) return true;
+  const hasTaxMateRole = roles.some((r) =>
+    ["TaxMate Owner", "TaxMate Accountant", "TaxMate Clerk", "TaxMate Viewer"].includes(r),
+  );
+  if (roles.includes("System Manager") && !hasTaxMateRole) return true;
+  return false;
+}
+
 export function spaRoleOf(session: { spa_role?: string; roles?: string[] } | undefined): SpaRole {
   const direct = session?.spa_role;
   if (direct === "owner" || direct === "accountant" || direct === "clerk" || direct === "viewer") {
     return direct;
   }
   const roles = session?.roles ?? [];
-  if (roles.includes("System Manager") || roles.includes("TaxMate Owner")) return "owner";
-  if (roles.includes("TaxMate Accountant") || roles.includes("Accounts Manager") || roles.includes("UAE Tax Manager")) {
-    return "accountant";
-  }
-  if (roles.includes("TaxMate Clerk") || roles.includes("Accounts User")) return "clerk";
+  // Prefer explicit TaxMate markers first, then fall back to ERPNext role bundles.
+  if (roles.includes("TaxMate Owner")) return "owner";
+  if (roles.includes("TaxMate Accountant")) return "accountant";
+  if (roles.includes("TaxMate Clerk")) return "clerk";
+  if (roles.includes("TaxMate Viewer")) return "viewer";
+  // Provider / super-user falls through as owner for permission checks.
+  if (roles.includes("System Manager")) return "owner";
+  if (roles.includes("Accounts Manager") || roles.includes("UAE Tax Manager")) return "accountant";
+  if (roles.includes("Accounts User")) return "clerk";
   return "viewer";
 }
 
@@ -23,6 +46,11 @@ export function canWrite(session: { spa_role?: string; roles?: string[] } | unde
 }
 
 export function canManageUsers(session: { spa_role?: string; roles?: string[] } | undefined): boolean {
+  return spaRoleOf(session) === "owner";
+}
+
+/** True when the user may read and write the Company record (Owner + Provider). */
+export function canManageCompany(session: { spa_role?: string; roles?: string[] } | undefined): boolean {
   return spaRoleOf(session) === "owner";
 }
 

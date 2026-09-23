@@ -136,3 +136,4 @@
 .od-cmp-i:hover{background:var(--hover)}
 div.od-cmp-i{cursor:default}
 div.od-cmp-i:hover{background:transparent}
+.od-ok{color:var(--ok); font-weight:500}

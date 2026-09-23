@@ -129,6 +129,7 @@ const _BASE_NAV: NavEntry[] = [
   { type: "link", to: "/assets", key: "nav.assets" },
   { type: "link", to: "/asset-categories", key: "nav.assetCategories" },
   { type: "section", key: "nav.company" },
+  { type: "link", to: "/company", key: "nav.companySettings" },
   { type: "link", to: "/team", key: "nav.team" },
 ];
 

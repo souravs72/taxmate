@@ -1,14 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
-import { useFrappeAuth, useFrappeGetCall } from "frappe-react-sdk";
+import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { useLang } from "../lib/i18n";
 import { toggleTheme } from "../lib/theme";
 import { useSession } from "../lib/session";
-import { canViewTeam, spaRoleOf } from "../lib/roles";
+import { canViewTeam } from "../lib/roles";
 import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
+import UserMenu from "./UserMenu";
 import { navIcon } from "./navIcons";
 
 const RAIL_KEY = "taxmate-rail";
@@ -30,13 +31,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(() => {
     try { return localStorage.getItem(RAIL_KEY) === "1"; } catch { return false; }
   });
+  function toggleCollapsed() {
+    setCollapsed((c) => {
+      if (!c) setOpen({});
+      return !c;
+    });
+  }
   const { lang, set: setLocale } = useLang();
-  const { currentUser, logout } = useFrappeAuth();
-  const [signingOut, setSigningOut] = useState(false);
   const [open, setOpen] = useState(loadOpen);
   const location = useLocation();
   const session = useSession();
-  const roleLabel = t(`role.${spaRoleOf(session)}`);
   const { data: flagData } = useFrappeGetCall<{ message: FeatureFlags }>(
     "taxmate.api.settings.get_feature_flags",
     {},
@@ -64,21 +68,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     try { localStorage.setItem(OPEN_KEY, JSON.stringify(open)); } catch { /* ignore */ }
   }, [open]);
 
-  const initials = (currentUser ?? "?")
-    .split(/[@._-]/)[0]
-    .slice(0, 2)
-    .toUpperCase();
-
-  async function signOut() {
-    if (signingOut) return;
-    setSigningOut(true);
-    try {
-      await logout();
-    } finally {
-      window.location.assign("/login?redirect-to=/taxmate");
-    }
-  }
-
   return (
     <div className={`app${collapsed ? " collapsed" : ""}`}>
       <a className="skip" href="#taxmate-main">{t("a11y.skip")}</a>
@@ -87,7 +76,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span className="mark">T</span>
           <span>TaxMate</span>
         </div>
-
+        <div className="rail-body">
         {top.map((n) => (
           <NavLink
             key={n.to}
@@ -102,7 +91,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         ))}
 
         {groups.map((g) => {
-          const expanded = collapsed || !!open[g.key];
+          const expanded = !collapsed && !!open[g.key];
           return (
             <div className="rgroup" key={g.key}>
               <button
@@ -131,18 +120,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           );
         })}
 
-        <NavLink to="/profile" className={({ isActive }) => `rfoot${isActive ? " on" : ""}`} data-tip={t("nav.profile")}>
-          <span className="av">{initials}</span>
-          <span>
-            <b>{session.full_name || currentUser || "—"}</b>
-            {roleLabel}
-          </span>
-        </NavLink>
+        </div>{/* rail-body */}
       </nav>
 
       <div className="main">
         <div className="topbar">
-          <button type="button" className="iconbtn" onClick={() => setCollapsed((c) => !c)} aria-label={t("a11y.toggleMenu")}>
+          <button type="button" className="iconbtn" onClick={toggleCollapsed} aria-label={t("a11y.toggleMenu")}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13" />
             </svg>
@@ -164,15 +147,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 <path d="M9 1.6v2M9 14.4v2M16.4 9h-2M3.6 9h-2M14.2 3.8l-1.4 1.4M5.2 12.8l-1.4 1.4M14.2 14.2l-1.4-1.4M5.2 5.2 3.8 3.8" />
               </svg>
             </button>
-            <button
-              type="button"
-              className="langbtn"
-              onClick={() => void signOut()}
-              disabled={signingOut}
-              aria-label={t("a11y.logout")}
-            >
-              {t("common.logout")}
-            </button>
+<UserMenu />
           </div>
         </div>
 
