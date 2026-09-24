@@ -79,7 +79,11 @@ STOCK_PREFIXES = ("CHR", "DSK", "MON", "KB", "MSE", "LMP", "FIL", "WST", "PAP", 
 
 
 def run(force: bool | int | str = False) -> dict:
-	"""Create company (if missing) and seed books. Returns counts."""
+	"""Create company (if missing) and seed books. Returns counts.
+
+	With force=False, still fills missing trading pipelines (SO/PO/DN/PR/…)
+	when invoices already exist from an earlier seed.
+	"""
 	force = bool(force) if not isinstance(force, str) else force.lower() in ("1", "true", "yes")
 	frappe.flags.in_import = True
 	frappe.set_user("Administrator")
@@ -88,13 +92,6 @@ def run(force: bool | int | str = False) -> dict:
 	company = _ensure_company()
 	ensure_company_uae_ready(company)
 	frappe.db.commit()
-
-	if (
-		not force
-		and frappe.db.exists("Customer", SEED_MARKER_CUSTOMER)
-		and frappe.db.count("Sales Invoice", {"company": company, "docstatus": 1}) >= 20
-	):
-		return {"company": company, "skipped": True, "reason": "already seeded"}
 
 	abbr = frappe.db.get_value("Company", company, "abbr")
 	ctx = _context(company, abbr)
@@ -108,9 +105,22 @@ def run(force: bool | int | str = False) -> dict:
 	_receive_opening_stock(ctx)
 	frappe.db.commit()
 
-	sales = _seed_sales(ctx)
-	purchases = _seed_purchases(ctx)
-	payments = _seed_payments(ctx)
+	already = (
+		not force
+		and frappe.db.exists("Customer", SEED_MARKER_CUSTOMER)
+		and frappe.db.count("Sales Invoice", {"company": company, "docstatus": 1}) >= 20
+	)
+
+	sales = purchases = payments = 0
+	if not already:
+		sales = _seed_sales(ctx)
+		purchases = _seed_purchases(ctx)
+		payments = _seed_payments(ctx)
+		frappe.db.commit()
+
+	# Always top up the full trading chain (quotations → orders → fulfilment).
+	pipeline = _seed_trading_pipelines(ctx)
+	journals = _seed_journals(ctx)
 	_ensure_spa_users(ctx)
 	_ensure_legacy_prove_aliases()
 	if frappe.db.exists("Item", "DEMO-VAT-CONSULTING"):
@@ -122,10 +132,14 @@ def run(force: bool | int | str = False) -> dict:
 		"company": company,
 		"customers": frappe.db.count("Customer"),
 		"suppliers": frappe.db.count("Supplier"),
-		"items": frappe.db.count("Item"),
-		"sales_invoices": sales,
-		"purchase_invoices": purchases,
-		"payment_entries": payments,
+		"items": frappe.db.count("Item", {"disabled": 0}),
+		"sales_invoices": sales or frappe.db.count("Sales Invoice", {"company": company, "docstatus": 1}),
+		"purchase_invoices": purchases
+		or frappe.db.count("Purchase Invoice", {"company": company, "docstatus": 1}),
+		"payment_entries": payments
+		or frappe.db.count("Payment Entry", {"company": company, "docstatus": 1}),
+		**pipeline,
+		"journal_entries": journals,
 	}
 
 
@@ -439,12 +453,12 @@ def _receive_opening_stock(ctx: dict) -> None:
 	rows = [
 		{
 			"item_code": item["code"],
-			"qty": 80,
+			"qty": 250,
 			"basic_rate": item["buy"] or 50,
 			"t_warehouse": ctx["warehouse"],
 			"uom": item["uom"],
 			"conversion_factor": 1,
-			"transfer_qty": 80,
+			"transfer_qty": 250,
 		}
 		for item in stock_items
 	]
@@ -551,7 +565,6 @@ def _seed_sales(ctx: dict) -> int:
 			except Exception:
 				frappe.db.rollback()
 				frappe.log_error(title=f"seed SI {posting} {customer}", message=frappe.get_traceback())
-				frappe.db.begin()
 	return created
 
 
@@ -605,7 +618,6 @@ def _seed_purchases(ctx: dict) -> int:
 			except Exception:
 				frappe.db.rollback()
 				frappe.log_error(title=f"seed PI {bill_no}", message=frappe.get_traceback())
-				frappe.db.begin()
 
 		util_day = date(month_start.year, month_start.month, min(28, last))
 		if not _invoice_exists("Purchase Invoice", ctx["company"], util_day, "Utilities - DEWA"):
@@ -633,7 +645,6 @@ def _seed_purchases(ctx: dict) -> int:
 			except Exception:
 				frappe.db.rollback()
 				frappe.log_error(title="seed DEWA", message=frappe.get_traceback())
-				frappe.db.begin()
 	return created
 
 
@@ -688,7 +699,588 @@ def _seed_payments(ctx: dict) -> int:
 			except Exception:
 				frappe.db.rollback()
 				frappe.log_error(title=f"seed PE {row.name}", message=frappe.get_traceback())
-				frappe.db.begin()
+	return created
+
+
+def _seed_trading_pipelines(ctx: dict) -> dict:
+	"""Quotations, orders, delivery notes, receipts, material / supplier quotes."""
+	# Extra stock before fulfilment so DN/PR do not fail valuation.
+	_top_up_stock(ctx)
+	out = {
+		"quotations": _seed_quotations(ctx),
+		"sales_orders": _seed_sales_orders(ctx),
+		"delivery_notes": _seed_delivery_notes(ctx),
+		"supplier_quotations": _seed_supplier_quotations(ctx),
+		"material_requests": _seed_material_requests(ctx),
+		"purchase_orders": _seed_purchase_orders(ctx),
+		"purchase_receipts": _seed_purchase_receipts(ctx),
+	}
+	out["invoices_from_dn"] = _seed_invoices_from_delivery_notes(ctx)
+	out["invoices_from_pr"] = _seed_invoices_from_purchase_receipts(ctx)
+	return out
+
+
+def _top_up_stock(ctx: dict) -> None:
+	"""Material Receipt when any stock item Bin qty is low."""
+	if not ctx.get("warehouse"):
+		return
+	stock_items = [i for i in ITEMS if i["stock"]]
+	need = []
+	for item in stock_items:
+		qty = frappe.db.get_value(
+			"Bin", {"item_code": item["code"], "warehouse": ctx["warehouse"]}, "actual_qty"
+		) or 0
+		if float(qty) < 40:
+			need.append(item)
+	if not need:
+		return
+	rows = [
+		{
+			"item_code": item["code"],
+			"qty": 120,
+			"basic_rate": item["buy"] or 50,
+			"t_warehouse": ctx["warehouse"],
+			"uom": item["uom"],
+			"conversion_factor": 1,
+			"transfer_qty": 120,
+		}
+		for item in need
+	]
+	se = frappe.get_doc(
+		{
+			"doctype": "Stock Entry",
+			"stock_entry_type": "Material Receipt",
+			"purpose": "Material Receipt",
+			"company": ctx["company"],
+			"posting_date": frappe.utils.today(),
+			"posting_time": "09:00:00",
+			"set_posting_time": 1,
+			"items": rows,
+		}
+	)
+	try:
+		se.insert(ignore_permissions=True)
+		se.submit()
+	except Exception:
+		frappe.db.rollback()
+		frappe.log_error(title="seed stock top-up", message=frappe.get_traceback())
+
+
+def _seed_invoices_from_delivery_notes(ctx: dict) -> int:
+	"""Bill ~half of submitted DNs that are not fully invoiced."""
+	from erpnext.stock.doctype.delivery_note.delivery_note import make_sales_invoice
+
+	created = 0
+	dns = frappe.get_all(
+		"Delivery Note",
+		filters={"company": ctx["company"], "docstatus": 1, "per_billed": ["<", 99.99], "is_return": 0},
+		fields=["name", "customer", "posting_date"],
+		order_by="posting_date asc",
+		limit_page_length=30,
+	)
+	for i, dn in enumerate(dns):
+		if i % 2 == 1:
+			continue
+		try:
+			si = make_sales_invoice(dn.name)
+			if not si.get("items"):
+				continue
+			si.set_posting_time = 1
+			si.posting_date = add_days(dn.posting_date, 2)
+			si.posting_time = "10:00:00"
+			si.due_date = add_days(si.posting_date, 30)
+			if si.meta.has_field("vat_emirate") and not si.get("vat_emirate"):
+				si.vat_emirate = _party_emirate(dn.customer)
+			si.insert(ignore_permissions=True)
+			si.submit()
+			frappe.db.commit()
+			created += 1
+		except Exception:
+			try:
+				frappe.log_error(title=f"seed SI from DN {dn.name}", message=frappe.get_traceback())
+			except Exception:
+				pass
+			frappe.db.rollback()
+	return created
+
+
+def _seed_invoices_from_purchase_receipts(ctx: dict) -> int:
+	"""Bill ~half of submitted PRs."""
+	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import make_purchase_invoice
+
+	created = 0
+	prs = frappe.get_all(
+		"Purchase Receipt",
+		filters={"company": ctx["company"], "docstatus": 1, "per_billed": ["<", 99.99], "is_return": 0},
+		fields=["name", "supplier", "posting_date"],
+		order_by="posting_date asc",
+		limit_page_length=30,
+	)
+	for i, pr in enumerate(prs):
+		if i % 2 == 1:
+			continue
+		try:
+			pi = make_purchase_invoice(pr.name)
+			if not pi.get("items"):
+				continue
+			pi.set_posting_time = 1
+			pi.posting_date = add_days(pr.posting_date, 2)
+			pi.posting_time = "10:00:00"
+			pi.due_date = add_days(pi.posting_date, 21)
+			pi.bill_no = f"PRBILL-{pr.name[-6:]}"
+			pi.bill_date = pi.posting_date
+			pi.insert(ignore_permissions=True)
+			pi.submit()
+			frappe.db.commit()
+			created += 1
+		except Exception:
+			try:
+				frappe.log_error(title=f"seed PI from PR {pr.name}", message=frappe.get_traceback())
+			except Exception:
+				pass
+			frappe.db.rollback()
+	return created
+
+
+def _party_emirate(customer: str) -> str:
+	return next((c["emirate"] for c in CUSTOMERS if c["name"] == customer and c.get("emirate")), "Dubai")
+
+
+def _safe_submit(doc) -> bool:
+	try:
+		doc.insert(ignore_permissions=True)
+		doc.submit()
+		frappe.db.commit()
+		return True
+	except Exception:
+		try:
+			frappe.log_error(title=f"seed {getattr(doc, 'doctype', '?')}", message=frappe.get_traceback())
+		except Exception:
+			pass
+		frappe.db.rollback()
+		return False
+
+
+def _seed_quotations(ctx: dict) -> int:
+	if frappe.db.count("Quotation", {"company": ctx["company"], "docstatus": 1}) >= 18:
+		return 0
+	customers = [c["name"] for c in CUSTOMERS if c["type"] == "Company" and c.get("trn")]
+	stock = [i for i in ITEMS if i["stock"]]
+	services = [i for i in ITEMS if not i["stock"] and not i.get("zero")]
+	created = 0
+	for mi, month_start in enumerate(_months()):
+		for n in range(2):
+			day = min(4 + n * 10, monthrange(month_start.year, month_start.month)[1])
+			txn = date(month_start.year, month_start.month, day)
+			customer = customers[(mi + n) % len(customers)]
+			if frappe.db.exists(
+				"Quotation",
+				{"company": ctx["company"], "party_name": customer, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+			):
+				continue
+			if n % 2 == 0:
+				item = services[n % len(services)]
+				lines = [{"item_code": item["code"], "qty": 1, "rate": item["rate"]}]
+			else:
+				a, b = stock[(mi + n) % len(stock)], stock[(mi + n + 2) % len(stock)]
+				lines = [
+					{"item_code": a["code"], "qty": 3, "rate": a["rate"]},
+					{"item_code": b["code"], "qty": 2, "rate": b["rate"]},
+				]
+			doc = frappe.get_doc(
+				{
+					"doctype": "Quotation",
+					"quotation_to": "Customer",
+					"party_name": customer,
+					"order_type": "Sales",
+					"status": "Draft",
+					"transaction_date": txn.isoformat(),
+					"valid_till": add_days(txn, 45).isoformat(),
+					"company": ctx["company"],
+					"currency": "AED",
+					"conversion_rate": 1,
+					"selling_price_list": "Standard Selling",
+					"price_list_currency": "AED",
+					"plc_conversion_rate": 1,
+					"taxes_and_charges": ctx["sales_tax"],
+					"items": lines,
+				}
+			)
+			if doc.meta.has_field("vat_emirate"):
+				doc.vat_emirate = _party_emirate(customer)
+			if _safe_submit(doc):
+				created += 1
+	# Leave a few open (submitted, not ordered) already covered; add 3 drafts as Open quotes
+	for i, customer in enumerate(customers[:3]):
+		name_key = f"draft-qtn-{i}"
+		if frappe.db.exists("Quotation", {"company": ctx["company"], "party_name": customer, "docstatus": 0}):
+			continue
+		item = services[i % len(services)]
+		doc = frappe.get_doc(
+			{
+				"doctype": "Quotation",
+				"quotation_to": "Customer",
+				"party_name": customer,
+				"order_type": "Sales",
+				"status": "Draft",
+				"transaction_date": "2026-09-10",
+				"valid_till": "2026-10-31",
+				"company": ctx["company"],
+				"currency": "AED",
+				"conversion_rate": 1,
+				"selling_price_list": "Standard Selling",
+				"taxes_and_charges": ctx["sales_tax"],
+				"items": [{"item_code": item["code"], "qty": 1, "rate": item["rate"]}],
+			}
+		)
+		if doc.meta.has_field("vat_emirate"):
+			doc.vat_emirate = _party_emirate(customer)
+		try:
+			doc.insert(ignore_permissions=True)
+			created += 1
+		except Exception:
+			frappe.db.rollback()
+		_ = name_key
+	return created
+
+
+def _seed_sales_orders(ctx: dict) -> int:
+	if frappe.db.count("Sales Order", {"company": ctx["company"], "docstatus": 1}) >= 20:
+		return 0
+	customers = [c["name"] for c in CUSTOMERS if c["type"] == "Company" and c.get("trn")]
+	stock = [i for i in ITEMS if i["stock"]]
+	services = [i for i in ITEMS if not i["stock"] and not i.get("zero")]
+	created = 0
+	for mi, month_start in enumerate(_months()):
+		for n in range(3):
+			day = min(6 + n * 7, monthrange(month_start.year, month_start.month)[1])
+			txn = date(month_start.year, month_start.month, day)
+			delivery = add_days(txn, 14)
+			customer = customers[(mi * 3 + n) % len(customers)]
+			if frappe.db.exists(
+				"Sales Order",
+				{"company": ctx["company"], "customer": customer, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+			):
+				continue
+			if n == 0:
+				item = services[mi % len(services)]
+				lines = [{"item_code": item["code"], "qty": 1, "rate": item["rate"], "delivery_date": delivery.isoformat()}]
+			else:
+				a = stock[(mi + n) % len(stock)]
+				b = stock[(mi + n + 4) % len(stock)]
+				lines = [
+					{"item_code": a["code"], "qty": 4 + n, "rate": a["rate"], "delivery_date": delivery.isoformat()},
+					{"item_code": b["code"], "qty": 2, "rate": b["rate"], "delivery_date": delivery.isoformat()},
+				]
+			doc = frappe.get_doc(
+				{
+					"doctype": "Sales Order",
+					"company": ctx["company"],
+					"customer": customer,
+					"order_type": "Sales",
+					"status": "Draft",
+					"transaction_date": txn.isoformat(),
+					"delivery_date": delivery.isoformat(),
+					"currency": "AED",
+					"conversion_rate": 1,
+					"selling_price_list": "Standard Selling",
+					"price_list_currency": "AED",
+					"plc_conversion_rate": 1,
+					"taxes_and_charges": ctx["sales_tax"],
+					"items": lines,
+				}
+			)
+			if doc.meta.has_field("vat_emirate"):
+				doc.vat_emirate = _party_emirate(customer)
+			if _safe_submit(doc):
+				created += 1
+	return created
+
+
+def _seed_delivery_notes(ctx: dict) -> int:
+	"""Deliver stock lines from open sales orders; also a few standalone DNs."""
+	if frappe.db.count("Delivery Note", {"company": ctx["company"], "docstatus": 1}) >= 15:
+		return 0
+	created = 0
+	orders = frappe.get_all(
+		"Sales Order",
+		filters={"company": ctx["company"], "docstatus": 1, "per_delivered": ["<", 99.99], "status": ["!=", "Closed"]},
+		fields=["name", "customer", "transaction_date"],
+		order_by="transaction_date asc",
+		limit_page_length=40,
+	)
+	from erpnext.selling.doctype.sales_order.sales_order import make_delivery_note
+
+	for i, so in enumerate(orders):
+		if i % 2 == 1:
+			continue  # leave some undelivered for fulfilment dashboards
+		try:
+			dn = make_delivery_note(so.name)
+			if not dn.get("items"):
+				continue
+			dn.status = "Draft"
+			dn.set_posting_time = 1
+			dn.posting_date = add_days(so.transaction_date, 5)
+			dn.posting_time = "14:00:00"
+			dn.set_warehouse = ctx["warehouse"]
+			if dn.meta.has_field("vat_emirate") and not dn.vat_emirate:
+				dn.vat_emirate = _party_emirate(so.customer)
+			dn.insert(ignore_permissions=True)
+			dn.submit()
+			frappe.db.commit()
+			created += 1
+		except Exception:
+			try:
+				frappe.log_error(title=f"seed DN from {so.name}", message=frappe.get_traceback())
+			except Exception:
+				pass
+			frappe.db.rollback()
+
+	# Standalone DNs for walk-up fulfilment
+	stock = [i for i in ITEMS if i["stock"]]
+	customers = [c["name"] for c in CUSTOMERS if c.get("trn")]
+	for mi, month_start in enumerate(_months()[::2]):
+		txn = date(month_start.year, month_start.month, min(18, monthrange(month_start.year, month_start.month)[1]))
+		customer = customers[mi % len(customers)]
+		item = stock[mi % len(stock)]
+		if frappe.db.exists(
+			"Delivery Note",
+			{"company": ctx["company"], "customer": customer, "posting_date": txn.isoformat(), "docstatus": ["<", 2]},
+		):
+			continue
+		doc = frappe.get_doc(
+			{
+				"doctype": "Delivery Note",
+				"company": ctx["company"],
+				"customer": customer,
+				"status": "Draft",
+				"posting_date": txn.isoformat(),
+				"posting_time": "11:00:00",
+				"set_posting_time": 1,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"selling_price_list": "Standard Selling",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"set_warehouse": ctx["warehouse"],
+				"taxes_and_charges": ctx["sales_tax"],
+				"items": [
+					{
+						"item_code": item["code"],
+						"qty": 2,
+						"rate": item["rate"],
+						"warehouse": ctx["warehouse"],
+					}
+				],
+			}
+		)
+		if doc.meta.has_field("vat_emirate"):
+			doc.vat_emirate = _party_emirate(customer)
+		if _safe_submit(doc):
+			created += 1
+	return created
+
+
+def _seed_supplier_quotations(ctx: dict) -> int:
+	if frappe.db.count("Supplier Quotation", {"company": ctx["company"], "docstatus": 1}) >= 10:
+		return 0
+	local = [s["name"] for s in SUPPLIERS if s["country"] == UAE_COUNTRY and "DEWA" not in s["name"]]
+	stock = [i for i in ITEMS if i["stock"]]
+	created = 0
+	for mi, month_start in enumerate(_months()):
+		if mi % 2:
+			continue
+		txn = date(month_start.year, month_start.month, 8)
+		supplier = local[mi % len(local)]
+		item = stock[mi % len(stock)]
+		if frappe.db.exists(
+			"Supplier Quotation",
+			{"company": ctx["company"], "supplier": supplier, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+		):
+			continue
+		doc = frappe.get_doc(
+			{
+				"doctype": "Supplier Quotation",
+				"company": ctx["company"],
+				"supplier": supplier,
+				"status": "Draft",
+				"transaction_date": txn.isoformat(),
+				"valid_till": add_days(txn, 30).isoformat(),
+				"currency": "AED",
+				"conversion_rate": 1,
+				"buying_price_list": "Standard Buying",
+				"taxes_and_charges": ctx["purchase_tax"],
+				"items": [{"item_code": item["code"], "qty": 20, "rate": item["buy"]}],
+			}
+		)
+		if _safe_submit(doc):
+			created += 1
+	return created
+
+
+def _seed_material_requests(ctx: dict) -> int:
+	if frappe.db.count("Material Request", {"company": ctx["company"], "docstatus": 1}) >= 10:
+		return 0
+	stock = [i for i in ITEMS if i["stock"]]
+	created = 0
+	for mi, month_start in enumerate(_months()):
+		txn = date(month_start.year, month_start.month, 3)
+		sched = add_days(txn, 10)
+		item = stock[mi % len(stock)]
+		if frappe.db.exists(
+			"Material Request",
+			{"company": ctx["company"], "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+		):
+			continue
+		doc = frappe.get_doc(
+			{
+				"doctype": "Material Request",
+				"material_request_type": "Purchase",
+				"company": ctx["company"],
+				"transaction_date": txn.isoformat(),
+				"schedule_date": sched.isoformat(),
+				"items": [
+					{
+						"item_code": item["code"],
+						"qty": 15 + mi,
+						"warehouse": ctx["warehouse"],
+						"schedule_date": sched.isoformat(),
+					}
+				],
+			}
+		)
+		if _safe_submit(doc):
+			created += 1
+	return created
+
+
+def _seed_purchase_orders(ctx: dict) -> int:
+	if frappe.db.count("Purchase Order", {"company": ctx["company"], "docstatus": 1}) >= 18:
+		return 0
+	local = [s["name"] for s in SUPPLIERS if s["country"] == UAE_COUNTRY and "DEWA" not in s["name"]]
+	stock = [i for i in ITEMS if i["stock"]]
+	created = 0
+	for mi, month_start in enumerate(_months()):
+		for n in range(2):
+			day = min(7 + n * 9, monthrange(month_start.year, month_start.month)[1])
+			txn = date(month_start.year, month_start.month, day)
+			sched = add_days(txn, 12)
+			supplier = local[(mi + n) % len(local)]
+			item = stock[(mi + n * 2) % len(stock)]
+			if frappe.db.exists(
+				"Purchase Order",
+				{"company": ctx["company"], "supplier": supplier, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+			):
+				continue
+			doc = frappe.get_doc(
+				{
+					"doctype": "Purchase Order",
+					"company": ctx["company"],
+					"supplier": supplier,
+					"status": "Draft",
+					"transaction_date": txn.isoformat(),
+					"schedule_date": sched.isoformat(),
+					"currency": "AED",
+					"conversion_rate": 1,
+					"buying_price_list": "Standard Buying",
+					"price_list_currency": "AED",
+					"plc_conversion_rate": 1,
+					"taxes_and_charges": ctx["purchase_tax"],
+					"items": [
+						{
+							"item_code": item["code"],
+							"qty": 12 + n * 3,
+							"rate": item["buy"],
+							"schedule_date": sched.isoformat(),
+							"warehouse": ctx["warehouse"],
+						}
+					],
+				}
+			)
+			if _safe_submit(doc):
+				created += 1
+	return created
+
+
+def _seed_purchase_receipts(ctx: dict) -> int:
+	if frappe.db.count("Purchase Receipt", {"company": ctx["company"], "docstatus": 1}) >= 12:
+		return 0
+	created = 0
+	orders = frappe.get_all(
+		"Purchase Order",
+		filters={"company": ctx["company"], "docstatus": 1, "per_received": ["<", 99.99], "status": ["!=", "Closed"]},
+		fields=["name", "supplier", "transaction_date"],
+		order_by="transaction_date asc",
+		limit_page_length=40,
+	)
+	from erpnext.buying.doctype.purchase_order.purchase_order import make_purchase_receipt
+
+	for i, po in enumerate(orders):
+		if i % 2 == 1:
+			continue
+		try:
+			pr = make_purchase_receipt(po.name)
+			if not pr.get("items"):
+				continue
+			pr.status = "Draft"
+			pr.set_posting_time = 1
+			pr.posting_date = add_days(po.transaction_date, 4)
+			pr.posting_time = "12:00:00"
+			pr.set_warehouse = ctx["warehouse"]
+			pr.insert(ignore_permissions=True)
+			pr.submit()
+			frappe.db.commit()
+			created += 1
+		except Exception:
+			try:
+				frappe.log_error(title=f"seed PR from {po.name}", message=frappe.get_traceback())
+			except Exception:
+				pass
+			frappe.db.rollback()
+	return created
+
+
+def _seed_journals(ctx: dict) -> int:
+	if frappe.db.count("Journal Entry", {"company": ctx["company"], "docstatus": 1}) >= 8:
+		return 0
+	bank = ctx.get("bank_gl") or ctx.get("cash")
+	expense = frappe.db.get_value(
+		"Account",
+		{"company": ctx["company"], "account_type": "Expense Account", "is_group": 0, "disabled": 0},
+		"name",
+	) or frappe.db.get_value(
+		"Account",
+		{"company": ctx["company"], "root_type": "Expense", "is_group": 0, "disabled": 0},
+		"name",
+	)
+	if not bank or not expense:
+		return 0
+	cc = ctx.get("cost_center")
+	created = 0
+	for mi, month_start in enumerate(_months()[::2]):
+		txn = date(month_start.year, month_start.month, min(25, monthrange(month_start.year, month_start.month)[1]))
+		if frappe.db.exists(
+			"Journal Entry",
+			{"company": ctx["company"], "posting_date": txn.isoformat(), "docstatus": ["<", 2]},
+		):
+			continue
+		amount = 350 + mi * 25
+		line = {"cost_center": cc} if cc else {}
+		doc = frappe.get_doc(
+			{
+				"doctype": "Journal Entry",
+				"company": ctx["company"],
+				"posting_date": txn.isoformat(),
+				"voucher_type": "Journal Entry",
+				"user_remark": f"Office supplies accrual {txn.strftime('%b %Y')}",
+				"accounts": [
+					{**line, "account": expense, "debit_in_account_currency": amount, "credit_in_account_currency": 0},
+					{**line, "account": bank, "debit_in_account_currency": 0, "credit_in_account_currency": amount},
+				],
+			}
+		)
+		if _safe_submit(doc):
+			created += 1
 	return created
 
 
