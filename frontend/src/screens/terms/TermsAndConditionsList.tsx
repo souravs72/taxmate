@@ -2,7 +2,7 @@
  * TermsAndConditionsList — Phase 15.
  * Callers: App.tsx /terms-and-conditions; nav.ts nav.termsAndConditions
  * API: taxmate.api.resource.get_list on "Terms and Conditions" (_CORE_MASTERS)
- * Schema: {name, terms_title, buying:0|1, selling:0|1}
+ * Schema: {name, title, buying:0|1, selling:0|1}
  */
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -17,7 +17,7 @@ import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 25;
-type Row = { name: string; terms_title?: string; buying?: number; selling?: number };
+type Row = { name: string; title?: string; buying?: number; selling?: number };
 
 export default function TermsAndConditionsList() {
   const nav = useNavigate();
@@ -26,12 +26,12 @@ export default function TermsAndConditionsList() {
 
   const filters = useMemo(() => {
     const f: [string, string, string][] = [];
-    if (q.trim()) f.push(["terms_title", "like", `%${q.trim()}%`]);
+    if (q.trim()) f.push(["title", "like", `%${q.trim()}%`]);
     return f as unknown as Filter<Row>[];
   }, [q]);
 
   const list = useDocList<Row>("Terms and Conditions", {
-    fields: ["name", "terms_title", "buying", "selling"],
+    fields: ["name", "title", "buying", "selling"],
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
@@ -42,7 +42,7 @@ export default function TermsAndConditionsList() {
     {
       key: "name",
       header: t("tc.col.name"),
-      cell: (r) => <span className="ordno">{r.terms_title || r.name}</span>,
+      cell: (r) => <span className="ordno">{r.title || r.name}</span>,
     },
     {
       key: "scope",

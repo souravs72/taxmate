@@ -2,7 +2,7 @@
  * TermsAndConditionsForm — Phase 15.
  * Callers: App.tsx /terms-and-conditions/new, /terms-and-conditions/:name/edit
  * API: taxmate.api.resource.insert / save on "Terms and Conditions" (_CORE_MASTERS)
- * Fields: terms_title, buying:0|1, selling:0|1, terms (long text)
+ * Fields: title, buying:0|1, selling:0|1, terms (long text)
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -14,7 +14,7 @@ import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = {
   name: string;
-  terms_title?: string;
+  title?: string;
   buying?: 0 | 1;
   selling?: 0 | 1;
   terms?: string;
@@ -44,7 +44,7 @@ export default function TermsAndConditionsForm() {
   useEffect(() => {
     const d = existing.data;
     if (!d) return;
-    setTermsTitle(d.terms_title || d.name || "");
+    setTermsTitle(d.title || d.name || "");
     setSelling(d.selling ? 1 : 0);
     setBuying(d.buying ? 1 : 0);
     setTerms(d.terms || "");
@@ -57,7 +57,7 @@ export default function TermsAndConditionsForm() {
     setBusy(true);
     setSaveError(null);
     try {
-      const payload = { terms_title: termsTitle, buying, selling, terms };
+      const payload = { title: termsTitle, buying, selling, terms };
       if (isNew) {
         const doc = (await create.createDoc("Terms and Conditions", payload)) as { name: string };
         nav(`/terms-and-conditions/${encodeURIComponent(doc.name)}`);

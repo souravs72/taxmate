@@ -1,15 +1,16 @@
 /**
  * Team list. Catalog list_users — User is not a resource doctype.
+ * Roles are multi-select; Frappe unions DocPerms across Has Role rows.
  */
-import { useNavigate } from "react-router-dom";
 import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
+import { useNavigate } from "react-router-dom";
 
+import { DataTable, type Column } from "../../components/DataTable";
+import { Card, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
+import { t } from "../../i18n/strings";
 import { METHOD } from "../../lib/frappe";
 import { canManageUsers, canViewTeam, SPA_ROLES, type SpaRole } from "../../lib/roles";
 import { useSession } from "../../lib/session";
-import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
-import { DataTable, type Column } from "../../components/DataTable";
 
 type TeamUser = {
   name: string;
@@ -18,25 +19,102 @@ type TeamUser = {
   mobile_no?: string | null;
   enabled?: number;
   spa_role?: SpaRole;
+  spa_roles?: SpaRole[];
+  extra_roles?: string[];
   last_active?: string | null;
 };
+
+function RoleChecklist({
+  spaRoles,
+  extraRoles,
+  addonRoles,
+  disabled,
+  onChange,
+}: {
+  spaRoles: SpaRole[];
+  extraRoles: string[];
+  addonRoles: string[];
+  disabled?: boolean;
+  onChange: (spaRoles: SpaRole[], extraRoles: string[]) => void;
+}) {
+  function toggleSpa(role: SpaRole) {
+    const next = spaRoles.includes(role)
+      ? spaRoles.filter((r) => r !== role)
+      : [...spaRoles, role];
+    if (!next.length) return;
+    onChange(next, extraRoles);
+  }
+
+  function toggleExtra(role: string) {
+    const next = extraRoles.includes(role)
+      ? extraRoles.filter((r) => r !== role)
+      : [...extraRoles, role];
+    onChange(spaRoles, next);
+  }
+
+  return (
+    <div className="stack" style={{ gap: 6, minWidth: 180 }} onClick={(e) => e.stopPropagation()}>
+      {SPA_ROLES.map((role) => (
+        <label key={role} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+          <input
+            type="checkbox"
+            checked={spaRoles.includes(role)}
+            disabled={disabled}
+            onChange={() => toggleSpa(role)}
+          />
+          {t(`role.${role}`)}
+        </label>
+      ))}
+      {addonRoles.length > 0 && (
+        <>
+          <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{t("team.roles.addons")}</div>
+          {addonRoles.map((role) => (
+            <label key={role} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12 }}>
+              <input
+                type="checkbox"
+                checked={extraRoles.includes(role)}
+                disabled={disabled}
+                onChange={() => toggleExtra(role)}
+              />
+              {t(`role.${role}`)}
+            </label>
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function TeamList() {
   const nav = useNavigate();
   const session = useSession();
   const owner = canManageUsers(session);
   const allowed = canViewTeam(session);
-  const list = useFrappeGetCall<{ message: TeamUser[] }>(METHOD.listUsers, undefined, undefined, {
-    isPaused: () => !allowed,
-  });
+  const list = useFrappeGetCall<{ message: TeamUser[] }>(
+    METHOD.listUsers,
+    undefined,
+    allowed ? "team-users" : null,
+    { revalidateOnFocus: false },
+  );
+  const flags = useFrappeGetCall<{ message: { addon_roles?: string[] } }>(
+    METHOD.getFeatureFlags,
+    undefined,
+    "team-feature-flags",
+    { revalidateOnFocus: false },
+  );
   const setRole = useFrappePostCall<{ message: TeamUser }>(METHOD.setUserRole);
   const setEnabled = useFrappePostCall<{ message: TeamUser }>(METHOD.setUserEnabled);
   const rows = allowed ? (list.data?.message ?? []) : [];
+  const addonRoles = flags.data?.message?.addon_roles ?? [];
 
   if (!session.user) return <Loading />;
 
-  async function changeRole(user: string, spa_role: SpaRole) {
-    await setRole.call({ user, spa_role });
+  async function changeRoles(user: string, spa_roles: SpaRole[], extra_roles: string[]) {
+    await setRole.call({
+      user,
+      spa_roles: JSON.stringify(spa_roles),
+      extra_roles: JSON.stringify(extra_roles),
+    });
     await list.mutate();
   }
 
@@ -52,23 +130,25 @@ export default function TeamList() {
     {
       key: "role",
       header: t("team.col.role"),
-      cell: (u) =>
-        owner && u.name !== session.user ? (
-          <select
-            className="ctl"
-            name={`spa_role-${u.name}`}
-            aria-label={`${t("team.col.role")} ${u.email || u.name}`}
-            value={u.spa_role || "clerk"}
-            onClick={(e) => e.stopPropagation()}
-            onChange={(e) => void changeRole(u.name, e.target.value as SpaRole)}
-          >
-            {SPA_ROLES.map((role) => (
-              <option key={role} value={role}>{t(`role.${role}`)}</option>
-            ))}
-          </select>
-        ) : (
-          <Pill cls="p-open">{t(`role.${u.spa_role || "viewer"}`)}</Pill>
-        ),
+      cell: (u) => {
+        const spaRoles = (u.spa_roles?.length ? u.spa_roles : [u.spa_role || "viewer"]) as SpaRole[];
+        const extra = u.extra_roles ?? [];
+        if (owner && u.name !== session.user) {
+          return (
+            <RoleChecklist
+              spaRoles={spaRoles}
+              extraRoles={extra}
+              addonRoles={addonRoles}
+              onChange={(nextSpa, nextExtra) => void changeRoles(u.name, nextSpa, nextExtra)}
+            />
+          );
+        }
+        const labels = [
+          ...spaRoles.map((r) => t(`role.${r}`)),
+          ...extra.map((r) => t(`role.${r}`)),
+        ];
+        return <Pill cls="p-open">{labels.join(", ")}</Pill>;
+      },
     },
     {
       key: "enabled",

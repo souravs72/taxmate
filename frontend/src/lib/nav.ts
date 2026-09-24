@@ -11,13 +11,22 @@ export interface FeatureFlags {
   enable_bom?: boolean;
   enable_assets?: boolean;
   enable_pick_list?: boolean;
+  /** True when BrainWise POSNext (pos_next) is installed on the site. */
+  enable_pos_next?: boolean;
+  /** Website route for POSNext SPA, typically /pos. */
+  pos_next_url?: string | null;
+  /** Assignable add-on Role names (POSNext Cashier, Nexus POS Manager). */
+  addon_roles?: string[];
 }
 
 export type NavEntry =
   | { type: "section"; key: string }
-  | { type: "link"; to: string; key: string };
+  | { type: "link"; to: string; key: string }
+  | { type: "external"; href: string; key: string };
 
-export type NavLinkItem = { to: string; key: string };
+export type NavLinkItem =
+  | { to: string; key: string; external?: false }
+  | { href: string; key: string; external: true };
 export type NavGroup = { key: string; links: NavLinkItem[] };
 
 export function groupedNav(entries: NavEntry[]): { top: NavLinkItem[]; groups: NavGroup[] } {
@@ -30,11 +39,15 @@ export function groupedNav(entries: NavEntry[]): { top: NavLinkItem[]; groups: N
       groups.push(current);
       continue;
     }
+    const item: NavLinkItem =
+      n.type === "external"
+        ? { href: n.href, key: n.key, external: true }
+        : { to: n.to, key: n.key };
     if (!current) {
-      top.push({ to: n.to, key: n.key });
+      top.push(item);
       continue;
     }
-    current.links.push({ to: n.to, key: n.key });
+    current.links.push(item);
   }
   return { top, groups: groups.filter((g) => g.links.length > 0) };
 }
@@ -42,7 +55,9 @@ export function groupedNav(entries: NavEntry[]): { top: NavLinkItem[]; groups: N
 export function groupForPath(groups: NavGroup[], path: string): string | null {
   for (const group of groups) {
     for (const link of group.links) {
-      if (path === link.to || (link.to !== "/" && path.startsWith(`${link.to}/`))) {
+      if ("external" in link && link.external) continue;
+      const to = "to" in link ? link.to : "";
+      if (path === to || (to !== "/" && path.startsWith(`${to}/`))) {
         return group.key;
       }
     }
@@ -125,6 +140,7 @@ const _BASE_NAV: NavEntry[] = [
   { type: "section", key: "nav.pos" },
   { type: "link", to: "/pos-invoices", key: "nav.posInvoices" },
   { type: "link", to: "/pos-profiles", key: "nav.posProfiles" },
+  { type: "external", href: "/pos", key: "nav.posNext" },
   { type: "link", to: "/loyalty-programs", key: "nav.loyaltyPrograms" },
   { type: "link", to: "/loyalty-point-entries", key: "nav.loyaltyPointEntries" },
   { type: "section", key: "nav.fixedAssets" },
@@ -150,18 +166,26 @@ export function buildNav(flags: FeatureFlags = {}): NavEntry[] {
     "nav.batches": enabled("enable_serial"),
     "nav.posInvoices": enabled("enable_pos"),
     "nav.posProfiles": enabled("enable_pos"),
+    "nav.posNext": !!flags.enable_pos_next,
     "nav.loyaltyPrograms": enabled("enable_loyalty"),
     "nav.loyaltyPointEntries": enabled("enable_loyalty"),
     "nav.assets": enabled("enable_assets"),
     "nav.assetCategories": enabled("enable_assets"),
     // Sections: keep only if at least one link inside is enabled
-    "nav.pos": enabled("enable_pos") || enabled("enable_loyalty"),
+    "nav.pos": enabled("enable_pos") || enabled("enable_loyalty") || !!flags.enable_pos_next,
     "nav.fixedAssets": enabled("enable_assets"),
   };
+
+  const posUrl = (flags.pos_next_url || "/pos").trim() || "/pos";
 
   return _BASE_NAV.filter((e) => {
     if (e.key in gated) return gated[e.key];
     return true;
+  }).map((e) => {
+    if (e.type === "external" && e.key === "nav.posNext") {
+      return { ...e, href: posUrl };
+    }
+    return e;
   });
 }
 
@@ -173,4 +197,5 @@ export const NAV: NavEntry[] = buildNav({
   enable_bom: true,
   enable_assets: true,
   enable_pick_list: true,
+  enable_pos_next: false,
 });

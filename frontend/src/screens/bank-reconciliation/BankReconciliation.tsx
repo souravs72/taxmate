@@ -42,11 +42,15 @@ export default function BankReconciliation() {
   const session = useSession();
   const company = session.company || "";
 
-  const banks = useDocList<BankRow>(DT.bankAccount, {
-    fields: ["name"],
-    filters: company ? [["company", "=", company]] : [],
-    limit: 50,
-  });
+  const banks = useDocList<BankRow>(
+    DT.bankAccount,
+    {
+      fields: ["name"],
+      filters: company ? [["company", "=", company]] : [],
+      limit: 50,
+    },
+    company ? `bank-accounts-${company}` : null,
+  );
 
   const [bankAccount, setBankAccount] = useState("");
   const [fromDate, setFromDate] = useState("");

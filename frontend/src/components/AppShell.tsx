@@ -5,7 +5,7 @@ import { useFrappeGetCall } from "frappe-react-sdk";
 import { useLang } from "../lib/i18n";
 import { toggleTheme } from "../lib/theme";
 import { useSession } from "../lib/session";
-import { canViewTeam } from "../lib/roles";
+import { canOpenPosNext, canViewTeam } from "../lib/roles";
 import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
@@ -48,10 +48,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     { revalidateOnFocus: false }
   );
   const flags: FeatureFlags = flagData?.message ?? {};
-  const baseNav = buildNav(flags);
+  const baseNav = buildNav(flags).filter((n) => {
+    if (n.key === "nav.posNext") return canOpenPosNext(session);
+    return true;
+  });
   const nav = canViewTeam(session)
     ? baseNav
-    : baseNav.filter((n) => n.type === "section" ? n.key !== "nav.company" : n.to !== "/team");
+    : baseNav.filter((n) => {
+      if (n.type === "section") return n.key !== "nav.company";
+      if (n.type === "external") return true;
+      return n.to !== "/team";
+    });
   const { top, groups } = useMemo(() => groupedNav(nav), [nav]);
   const activeGroup = groupForPath(groups, location.pathname);
 
@@ -77,18 +84,25 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <span>TaxMate</span>
         </div>
         <div className="rail-body">
-        {top.map((n) => (
-          <NavLink
-            key={n.to}
-            to={n.to}
-            end={n.to === "/"}
-            data-tip={t(n.key)}
-            className={({ isActive }) => `rlink${isActive ? " on" : ""}`}
-          >
-            <span className="ic">{navIcon(n.to)}</span>
-            <span>{t(n.key)}</span>
-          </NavLink>
-        ))}
+        {top.map((n) =>
+          n.external ? (
+            <a key={n.href} href={n.href} data-tip={t(n.key)} className="rlink">
+              <span className="ic">{navIcon(n.href)}</span>
+              <span>{t(n.key)}</span>
+            </a>
+          ) : (
+            <NavLink
+              key={n.to}
+              to={n.to}
+              end={n.to === "/"}
+              data-tip={t(n.key)}
+              className={({ isActive }) => `rlink${isActive ? " on" : ""}`}
+            >
+              <span className="ic">{navIcon(n.to)}</span>
+              <span>{t(n.key)}</span>
+            </NavLink>
+          )
+        )}
 
         {groups.map((g) => {
           const expanded = !collapsed && !!open[g.key];
@@ -105,17 +119,24 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <path d="M4 2.5 8.5 6 4 9.5" />
                 </svg>
               </button>
-              {expanded && g.links.map((n) => (
-                <NavLink
-                  key={n.to}
-                  to={n.to}
-                  data-tip={t(n.key)}
-                  className={({ isActive }) => `rlink${isActive ? " on" : ""}`}
-                >
-                  <span className="ic">{navIcon(n.to)}</span>
-                  <span>{t(n.key)}</span>
-                </NavLink>
-              ))}
+              {expanded && g.links.map((n) =>
+                n.external ? (
+                  <a key={n.href} href={n.href} data-tip={t(n.key)} className="rlink">
+                    <span className="ic">{navIcon(n.href)}</span>
+                    <span>{t(n.key)}</span>
+                  </a>
+                ) : (
+                  <NavLink
+                    key={n.to}
+                    to={n.to}
+                    data-tip={t(n.key)}
+                    className={({ isActive }) => `rlink${isActive ? " on" : ""}`}
+                  >
+                    <span className="ic">{navIcon(n.to)}</span>
+                    <span>{t(n.key)}</span>
+                  </NavLink>
+                )
+              )}
             </div>
           );
         })}

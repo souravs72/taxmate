@@ -45,6 +45,10 @@ type PayDoc = {
   paid_to?: string;
   paid_from_account_currency?: string;
   paid_to_account_currency?: string;
+  source_exchange_rate?: number;
+  target_exchange_rate?: number;
+  write_off_amount?: number;
+  write_off_account?: string;
   docstatus?: number;
   references?: Ref[];
 };
@@ -99,6 +103,7 @@ export default function PaymentForm() {
   const submitCall = useFrappePostCall(METHOD.submit);
   const create = useInsert();
   const update = useSave();
+  const exchangeRateCall = useFrappePostCall<{ message: number }>(METHOD.getExchangeRate);
   const modes = useDocList<{ name: string; type?: string }>(DT.modeOfPayment, {
     fields: ["name", "type"],
     filters: [["enabled", "=", 1]],
@@ -118,6 +123,10 @@ export default function PaymentForm() {
   const [manualAmount, setManualAmount] = useState(false);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [sourceExchangeRate, setSourceExchangeRate] = useState(1);
+  const [targetExchangeRate, setTargetExchangeRate] = useState(1);
+  const [writeOffAmount, setWriteOffAmount] = useState(0);
+  const [writeOffAccount, setWriteOffAccount] = useState("");
 
   const cur = session.currency || "";
   const type: PayType = doc.payment_type ?? "Receive";
@@ -199,9 +208,42 @@ export default function PaymentForm() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice, isNew, seeded]);
 
+  /** True when the two account legs use different currencies. */
+  const isMcurr = !!(
+    resolved?.paid_from_account_currency &&
+    resolved?.paid_to_account_currency &&
+    resolved.paid_from_account_currency !== resolved.paid_to_account_currency
+  );
+
+  /** Fetch exchange rates whenever the resolved accounts change currencies. */
+  useEffect(() => {
+    if (!isMcurr || !resolved) return;
+    const companyCurrency = session.currency || "";
+    const fromCur = resolved.paid_from_account_currency!;
+    const toCur = resolved.paid_to_account_currency!;
+    void (async () => {
+      try {
+        if (fromCur !== companyCurrency) {
+          const r = await exchangeRateCall.call({ from_currency: fromCur, to_currency: companyCurrency, transaction_date: doc.posting_date, args: "for_buying" });
+          setSourceExchangeRate(Number(r?.message) || 1);
+        } else {
+          setSourceExchangeRate(1);
+        }
+        if (toCur !== companyCurrency) {
+          const r = await exchangeRateCall.call({ from_currency: toCur, to_currency: companyCurrency, transaction_date: doc.posting_date, args: "for_buying" });
+          setTargetExchangeRate(Number(r?.message) || 1);
+        } else {
+          setTargetExchangeRate(1);
+        }
+      } catch { /* non-fatal */ }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMcurr, resolved?.paid_from_account_currency, resolved?.paid_to_account_currency, doc.posting_date]);
+
   const refs = useMemo(() => doc.references ?? [], [doc.references]);
   const allocated = sumAllocated(refs);
   const amount = round2(doc.paid_amount ?? 0);
+  const receivedAmount = round2(isMcurr ? (doc.received_amount ?? 0) : amount);
   const unallocated = round2(amount - allocated);
   const overAllocated = allocated > amount + 0.005;
 
@@ -212,9 +254,9 @@ export default function PaymentForm() {
     setDoc((d) => ({
       ...d,
       references: next,
-      ...(manualAmount ? {} : { paid_amount: sumAllocated(next), received_amount: sumAllocated(next) }),
+      ...(!manualAmount && !isMcurr ? { paid_amount: sumAllocated(next), received_amount: sumAllocated(next) } : {}),
     }));
-  }, [manualAmount]);
+  }, [manualAmount, isMcurr]);
 
   function toggleInvoice(row: Outstanding) {
     const key = rowKey(row);
@@ -279,20 +321,22 @@ export default function PaymentForm() {
       if (overAllocated) {
         throw new Error(`${t("pay.warn.over")} — ${money(allocated)} / ${money(amount)}`);
       }
-      const body = {
+      const body: Record<string, unknown> = {
         ...doc,
         payment_type: type,
-        party_type: partyType,
+        party_type: isInternalTransfer ? undefined : partyType,
         company,
-        /* AED only for v1, so the bank and party legs move the same figure
-           and no exchange-rate field is shown (spec §6).                 */
-        received_amount: amount,
         paid_amount: amount,
+        received_amount: isMcurr ? receivedAmount : amount,
         paid_from: resolved.paid_from,
         paid_to: resolved.paid_to,
         paid_from_account_currency: resolved.paid_from_account_currency,
         paid_to_account_currency: resolved.paid_to_account_currency,
+        ...(isMcurr ? { source_exchange_rate: sourceExchangeRate, target_exchange_rate: targetExchangeRate } : {}),
         references: refs.filter((r) => (Number(r.allocated_amount) || 0) !== 0),
+        ...(writeOffAmount > 0.005 && writeOffAccount
+          ? { write_off_amount: writeOffAmount, write_off_account: writeOffAccount }
+          : {}),
       };
       let payName: string;
       if (isNew) {
@@ -394,11 +438,13 @@ export default function PaymentForm() {
               </div>
             </div>
             <div className="grid2">
-              <Field label={t(`pay.party.${partyType}`)} required>
-                <LinkField doctype={partyType === "Supplier" ? DT.supplier : DT.customer}
-                  value={doc.party ?? ""}
-                  onChange={(v) => setDoc((d) => ({ ...d, party: v, references: [] }))} />
-              </Field>
+              {!isInternalTransfer && (
+                <Field label={t(`pay.party.${partyType ?? "Customer"}`)} required>
+                  <LinkField doctype={partyType === "Supplier" ? DT.supplier : DT.customer}
+                    value={doc.party ?? ""}
+                    onChange={(v) => setDoc((d) => ({ ...d, party: v, references: [] }))} />
+                </Field>
+              )}
               <Field label={t("pay.lDate")} required>
                 <input className="ctl" type="date" value={doc.posting_date ?? ""}
                   onChange={(e) => setDoc((d) => ({ ...d, posting_date: e.target.value }))} />
@@ -408,14 +454,36 @@ export default function PaymentForm() {
 
           <Card title={<><span className="snum">2</span>{t("pay.b2")}</>}>
             <div className="grid2">
-              <Field label={`${t("pay.lAmount")} (${cur})`} required>
+              <Field label={isMcurr ? `${t("pay.lAmount")} (${resolved?.paid_from_account_currency ?? cur})` : `${t("pay.lAmount")} (${cur})`} required>
                 <input className="ctl nn" value={doc.paid_amount ?? 0}
                   onChange={(e) => {
                     const v = parseNum(e.target.value);
                     setManualAmount(true);
-                    setDoc((d) => ({ ...d, paid_amount: v, received_amount: v }));
+                    setDoc((d) => ({ ...d, paid_amount: v, ...(!isMcurr ? { received_amount: v } : {}) }));
                   }} />
               </Field>
+              {isMcurr && (
+                <Field label={`${t("pay.receivedAmount")} (${resolved?.paid_to_account_currency ?? cur})`} required>
+                  <input className="ctl nn" value={doc.received_amount ?? 0}
+                    onChange={(e) => {
+                      const v = parseNum(e.target.value);
+                      setManualAmount(true);
+                      setDoc((d) => ({ ...d, received_amount: v }));
+                    }} />
+                </Field>
+              )}
+              {isMcurr && (
+                <Field label={t("pay.sourceRate")}>
+                  <input className="ctl nn" value={sourceExchangeRate}
+                    onChange={(e) => setSourceExchangeRate(parseNum(e.target.value) || 1)} />
+                </Field>
+              )}
+              {isMcurr && (
+                <Field label={t("pay.targetRate")}>
+                  <input className="ctl nn" value={targetExchangeRate}
+                    onChange={(e) => setTargetExchangeRate(parseNum(e.target.value) || 1)} />
+                </Field>
+              )}
               <Field label={t("pay.mode")} required>
                 <select className="ctl" value={doc.mode_of_payment ?? ""}
                   onChange={(e) => setDoc((d) => ({ ...d, mode_of_payment: e.target.value }))}>
@@ -441,7 +509,7 @@ export default function PaymentForm() {
 
           <Card title={<><span className="snum">3</span>{t("pay.b3")}</>}
                 bodyClass={null as unknown as string}>
-            {!doc.party ? <Empty label={t("pay.emptyParty")} />
+            {isInternalTransfer ? <Empty label={t("pay.internal")} /> : !doc.party ? <Empty label={t("pay.emptyParty")} />
               : outstanding.isLoading ? <Loading />
               : outstanding.error ? <ErrorBox error={outstanding.error} onRetry={() => outstanding.mutate()} />
               : rows.length === 0 ? (
@@ -516,13 +584,31 @@ export default function PaymentForm() {
             </div>
           )}
           {!overAllocated && unallocated > 0.005 && amount > 0 && (
-            <div className="alert">
-              <span className="ic">!</span>
-              <span>
-                <b>{t("pay.warn.left")} — {cur} {money(unallocated)}</b>
-                {t("pay.warn.leftB")}
-              </span>
-            </div>
+            <>
+              <div className="alert">
+                <span className="ic">!</span>
+                <span>
+                  <b>{t("pay.warn.left")} — {cur} {money(unallocated)}</b>
+                  {t("pay.warn.leftB")}
+                </span>
+              </div>
+              <Card title={t("pay.writeOff")}>
+                <div className="grid2">
+                  <Field label={t("pay.writeOffAmount")}>
+                    <input className="ctl nn" value={writeOffAmount}
+                      onChange={(e) => setWriteOffAmount(parseNum(e.target.value))} />
+                  </Field>
+                  <Field label={t("pay.writeOffAccount")}>
+                    <LinkField
+                      doctype={DT.account}
+                      value={writeOffAccount}
+                      onChange={setWriteOffAccount}
+                      filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined}
+                    />
+                  </Field>
+                </div>
+              </Card>
+            </>
           )}
       </FormLayout>
     </>

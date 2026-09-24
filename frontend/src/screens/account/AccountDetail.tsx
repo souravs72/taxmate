@@ -43,7 +43,7 @@ export default function AccountDetail() {
         }
         title={data.account_name || data.name}
         actions={
-          writable && !data.is_group ? (
+          writable ? (
             <button
               type="button"
               className="btn ghost"

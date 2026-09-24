@@ -17,10 +17,8 @@ import { parseNum, toIsoDate } from "../../lib/format";
 const today = toIsoDate(new Date());
 
 type Doc = {
+  title?: string;
   apply_on?: string;
-  item_code?: string;
-  item_group?: string;
-  brand?: string;
   customer?: string;
   min_qty?: number;
   rate_or_discount?: string;
@@ -31,6 +29,11 @@ type Doc = {
   valid_upto?: string;
   priority?: number;
   disable?: number;
+  selling?: number;
+  buying?: number;
+  items?: { item_code?: string }[];
+  item_groups?: { item_group?: string }[];
+  brands?: { brand?: string }[];
 };
 
 const APPLY_ON_OPTIONS = ["Item Code", "Item Group", "Brand"];
@@ -69,9 +72,9 @@ export default function PricingRuleForm() {
     const d = existing.data;
     if (!d) return;
     setApplyOn(d.apply_on || "Item Code");
-    setItemCode(d.item_code || "");
-    setItemGroup(d.item_group || "");
-    setBrand(d.brand || "");
+    setItemCode(d.items?.[0]?.item_code || "");
+    setItemGroup(d.item_groups?.[0]?.item_group || "");
+    setBrand(d.brands?.[0]?.brand || "");
     setCustomer(d.customer || "");
     setMinQty(Number(d.min_qty) || 0);
     setRateOrDiscount(d.rate_or_discount || "Discount Percentage");
@@ -96,10 +99,14 @@ export default function PricingRuleForm() {
     try {
       const payload: Record<string, unknown> = {
         company: session.company,
+        title: itemCode || itemGroup || brand || "Pricing Rule",
         apply_on: applyOn,
-        item_code: applyOn === "Item Code" ? itemCode : undefined,
-        item_group: applyOn === "Item Group" ? itemGroup : undefined,
-        brand: applyOn === "Brand" ? brand : undefined,
+        selling: 1,
+        buying: 0,
+        // Targets live on child tables — parent has no item_code / item_group / brand.
+        items: applyOn === "Item Code" && itemCode ? [{ item_code: itemCode }] : [],
+        item_groups: applyOn === "Item Group" && itemGroup ? [{ item_group: itemGroup }] : [],
+        brands: applyOn === "Brand" && brand ? [{ brand }] : [],
         customer: customer || undefined,
         min_qty: minQty,
         rate_or_discount: rateOrDiscount,

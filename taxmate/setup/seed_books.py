@@ -1,11 +1,13 @@
-"""Seed a realistic UAE trading company for TaxMate UAT / local review.
+"""Seed Ascra Technology LLP books for TaxMate SPA review.
 
-Creates masters and ~9 months of submitted sales, purchases, and payments.
+Creates masters and submitted sales, purchases, fulfilment, and payments.
 Names avoid DEMO/E2E/TEST prefixes. Idempotent per company: skips when the
 company already has a seeded customer marker.
 
 Run:
   bench --site <site> execute taxmate.setup.seed_books.run
+
+Do not store login passwords in this module.
 """
 
 from __future__ import annotations
@@ -19,9 +21,9 @@ from frappe.utils import add_days, getdate
 from taxmate.uae.constants import UAE_COUNTRY
 from taxmate.uae.setup import ensure_company_uae_ready
 
-COMPANY_NAME = "Tax Mate"
-COMPANY_ABBR = "TM"
-COMPANY_TRN = "100245678900003"
+COMPANY_NAME = "Ascra Technology LLP"
+COMPANY_ABBR = "ATL"
+COMPANY_TRN = "100312345678901"
 SEED_MARKER_CUSTOMER = "Palm Grove Retail LLC"
 
 CUSTOMERS: list[dict] = [
@@ -73,6 +75,7 @@ ITEMS: list[dict] = [
 	{"code": "SVC-IMPL", "name": "ERP Implementation Day Rate", "group": "Services", "stock": 0, "rate": 2200, "buy": 0, "uom": "Nos", "sac": "998314"},
 	{"code": "SVC-TRAIN", "name": "Staff Training Workshop", "group": "Services", "stock": 0, "rate": 3500, "buy": 0, "uom": "Nos", "sac": "999293"},
 	{"code": "SVC-ZERO-EXP", "name": "Cross-border Advisory (Export)", "group": "Services", "stock": 0, "rate": 5000, "buy": 0, "uom": "Nos", "sac": "998311", "zero": 1},
+	{"code": "SVC-EXEMPT-EDU", "name": "Exempt Education Advisory", "group": "Services", "stock": 0, "rate": 1800, "buy": 0, "uom": "Nos", "sac": "999293", "exempt": 1},
 ]
 
 STOCK_PREFIXES = ("CHR", "DSK", "MON", "KB", "MSE", "LMP", "FIL", "WST", "PAP", "CBL")
@@ -144,16 +147,28 @@ def run(force: bool | int | str = False) -> dict:
 
 
 def _ensure_fiscal_year() -> None:
-	if frappe.db.exists("Fiscal Year", "2026"):
-		return
-	frappe.get_doc(
-		{
-			"doctype": "Fiscal Year",
-			"year": "2026",
-			"year_start_date": "2026-01-01",
-			"year_end_date": "2026-12-31",
-		}
-	).insert(ignore_permissions=True)
+	if frappe.db.exists("Notification", "Notification for new fiscal year"):
+		frappe.db.set_value("Notification", "Notification for new fiscal year", "enabled", 0)
+	if not frappe.db.exists("Fiscal Year", "2026"):
+		fy = frappe.get_doc(
+			{
+				"doctype": "Fiscal Year",
+				"year": "2026",
+				"year_start_date": "2026-01-01",
+				"year_end_date": "2026-12-31",
+			}
+		)
+		fy.flags.ignore_permissions = True
+		fy.flags.ignore_notifications = True
+		fy.insert()
+	fy = frappe.get_doc("Fiscal Year", "2026")
+	if COMPANY_NAME and not any(r.company == COMPANY_NAME for r in fy.companies):
+		if frappe.db.exists("Company", COMPANY_NAME):
+			fy.append("companies", {"company": COMPANY_NAME})
+			fy.flags.ignore_permissions = True
+			fy.flags.ignore_notifications = True
+			fy.save()
+	frappe.db.set_default("fiscal_year", "2026")
 
 
 def _ensure_company() -> str:
@@ -242,6 +257,9 @@ def _context(company: str, abbr: str) -> dict:
 		"sales_tax_zero": frappe.db.get_value(
 			"Sales Taxes and Charges Template", {"company": company, "title": "UAE VAT Zero"}, "name"
 		),
+		"sales_tax_exempt": frappe.db.get_value(
+			"Sales Taxes and Charges Template", {"company": company, "title": "UAE VAT Exempted"}, "name"
+		),
 		"purchase_tax": frappe.db.get_value(
 			"Purchase Taxes and Charges Template", {"company": company, "title": "UAE VAT 5%"}, "name"
 		)
@@ -253,6 +271,9 @@ def _context(company: str, abbr: str) -> dict:
 		),
 		"item_tax_zero": frappe.db.get_value(
 			"Item Tax Template", {"company": company, "title": "UAE VAT Zero"}, "name"
+		),
+		"item_tax_exempt": frappe.db.get_value(
+			"Item Tax Template", {"company": company, "title": "UAE VAT Exempted"}, "name"
 		),
 	}
 
@@ -373,12 +394,25 @@ def _party_address(party_type: str, party: str, emirate: str, trn: str | None) -
 	doc.insert(ignore_permissions=True)
 
 
+
+def _ensure_brands() -> None:
+	for name in ("Ascra Tools", "Gulf Office", "Marina Gear"):
+		if not frappe.db.exists("Brand", name):
+			frappe.get_doc({"doctype": "Brand", "brand": name}).insert(ignore_permissions=True)
+
+
 def _ensure_items(ctx: dict) -> None:
 	for row in ITEMS:
 		if frappe.db.exists("Item", row["code"]):
 			continue
 		group = row["group"] if frappe.db.exists("Item Group", row["group"]) else "All Item Groups"
-		tax_template = ctx["item_tax_zero"] if row.get("zero") else ctx["item_tax_5"]
+		tax_template = (
+			ctx["item_tax_zero"]
+			if row.get("zero")
+			else ctx.get("item_tax_exempt")
+			if row.get("exempt")
+			else ctx["item_tax_5"]
+		)
 		doc = frappe.get_doc(
 			{
 				"doctype": "Item",
@@ -500,7 +534,7 @@ def _is_stock_line(item_code: str) -> bool:
 def _seed_sales(ctx: dict) -> int:
 	customers = [c["name"] for c in CUSTOMERS if c["name"] != "Walk-in Customer"]
 	stock = [i for i in ITEMS if i["stock"]]
-	services = [i for i in ITEMS if not i["stock"] and not i.get("zero")]
+	services = [i for i in ITEMS if not i["stock"] and not i.get("zero") and not i.get("exempt")]
 	created = 0
 
 	for mi, month_start in enumerate(_months()):
@@ -510,16 +544,21 @@ def _seed_sales(ctx: dict) -> int:
 			posting = date(month_start.year, month_start.month, min(day, last))
 			customer = customers[(mi * 7 + n) % len(customers)]
 
-			if n % 4 == 0:
+			if n % 5 == 0:
 				item = services[n % len(services)]
 				lines = [{"item_code": item["code"], "qty": 1, "rate": item["rate"]}]
 				tax = ctx["sales_tax"]
 				update_stock = 0
-			elif n % 4 == 1 and ctx["sales_tax_zero"]:
+			elif n % 5 == 1 and ctx["sales_tax_zero"]:
 				item = next(i for i in ITEMS if i.get("zero"))
 				lines = [{"item_code": item["code"], "qty": 1, "rate": item["rate"]}]
 				tax = ctx["sales_tax_zero"]
 				customer = "Nordic Tax Partners AB"
+				update_stock = 0
+			elif n % 5 == 2 and ctx.get("sales_tax_exempt"):
+				item = next(i for i in ITEMS if i.get("exempt"))
+				lines = [{"item_code": item["code"], "qty": 1, "rate": item["rate"]}]
+				tax = ctx["sales_tax_exempt"]
 				update_stock = 0
 			else:
 				a = stock[(mi + n) % len(stock)]
@@ -665,8 +704,9 @@ def _invoice_exists(doctype: str, company: str, posting: date, party: str) -> bo
 
 def _seed_payments(ctx: dict) -> int:
 	created = 0
-	mode = "Wire Transfer" if frappe.db.exists("Mode of Payment", "Wire Transfer") else "Cash"
-	paid_account = ctx["bank_gl"] or ctx["cash"]
+	# Cash + Cash GL is reliable on a fresh UAE chart (Wire Transfer often has no mop account).
+	mode = "Cash" if frappe.db.exists("Mode of Payment", "Cash") else "Wire Transfer"
+	paid_account = ctx["cash"] or ctx["bank_gl"]
 	if not paid_account:
 		return 0
 
@@ -675,7 +715,12 @@ def _seed_payments(ctx: dict) -> int:
 	for doctype in ("Sales Invoice", "Purchase Invoice"):
 		rows = frappe.get_all(
 			doctype,
-			filters={"company": ctx["company"], "docstatus": 1, "outstanding_amount": [">", 0.01]},
+			filters={
+				"company": ctx["company"],
+				"docstatus": 1,
+				"outstanding_amount": [">", 0.01],
+				"is_return": 0,
+			},
 			fields=["name", "posting_date"],
 			order_by="posting_date asc",
 			limit_page_length=80,
@@ -717,7 +762,111 @@ def _seed_trading_pipelines(ctx: dict) -> dict:
 	}
 	out["invoices_from_dn"] = _seed_invoices_from_delivery_notes(ctx)
 	out["invoices_from_pr"] = _seed_invoices_from_purchase_receipts(ctx)
+	out["sales_returns"] = _seed_sales_returns(ctx)
+	out["purchase_returns"] = _seed_purchase_returns(ctx)
+	out["draft_invoices"] = _seed_draft_invoices(ctx)
 	return out
+
+
+def _seed_sales_returns(ctx: dict) -> int:
+	"""One credit note against a submitted SI."""
+	from erpnext.accounts.doctype.sales_invoice.sales_invoice import make_sales_return
+
+	if frappe.db.exists("Sales Invoice", {"company": ctx["company"], "is_return": 1, "docstatus": 1}):
+		return 0
+	src = frappe.db.get_value(
+		"Sales Invoice",
+		{"company": ctx["company"], "docstatus": 1, "is_return": 0},
+		"name",
+		order_by="posting_date desc",
+	)
+	if not src:
+		return 0
+	try:
+		ret = make_sales_return(src)
+		if ret.meta.has_field("uae_credit_note_reason"):
+			ret.uae_credit_note_reason = "Goods returned"
+		ret.insert(ignore_permissions=True)
+		ret.submit()
+		return 1
+	except Exception:
+		frappe.db.rollback()
+		frappe.log_error(title="seed sales return", message=frappe.get_traceback())
+		return 0
+
+
+def _seed_purchase_returns(ctx: dict) -> int:
+	"""One debit note against a submitted PI."""
+	from erpnext.accounts.doctype.purchase_invoice.purchase_invoice import make_debit_note
+
+	if frappe.db.exists("Purchase Invoice", {"company": ctx["company"], "is_return": 1, "docstatus": 1}):
+		return 0
+	src = frappe.db.get_value(
+		"Purchase Invoice",
+		{"company": ctx["company"], "docstatus": 1, "is_return": 0},
+		"name",
+		order_by="posting_date desc",
+	)
+	if not src:
+		return 0
+	try:
+		ret = make_debit_note(src)
+		if ret.meta.has_field("uae_credit_note_reason"):
+			ret.uae_credit_note_reason = "Goods returned"
+		ret.insert(ignore_permissions=True)
+		ret.submit()
+		return 1
+	except Exception:
+		frappe.db.rollback()
+		frappe.log_error(title="seed purchase return", message=frappe.get_traceback())
+		return 0
+
+
+def _seed_draft_invoices(ctx: dict) -> int:
+	"""Leave a couple of draft SI/PI for list/filter coverage."""
+	created = 0
+	if not frappe.db.exists("Sales Invoice", {"company": ctx["company"], "docstatus": 0, "is_return": 0}):
+		cust = CUSTOMERS[0]["name"]
+		item = next(i for i in ITEMS if not i["stock"])
+		doc = frappe.get_doc(
+			{
+				"doctype": "Sales Invoice",
+				"company": ctx["company"],
+				"customer": cust,
+				"posting_date": frappe.utils.today(),
+				"due_date": add_days(frappe.utils.today(), 14),
+				"currency": "AED",
+				"taxes_and_charges": ctx["sales_tax"],
+				"items": [{"item_code": item["code"], "qty": 1, "rate": item["rate"]}],
+			}
+		)
+		try:
+			doc.insert(ignore_permissions=True)
+			created += 1
+		except Exception:
+			frappe.db.rollback()
+	if not frappe.db.exists("Purchase Invoice", {"company": ctx["company"], "docstatus": 0, "is_return": 0}):
+		sup = SUPPLIERS[0]["name"]
+		item = next(i for i in ITEMS if i["stock"])
+		doc = frappe.get_doc(
+			{
+				"doctype": "Purchase Invoice",
+				"company": ctx["company"],
+				"supplier": sup,
+				"posting_date": frappe.utils.today(),
+				"bill_no": "DRAFT-PI-1",
+				"bill_date": frappe.utils.today(),
+				"currency": "AED",
+				"taxes_and_charges": ctx["purchase_tax"],
+				"items": [{"item_code": item["code"], "qty": 1, "rate": item["buy"] or 50}],
+			}
+		)
+		try:
+			doc.insert(ignore_permissions=True)
+			created += 1
+		except Exception:
+			frappe.db.rollback()
+	return created
 
 
 def _top_up_stock(ctx: dict) -> None:
@@ -1285,10 +1434,20 @@ def _seed_journals(ctx: dict) -> int:
 
 
 def _ensure_spa_users(ctx: dict) -> None:
+	"""Ensure SPA users and roles. Passwords are set outside this seed (never stored here)."""
 	from taxmate.setup.spa_roles import apply_spa_role, ensure_spa_roles
 
 	ensure_spa_roles()
+	try:
+		from taxmate.setup.spa_roles import _ensure_books_perms, _allow_reports
+
+		_ensure_books_perms()
+		_allow_reports()
+	except Exception:
+		frappe.log_error(title="TaxMate seed SPA perms")
+
 	users = [
+		{"email": "sourav@ascratech.com", "first_name": "Sourav", "last_name": "Ascra", "role": "owner"},
 		{"email": "owner@manara.ae", "first_name": "Layla", "last_name": "Al Hashimi", "role": "owner"},
 		{"email": "accountant@manara.ae", "first_name": "Omar", "last_name": "Farouk", "role": "accountant"},
 	]
@@ -1302,10 +1461,12 @@ def _ensure_spa_users(ctx: dict) -> None:
 					"last_name": u["last_name"],
 					"send_welcome_email": 0,
 					"user_type": "System User",
+					"enabled": 1,
 				}
 			)
 			user.insert(ignore_permissions=True)
-			user.new_password = "TaxMate.UAT.2026"
-			user.save(ignore_permissions=True)
+			# Password is assigned by the operator / onboard script, not the seed.
+		else:
+			frappe.db.set_value("User", u["email"], "enabled", 1)
 		apply_spa_role(u["email"], u["role"])
 		frappe.defaults.set_user_default("company", ctx["company"], u["email"])

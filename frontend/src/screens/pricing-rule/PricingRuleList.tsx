@@ -14,7 +14,16 @@ import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 
 const PAGE = 30;
-type Row = { name: string; apply_on?: string; item_code?: string; item_group?: string; discount_percentage?: number; priority?: number; disable?: number };
+type Row = {
+  name: string;
+  title?: string;
+  apply_on?: string;
+  discount_percentage?: number;
+  priority?: number;
+  disable?: number;
+  selling?: number;
+  buying?: number;
+};
 
 export default function PricingRuleList() {
   const nav = useNavigate();
@@ -24,10 +33,10 @@ export default function PricingRuleList() {
 
   const filters: [string, string, string][] = [];
   if (session.company) filters.push(["company", "=", session.company]);
-  if (q.trim()) filters.push(["name", "like", `%${q.trim()}%`]);
+  if (q.trim()) filters.push(["title", "like", `%${q.trim()}%`]);
 
   const list = useDocList<Row>(DT.pricingRule, {
-    fields: ["name", "apply_on", "item_code", "item_group", "discount_percentage", "priority", "disable"],
+    fields: ["name", "title", "apply_on", "discount_percentage", "priority", "disable", "selling", "buying"],
     filters: filters as never,
     orderBy: { field: "priority", order: "asc" },
     limit: PAGE,
@@ -36,9 +45,16 @@ export default function PricingRuleList() {
   const count = useDocCount(DT.pricingRule, filters as never);
 
   const columns: Column<Row>[] = [
-    { key: "name", header: t("prule.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
+    { key: "name", header: t("prule.col.name"), cell: (r) => <span className="ordno">{r.title || r.name}</span> },
     { key: "apply_on", header: t("prule.col.applyOn"), cell: (r) => r.apply_on ?? "" },
-    { key: "item_code", header: t("prule.col.item"), cell: (r) => r.item_code || r.item_group || "" },
+    {
+      key: "scope",
+      header: t("prule.col.scope"),
+      cell: (r) =>
+        [r.selling ? t("prule.selling") : null, r.buying ? t("prule.buying") : null]
+          .filter(Boolean)
+          .join(" · ") || "—",
+    },
     { key: "discount_percentage", header: t("prule.col.discount"), cell: (r) => r.discount_percentage != null ? `${r.discount_percentage}%` : "" },
     { key: "priority", header: t("prule.col.priority"), cell: (r) => String(r.priority ?? "") },
     { key: "disable", header: t("prule.col.active"), cell: (r) => r.disable ? t("prule.disabled") : t("prule.enabled") },

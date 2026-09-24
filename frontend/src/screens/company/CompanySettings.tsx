@@ -12,9 +12,10 @@
  */
 
 import { useState } from "react";
-import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
+import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { DT, METHOD, readableError } from "../../lib/frappe";
+import { useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canManageCompany } from "../../lib/roles";
 import { t } from "../../i18n/strings";
@@ -45,7 +46,7 @@ export default function CompanySettings() {
     company ? `company-${company}` : null,
     { revalidateOnFocus: false },
   );
-  const save = useFrappePostCall<{ message: string }>(METHOD.save);
+  const { updateDoc, loading: saving } = useSave();
 
   const doc = res.data?.message;
   const [form, setForm] = useState<Partial<CompanyDoc>>({});
@@ -68,11 +69,7 @@ export default function CompanySettings() {
     setSaveErr(null);
     setSaved(false);
     try {
-      await save.call({
-        doctype: DT.company,
-        name: doc.name,
-        ...form,
-      });
+      await updateDoc(DT.company, doc.name, form);
       setSaved(true);
       setForm({});
       void res.mutate();
@@ -181,8 +178,8 @@ export default function CompanySettings() {
 
         {canSave && (
           <div style={{ display: "flex", gap: 10, paddingBlockStart: 4 }}>
-            <button type="submit" className="btn" disabled={save.loading || Object.keys(form).length === 0}>
-              {save.loading ? "…" : t("common.save")}
+            <button type="submit" className="btn" disabled={saving || Object.keys(form).length === 0}>
+              {saving ? "…" : t("common.save")}
             </button>
           </div>
         )}

@@ -2,7 +2,7 @@
  * TaxCategoryList — list Tax Category masters (Phase 11).
  * Callers: App.tsx /tax-categories
  * API: taxmate.api.resource.get_list on "Tax Category" (already in _CORE_MASTERS)
- * Schema: {name, title, is_reverse_charge}
+ * Schema: {name, title, disabled}
  * User instruction: Phase 11 — Tax Category list/form
  */
 import { useMemo } from "react";
@@ -18,7 +18,7 @@ import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 30;
-type Row = { name: string; title?: string; is_reverse_charge?: number };
+type Row = { name: string; title?: string; disabled?: number };
 
 export default function TaxCategoryList() {
   const nav = useNavigate();
@@ -32,7 +32,7 @@ export default function TaxCategoryList() {
   }, [q]);
 
   const list = useDocList<Row>("Tax Category", {
-    fields: ["name", "title", "is_reverse_charge"],
+    fields: ["name", "title", "disabled"],
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
@@ -46,9 +46,9 @@ export default function TaxCategoryList() {
       cell: (r) => <span className="ordno">{r.title || r.name}</span>,
     },
     {
-      key: "reverse",
-      header: t("txc.col.reverse"),
-      cell: (r) => (r.is_reverse_charge ? t("yes") : t("no")),
+      key: "disabled",
+      header: t("txc.col.disabled"),
+      cell: (r) => (r.disabled ? t("no") : t("yes")),
     },
   ];
 

@@ -1515,3 +1515,19 @@ class TestPhase22UaeCompliance(FrappeTestCase):
 		from taxmate.api.resource import get_list
 		rows = get_list("UAE VAT Group", fields=["name", "representative_company"], limit_page_length=5, filters=[])
 		self.assertIsInstance(rows, list)
+
+
+class TestCompanySettingsWrite(FrappeTestCase):
+	"""SPA Company Settings uses resource.save with a full Company doc."""
+
+	def test_company_save_updates_contact(self):
+		company = frappe.db.get_single_value("Global Defaults", "default_company") or frappe.db.get_value(
+			"Company", {"country": "United Arab Emirates"}, "name"
+		)
+		self.assertTrue(company)
+		doc = get("Company", company)
+		phone = doc.get("phone_no") or ""
+		new_phone = (phone + "1")[-20:] if phone else "+971500000001"
+		doc["phone_no"] = new_phone
+		saved = save(doc)
+		self.assertEqual(saved.get("phone_no"), new_phone)

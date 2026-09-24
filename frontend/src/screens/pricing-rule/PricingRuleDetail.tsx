@@ -11,10 +11,8 @@ import { t } from "../../i18n/strings";
 import { Card, Loading, ErrorBox, PageHead } from "../../components/ui";
 
 type Doc = {
+  title?: string;
   apply_on?: string;
-  item_code?: string;
-  item_group?: string;
-  brand?: string;
   customer?: string;
   min_qty?: number;
   rate_or_discount?: string;
@@ -26,6 +24,9 @@ type Doc = {
   priority?: number;
   disable?: number;
   company?: string;
+  items?: { item_code?: string }[];
+  item_groups?: { item_group?: string }[];
+  brands?: { brand?: string }[];
 };
 
 export default function PricingRuleDetail() {
@@ -54,9 +55,9 @@ export default function PricingRuleDetail() {
       <Card num={1} title={t("prule.details")}>
         <div className="fields">
           <label>{t("prule.applyOn")}<span>{d.apply_on ?? ""}</span></label>
-          {d.item_code && <label>{t("prule.itemCode")}<span>{d.item_code}</span></label>}
-          {d.item_group && <label>{t("prule.itemGroup")}<span>{d.item_group}</span></label>}
-          {d.brand && <label>{t("prule.brand")}<span>{d.brand}</span></label>}
+          {d.items?.[0]?.item_code && <label>{t("prule.itemCode")}<span>{d.items[0].item_code}</span></label>}
+          {d.item_groups?.[0]?.item_group && <label>{t("prule.itemGroup")}<span>{d.item_groups[0].item_group}</span></label>}
+          {d.brands?.[0]?.brand && <label>{t("prule.brand")}<span>{d.brands[0].brand}</span></label>}
           {d.customer && <label>{t("prule.customer")}<span>{d.customer}</span></label>}
           <label>{t("prule.minQty")}<span>{d.min_qty ?? 0}</span></label>
           <label>{t("prule.rateOrDiscount")}<span>{d.rate_or_discount ?? ""}</span></label>

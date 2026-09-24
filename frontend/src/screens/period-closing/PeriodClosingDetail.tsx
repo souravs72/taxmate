@@ -6,8 +6,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useDoc } from "../../lib/resource";
-import { useSession } from "../../lib/session";
-import { date, money } from "../../lib/format";
+import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 
@@ -15,8 +14,10 @@ type Doc = {
   name: string;
   company?: string;
   transaction_date?: string;
+  period_start_date?: string;
+  period_end_date?: string;
+  fiscal_year?: string;
   closing_account_head?: string;
-  net_total_profit?: number;
   remarks?: string;
   docstatus?: number;
 };
@@ -24,14 +25,12 @@ type Doc = {
 export default function PeriodClosingDetail() {
   const { name = "" } = useParams();
   const nav = useNavigate();
-  const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>("Period Closing Voucher", name);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
 
-  const cur = session.currency || "";
   const st = data.docstatus === 1 ? "Submitted" : data.docstatus === 2 ? "Cancelled" : "Draft";
 
   return (
@@ -51,8 +50,16 @@ export default function PeriodClosingDetail() {
       <Card>
         <div className="fg">
           <ReadRow k={t("pcv.col.date")} v={date(data.transaction_date)} />
+          <ReadRow k={t("pcv.col.fiscalYear")} v={data.fiscal_year || "—"} />
+          <ReadRow
+            k={t("pcv.col.period")}
+            v={
+              data.period_start_date && data.period_end_date
+                ? `${date(data.period_start_date)} – ${date(data.period_end_date)}`
+                : "—"
+            }
+          />
           <ReadRow k={t("pcv.col.account")} v={data.closing_account_head || "—"} />
-          <ReadRow k={t("pcv.col.profit")} v={`${cur} ${money(Number(data.net_total_profit) || 0)}`} />
           {data.remarks && <ReadRow k={t("je.col.remark")} v={data.remarks} />}
         </div>
       </Card>

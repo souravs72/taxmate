@@ -1,6 +1,6 @@
 """Phase 9 fixture company: one unused FY 2026 period with every VAT 201 flavour.
 
-Uses the existing UAE company (Tax Mate). Walk-in customer has no TRN so
+Uses the existing UAE company (Ascra Technology LLP). Walk-in customer has no TRN so
 B2C e-invoice exclusion keeps ASP jobs off these invoices. Documents are
 meant to live inside a FrappeTestCase transaction and roll back.
 """
@@ -16,7 +16,7 @@ from frappe.utils import flt
 from taxmate.uae.constants import UAE_COUNTRY
 from taxmate.uae.validation import is_valid_uae_trn
 
-COMPANY_NAME = "Tax Mate"
+COMPANY_NAME = "Ascra Technology LLP"
 PERIOD_START = "2026-12-01"
 PERIOD_END = "2026-12-31"
 WALK_IN = "TM Prove Walk-in"

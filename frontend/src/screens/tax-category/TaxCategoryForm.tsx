@@ -2,7 +2,7 @@
  * TaxCategoryForm — create/edit Tax Category (Phase 11).
  * Callers: App.tsx /tax-categories/new, /tax-categories/:name/edit
  * API: taxmate.api.resource.insert / save on "Tax Category" (_CORE_MASTERS)
- * Schema: {title, is_reverse_charge}
+ * Schema: {title, disabled}
  */
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -12,7 +12,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
-type Doc = { name: string; title?: string; is_reverse_charge?: 0 | 1 };
+type Doc = { name: string; title?: string; disabled?: 0 | 1 };
 
 export default function TaxCategoryForm() {
   const { name = "new" } = useParams();
@@ -26,7 +26,7 @@ export default function TaxCategoryForm() {
   const update = useSave();
 
   const [title, setTitle] = useState("");
-  const [isReverseCharge, setIsReverseCharge] = useState<0 | 1>(0);
+  const [disabled, setDisabled] = useState<0 | 1>(0);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -34,7 +34,7 @@ export default function TaxCategoryForm() {
     const d = existing.data;
     if (!d) return;
     setTitle(d.title || d.name || "");
-    setIsReverseCharge(d.is_reverse_charge ? 1 : 0);
+    setDisabled(d.disabled ? 1 : 0);
   }, [existing.data]);
 
   const ready = !!title.trim();
@@ -44,7 +44,7 @@ export default function TaxCategoryForm() {
     setBusy(true);
     setSaveError(null);
     try {
-      const payload = { title, is_reverse_charge: isReverseCharge };
+      const payload = { title, disabled };
       if (isNew) {
         const doc = (await create.createDoc("Tax Category", payload)) as { name: string };
         nav(`/tax-categories/${encodeURIComponent(doc.name)}`);
@@ -85,14 +85,14 @@ export default function TaxCategoryForm() {
                 placeholder={t("txc.ph")}
               />
             </Field>
-            <Field label={t("txc.col.reverse")}>
+            <Field label={t("txc.col.disabled")}>
               <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <input
                   type="checkbox"
-                  checked={!!isReverseCharge}
-                  onChange={(e) => setIsReverseCharge(e.target.checked ? 1 : 0)}
+                  checked={!!disabled}
+                  onChange={(e) => setDisabled(e.target.checked ? 1 : 0)}
                 />
-                {t("txc.reverseHint")}
+                {t("txc.disabledHint")}
               </label>
             </Field>
           </div>

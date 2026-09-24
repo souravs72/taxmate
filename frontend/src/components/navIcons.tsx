@@ -144,6 +144,7 @@ export function navIcon(to: string): ReactNode {
     case "/uae-bad-debt-relief": return ico(HandCoins);
     case "/uae-customs-declarations": return ico(Ship);
     case "/uae-capital-goods-adjustments": return ico(Factory);
+    case "/pos":
     case "/pos-invoices": return ico(Store);
     case "/pos-profiles": return ico(Briefcase);
     case "/loyalty-programs": return ico(Star);
