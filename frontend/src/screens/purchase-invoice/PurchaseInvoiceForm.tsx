@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+/**
+ * Purchase Invoice create/edit. Catalog txn helpers + get-items-from.
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -7,37 +10,14 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
+import { linePayload, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
-
-type Line = {
-  item_code: string;
-  item_name?: string;
-  description?: string;
-  qty: number;
-  rate: number;
-  uom?: string;
-  expense_account?: string;
-  cost_center?: string;
-  item_tax_template?: string;
-  uae_item_type?: string;
-  hs_code?: string;
-  sac_code?: string;
-};
-
-type Party = {
-  supplier_address?: string;
-  taxes_and_charges?: string;
-  buying_price_list?: string;
-  payment_terms_template?: string;
-  tax_id?: string;
-  currency?: string;
-  credit_to?: string;
-  due_date?: string;
-};
+import SourceDocPicker from "../../components/SourceDocPicker";
 
 type InvoiceDoc = {
   name: string;
@@ -56,8 +36,11 @@ type InvoiceDoc = {
   total_taxes_and_charges?: number;
   grand_total?: number;
   currency?: string;
+  conversion_rate?: number;
+  update_stock?: number;
+  set_warehouse?: string;
   docstatus?: 0 | 1 | 2;
-  items?: Line[];
+  items?: TxnLine[];
 };
 
 export default function PurchaseInvoiceForm() {
@@ -69,8 +52,6 @@ export default function PurchaseInvoiceForm() {
     isPaused: () => isNew,
   });
   const defaults = useFrappePostCall<{ message: { company?: string; currency?: string; tax_id?: string } }>(METHOD.getDefaults);
-  const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
-  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const submitCall = useFrappePostCall<{ message: InvoiceDoc }>(METHOD.submit);
   const create = useInsert();
   const update = useSave();
@@ -85,11 +66,20 @@ export default function PurchaseInvoiceForm() {
   const [emirate, setEmirate] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
-  const [party, setParty] = useState<Party>({});
+  const [currency, setCurrency] = useState("");
+  const [conversionRate, setConversionRate] = useState(1);
+  const [updateStock, setUpdateStock] = useState(false);
+  const [setWarehouse, setSetWarehouse] = useState("");
+  const [party, setParty] = useState<PartyDetails>({});
   const [companyDefaults, setCompanyDefaults] = useState<{ company?: string; currency?: string; tax_id?: string }>({});
-  const [lines, setLines] = useState<Line[]>([]);
+  const [lines, setLines] = useState<TxnLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [skipReprice, setSkipReprice] = useState(false);
+
+  const company = companyDefaults.company || session.company;
+  const companyCurrency = companyDefaults.currency || session.currency || "";
+  const txn = useTransactionRpc({ doctype: DT.purchaseInvoice, side: "buying", company });
 
   useEffect(() => {
     defaults.call({}).then((r) => setCompanyDefaults(r?.message ?? {})).catch(() => undefined);
@@ -107,73 +97,137 @@ export default function PurchaseInvoiceForm() {
     setEmirate(d.vat_emirate || "");
     setTaxTemplate(d.taxes_and_charges || "");
     setPaymentTerms(d.payment_terms_template || "");
+    setCurrency(d.currency || "");
+    setConversionRate(Number(d.conversion_rate) || 1);
+    setUpdateStock(!!d.update_stock);
+    setSetWarehouse(d.set_warehouse || "");
     setLines((d.items ?? []).map((l) => ({
       item_code: l.item_code, item_name: l.item_name, description: l.description,
       qty: l.qty, rate: l.rate, uom: l.uom, expense_account: l.expense_account,
       cost_center: l.cost_center, item_tax_template: l.item_tax_template,
       uae_item_type: l.uae_item_type, hs_code: l.hs_code, sac_code: l.sac_code,
+      warehouse: l.warehouse || d.set_warehouse || "",
     })));
+    setSkipReprice(true);
   }, [existing.data]);
 
   useEffect(() => {
     if (!supplier) return;
-    partyCall
-      .call({
-        party: supplier,
-        party_type: "Supplier",
-        doctype: DT.purchaseInvoice,
-        company: companyDefaults.company || session.company,
-        posting_date: postingDate,
-      })
-      .then((r) => {
-        const m = r?.message ?? {};
-        setParty(m);
-        if (m.taxes_and_charges && !taxTemplate) setTaxTemplate(m.taxes_and_charges);
-        if (m.payment_terms_template && !paymentTerms) setPaymentTerms(m.payment_terms_template);
-        if (m.due_date && !dueDate) setDueDate(m.due_date);
-      })
-      .catch(() => undefined);
+    void txn.fetchParty(supplier, postingDate).then(async (m) => {
+      if (!m) return;
+      if (skipReprice) { setSkipReprice(false); return; }
+      setParty(m);
+      if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
+      if (m.vat_emirate) setEmirate(m.vat_emirate);
+      if (m.payment_terms_template) setPaymentTerms(m.payment_terms_template);
+      if (m.due_date && !dueDate) setDueDate(m.due_date);
+      const cur = m.currency || companyCurrency;
+      if (cur) setCurrency(cur);
+      const rate = await txn.fetchExchangeRate(cur || companyCurrency, companyCurrency, postingDate);
+      setConversionRate(rate);
+      if (lines.some((l) => l.item_code)) {
+        setLines(await txn.repriceLines({ party: m, lines, transactionDate: postingDate, currency: cur, conversionRate: rate, supplier }));
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supplier]);
 
+
+  const keepSavedRate = useRef(name !== "new");
+  useEffect(() => {
+    if (keepSavedRate.current) {
+      if (existing.data) keepSavedRate.current = false;
+      return;
+    }
+    if (!currency || !companyCurrency || currency === companyCurrency) {
+      setConversionRate(1);
+      return;
+    }
+    let cancelled = false;
+    void txn.fetchExchangeRate(currency, companyCurrency, postingDate).then((rate) => {
+      if (!cancelled && rate > 0) setConversionRate(rate);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, companyCurrency, postingDate, existing.data]);
+
   async function pickItem(idx: number, item_code: string) {
-    setLines((ls) => ls.map((l, i) => i === idx ? { ...l, item_code } : l));
-    try {
-      const r = await itemCall.call({
-        ctx: {
-          item_code,
-          supplier,
-          doctype: DT.purchaseInvoice,
-          company: companyDefaults.company || session.company,
-          currency: party.currency || companyDefaults.currency || session.currency,
-          conversion_rate: 1,
-          buying_price_list: party.buying_price_list,
-          qty: 1,
-        },
-      });
-      const m = r?.message ?? {};
-      setLines((ls) => ls.map((l, i) => i === idx ? {
-        ...l,
-        item_code,
-        item_name: String(m.item_name ?? l.item_name ?? ""),
-        description: String(m.description ?? l.description ?? ""),
-        uom: String(m.uom ?? l.uom ?? ""),
-        rate: Number(m.price_list_rate ?? m.rate ?? l.rate) || l.rate,
-        expense_account: String(m.expense_account ?? ""),
-        cost_center: String(m.cost_center ?? ""),
-        item_tax_template: m.item_tax_template ? String(m.item_tax_template) : undefined,
-        uae_item_type: m.uae_item_type ? String(m.uae_item_type) : undefined,
-        hs_code: m.hs_code ? String(m.hs_code) : undefined,
-        sac_code: m.sac_code ? String(m.sac_code) : undefined,
-      } : l));
-    } catch { /* itemCall.error */ }
+    setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, item_code } : l)));
+    const m = await txn.fetchItem({
+      item_code, supplier,
+      currency: currency || party.currency || companyDefaults.currency || session.currency,
+      conversion_rate: conversionRate,
+      buying_price_list: party.buying_price_list,
+      warehouse: updateStock ? (setWarehouse || undefined) : undefined,
+      qty: lines[idx]?.qty || 1,
+    });
+    if (!m) return;
+    setLines((ls) => ls.map((l, i) => (i === idx ? stampItemDetails({ ...l, item_code }, m) : l)));
   }
 
+  function applyMapped(mapped: Record<string, unknown>) {
+    setSkipReprice(true);
+    if (mapped.supplier) setSupplier(String(mapped.supplier));
+    if (mapped.posting_date) setPostingDate(String(mapped.posting_date));
+    if (mapped.due_date) setDueDate(String(mapped.due_date));
+    if (mapped.vat_emirate) setEmirate(String(mapped.vat_emirate));
+    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    if (mapped.bill_no) setBillNo(String(mapped.bill_no));
+    if (mapped.bill_date) setBillDate(String(mapped.bill_date));
+    const items = (mapped.items as TxnLine[] | undefined) ?? [];
+    setLines(items.map((l) => ({
+      item_code: l.item_code || "", item_name: l.item_name,
+      qty: Number(l.qty) || 1, rate: Number(l.rate) || 0, uom: l.uom,
+      expense_account: l.expense_account, cost_center: l.cost_center,
+      uae_item_type: l.uae_item_type, hs_code: l.hs_code, sac_code: l.sac_code,
+    })));
+  }
+
+  const buildPreviewDoc = useCallback(() => {
+    if (!supplier || !lines.some((l) => l.item_code)) return null;
+    return {
+      supplier,
+      posting_date: postingDate,
+      due_date: dueDate || undefined,
+      company,
+      vat_emirate: emirate || undefined,
+      taxes_and_charges: taxTemplate || undefined,
+      payment_terms_template: paymentTerms || undefined,
+      supplier_address: party.supplier_address,
+      buying_price_list: party.buying_price_list,
+      credit_to: party.credit_to,
+      currency: currency || party.currency || companyDefaults.currency || session.currency,
+      conversion_rate: (!currency || currency === companyCurrency) ? 1 : conversionRate,
+      update_stock: updateStock ? 1 : 0,
+      set_warehouse: updateStock ? (setWarehouse || undefined) : undefined,
+      items: lines.filter((l) => l.item_code).map((l) => ({
+        item_code: l.item_code, qty: l.qty, rate: l.rate, uom: l.uom,
+        expense_account: l.expense_account, cost_center: l.cost_center,
+        item_tax_template: l.item_tax_template,
+        warehouse: updateStock ? (l.warehouse || setWarehouse || undefined) : undefined,
+      })),
+    };
+  }, [supplier, postingDate, dueDate, company, emirate, taxTemplate, paymentTerms, party, companyDefaults, session.currency, lines, currency, conversionRate, companyCurrency, updateStock, setWarehouse]);
+
+  const { preview, previewing } = useTotalsPreview(
+    buildPreviewDoc,
+    [supplier, postingDate, taxTemplate, emirate, lines, currency, conversionRate, updateStock, setWarehouse],
+    txn.previewTotals,
+  );
+
   const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
+  const scheduleGrand = preview?.grand_total ?? net;
+  const schedule = usePaymentSchedule(paymentTerms || undefined, postingDate, scheduleGrand, scheduleGrand * (conversionRate || 1));
   const doc = existing.data;
   const canSubmit = canSubmitSales(session.roles);
-  const ready = !!supplier && !!postingDate && !!emirate && lines.length > 0 && lines.every((l) => l.item_code);
-  const currency = doc?.currency || party.currency || companyDefaults.currency || session.currency || undefined;
+  const ready = !!supplier && !!postingDate && !!emirate && !!taxTemplate && lines.length > 0 && lines.every((l) => l.item_code)
+    && (!currency || currency === companyCurrency || conversionRate > 0);
+  const displayCurrency = currency || doc?.currency || party.currency || companyDefaults.currency || session.currency || undefined;
+  const showNet = preview?.net_total ?? doc?.net_total ?? net;
+  const showVat = preview?.total_taxes_and_charges ?? doc?.total_taxes_and_charges ?? 0;
+  const showGrand = preview?.grand_total ?? doc?.grand_total ?? net;
 
   function payload() {
     return {
@@ -182,27 +236,31 @@ export default function PurchaseInvoiceForm() {
       due_date: dueDate || undefined,
       bill_no: billNo || undefined,
       bill_date: billDate || undefined,
-      company: companyDefaults.company || session.company,
+      company,
       vat_emirate: emirate,
       taxes_and_charges: taxTemplate || undefined,
       payment_terms_template: paymentTerms || undefined,
       supplier_address: party.supplier_address,
       buying_price_list: party.buying_price_list,
       credit_to: party.credit_to,
-      currency: party.currency || companyDefaults.currency || session.currency,
-      conversion_rate: 1,
+      currency: currency || party.currency || companyDefaults.currency || session.currency,
+      conversion_rate: (!currency || currency === companyCurrency) ? 1 : conversionRate,
+      update_stock: updateStock ? 1 : 0,
+      set_warehouse: updateStock ? (setWarehouse || undefined) : undefined,
+      contact_person: party.contact_person,
+      payment_schedule: schedule.length
+        ? schedule.map((r) => ({
+            payment_term: r.payment_term,
+            description: r.description,
+            due_date: r.due_date,
+            invoice_portion: r.invoice_portion,
+            payment_amount: r.payment_amount,
+            mode_of_payment: r.mode_of_payment,
+          }))
+        : undefined,
       items: lines.map((l) => ({
-        item_code: l.item_code,
-        qty: l.qty,
-        rate: l.rate,
-        uom: l.uom,
-        description: l.description,
-        expense_account: l.expense_account,
-        cost_center: l.cost_center,
-        item_tax_template: l.item_tax_template,
-        uae_item_type: l.uae_item_type,
-        hs_code: l.hs_code,
-        sac_code: l.sac_code,
+        ...linePayload(l),
+        warehouse: updateStock ? (l.warehouse || setWarehouse || undefined) : undefined,
       })),
     };
   }
@@ -245,11 +303,7 @@ export default function PurchaseInvoiceForm() {
   return (
     <>
       <PageHead
-        eyebrow={
-          <button type="button" className="btn quiet" onClick={() => nav("/purchase-invoices")}>
-            {t("nav.purchaseInvoices")}
-          </button>
-        }
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/purchase-invoices")}>{t("nav.purchaseInvoices")}</button>}
         title={isNew ? t("pi.new") : (doc?.supplier_name || supplier || name)}
         actions={
           <>
@@ -266,18 +320,32 @@ export default function PurchaseInvoiceForm() {
         }
       />
 
-      {(saveError || partyCall.error || submitCall.error) && (
-        <ErrorBox error={saveError || partyCall.error || submitCall.error} />
+      {(saveError || txn.pricingError || txn.partyCall.error || submitCall.error) && (
+        <ErrorBox error={saveError || txn.pricingError || txn.partyCall.error || submitCall.error} />
       )}
 
       <FormLayout aside={
         <Card bodyClass="cbody">
-          <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("inv.totals")}</h2>
-          <SumRow k={t("sod.net")} v={money(doc?.net_total ?? net)} currency={currency} />
-          <SumRow k={t("sod.vat")} v={money(doc?.total_taxes_and_charges ?? 0)} currency={currency} />
-          <SumRow k={t("sod.grand")} v={money(doc?.grand_total ?? net)} cls="rule total" currency={currency} />
+          <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>
+            {t("inv.totals")}{previewing ? "…" : ""}
+          </h2>
+          <SumRow k={t("sod.net")} v={money(showNet)} currency={displayCurrency} />
+          <SumRow k={t("sod.vat")} v={money(showVat)} currency={displayCurrency} />
+          <SumRow k={t("sod.grand")} v={money(showGrand)} cls="rule total" currency={displayCurrency} />
         </Card>
       }>
+        {isNew && (
+          <Card title={t("txn.getItemsFrom")}>
+            <SourceDocPicker
+              sources={[
+                { label: t("nav.purchaseOrders"), doctype: DT.purchaseOrder, method: METHOD.makePurchaseInvoice, arg: "source_name" },
+                { label: t("nav.purchaseReceipts"), doctype: DT.purchaseReceipt, method: METHOD.makePrPurchaseInvoice, arg: "source_name" },
+              ]}
+              onMapped={applyMapped}
+            />
+          </Card>
+        )}
+
         <Card num={1} title={t("pi.who")}>
           <div className="grid2">
             <Field label={t("nav.suppliers")} required>
@@ -296,9 +364,11 @@ export default function PurchaseInvoiceForm() {
               <input id="pi-bill-date" name="bill_date" className="ctl" type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} />
             </Field>
           </div>
+          <PartyFields side="buying" partyName={supplier} party={party} onChange={(patch) => setParty((p) => ({ ...p, ...patch }))} />
           <div className="numblk">
             <span className="infochip"><span className="k2">T</span>{t("pi.supplierTrn")} <b>{party.tax_id || doc?.tax_id || "—"}</b></span>
             <span className="infochip"><span className="k2">C</span>{t("f.companyTrn")} <b>{companyDefaults.tax_id || "—"}</b></span>
+            <span className="infochip"><span className="k2">$</span>{t("f.currency")} <b>{currency || companyCurrency || "—"}</b></span>
           </div>
         </Card>
 
@@ -310,7 +380,7 @@ export default function PurchaseInvoiceForm() {
                 {UAE_EMIRATES.map((e) => <option key={e} value={e}>{e}</option>)}
               </select>
             </Field>
-            <Field label={t("f.taxTemplate")}>
+            <Field label={t("f.taxTemplate")} required>
               <select className="ctl" value={taxTemplate} onChange={(e) => setTaxTemplate(e.target.value)}>
                 <option value="" />
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
@@ -322,7 +392,27 @@ export default function PurchaseInvoiceForm() {
                 {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
               </select>
             </Field>
+            {currency && currency !== companyCurrency ? (
+              <Field label={t("f.conversionRate")}>
+                <input className="ctl" type="number" min={0} step={0.000001} value={conversionRate}
+                  onChange={(e) => setConversionRate(parseNum(e.target.value) || 1)} />
+              </Field>
+            ) : null}
+            <Field label={t("pi.updateStock")}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, minHeight: 36 }}>
+                <input type="checkbox" checked={updateStock}
+                  onChange={(e) => setUpdateStock(e.target.checked)} />
+                <span>{t("pi.updateStock")}</span>
+              </label>
+            </Field>
+            {updateStock ? (
+              <Field label={t("dn.warehouse")}>
+                <LinkField doctype={DT.warehouse} value={setWarehouse} onChange={setSetWarehouse}
+                  filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+              </Field>
+            ) : null}
           </div>
+          <PaymentScheduleTable rows={schedule} />
         </Card>
 
         <Card num={3} title={t("inv.lines")} bodyClass={null}>
@@ -333,6 +423,8 @@ export default function PurchaseInvoiceForm() {
                   <th style={{ width: 26 }}>#</th>
                   <th>{t("soc.pickItem")}</th>
                   <th>{t("pi.hsSac")}</th>
+                  <th>{t("f.expenseAccount")}</th>
+                  <th>{t("f.costCenter")}</th>
                   <th className="n">{t("sod.col.qty")}</th>
                   <th className="n">{t("sod.col.rate")}</th>
                   <th className="n">{t("sod.col.amount")}</th>
@@ -343,31 +435,38 @@ export default function PurchaseInvoiceForm() {
                 {lines.map((l, i) => (
                   <tr key={i}>
                     <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 220 }}>
+                    <td style={{ minWidth: 180 }}>
                       <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                     </td>
                     <td>
                       {l.uae_item_type !== "Service" && (
                         <input className="ctl mini" style={{ width: 88 }}
-                          aria-label={t("item.hs")}
-                          placeholder={t("item.hs")}
-                          value={l.hs_code || ""}
+                          aria-label={t("item.hs")} placeholder={t("item.hs")} value={l.hs_code || ""}
                           onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
                       )}
                       {l.uae_item_type !== "Goods" && (
                         <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
-                          aria-label={t("item.sac")}
-                          placeholder={t("item.sac")}
-                          value={l.sac_code || ""}
+                          aria-label={t("item.sac")} placeholder={t("item.sac")} value={l.sac_code || ""}
                           onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
                       )}
                     </td>
+                    <td style={{ minWidth: 140 }}>
+                      <LinkField doctype={DT.account} value={l.expense_account || ""}
+                        onChange={(v) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
+                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                    </td>
+                    <td style={{ minWidth: 120 }}>
+                      <LinkField doctype={DT.costCenter} value={l.cost_center || ""}
+                        onChange={(v) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, cost_center: v } : x))}
+                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                    </td>
                     <td className="n">
-                      <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
+                      <input className="ctl mini nn" style={{ width: 72 }} value={l.qty}
                         onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, qty: parseNum(e.target.value) } : x))} />
                     </td>
                     <td className="n">
-                      <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
+                      <input className="ctl mini nn" style={{ width: 96 }} value={l.rate}
                         onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, rate: parseNum(e.target.value) } : x))} />
                     </td>
                     <td className="n" style={{ fontWeight: 600 }}>{money(l.qty * l.rate)}</td>

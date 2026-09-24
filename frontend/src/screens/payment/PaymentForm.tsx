@@ -91,6 +91,7 @@ export default function PaymentForm() {
   const isNew = name === "new";
 
   const invoice = params.get("invoice") || "";
+  const urlParty = params.get("party") || "";
   const urlType = (params.get("type") === "Pay" ? "Pay" : "Receive") as PayType;
 
   const existing = useDoc<PayDoc>(DT.paymentEntry, isNew ? undefined : name, isNew ? null : name);
@@ -107,6 +108,7 @@ export default function PaymentForm() {
   const [doc, setDoc] = useState<PayDoc>({
     payment_type: urlType,
     party_type: PARTY_TYPE[urlType],
+    party: urlParty || undefined,
     posting_date: toIsoDate(new Date()),
     paid_amount: 0,
     references: [],
@@ -133,11 +135,14 @@ export default function PaymentForm() {
   /* Both legs. The Payment Entry controller never reads mode_of_payment, so
      paid_from / paid_to have to be resolved and sent — see
      claude/payment-entry-api-verification.md §1.                          */
+  const isInternalTransfer = type === "Internal Transfer";
   const accounts = useFrappeGetCall<{ message: Resolved }>(
-    METHOD.resolvePaymentAccounts,
-    { company, payment_type: type, mode_of_payment: doc.mode_of_payment, party_type: partyType, party: doc.party },
-    company && doc.party && doc.mode_of_payment && !locked
-      ? `pay-accounts-${company}-${type}-${doc.mode_of_payment}-${doc.party}`
+    isInternalTransfer ? METHOD.resolveInternalTransferAccounts : METHOD.resolvePaymentAccounts,
+    isInternalTransfer
+      ? { company, mode_of_payment: doc.mode_of_payment }
+      : { company, payment_type: type, mode_of_payment: doc.mode_of_payment, party_type: partyType, party: doc.party },
+    company && doc.mode_of_payment && !locked && (isInternalTransfer || doc.party)
+      ? `pay-accounts-${company}-${type}-${doc.mode_of_payment}-${doc.party ?? "xfr"}`
       : null,
     { shouldRetryOnError: false },
   );
@@ -262,7 +267,7 @@ export default function PaymentForm() {
 
   const canSubmit = canSubmitPayment(session.roles);
   const saveable =
-    !!doc.party && !!doc.mode_of_payment && !!doc.posting_date &&
+    (isInternalTransfer || !!doc.party) && !!doc.mode_of_payment && !!doc.posting_date &&
     amount > 0 && !overAllocated &&
     (!refRequired || !!doc.reference_no) &&
     !!resolved;
@@ -319,7 +324,7 @@ export default function PaymentForm() {
   const rows = outstanding.data?.message ?? [];
   const checks: Check[] = [
     { ok: !!type, label: t("pay.check.type") },
-    { ok: !!doc.party, label: t("pay.check.party") },
+    ...(isInternalTransfer ? [] : [{ ok: !!doc.party, label: t("pay.check.party") }]),
     { ok: !!doc.posting_date, label: t("pay.check.date") },
     { ok: amount > 0, label: t("pay.check.amount") },
     { ok: !!doc.mode_of_payment, label: t("pay.check.mode") },
@@ -380,10 +385,10 @@ export default function PaymentForm() {
             <div className="f" style={{ marginBlockEnd: 14 }}>
               <label>{t("pay.lType")} <span className="req">*</span></label>
               <div className="seg" role="group" aria-label={t("pay.lType")}>
-                {(["Receive", "Pay"] as PayType[]).map((x) => (
+                {(["Receive", "Pay", "Internal Transfer"] as PayType[]).map((x) => (
                   <button key={x} type="button" aria-pressed={type === x} onClick={() => setType(x)}>
-                    <span className={`dot ${x === "Receive" ? "in" : "out"}`} />
-                    {t(`pay.type.${x}`)}
+                    <span className={`dot ${x === "Receive" ? "in" : x === "Pay" ? "out" : "xfr"}`} />
+                    {x === "Internal Transfer" ? t("pay.internal") : t(`pay.type.${x}`)}
                   </button>
                 ))}
               </div>

@@ -16,6 +16,7 @@ import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; };
 type Doc = {
@@ -38,6 +39,7 @@ export default function QuotationDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.quotation, name);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
   const makeSO = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeQuotationSO);
   const create = useInsert();
   const [mapBusy, setMapBusy] = useState(false);
@@ -75,30 +77,32 @@ export default function QuotationDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/quotations")}>{t("nav.quotations")}</button>}
         title={data.customer_name || data.party_name || data.name}
         actions={
-          <>
-            {draft && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/quotations/${encodeURIComponent(name)}/edit`)}>{t("inv.edit")}</button>
-            )}
-            {draft && canSubmit && (
-              <button type="button" className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.quotation, name } }).then(() => mutate())}>
-                {t("inv.submit")}
-              </button>
-            )}
-            {submitted && (
-              <button type="button" className="btn" disabled={mapBusy}
-                onClick={() => void createSO()}>
-                {mapBusy ? t("soc.saving") : t("quot.makeSO")}
-              </button>
-            )}
-            {submitted && canCancel && (
-              <button type="button" className="btn quiet" disabled={cancelCall.loading}
-                onClick={() => void cancelCall.call({ doctype: DT.quotation, name }).then(() => mutate())}>
-                {t("inv.cancel")}
-              </button>
-            )}
-          </>
+          <DetailActions
+            draft={draft}
+            submitted={submitted}
+            cancelled={data.docstatus === 2}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={true}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || mapBusy}
+            onEdit={() => nav(`/quotations/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.quotation, name } }).then(() => mutate())}
+            onCancel={() => void cancelCall.call({ doctype: DT.quotation, name }).then(() => mutate())}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.quotation, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/quotations/${encodeURIComponent(newName)}/edit`);
+              else mutate();
+            }}
+            extra={
+              submitted ? (
+                <button type="button" className="btn" disabled={mapBusy}
+                  onClick={() => void createSO()}>
+                  {mapBusy ? t("soc.saving") : t("quot.makeSO")}
+                </button>
+              ) : null
+            }
+          />
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

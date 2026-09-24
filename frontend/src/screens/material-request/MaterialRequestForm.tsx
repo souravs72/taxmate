@@ -51,6 +51,7 @@ export default function MaterialRequestForm() {
   const create = useInsert();
   const update = useSave();
   const submitCall = useFrappePostCall(METHOD.submit);
+  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
 
   const [mrType, setMrType] = useState<MRType>("Purchase");
   const [txDate, setTxDate] = useState(today);
@@ -89,6 +90,27 @@ export default function MaterialRequestForm() {
 
   function setLine(i: number, patch: Partial<Line>) {
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  }
+
+  async function pickItem(idx: number, item_code: string) {
+    setLine(idx, { item_code });
+    if (!item_code) return;
+    try {
+      const r = await itemCall.call({
+        ctx: {
+          item_code,
+          doctype: DT.materialRequest,
+          company: session.company,
+          qty: lines[idx]?.qty || 1,
+          warehouse: lines[idx]?.warehouse || setWarehouse || undefined,
+        },
+      });
+      const m = r?.message ?? {};
+      setLine(idx, {
+        item_code,
+        uom: m.uom ? String(m.uom) : lines[idx]?.uom,
+      });
+    } catch { /* itemCall.error */ }
   }
 
   async function save(shouldSubmit: boolean) {
@@ -190,7 +212,7 @@ export default function MaterialRequestForm() {
                   <tr key={i}>
                     <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
                     <td style={{ minWidth: 200 }}>
-                      <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => setLine(i, { item_code: v })} />
+                      <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
                     </td>
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}

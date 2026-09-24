@@ -56,6 +56,20 @@ function cell(row: Row, col: Col): string {
   return String(v);
 }
 
+/** Map General Ledger voucher_type to a SPA route — SPA routes only, no Desk /app/ links. */
+function spaRouteForVoucher(voucherType: unknown, voucherNo: unknown): string | null {
+  const t = String(voucherType || "");
+  const n = String(voucherNo || "");
+  if (!n) return null;
+  if (t === "Payment Entry") return `/payments/${encodeURIComponent(n)}`;
+  if (t === "Journal Entry") return `/journals/${encodeURIComponent(n)}`;
+  if (t === "Sales Invoice") return `/invoices/${encodeURIComponent(n)}`;
+  if (t === "Purchase Invoice") return `/purchase-invoices/${encodeURIComponent(n)}`;
+  if (t === "Purchase Receipt") return `/purchase-receipts/${encodeURIComponent(n)}`;
+  if (t === "Delivery Note") return `/delivery-notes/${encodeURIComponent(n)}`;
+  return null;
+}
+
 function usedColumns(cols: Col[], rows: Row[]): Col[] {
   return cols.filter((c) => {
     if (!c.fieldname || HIDDEN.has(c.fieldname)) return false;
@@ -388,16 +402,18 @@ export default function ReportRunner() {
                 {shown.map((row, i) => {
                   const indent = Number(row.indent) || 0;
                   const clickable = caps.tree && !!row.account && name !== "General Ledger";
+                  const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
                   return (
                     <tr
                       key={i}
-                      className={`${row.bold ? "rpt-bold" : ""}${clickable ? " rpt-open" : ""}`}
-                      tabIndex={clickable ? 0 : undefined}
-                      onClick={clickable ? () => openGl(row) : undefined}
-                      onKeyDown={clickable ? (e) => {
+                      className={`${row.bold ? "rpt-bold" : ""}${clickable ? " rpt-open" : ""}${voucherRoute ? " rpt-open" : ""}`}
+                      tabIndex={clickable || voucherRoute ? 0 : undefined}
+                      onClick={clickable ? () => openGl(row) : voucherRoute ? () => nav(voucherRoute) : undefined}
+                      onKeyDown={(clickable || voucherRoute) ? (e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          openGl(row);
+                          if (clickable) openGl(row);
+                          else if (voucherRoute) nav(voucherRoute);
                         }
                       } : undefined}
                     >

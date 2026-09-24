@@ -39,9 +39,12 @@ export default function DeliveryNoteDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.deliveryNote, name);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
+  const makePickList = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePickListFromDn);
   const makeSi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeDnSalesInvoice);
   const create = useInsert();
   const [busySi, setBusySi] = useState(false);
+  const [busyPick, setBusyPick] = useState(false);
   const [mapError, setMapError] = useState<unknown>(null);
 
   async function createInvoice() {
@@ -65,6 +68,27 @@ export default function DeliveryNoteDetail() {
     }
   }
 
+  async function createPickList() {
+    setBusyPick(true);
+    setMapError(null);
+    try {
+      const res = await makePickList.call({ source_name: name });
+      const mapped = res?.message;
+      if (!mapped) throw new Error("The mapper returned nothing.");
+      const body: Record<string, unknown> = { ...mapped };
+      delete body.name;
+      delete body.doctype;
+      delete body.__islocal;
+      delete body.__unsaved;
+      const created = await create.createDoc(DT.pickList, body) as { name: string };
+      nav(`/pick-lists/${encodeURIComponent(created.name)}`);
+    } catch (err) {
+      setMapError(err);
+    } finally {
+      setBusyPick(false);
+    }
+  }
+
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
@@ -75,7 +99,7 @@ export default function DeliveryNoteDetail() {
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
   const writable = canWrite(session);
-  const busyError = submitCall.error || cancelCall.error || makeSi.error || mapError;
+  const busyError = submitCall.error || cancelCall.error || makeSi.error || makePickList.error || mapError;
 
   return (
     <>
@@ -94,15 +118,26 @@ export default function DeliveryNoteDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={writable}
-            busy={submitCall.loading || cancelCall.loading || busySi}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || busySi || busyPick}
             onEdit={() => nav(`/delivery-notes/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.deliveryNote, name } }).then(() => mutate())}
             onCancel={() => void cancelCall.call({ doctype: DT.deliveryNote, name }).then(() => mutate())}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.deliveryNote, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/delivery-notes/${encodeURIComponent(newName)}/edit`);
+              else mutate();
+            }}
             extra={
               <>
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn" disabled={busySi} onClick={() => void createInvoice()}>
                     {busySi ? t("soc.saving") : t("dn.createSi")}
+                  </button>
+                )}
+                {submitted && writable && (
+                  <button type="button" className="btn ghost" disabled={busyPick} onClick={() => void createPickList()}>
+                    {busyPick ? t("soc.saving") : t("dn.createPickList")}
                   </button>
                 )}
                 {submitted && !data.is_return && writable && (

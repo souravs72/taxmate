@@ -6,6 +6,8 @@ export const CORE_BOOK_REPORTS = [
   "Profit and Loss Statement",
   "Balance Sheet",
   "Cash Flow",
+  "Accounts Receivable",
+  "Accounts Payable",
   "Customer Ledger Summary",
   "Supplier Ledger Summary",
   "Stock Balance",
@@ -46,6 +48,8 @@ const REPORT_BLURB: Record<string, string> = {
   "Profit and Loss Statement": "rpt.d.profitLoss",
   "Balance Sheet": "rpt.d.balanceSheet",
   "Cash Flow": "rpt.d.cashFlow",
+  "Accounts Receivable": "rpt.d.accountsReceivable",
+  "Accounts Payable": "rpt.d.accountsPayable",
   "Customer Ledger Summary": "rpt.d.customerLedger",
   "Supplier Ledger Summary": "rpt.d.supplierLedger",
   "Stock Balance": "rpt.d.stockBalance",
@@ -132,14 +136,15 @@ export function reportCaps(report: string): ReportCaps {
   return {
     dates: !["UAE Late Filing Status", "UAE Group VAT Status", "UAE E-Invoice Status", "UAE Compliance Status"].includes(report),
     periodChips: statement || tb || gl || report === "Customer Ledger Summary" || report === "Supplier Ledger Summary"
+      || report === "Accounts Receivable" || report === "Accounts Payable"
       || report === "UAE VAT 201" || report === "UAE Import VAT Explanation"
       || report === "UAE E-Invoice VAT 201 Reconciliation" || report === "EmaraTax Export"
       || report === "UAE Corporate Tax Worksheet" || stock,
     periodicity: statement,
     costCenter: statement || tb || gl,
     account: gl,
-    party: report === "Customer Ledger Summary" ? "Customer"
-      : report === "Supplier Ledger Summary" ? "Supplier"
+    party: report === "Customer Ledger Summary" || report === "Accounts Receivable" ? "Customer"
+      : report === "Supplier Ledger Summary" || report === "Accounts Payable" ? "Supplier"
       : gl ? "typed" : false,
     voucher: gl,
     categorize: gl,
@@ -216,6 +221,16 @@ export function bookFilters(report: string, ctx: FilterCtx): Record<string, unkn
   }
   if (report === "Customer Ledger Summary" || report === "Supplier Ledger Summary") {
     const out: Record<string, unknown> = { company, from_date: fromDate, to_date: toDate };
+    if (ctx.party) out.party = ctx.party;
+    return out;
+  }
+  if (report === "Accounts Receivable" || report === "Accounts Payable") {
+    const out: Record<string, unknown> = {
+      company,
+      report_date: toDate,
+      ageing_based_on: "Due Date",
+      range1: 30, range2: 60, range3: 90, range4: 120,
+    };
     if (ctx.party) out.party = ctx.party;
     return out;
   }

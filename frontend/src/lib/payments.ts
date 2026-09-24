@@ -37,9 +37,9 @@ export function payStatus(row: { docstatus?: number; status?: string }): PayStat
    Receive/Pay is this module's primary axis, and it decides the party
    doctype, which invoices are outstanding, and which leg is the bank.   */
 
-export type PayType = "Receive" | "Pay";
+export type PayType = "Receive" | "Pay" | "Internal Transfer";
 
-export const PARTY_TYPE: Record<PayType, "Customer" | "Supplier"> = {
+export const PARTY_TYPE: Partial<Record<PayType, "Customer" | "Supplier">> & Record<"Receive" | "Pay", "Customer" | "Supplier"> = {
   Receive: "Customer",
   Pay: "Supplier",
 };

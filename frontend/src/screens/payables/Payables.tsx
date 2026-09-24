@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
@@ -6,7 +6,7 @@ import { METHOD } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
 import { date, money, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { BarRow, Card, Donut, Empty, ErrorBox, Legend, Loading, PageHead, StatTile } from "../../components/ui";
+import { BarRow, Card, Donut, Empty, ErrorBox, Field, Legend, Loading, PageHead, StatTile } from "../../components/ui";
 
 type ReportRow = Record<string, unknown>;
 
@@ -31,20 +31,25 @@ export default function Payables() {
   const session = useSession();
   const cur = session.currency || "";
   const today = session.today || toIsoDate(new Date());
+  const [partyFilter, setPartyFilter] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState(today);
   const filters = useMemo(() => ({
     company: session.company,
-    report_date: today,
+    report_date: toDate || today,
     ageing_based_on: "Due Date",
     range1: 30,
     range2: 60,
     range3: 90,
     range4: 120,
-  }), [session.company, today]);
+    ...(partyFilter ? { party: partyFilter } : {}),
+    ...(fromDate ? { from_date: fromDate } : {}),
+  }), [session.company, today, partyFilter, fromDate, toDate]);
 
   const report = useFrappeGetCall<{ message: { result?: ReportRow[]; columns?: { fieldname: string; label: string }[] } }>(
     METHOD.runReport,
     { report_name: "Accounts Payable", filters },
-    session.company ? ["Accounts Payable", session.company, today] : null,
+    session.company ? ["Accounts Payable", session.company, toDate, partyFilter, fromDate] : null,
     { isPaused: () => !session.company },
   );
 
@@ -85,6 +90,23 @@ export default function Payables() {
     <>
       <PageHead title={t("ap.title")} />
       {report.error && <ErrorBox error={report.error} onRetry={() => report.mutate()} />}
+      <Card>
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <Field label={t("ap.filterParty")}>
+            <input className="ctl" value={partyFilter}
+              onChange={(e) => setPartyFilter(e.target.value)}
+              placeholder={t("ap.filterParty")} />
+          </Field>
+          <Field label={t("ap.filterFrom")}>
+            <input className="ctl" type="date" value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)} />
+          </Field>
+          <Field label={t("ap.filterTo")}>
+            <input className="ctl" type="date" value={toDate}
+              onChange={(e) => setToDate(e.target.value)} />
+          </Field>
+        </div>
+      </Card>
 
       {ready && (
         <div className="tiles">

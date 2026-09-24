@@ -87,7 +87,7 @@ export default function JournalEntryDetail() {
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.journalEntry, name });
               const newName = res?.message?.name;
-              if (newName) nav(`/journal-entries/${encodeURIComponent(newName)}`);
+              if (newName) nav(`/journals/${encodeURIComponent(newName)}/edit`);
               else void mutate();
             }}
           />

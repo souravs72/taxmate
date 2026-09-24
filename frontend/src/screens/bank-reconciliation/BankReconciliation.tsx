@@ -6,6 +6,7 @@
  * Data: [{doctype, name, date:"YYYY-MM-DD", party, amount, reference, type}]
  */
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
@@ -27,7 +28,17 @@ type TxRow = {
 
 type BankRow = { name: string };
 
+/** Map ERPNext doctype to a SPA route prefix for drilldown. */
+function spaRoute(doctype: string, name: string): string | null {
+  if (doctype === "Payment Entry") return `/payments/${encodeURIComponent(name)}`;
+  if (doctype === "Journal Entry") return `/journals/${encodeURIComponent(name)}`;
+  if (doctype === "Sales Invoice") return `/invoices/${encodeURIComponent(name)}`;
+  if (doctype === "Purchase Invoice") return `/purchase-invoices/${encodeURIComponent(name)}`;
+  return null;
+}
+
 export default function BankReconciliation() {
+  const nav = useNavigate();
   const session = useSession();
   const company = session.company || "";
 
@@ -217,7 +228,13 @@ export default function BankReconciliation() {
                           </td>
                           <td>{fmtDate(r.date)}</td>
                           <td>
-                            <span className="ordno">{r.name}</span>
+                            {spaRoute(r.doctype, r.name) ? (
+                              <button type="button" className="btn quiet ordno"
+                                style={{ padding: 0, fontWeight: 600, textDecoration: "underline", background: "none", border: "none", cursor: "pointer" }}
+                                onClick={(e) => { e.stopPropagation(); nav(spaRoute(r.doctype, r.name)!); }}>
+                                {r.name}
+                              </button>
+                            ) : <span className="ordno">{r.name}</span>}
                             {r.reference ? (
                               <span
                                 style={{

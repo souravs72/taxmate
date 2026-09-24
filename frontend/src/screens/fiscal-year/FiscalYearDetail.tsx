@@ -38,6 +38,11 @@ export default function FiscalYearDetail() {
           </button>
         }
         title={data.name}
+        actions={
+          <button className="btn ghost" onClick={() => nav(`/fiscal-years/${encodeURIComponent(data.name)}/edit`)}>
+            {t("inv.edit")}
+          </button>
+        }
       >
         {data.is_short_year ? <Pill cls="p-flat">{t("fy.short")}</Pill> : null}
       </PageHead>

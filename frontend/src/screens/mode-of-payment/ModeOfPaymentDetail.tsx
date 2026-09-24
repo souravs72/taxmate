@@ -2,7 +2,7 @@
  * Mode of Payment detail — read-only view with Edit action for writers.
  * Callers: App.tsx /modes-of-payment/:name.
  * API: taxmate.api.resource.get on "Mode of Payment".
- * Schema: { name, type, enabled }
+ * Schema: { name, type, enabled, accounts: [{ company, default_account }] }
  */
 import { useNavigate, useParams } from "react-router-dom";
 
@@ -13,10 +13,13 @@ import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 
+type MoPAccount = { company?: string; default_account?: string };
+
 type Doc = {
   name: string;
   type?: string;
   enabled?: number;
+  accounts?: MoPAccount[];
 };
 
 export default function ModeOfPaymentDetail() {
@@ -41,8 +44,11 @@ export default function ModeOfPaymentDetail() {
         title={data.name}
         actions={
           writable ? (
-            <button type="button" className="btn ghost"
-              onClick={() => nav(`/modes-of-payment/${encodeURIComponent(name)}/edit`)}>
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => nav(`/modes-of-payment/${encodeURIComponent(name)}/edit`)}
+            >
               {t("inv.edit")}
             </button>
           ) : undefined
@@ -50,9 +56,11 @@ export default function ModeOfPaymentDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          {data.enabled
-            ? <Pill cls="p-done">{t("mop.enabled")}</Pill>
-            : <Pill cls="p-cxl">{t("mop.disabled")}</Pill>}
+          {data.enabled ? (
+            <Pill cls="p-done">{t("mop.enabled")}</Pill>
+          ) : (
+            <Pill cls="p-cxl">{t("mop.disabled")}</Pill>
+          )}
           {data.type && <Pill cls="p-flat">{data.type}</Pill>}
         </p>
       </PageHead>
@@ -61,6 +69,30 @@ export default function ModeOfPaymentDetail() {
           <ReadRow k={t("mop.col.type")} v={data.type || "—"} />
           <ReadRow k={t("mop.col.enabled")} v={data.enabled ? t("yes") : t("no")} />
         </div>
+      </Card>
+      <Card title={t("mop.accounts")}>
+        {(data.accounts ?? []).length === 0 ? (
+          <p className="sub">{t("mop.accountsHint")}</p>
+        ) : (
+          <div className="twrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>{t("mop.col.company")}</th>
+                  <th>{t("mop.col.defaultAccount")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data.accounts ?? []).map((row, i) => (
+                  <tr key={`${row.company}-${i}`}>
+                    <td>{row.company || "—"}</td>
+                    <td className="ordno">{row.default_account || "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </Card>
     </>
   );

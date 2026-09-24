@@ -147,7 +147,7 @@ svg{display:block}
 .p-overdue{background:var(--bad-bg); color:var(--bad)}
 .tilebtn{display:block; width:100%; padding:0; border:0; background:transparent; text-align:start; cursor:pointer; color:inherit; font:inherit}
 .tilebtn .tile{height:100%}
-.linkhits{position:absolute; z-index:30; inset-inline:0; top:calc(100% + 4px); margin:0; padding:6px; list-style:none; background:var(--surface); border:1px solid var(--border-2); border-radius:9px; box-shadow:0 10px 28px -10px rgba(17,24,39,.35); max-height:240px; overflow:auto}
+.linkhits{position:fixed; z-index:70; margin:0; padding:6px; list-style:none; background:var(--surface); border:1px solid var(--border-2); border-radius:9px; box-shadow:0 10px 28px -10px rgba(17,24,39,.35); overflow:auto}
 .linkhit{display:flex; flex-direction:column; gap:2px; width:100%; text-align:start; background:transparent; border:0; border-radius:7px; padding:8px 10px; cursor:pointer; color:inherit}
 .linkhit:hover{background:var(--hover)}
 .linkhit b{font-size:12.5px; font-weight:600}

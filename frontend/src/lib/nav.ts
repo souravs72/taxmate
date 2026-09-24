@@ -87,6 +87,8 @@ const _BASE_NAV: NavEntry[] = [
   { type: "link", to: "/bank-reconciliation", key: "nav.bankReconciliation" },
   { type: "link", to: "/fiscal-years", key: "nav.fiscalYears" },
   { type: "link", to: "/accounts", key: "nav.accounts" },
+  { type: "link", to: "/cost-centers", key: "nav.costCenters" },
+  { type: "link", to: "/period-closing", key: "nav.periodClosing" },
   { type: "link", to: "/currency-exchanges", key: "nav.currencyExchanges" },
   { type: "link", to: "/reports", key: "nav.reports" },
   { type: "section", key: "nav.masters" },

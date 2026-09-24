@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+/**
+ * Sales Invoice create/edit. Catalog: resource + workflow + accounts preview helpers.
+ * Routes: /invoices/new, /invoices/:name/edit
+ */
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -8,37 +12,14 @@ import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
 import { INV_PILL_CLASS, invoiceUiStatus } from "../../lib/status";
+import { linePayload, stampItemDetails, useCreditBalance, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { CreditLimitNotice, LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, SumRow } from "../../components/ui";
-import { FormLayout } from "../../components/form";
+import { FormLayout, MissingSummary, ReadinessCard, type Check } from "../../components/form";
 import LinkField from "../../components/LinkField";
-
-type Line = {
-  item_code: string;
-  item_name?: string;
-  description?: string;
-  qty: number;
-  rate: number;
-  uom?: string;
-  income_account?: string;
-  cost_center?: string;
-  item_tax_template?: string;
-  uae_item_type?: string;
-  hs_code?: string;
-  sac_code?: string;
-};
-
-type Party = {
-  customer_address?: string;
-  taxes_and_charges?: string;
-  selling_price_list?: string;
-  payment_terms_template?: string;
-  tax_id?: string;
-  currency?: string;
-  debit_to?: string;
-  due_date?: string;
-};
+import SourceDocPicker from "../../components/SourceDocPicker";
 
 type InvoiceDoc = {
   name: string;
@@ -53,18 +34,25 @@ type InvoiceDoc = {
   tax_id?: string;
   company_trn?: string;
   payment_terms_template?: string;
+  selling_price_list?: string;
+  customer_address?: string;
+  shipping_address_name?: string;
+  contact_person?: string;
+  debit_to?: string;
+  additional_discount_percentage?: number;
   net_total?: number;
   total_taxes_and_charges?: number;
   grand_total?: number;
   outstanding_amount?: number;
   currency?: string;
+  conversion_rate?: number;
   docstatus?: 0 | 1 | 2;
   status?: string;
   is_return?: number;
   return_against?: string;
   uae_e_invoice_status?: string;
   uae_credit_note_reason?: string;
-  items?: Line[];
+  items?: TxnLine[];
 };
 
 export default function InvoiceForm() {
@@ -76,8 +64,6 @@ export default function InvoiceForm() {
     isPaused: () => isNew,
   });
   const defaults = useFrappePostCall<{ message: { company?: string; currency?: string; tax_id?: string } }>(METHOD.getDefaults);
-  const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
-  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
   const submitCall = useFrappePostCall<{ message: InvoiceDoc }>(METHOD.submit);
   const create = useInsert();
   const update = useSave();
@@ -91,12 +77,22 @@ export default function InvoiceForm() {
   const [emirate, setEmirate] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
-  const [party, setParty] = useState<Party>({});
+  const [discountPct, setDiscountPct] = useState(0);
+  const [currency, setCurrency] = useState("");
+  const [conversionRate, setConversionRate] = useState(1);
+  const [party, setParty] = useState<PartyDetails>({});
   const [companyDefaults, setCompanyDefaults] = useState<{ company?: string; currency?: string; tax_id?: string }>({});
-  const [lines, setLines] = useState<Line[]>([]);
+  const [lines, setLines] = useState<TxnLine[]>([]);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [skipReprice, setSkipReprice] = useState(false);
+  const [showMissing, setShowMissing] = useState(false);
+  const missingRef = useRef<HTMLDivElement>(null);
+
+  const company = companyDefaults.company || session.company;
+  const companyCurrency = companyDefaults.currency || session.currency || "";
+  const txn = useTransactionRpc({ doctype: DT.salesInvoice, side: "selling", company });
 
   useEffect(() => {
     defaults.call({}).then((r) => setCompanyDefaults(r?.message ?? {})).catch(() => undefined);
@@ -111,78 +107,164 @@ export default function InvoiceForm() {
     setDueDate(d.due_date || "");
     setPoNo(d.po_no || "");
     setEmirate(d.vat_emirate || "");
+    setParty({
+      customer_address: d.customer_address,
+      shipping_address_name: d.shipping_address_name,
+      contact_person: d.contact_person,
+      selling_price_list: d.selling_price_list,
+      debit_to: d.debit_to,
+    });
     setTaxTemplate(d.taxes_and_charges || "");
     setPaymentTerms(d.payment_terms_template || "");
+    setDiscountPct(Number(d.additional_discount_percentage || 0));
+    setCurrency(d.currency || "");
+    setConversionRate(Number(d.conversion_rate) || 1);
     setReason(d.uae_credit_note_reason || "");
     setLines((d.items ?? []).map((l) => ({
-      item_code: l.item_code, item_name: l.item_name, description: l.description,
-      qty: l.qty, rate: l.rate, uom: l.uom, income_account: l.income_account,
-      cost_center: l.cost_center, uae_item_type: l.uae_item_type, hs_code: l.hs_code, sac_code: l.sac_code,
+      ...l,
+      qty: l.qty,
+      rate: l.rate,
+      is_free_item: l.is_free_item ? 1 : 0,
+      uae_is_margin_scheme: l.uae_is_margin_scheme ? 1 : 0,
+      has_batch_no: l.batch_no ? 1 : 0,
+      has_serial_no: l.serial_no ? 1 : 0,
     })));
+    setSkipReprice(true);
   }, [existing.data]);
 
   useEffect(() => {
     if (!customer) return;
-    partyCall
-      .call({
-        party: customer,
-        party_type: "Customer",
-        doctype: DT.salesInvoice,
-        company: companyDefaults.company || session.company,
-        posting_date: postingDate,
-      })
-      .then((r) => {
-        const m = r?.message ?? {};
-        setParty(m);
-        if (m.taxes_and_charges && !taxTemplate) setTaxTemplate(m.taxes_and_charges);
-        if (m.payment_terms_template && !paymentTerms) setPaymentTerms(m.payment_terms_template);
-        if (m.due_date && !dueDate) setDueDate(m.due_date);
-      })
-      .catch(() => undefined);
+    void txn.fetchParty(customer, postingDate).then(async (m) => {
+      if (!m) return;
+      if (skipReprice) {
+        setSkipReprice(false);
+        return;
+      }
+      setParty(m);
+      if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
+      if (m.vat_emirate) setEmirate(m.vat_emirate);
+      if (m.payment_terms_template) setPaymentTerms(m.payment_terms_template);
+      if (m.due_date && !dueDate) setDueDate(m.due_date);
+      const cur = m.currency || companyCurrency;
+      if (cur) setCurrency(cur);
+      const rate = await txn.fetchExchangeRate(cur || companyCurrency, companyCurrency, postingDate);
+      setConversionRate(rate);
+      if (lines.some((l) => l.item_code)) {
+        const next = await txn.repriceLines({
+          party: m,
+          lines,
+          transactionDate: postingDate,
+          currency: cur,
+          conversionRate: rate,
+          customer,
+        });
+        setLines(next);
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer]);
 
+
+  const keepSavedRate = useRef(name !== "new");
+  useEffect(() => {
+    if (keepSavedRate.current) {
+      if (existing.data) keepSavedRate.current = false;
+      return;
+    }
+    if (!currency || !companyCurrency || currency === companyCurrency) {
+      setConversionRate(1);
+      return;
+    }
+    let cancelled = false;
+    void txn.fetchExchangeRate(currency, companyCurrency, postingDate).then((rate) => {
+      if (!cancelled && rate > 0) setConversionRate(rate);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency, companyCurrency, postingDate, existing.data]);
+
   async function pickItem(idx: number, item_code: string) {
-    setLines((ls) => ls.map((l, i) => i === idx ? { ...l, item_code } : l));
-    try {
-      const r = await itemCall.call({
-        ctx: {
-          item_code,
-          customer,
-          doctype: DT.salesInvoice,
-          company: companyDefaults.company || session.company,
-          currency: party.currency || companyDefaults.currency || session.currency,
-          conversion_rate: 1,
-          selling_price_list: party.selling_price_list,
-          qty: 1,
-        },
-      });
-      const m = r?.message ?? {};
-      setLines((ls) => ls.map((l, i) => i === idx ? {
-        ...l,
-        item_code,
-        item_name: String(m.item_name ?? l.item_name ?? ""),
-        description: String(m.description ?? l.description ?? ""),
-        uom: String(m.uom ?? l.uom ?? ""),
-        rate: Number(m.price_list_rate ?? m.rate ?? l.rate) || l.rate,
-        income_account: String(m.income_account ?? ""),
-        cost_center: String(m.cost_center ?? ""),
-        item_tax_template: m.item_tax_template ? String(m.item_tax_template) : undefined,
-        uae_item_type: m.uae_item_type ? String(m.uae_item_type) : undefined,
-        hs_code: m.hs_code ? String(m.hs_code) : undefined,
-        sac_code: m.sac_code ? String(m.sac_code) : undefined,
-      } : l));
-    } catch { /* itemCall.error */ }
+    setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, item_code } : l)));
+    const m = await txn.fetchItem({
+      item_code,
+      customer,
+      currency: currency || party.currency || companyDefaults.currency || session.currency,
+      conversion_rate: conversionRate,
+      selling_price_list: party.selling_price_list,
+      qty: lines[idx]?.qty || 1,
+    });
+    if (!m) return;
+    setLines((ls) => ls.map((l, i) => (i === idx ? stampItemDetails({ ...l, item_code }, m) : l)));
   }
 
+  const buildPreviewDoc = useCallback(() => {
+    if (!customer || !lines.some((l) => l.item_code)) return null;
+    return {
+      customer,
+      posting_date: postingDate,
+      due_date: dueDate || undefined,
+      company,
+      vat_emirate: emirate || undefined,
+      taxes_and_charges: taxTemplate || undefined,
+      payment_terms_template: paymentTerms || undefined,
+      customer_address: party.customer_address,
+      shipping_address_name: party.shipping_address_name,
+      contact_person: party.contact_person,
+      selling_price_list: party.selling_price_list,
+      debit_to: party.debit_to,
+      currency: currency || party.currency || companyDefaults.currency || session.currency,
+      conversion_rate: (!currency || currency === companyCurrency) ? 1 : conversionRate,
+      additional_discount_percentage: discountPct || undefined,
+      items: lines.filter((l) => l.item_code).map((l) => linePayload(l)),
+    };
+  }, [
+    customer, postingDate, dueDate, company, emirate, taxTemplate, paymentTerms,
+    party, companyDefaults, session.currency, discountPct, lines, currency, conversionRate, companyCurrency,
+  ]);
+
+  const { preview, previewing } = useTotalsPreview(
+    buildPreviewDoc,
+    [customer, postingDate, taxTemplate, emirate, discountPct, lines, currency, conversionRate],
+    txn.previewTotals,
+  );
+
   const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
+  const scheduleGrand = preview?.grand_total ?? net;
+  const baseGrand = scheduleGrand * (conversionRate || 1);
+  const schedule = usePaymentSchedule(paymentTerms || undefined, postingDate, scheduleGrand, baseGrand);
+  const credit = useCreditBalance(customer || undefined, company, baseGrand);
   const doc = existing.data;
-  /* Only a draft reaches the render path — the guard above sends anything
-     submitted or cancelled to the read-only detail screen.              */
   const locked = false;
   const canSubmit = canSubmitSales(session.roles);
-  const ready = !!customer && !!postingDate && !!emirate && lines.length > 0 && lines.every((l) => l.item_code);
-  const currency = doc?.currency || party.currency || companyDefaults.currency || session.currency || undefined;
+  const ready =
+    !!customer &&
+    !!postingDate &&
+    !!emirate &&
+    !!taxTemplate &&
+    lines.length > 0 &&
+    lines.every((l) => l.item_code) &&
+    (!currency || currency === companyCurrency || conversionRate > 0);
+  const checks: Check[] = [
+    { ok: !!customer, label: t("f.customer") },
+    { ok: !!postingDate, label: t("inv.date") },
+    { ok: !!emirate, label: t("f.emirate") },
+    { ok: !!taxTemplate, label: t("f.taxTemplate") },
+    { ok: lines.length > 0 && lines.every((l) => l.item_code), label: t("inv.lines") },
+    { ok: !currency || currency === companyCurrency || conversionRate > 0, label: t("f.conversionRate") },
+  ];
+  const displayCurrency = currency || doc?.currency || party.currency || companyDefaults.currency || session.currency || undefined;
+
+  function requireReady(): boolean {
+    if (ready) {
+      setShowMissing(false);
+      return true;
+    }
+    setShowMissing(true);
+    queueMicrotask(() => missingRef.current?.focus());
+    return false;
+  }
 
   function payload() {
     return {
@@ -190,37 +272,65 @@ export default function InvoiceForm() {
       posting_date: postingDate,
       due_date: dueDate || undefined,
       po_no: poNo || undefined,
-      company: companyDefaults.company || session.company,
+      company,
       vat_emirate: emirate,
       taxes_and_charges: taxTemplate || undefined,
       payment_terms_template: paymentTerms || undefined,
       customer_address: party.customer_address,
+      shipping_address_name: party.shipping_address_name,
+      contact_person: party.contact_person,
       selling_price_list: party.selling_price_list,
       debit_to: party.debit_to,
-      currency: party.currency || companyDefaults.currency || session.currency,
-      conversion_rate: 1,
+      currency: currency || party.currency || companyDefaults.currency || session.currency,
+      conversion_rate: (!currency || currency === companyCurrency) ? 1 : conversionRate,
+      additional_discount_percentage: discountPct || undefined,
       uae_credit_note_reason: reason || undefined,
-      items: lines.map((l) => ({
-        item_code: l.item_code,
-        qty: l.qty,
-        rate: l.rate,
+      payment_schedule: schedule.length
+        ? schedule.map((r) => ({
+            payment_term: r.payment_term,
+            description: r.description,
+            due_date: r.due_date,
+            invoice_portion: r.invoice_portion,
+            payment_amount: r.payment_amount,
+            mode_of_payment: r.mode_of_payment,
+          }))
+        : undefined,
+      items: lines.map((l) => linePayload(l)),
+    };
+  }
+
+  async function applyMapped(mapped: Record<string, unknown>) {
+    setSkipReprice(true);
+    if (mapped.customer) setCustomer(String(mapped.customer));
+    if (mapped.posting_date) setPostingDate(String(mapped.posting_date));
+    if (mapped.due_date) setDueDate(String(mapped.due_date));
+    if (mapped.vat_emirate) setEmirate(String(mapped.vat_emirate));
+    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    if (mapped.payment_terms_template) setPaymentTerms(String(mapped.payment_terms_template));
+    if (mapped.po_no) setPoNo(String(mapped.po_no));
+    const items = (mapped.items as TxnLine[] | undefined) ?? [];
+    setLines(
+      items.map((l) => ({
+        item_code: l.item_code || "",
+        item_name: l.item_name,
+        qty: Number(l.qty) || 1,
+        rate: Number(l.rate) || 0,
         uom: l.uom,
-        description: l.description,
         income_account: l.income_account,
         cost_center: l.cost_center,
-        item_tax_template: l.item_tax_template,
         uae_item_type: l.uae_item_type,
         hs_code: l.hs_code,
         sac_code: l.sac_code,
       })),
-    };
+    );
   }
 
   async function save() {
+    if (!requireReady()) return;
     setBusy(true); setSaveError(null);
     try {
       const docname = isNew
-        ? (await create.createDoc(DT.salesInvoice, payload()) as { name: string }).name
+        ? ((await create.createDoc(DT.salesInvoice, payload())) as { name: string }).name
         : (await update.updateDoc(DT.salesInvoice, name, payload()), name);
       nav(`/invoices/${encodeURIComponent(docname)}`);
     } catch (err) { setSaveError(err); }
@@ -228,6 +338,7 @@ export default function InvoiceForm() {
   }
 
   async function submitDoc() {
+    if (!requireReady()) return;
     setBusy(true); setSaveError(null);
     try {
       let docname = name;
@@ -247,14 +358,14 @@ export default function InvoiceForm() {
 
   if (!isNew && existing.isLoading) return <Loading />;
   if (!isNew && existing.error) return <ErrorBox error={existing.error} onRetry={() => existing.mutate()} />;
-  /* A submitted invoice has posted to the ledger. It is not editable, and
-     every post-submission action lives on the detail screen — so send the
-     user there rather than showing a form full of disabled fields.      */
   if (!isNew && existing.data && existing.data.docstatus !== 0) {
     return <Navigate to={`/invoices/${encodeURIComponent(name)}`} replace />;
   }
 
   const ui = invoiceUiStatus(doc ?? { docstatus: 0 });
+  const showNet = preview?.net_total ?? doc?.net_total ?? net;
+  const showVat = preview?.total_taxes_and_charges ?? doc?.total_taxes_and_charges ?? 0;
+  const showGrand = preview?.grand_total ?? doc?.grand_total ?? net;
 
   return (
     <>
@@ -265,12 +376,12 @@ export default function InvoiceForm() {
           <>
             <button className="btn ghost" onClick={() => nav("/invoices")}>{t("soc.discard")}</button>
             {!locked && (
-              <button className="btn ghost" disabled={busy || !ready} onClick={() => void save()}>
+              <button className="btn ghost" disabled={busy} onClick={() => void save()}>
                 {busy ? t("soc.saving") : t("soc.save")}
               </button>
             )}
             {!locked && canSubmit && (
-              <button className="btn" disabled={busy || !ready} onClick={() => void submitDoc()}>{t("inv.submit")}</button>
+              <button className="btn" disabled={busy} onClick={() => void submitDoc()}>{t("inv.submit")}</button>
             )}
           </>
         }
@@ -280,21 +391,36 @@ export default function InvoiceForm() {
         </p>
       </PageHead>
 
-      {(saveError || partyCall.error || submitCall.error) && (
-        <ErrorBox error={saveError || partyCall.error || submitCall.error} />
+      {(saveError || txn.pricingError || txn.partyCall.error || submitCall.error) && (
+        <ErrorBox error={saveError || txn.pricingError || txn.partyCall.error || submitCall.error} />
       )}
-
+      <MissingSummary checks={checks} active={showMissing} summaryRef={missingRef} />
 
       <FormLayout aside={
         <>
+          <ReadinessCard checks={checks} title={t("soc.ready")} caption={t("soc.readyCap")} />
           <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("inv.totals")}</h2>
-            <SumRow k={t("sod.net")} v={money(doc?.net_total ?? net)} currency={currency} />
-            <SumRow k={t("sod.vat")} v={money(doc?.total_taxes_and_charges ?? 0)} currency={currency} />
-            <SumRow k={t("sod.grand")} v={money(doc?.grand_total ?? net)} cls="rule total" currency={currency} />
+            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>
+              {t("inv.totals")}{previewing ? "…" : ""}
+            </h2>
+            <SumRow k={t("sod.net")} v={money(showNet)} currency={displayCurrency} />
+            <SumRow k={t("sod.vat")} v={money(showVat)} currency={displayCurrency} />
+            <SumRow k={t("sod.grand")} v={money(showGrand)} cls="rule total" currency={displayCurrency} />
           </Card>
         </>
       }>
+          {isNew && (
+            <Card title={t("txn.getItemsFrom")}>
+              <SourceDocPicker
+                sources={[
+                  { label: t("nav.salesOrders"), doctype: DT.salesOrder, method: METHOD.makeSalesInvoice, arg: "source_name" },
+                  { label: t("nav.deliveryNotes"), doctype: DT.deliveryNote, method: METHOD.makeDnSalesInvoice, arg: "source_name" },
+                ]}
+                onMapped={(m) => void applyMapped(m)}
+              />
+            </Card>
+          )}
+
           <Card num={1} title={t("inv.who")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
@@ -312,9 +438,18 @@ export default function InvoiceForm() {
                 <input className="ctl" value={poNo} disabled={locked} onChange={(e) => setPoNo(e.target.value)} />
               </Field>
             </div>
+            <PartyFields
+              side="selling"
+              partyName={customer}
+              party={party}
+              disabled={locked}
+              onChange={(patch) => setParty((p) => ({ ...p, ...patch }))}
+            />
             <div className="numblk">
               <span className="infochip"><span className="k2">T</span>{t("f.customerTrn")} <b>{party.tax_id || doc?.tax_id || "—"}</b></span>
               <span className="infochip"><span className="k2">C</span>{t("f.companyTrn")} <b>{companyDefaults.tax_id || doc?.company_trn || "—"}</b></span>
+              <span className="infochip"><span className="k2">P</span>{t("f.priceList")} <b>{party.selling_price_list || "—"}</b></span>
+              <span className="infochip"><span className="k2">$</span>{t("f.currency")} <b>{currency || companyCurrency || "—"}</b></span>
             </div>
           </Card>
 
@@ -326,7 +461,7 @@ export default function InvoiceForm() {
                   {UAE_EMIRATES.map((e) => <option key={e} value={e}>{e}</option>)}
                 </select>
               </Field>
-              <Field label={t("f.taxTemplate")}>
+              <Field label={t("f.taxTemplate")} required>
                 <select className="ctl" value={taxTemplate} disabled={locked} onChange={(e) => setTaxTemplate(e.target.value)}>
                   <option value="" />
                   {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
@@ -338,12 +473,24 @@ export default function InvoiceForm() {
                   {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
                 </select>
               </Field>
+              <Field label={t("txn.discountPct")}>
+                <input className="ctl" type="number" min={0} max={100} step={0.01} value={discountPct} disabled={locked}
+                  onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
+              </Field>
+              {currency && currency !== companyCurrency ? (
+                <Field label={t("f.conversionRate")}>
+                  <input className="ctl" type="number" min={0} step={0.000001} value={conversionRate} disabled={locked}
+                    onChange={(e) => setConversionRate(parseNum(e.target.value) || 1)} />
+                </Field>
+              ) : null}
               {!!doc?.is_return && (
                 <Field label={t("inv.reason")} required>
                   <input className="ctl" value={reason} disabled={locked} onChange={(e) => setReason(e.target.value)} />
                 </Field>
               )}
             </div>
+            <PaymentScheduleTable rows={schedule} />
+            <CreditLimitNotice balance={credit} />
           </Card>
 
           <Card num={3} title={t("inv.lines")} bodyClass={null}>
@@ -368,6 +515,11 @@ export default function InvoiceForm() {
                         {locked ? (l.item_name || l.item_code) : (
                           <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
                         )}
+                        <LineTrack
+                          line={l}
+                          disabled={locked}
+                          onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))}
+                        />
                       </td>
                       <td>
                         {l.uae_item_type !== "Service" && (

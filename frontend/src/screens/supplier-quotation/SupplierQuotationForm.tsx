@@ -1,9 +1,8 @@
 /**
- * SupplierQuotationForm — Phase 16.
- * Callers: App.tsx /supplier-quotations/new, /supplier-quotations/:name/edit
- * API: taxmate.api.resource.insert / save on "Supplier Quotation"
+ * Supplier Quotation create/edit. Catalog party/item helpers.
+ * Routes: /supplier-quotations/new, /supplier-quotations/:name/edit
  */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -12,17 +11,18 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
+import { linePayload, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { ExchangeRateField, LineTrack, PartyFields } from "../../components/txnFields";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
-type Line = { item_code: string; item_name?: string; uom?: string; qty: number; rate: number };
-type Party = { taxes_and_charges?: string; currency?: string; payment_terms_template?: string };
-
 const today = toIsoDate(new Date());
 const plus = (days: number) => {
-  const d = new Date(); d.setDate(d.getDate() + days); return toIsoDate(d);
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return toIsoDate(d);
 };
 
 export default function SupplierQuotationForm() {
@@ -31,33 +31,56 @@ export default function SupplierQuotationForm() {
   const canSubmit = canSubmitSales(session.roles);
   const { name: editName } = useParams<{ name?: string }>();
   const isEdit = !!editName;
+  const company = session.company;
 
   const [supplier, setSupplier] = useState("");
   const [transDate, setTransDate] = useState(today);
   const [validTill, setValidTill] = useState(plus(30));
   const [taxTemplate, setTaxTemplate] = useState("");
-  const [party, setParty] = useState<Party>({});
-  const [lines, setLines] = useState<Line[]>([]);
+  const [party, setParty] = useState<PartyDetails>({});
+  const [conversionRate, setConversionRate] = useState(1);
+  const [lines, setLines] = useState<TxnLine[]>([]);
+  const [skipReprice, setSkipReprice] = useState(false);
+  const [saveError, setSaveError] = useState<unknown>(null);
 
-  type SqDoc = { name: string; supplier?: string; transaction_date?: string; valid_till?: string; taxes_and_charges?: string; docstatus?: number; items?: (Line & { name?: string })[] };
+  type SqDoc = {
+    name: string;
+    supplier?: string;
+    transaction_date?: string;
+    valid_till?: string;
+    taxes_and_charges?: string;
+    docstatus?: number;
+    items?: TxnLine[];
+  };
   const existing = useDoc<SqDoc>(DT.supplierQuotation, isEdit ? editName : undefined, isEdit ? editName : null);
   const [loaded, setLoaded] = useState(false);
   useEffect(() => {
     if (isEdit && existing.data && !loaded) {
       const d = existing.data;
-      if (d.docstatus !== 0) { nav(`/supplier-quotations/${encodeURIComponent(editName!)}`, { replace: true }); return; }
+      if (d.docstatus !== 0) {
+        nav(`/supplier-quotations/${encodeURIComponent(editName!)}`, { replace: true });
+        return;
+      }
       setSupplier(d.supplier ?? "");
       setTransDate(d.transaction_date ?? today);
       setValidTill(d.valid_till ?? plus(30));
       setTaxTemplate(d.taxes_and_charges ?? "");
-      setLines((d.items ?? []).map((l) => ({ item_code: l.item_code ?? "", item_name: l.item_name, uom: l.uom, qty: l.qty ?? 1, rate: l.rate ?? 0 })));
+      setLines(
+        (d.items ?? []).map((l) => ({
+          item_code: l.item_code ?? "",
+          item_name: l.item_name,
+          uom: l.uom,
+          qty: l.qty ?? 1,
+          rate: l.rate ?? 0,
+        })),
+      );
+      setSkipReprice(true);
       setLoaded(true);
     }
   }, [isEdit, existing.data, loaded, nav, editName]);
 
   const templates = useDocList<{ name: string }>(DT.purchaseTaxTemplate, { fields: ["name"], limit: 50 });
-  const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
-  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
+  const txn = useTransactionRpc({ doctype: DT.supplierQuotation, side: "buying", company });
   const create = useInsert();
   const update = useSave();
   const submitCall = useFrappePostCall<{ message: { name: string } }>(METHOD.submit);
@@ -65,40 +88,95 @@ export default function SupplierQuotationForm() {
 
   useEffect(() => {
     if (!supplier) return;
-    partyCall.call({ party: supplier, party_type: "Supplier", doctype: DT.supplierQuotation, company: session.company })
-      .then((r) => { if (r?.message) setParty(r.message); })
-      .catch(() => undefined);
+    void txn.fetchParty(supplier, transDate).then(async (m) => {
+      if (!m) return;
+      if (skipReprice) {
+        setSkipReprice(false);
+        return;
+      }
+      setParty(m);
+      if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
+      const cur = m.currency || session.currency || "";
+      const rate = await txn.fetchExchangeRate(cur, session.currency || cur, transDate);
+      setConversionRate(rate);
+      if (lines.some((l) => l.item_code)) {
+        setLines(
+          await txn.repriceLines({
+            party: m,
+            lines,
+            transactionDate: transDate,
+            currency: m.currency,
+            conversionRate: rate,
+            supplier,
+          }),
+        );
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supplier]);
 
-  const updateLine = (i: number, field: keyof Line, val: string | number) =>
-    setLines((ls) => ls.map((l, idx) => idx === i ? { ...l, [field]: val } : l));
-
-  const addLine = () => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }]);
-  const removeLine = (i: number) => setLines((ls) => ls.filter((_, idx) => idx !== i));
-
-  async function fetchItemDetails(i: number, code: string) {
-    if (!code) return;
-    try {
-      const res = await itemCall.call({ item_code: code, company: session.company, doctype: DT.supplierQuotation });
-      const m = res?.message;
-      if (m) updateLine(i, "rate", parseNum((m as Record<string, unknown>).rate as string));
-    } catch { /* ignore */ }
+  async function pickItem(idx: number, item_code: string) {
+    setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, item_code } : l)));
+    if (!item_code) return;
+    const m = await txn.fetchItem({
+      item_code,
+      supplier,
+      buying_price_list: party.buying_price_list,
+      currency: party.currency,
+      transaction_date: transDate,
+      qty: lines[idx]?.qty || 1,
+    });
+    if (!m) return;
+    setLines((ls) => ls.map((l, i) => (i === idx ? stampItemDetails({ ...l, item_code }, m) : l)));
   }
 
-  const subtotal = lines.reduce((s, l) => s + l.qty * l.rate, 0);
+  const buildPreviewDoc = useCallback(() => {
+    if (!supplier || !lines.some((l) => l.item_code)) return null;
+    return {
+      supplier,
+      transaction_date: transDate,
+      valid_till: validTill,
+      company,
+      taxes_and_charges: taxTemplate || undefined,
+      supplier_address: party.supplier_address,
+      buying_price_list: party.buying_price_list,
+      currency: party.currency || session.currency,
+      conversion_rate: conversionRate,
+      items: lines
+        .filter((l) => l.item_code)
+        .map((l) => ({ item_code: l.item_code, qty: l.qty, rate: l.rate, uom: l.uom })),
+    };
+  }, [supplier, transDate, validTill, company, taxTemplate, party, session.currency, lines]);
+
+  const { preview, previewing } = useTotalsPreview(
+    buildPreviewDoc,
+    [supplier, transDate, taxTemplate, lines],
+    txn.previewTotals,
+  );
+
+  const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
+  const showNet = preview?.net_total ?? net;
+  const showVat = preview?.total_taxes_and_charges ?? 0;
+  const showGrand = preview?.grand_total ?? net;
   const ready = !!supplier && lines.length > 0 && lines.every((l) => l.item_code && l.qty > 0);
 
   async function saveFn(andSubmit = false) {
     if (!ready) return;
+    setSaveError(null);
     try {
       const payload = {
         supplier,
-        company: session.company,
+        company,
         transaction_date: transDate,
         valid_till: validTill,
         taxes_and_charges: taxTemplate || undefined,
-        currency: party.currency,
-        items: lines,
+        supplier_address: party.supplier_address,
+        buying_price_list: party.buying_price_list,
+        payment_terms_template: party.payment_terms_template,
+        currency: party.currency || session.currency,
+        conversion_rate: conversionRate,
+        contact_person: party.contact_person,
+        items: lines.map((l) => linePayload(l)),
       };
       let name: string;
       if (isEdit) {
@@ -109,22 +187,40 @@ export default function SupplierQuotationForm() {
         name = doc.name;
       }
       if (andSubmit) {
-        await submitCall.call({ doctype: DT.supplierQuotation, name });
+        await submitCall.call({ doc: { doctype: DT.supplierQuotation, name } });
       }
       nav(`/supplier-quotations/${encodeURIComponent(name)}`);
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      setSaveError(e);
+    }
   }
-
-  const [saveError, setSaveError] = useState<unknown>(null);
 
   return (
     <>
       <PageHead
-        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/supplier-quotations")}>{t("sq.title")}</button>}
+        eyebrow={
+          <button type="button" className="btn quiet" onClick={() => nav("/supplier-quotations")}>
+            {t("sq.title")}
+          </button>
+        }
         title={isEdit ? (editName ?? t("sq.new")) : t("sq.new")}
       />
-      {saveError ? <ErrorBox error={saveError} /> : null}
-      <FormLayout>
+      {(saveError || txn.pricingError || txn.partyCall.error || submitCall.error) && (
+        <ErrorBox error={saveError || txn.pricingError || txn.partyCall.error || submitCall.error} />
+      )}
+      <FormLayout
+        aside={
+          <Card bodyClass="cbody">
+            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>
+              {t("sq.subtotal")}
+              {previewing ? "…" : ""}
+            </h2>
+            <SumRow k={t("sod.net")} v={money(showNet)} />
+            <SumRow k={t("sod.vat")} v={money(showVat)} />
+            <SumRow k={t("sod.grand")} v={money(showGrand)} cls="rule total" />
+          </Card>
+        }
+      >
         <Card title={t("sq.details")}>
           <div className="fg">
             <Field label={t("sq.col.supplier")} required>
@@ -139,21 +235,41 @@ export default function SupplierQuotationForm() {
             <Field label={t("sq.col.taxTemplate")}>
               <select className="ctl" value={taxTemplate} onChange={(e) => setTaxTemplate(e.target.value)}>
                 <option value="">{t("sq.taxTemplatePh")}</option>
-                {(templates.data ?? []).map((t2) => <option key={t2.name} value={t2.name}>{t2.name}</option>)}
+                {(templates.data ?? []).map((row) => (
+                  <option key={row.name} value={row.name}>
+                    {row.name}
+                  </option>
+                ))}
               </select>
             </Field>
+          </div>
+          <PartyFields side="buying" partyName={supplier} party={party} onChange={(patch) => setParty((p) => ({ ...p, ...patch }))} />
+          <div className="grid3" style={{ marginBlockStart: 14 }}>
+            <ExchangeRateField currency={party.currency || session.currency || undefined} companyCurrency={session.currency || undefined} value={conversionRate} onChange={setConversionRate} />
+          </div>
+          <div className="numblk">
+            <span className="infochip">
+              <span className="k2">P</span>
+              {t("f.priceList")} <b>{party.buying_price_list || "—"}</b>
+            </span>
+            <span className="infochip">
+              <span className="k2">$</span>
+              {t("f.currency")} <b>{party.currency || session.currency || "—"}</b>
+            </span>
           </div>
         </Card>
         <Card title={t("sq.items")}>
           <div className="twrap">
             <table>
-              <thead><tr>
-                <th>{t("sq.col.item")}</th>
-                <th className="n">{t("sq.col.qty")}</th>
-                <th className="n">{t("sq.col.rate")}</th>
-                <th className="n">{t("sq.col.amount")}</th>
-                <th />
-              </tr></thead>
+              <thead>
+                <tr>
+                  <th>{t("sq.col.item")}</th>
+                  <th className="n">{t("sq.col.qty")}</th>
+                  <th className="n">{t("sq.col.rate")}</th>
+                  <th className="n">{t("sq.col.amount")}</th>
+                  <th />
+                </tr>
+              </thead>
               <tbody>
                 {lines.map((l, i) => (
                   <tr key={i}>
@@ -161,26 +277,65 @@ export default function SupplierQuotationForm() {
                       <LinkField
                         doctype={DT.item}
                         value={l.item_code}
-                        onChange={(v) => { updateLine(i, "item_code", v); void fetchItemDetails(i, v); }}
+                        onChange={(v) => void pickItem(i, v)}
                         placeholder={t("sq.itemPh")}
                       />
+                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                     </td>
-                    <td><input className="ctl" type="number" min={0.001} step={0.001} value={l.qty} onChange={(e) => updateLine(i, "qty", parseNum(e.target.value))} /></td>
-                    <td><input className="ctl" type="number" min={0} step={0.01} value={l.rate} onChange={(e) => updateLine(i, "rate", parseNum(e.target.value))} /></td>
+                    <td>
+                      <input
+                        className="ctl"
+                        type="number"
+                        min={0.001}
+                        step={0.001}
+                        value={l.qty}
+                        onChange={(e) =>
+                          setLines((ls) =>
+                            ls.map((row, idx) => (idx === i ? { ...row, qty: parseNum(e.target.value) } : row)),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="ctl"
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={l.rate}
+                        onChange={(e) =>
+                          setLines((ls) =>
+                            ls.map((row, idx) => (idx === i ? { ...row, rate: parseNum(e.target.value) } : row)),
+                          )
+                        }
+                      />
+                    </td>
                     <td className="n tot">{money(l.qty * l.rate)}</td>
-                    <td><button type="button" className="btn ghost" onClick={() => removeLine(i)}>×</button></td>
+                    <td>
+                      <button type="button" className="btn ghost" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}>
+                        ×
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <button type="button" className="btn ghost" style={{ marginTop: 8 }} onClick={addLine}>{t("sq.addLine")}</button>
-          <SumRow k={t("sq.subtotal")} v={money(subtotal)} />
+          <button
+            type="button"
+            className="btn ghost"
+            style={{ marginTop: 8 }}
+            onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}
+          >
+            {t("sq.addLine")}
+          </button>
         </Card>
         <FormActions
-          onSave={() => { setSaveError(null); void saveFn(false).catch(setSaveError); }}
-          onSubmit={canSubmit ? () => { setSaveError(null); void saveFn(true).catch(setSaveError); } : undefined}
-          onDiscard={() => nav(isEdit ? `/supplier-quotations/${encodeURIComponent(editName!)}` : "/supplier-quotations")}
+          onSave={() => void saveFn(false)}
+          onSubmit={canSubmit ? () => void saveFn(true) : undefined}
+          onDiscard={() =>
+            nav(isEdit ? `/supplier-quotations/${encodeURIComponent(editName!)}` : "/supplier-quotations")
+          }
           busy={busy}
           ready={ready}
         />

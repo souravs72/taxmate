@@ -59,7 +59,7 @@ export default function SupplierQuotationDetail() {
 
   async function doSubmit() {
     setBusy(true); setActionError(null);
-    try { await submitCall.call({ doctype: DT.supplierQuotation, name }); mutate(); }
+    try { await submitCall.call({ doc: { doctype: DT.supplierQuotation, name } }); mutate(); }
     catch (err) { setActionError(err); }
     finally { setBusy(false); }
   }

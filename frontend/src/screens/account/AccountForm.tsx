@@ -73,6 +73,7 @@ export default function AccountForm() {
     account_type: "",
     root_type: "Asset",
     account_currency: "AED",
+    is_group: 0 as 0 | 1,
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -87,10 +88,11 @@ export default function AccountForm() {
       account_type: d.account_type || "",
       root_type: d.root_type || "Asset",
       account_currency: d.account_currency || "AED",
+      is_group: (d.is_group || 0) as 0 | 1,
     });
   }, [existing.data, company]);
 
-  const setField = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const setField = (k: keyof typeof form, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
   const ready = !!form.account_name.trim() && !!form.company.trim();
 
   async function saveFn() {
@@ -98,7 +100,7 @@ export default function AccountForm() {
     setBusy(true);
     setSaveError(null);
     try {
-      const payload = { ...form, is_group: 0 };
+      const payload = { ...form };
       if (isNew) {
         const doc = (await create.createDoc(DT.account, payload)) as { name: string };
         nav(`/accounts/${encodeURIComponent(doc.name)}`);
@@ -185,6 +187,16 @@ export default function AccountForm() {
                 value={form.account_currency}
                 onChange={(e) => setField("account_currency", e.target.value)}
               />
+            </Field>
+            <Field label={t("acct.col.isGroup")}>
+              <select
+                className="ctl"
+                value={form.is_group}
+                onChange={(e) => setField("is_group", Number(e.target.value) as 0 | 1)}
+              >
+                <option value={0}>{t("no")}</option>
+                <option value={1}>{t("yes")}</option>
+              </select>
             </Field>
           </div>
         </Card>

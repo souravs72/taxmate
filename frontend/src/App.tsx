@@ -138,6 +138,12 @@ import ContactForm from "./screens/contact/ContactForm";
 import ContactDetail from "./screens/contact/ContactDetail";
 import FiscalYearList from "./screens/fiscal-year/FiscalYearList";
 import FiscalYearDetail from "./screens/fiscal-year/FiscalYearDetail";
+import FiscalYearForm from "./screens/fiscal-year/FiscalYearForm";
+import CostCenterList from "./screens/cost-center/CostCenterList";
+import CostCenterForm from "./screens/cost-center/CostCenterForm";
+import CostCenterDetail from "./screens/cost-center/CostCenterDetail";
+import PeriodClosingList from "./screens/period-closing/PeriodClosingList";
+import PeriodClosingDetail from "./screens/period-closing/PeriodClosingDetail";
 import AccountForm from "./screens/account/AccountForm";
 import BankReconciliation from "./screens/bank-reconciliation/BankReconciliation";
 import TermsAndConditionsList from "./screens/terms/TermsAndConditionsList";
@@ -375,7 +381,13 @@ export default function App() {
           <Route path="/contacts/:name/edit" element={<ContactForm />} />
           <Route path="/contacts/:name" element={<ContactDetail />} />
           <Route path="/fiscal-years" element={<FiscalYearList />} />
+          <Route path="/fiscal-years/new" element={<FiscalYearForm />} />
+          <Route path="/fiscal-years/:name/edit" element={<FiscalYearForm />} />
           <Route path="/fiscal-years/:name" element={<FiscalYearDetail />} />
+          <Route path="/cost-centers" element={<CostCenterList />} />
+          <Route path="/cost-centers/new" element={<CostCenterForm />} />
+          <Route path="/cost-centers/:name/edit" element={<CostCenterForm />} />
+          <Route path="/cost-centers/:name" element={<CostCenterDetail />} />
           <Route path="/accounts/new" element={<AccountForm />} />
           <Route path="/accounts/:name/edit" element={<AccountForm />} />
           <Route path="/bank-reconciliation" element={<BankReconciliation />} />
@@ -454,6 +466,8 @@ export default function App() {
           <Route path="/assets/:name/edit" element={<AssetForm />} />
           <Route path="/assets/:name" element={<AssetDetail />} />
           <Route path="/company" element={<CompanySettings />} />
+          <Route path="/period-closing" element={<PeriodClosingList />} />
+          <Route path="/period-closing/:name" element={<PeriodClosingDetail />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>

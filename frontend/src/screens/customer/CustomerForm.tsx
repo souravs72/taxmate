@@ -5,6 +5,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type CreditLimitRow = {
   _key: string;
@@ -28,6 +29,7 @@ type CustomerDoc = {
   uae_fz_beneficiary_id?: string;
   uae_in_designated_zone?: 0 | 1;
   selling_price_list?: string;
+  tax_category?: string;
   customer_primary_address?: string;
   customer_primary_contact?: string;
   credit_limits?: { company?: string; credit_limit?: number; bypass_credit_limit_check?: 0 | 1 }[];
@@ -80,6 +82,7 @@ export default function CustomerForm() {
     payment_terms: "",
     territory: "",
     selling_price_list: "",
+    tax_category: "",
     trade_license_number: "",
     legal_registration_identifier: "",
     legal_registration_identifier_type: "CRN",
@@ -111,6 +114,7 @@ export default function CustomerForm() {
       payment_terms: d.payment_terms || "",
       territory: d.territory || "",
       selling_price_list: d.selling_price_list || "",
+      tax_category: d.tax_category || "",
       trade_license_number: d.trade_license_number || "",
       legal_registration_identifier: d.legal_registration_identifier || "",
       legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
@@ -160,6 +164,7 @@ export default function CustomerForm() {
         customer_group: group,
         territory: form.territory || territory,
         selling_price_list: form.selling_price_list || undefined,
+        tax_category: form.tax_category || undefined,
         tax_id: form.tax_id || undefined,
         payment_terms: form.payment_terms || undefined,
         trade_license_number: form.trade_license_number || undefined,
@@ -282,6 +287,10 @@ export default function CustomerForm() {
               <option value="" />
               {(priceLists.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </select>
+          </Field>
+          <Field label={t("f.taxCategory")}>
+            <LinkField doctype={DT.taxCategory} value={form.tax_category}
+              onChange={(v) => set("tax_category", v)} />
           </Field>
         </div>
       </Card>

@@ -34,6 +34,20 @@ type Doc = {
   references?: Ref[];
 };
 
+function AmendButton({ name, nav }: { name: string; nav: (to: string) => void }) {
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
+  return (
+    <button className="btn ghost" disabled={amendCall.loading}
+      onClick={() => void amendCall.call({ doctype: DT.paymentEntry, name })
+        .then((r) => {
+          const n = r?.message?.name || "";
+          if (n) nav(`/payments/${encodeURIComponent(n)}/edit`);
+        })}>
+      {amendCall.loading ? t("soc.saving") : t("pay.amend")}
+    </button>
+  );
+}
+
 export default function PaymentDetail() {
   const { name = "" } = useParams();
   const nav = useNavigate();
@@ -78,11 +92,19 @@ export default function PaymentDetail() {
               onClick={() => window.open(printUrl(data.name), "_blank", "noopener")}>
               {t("pay.print")}
             </button>
+            {data.docstatus === 0 && (
+              <button className="btn ghost" onClick={() => nav(`/payments/${encodeURIComponent(name)}/edit`)}>
+                {t("inv.edit")}
+              </button>
+            )}
             {canCancel && (
               <button className="btn quiet" disabled={cancelCall.loading}
                 onClick={() => void cancelCall.call({ doctype: DT.paymentEntry, name }).then(() => mutate())}>
                 {cancelCall.loading ? t("soc.saving") : t("pay.cancel")}
               </button>
+            )}
+            {data.docstatus === 2 && (
+              <AmendButton name={name} nav={nav} />
             )}
           </>
         }
@@ -165,7 +187,10 @@ export default function PaymentDetail() {
                       const alloc = Number(r.allocated_amount) || 0;
                       const totalAmt = Number(r.total_amount) || 0;
                       const link = r.reference_doctype === DT.salesInvoice
-                        ? `/invoices/${encodeURIComponent(r.reference_name ?? "")}` : "";
+                        ? `/invoices/${encodeURIComponent(r.reference_name ?? "")}`
+                        : r.reference_doctype === DT.purchaseInvoice
+                          ? `/purchase-invoices/${encodeURIComponent(r.reference_name ?? "")}`
+                          : "";
                       return (
                         <tr key={r.name ?? i}>
                           <td className="inv">

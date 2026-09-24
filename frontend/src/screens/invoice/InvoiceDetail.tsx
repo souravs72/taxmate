@@ -27,7 +27,9 @@ type Doc = {
   vat_emirate?: string; taxes_and_charges?: string; tax_id?: string; company_trn?: string;
   payment_terms_template?: string; selling_price_list?: string;
   net_total?: number; total_taxes_and_charges?: number; grand_total?: number;
-  outstanding_amount?: number; currency?: string; docstatus?: 0 | 1 | 2; status?: string;
+  outstanding_amount?: number; currency?: string; total_advance?: number;
+  allocate_advances_automatically?: number; advances?: unknown[];
+  docstatus?: 0 | 1 | 2; status?: string;
   is_return?: number; return_against?: string; uae_credit_note_reason?: string;
   uae_e_invoice_status?: string; items?: Line[];
 };
@@ -311,6 +313,11 @@ export default function InvoiceDetail() {
               <ReadRow k={t("f.paymentTerms")} v={data.payment_terms_template || "—"} />
               <ReadRow k={t("f.taxTemplate")} v={data.taxes_and_charges || "—"} />
               <ReadRow k={t("f.emirate")} v={data.vat_emirate || "—"} />
+              {submitted && outstanding > 0
+                && (Boolean(data.advances?.length) || data.allocate_advances_automatically != null)
+                && data.total_advance != null ? (
+                <ReadRow k={t("txn.totalAdvance")} v={money(data.total_advance)} />
+              ) : null}
               {!!data.is_return && (
                 <ReadRow k={t("inv.reason")} v={data.uae_credit_note_reason || "—"} />
               )}

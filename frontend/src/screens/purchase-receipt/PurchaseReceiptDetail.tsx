@@ -42,6 +42,7 @@ export default function PurchaseReceiptDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.purchaseReceipt, name);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
   const makePi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePrPurchaseInvoice);
   const create = useInsert();
   const [busyPi, setBusyPi] = useState(false);
@@ -97,10 +98,16 @@ export default function PurchaseReceiptDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={writable}
-            busy={submitCall.loading || cancelCall.loading || busyPi}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || busyPi}
             onEdit={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseReceipt, name } }).then(() => mutate())}
             onCancel={() => void cancelCall.call({ doctype: DT.purchaseReceipt, name }).then(() => mutate())}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.purchaseReceipt, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/purchase-receipts/${encodeURIComponent(newName)}/edit`);
+              else mutate();
+            }}
             extra={
               <>
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (

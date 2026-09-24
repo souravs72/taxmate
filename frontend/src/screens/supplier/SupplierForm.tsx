@@ -5,6 +5,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type SupplierDoc = {
   name: string;
@@ -21,6 +22,7 @@ type SupplierDoc = {
   uae_in_designated_zone?: 0 | 1;
   territory?: string;
   country?: string;
+  tax_category?: string;
   supplier_primary_address?: string;
   supplier_primary_contact?: string;
 };
@@ -67,6 +69,7 @@ export default function SupplierForm() {
     payment_terms: "",
     territory: "",
     country: "United Arab Emirates",
+    tax_category: "",
     trade_license_number: "",
     legal_registration_identifier: "",
     legal_registration_identifier_type: "CRN",
@@ -94,6 +97,7 @@ export default function SupplierForm() {
       payment_terms: d.payment_terms || "",
       territory: d.territory || "",
       country: d.country || "United Arab Emirates",
+      tax_category: d.tax_category || "",
       trade_license_number: d.trade_license_number || "",
       legal_registration_identifier: d.legal_registration_identifier || "",
       legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
@@ -132,6 +136,7 @@ export default function SupplierForm() {
         supplier_name: form.supplier_name,
         territory: form.territory || undefined,
         country: form.country || "United Arab Emirates",
+        tax_category: form.tax_category || undefined,
         supplier_type: form.supplier_type,
         supplier_group: group,
         tax_id: form.tax_id || undefined,
@@ -252,6 +257,10 @@ export default function SupplierForm() {
           </Field>
           <Field label={t("f.country")}>
             <input className="ctl" value={form.country} onChange={(e) => set("country", e.target.value)} />
+          </Field>
+          <Field label={t("f.taxCategory")}>
+            <LinkField doctype={DT.taxCategory} value={form.tax_category}
+              onChange={(v) => set("tax_category", v)} />
           </Field>
         </div>
       </Card>

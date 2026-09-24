@@ -1,28 +1,28 @@
 /**
- * Quotation form (new + edit). Importers: App.tsx.
- * API: taxmate.api.resource.insert/save on Quotation; taxmate.api.workflow.submit.
- * Schema: party_name(customer), transaction_date, valid_till, items[{item_code,qty,rate,uom}].
- * User: "Implement the plan as specified… complete all the to-dos."
+ * Quotation create/edit. Catalog party/item/tax preview.
+ * Routes: /quotations/new, /quotations/:name/edit
  */
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { useDoc, useInsert, useSave } from "../../lib/resource";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
+import { linePayload, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { ExchangeRateField, LineTrack, PartyFields } from "../../components/txnFields";
+import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
-type Line = { item_code: string; item_name?: string; uom?: string; qty: number; rate: number; };
-type Party = { customer_address?: string; taxes_and_charges?: string; selling_price_list?: string; currency?: string; tax_id?: string; };
 type Doc = {
-  name: string; party_name?: string; transaction_date?: string; valid_till?: string; docstatus?: number;
-  items?: { item_code?: string; item_name?: string; uom?: string; qty?: number; rate?: number; }[];
+  name: string; party_name?: string; transaction_date?: string; valid_till?: string;
+  taxes_and_charges?: string; vat_emirate?: string; docstatus?: number;
+  items?: TxnLine[];
 };
 
 const today = toIsoDate(new Date());
@@ -34,21 +34,26 @@ export default function QuotationForm() {
   const session = useSession();
   const isNew = name === "new";
   const canSubmit = canSubmitSales(session.roles);
+  const company = session.company;
 
   const existing = useDoc<Doc>(DT.quotation, isNew ? undefined : name, isNew ? null : name, { isPaused: () => isNew });
   const create = useInsert();
   const update = useSave();
   const submitCall = useFrappePostCall(METHOD.submit);
-  const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
-  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
+  const templates = useDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
+  const txn = useTransactionRpc({ doctype: DT.quotation, side: "selling", company });
 
   const [customer, setCustomer] = useState("");
   const [txDate, setTxDate] = useState(today);
   const [validTill, setValidTill] = useState(plus(30));
-  const [party, setParty] = useState<Party>({});
-  const [lines, setLines] = useState<Line[]>([]);
+  const [taxTemplate, setTaxTemplate] = useState("");
+  const [emirate, setEmirate] = useState("");
+  const [party, setParty] = useState<PartyDetails>({});
+  const [conversionRate, setConversionRate] = useState(1);
+  const [lines, setLines] = useState<TxnLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [skipReprice, setSkipReprice] = useState(false);
 
   useEffect(() => {
     const d = existing.data;
@@ -56,38 +61,86 @@ export default function QuotationForm() {
     setCustomer(d.party_name || "");
     setTxDate(d.transaction_date || today);
     setValidTill(d.valid_till || plus(30));
-    const ls = (d.items ?? []).map((it) => ({
+    setTaxTemplate(d.taxes_and_charges || "");
+    setEmirate(d.vat_emirate || "");
+    setLines((d.items ?? []).map((it) => ({
       item_code: it.item_code || "",
       item_name: it.item_name,
       uom: it.uom,
       qty: Number(it.qty) || 1,
       rate: Number(it.rate) || 0,
-    }));
-    setLines(ls);
+    })));
+    setSkipReprice(true);
   }, [existing.data]);
 
   useEffect(() => {
     if (!customer) return;
-    partyCall.call({ party: customer, party_type: "Customer", doctype: DT.quotation, company: session.company, posting_date: txDate })
-      .then((r) => setParty(r?.message ?? {})).catch(() => undefined);
+    void txn.fetchParty(customer, txDate).then(async (m) => {
+      if (!m) return;
+      if (skipReprice) { setSkipReprice(false); return; }
+      setParty(m);
+      if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
+      if (m.vat_emirate) setEmirate(m.vat_emirate);
+      const cur = m.currency || session.currency || "";
+      const rate = await txn.fetchExchangeRate(cur, session.currency || cur, txDate);
+      setConversionRate(rate);
+      if (lines.some((l) => l.item_code)) {
+        setLines(await txn.repriceLines({ party: m, lines, transactionDate: txDate, currency: m.currency, conversionRate: rate, customer }));
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer]);
 
   async function pickItem(idx: number, item_code: string) {
-    setLines((ls) => ls.map((l, i) => i === idx ? { ...l, item_code } : l));
-    try {
-      const r = await itemCall.call({ ctx: { item_code, customer, doctype: DT.quotation, company: session.company, selling_price_list: party.selling_price_list, currency: party.currency, transaction_date: txDate, qty: 1 } });
-      const m = (r?.message ?? {}) as Record<string, unknown>;
-      setLines((ls) => ls.map((l, i) => i === idx ? { ...l, item_code, item_name: (m.item_name as string) ?? l.item_name, uom: (m.uom as string) ?? l.uom, rate: Number(m.price_list_rate ?? m.rate ?? l.rate) || l.rate } : l));
-    } catch { /* surfaced by itemCall.error */ }
+    setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, item_code } : l)));
+    const m = await txn.fetchItem({
+      item_code, customer,
+      currency: party.currency || session.currency,
+      selling_price_list: party.selling_price_list,
+      transaction_date: txDate,
+      qty: lines[idx]?.qty || 1,
+    });
+    if (!m) return;
+    setLines((ls) => ls.map((l, i) => (i === idx ? stampItemDetails({ ...l, item_code }, m) : l)));
   }
 
+  const buildPreviewDoc = useCallback(() => {
+    if (!customer || !lines.some((l) => l.item_code)) return null;
+    return {
+      quotation_to: "Customer",
+      party_name: customer,
+      transaction_date: txDate,
+      valid_till: validTill,
+      company,
+      vat_emirate: emirate || undefined,
+      taxes_and_charges: taxTemplate || undefined,
+      selling_price_list: party.selling_price_list,
+      currency: party.currency || session.currency,
+      conversion_rate: conversionRate,
+      items: lines.filter((l) => l.item_code).map((l) => ({
+        item_code: l.item_code, qty: l.qty, rate: l.rate, uom: l.uom,
+      })),
+    };
+  }, [customer, txDate, validTill, company, emirate, taxTemplate, party, session.currency, lines]);
+
+  const { preview, previewing } = useTotalsPreview(
+    buildPreviewDoc,
+    [customer, txDate, taxTemplate, emirate, lines],
+    txn.previewTotals,
+  );
+
   const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
+  const showNet = preview?.net_total ?? net;
+  const showVat = preview?.total_taxes_and_charges ?? 0;
+  const showGrand = preview?.grand_total ?? net;
+
   const checks = useMemo(() => [
     { label: t("quot.customer"), ok: !!customer },
     { label: t("quot.date"), ok: !!txDate },
+    { label: t("f.emirate"), ok: !!emirate },
+    { label: t("f.taxTemplate"), ok: !!taxTemplate },
     { label: t("inv.lines"), ok: lines.length > 0 && lines.every((l) => l.item_code) },
-  ], [customer, txDate, lines]);
+  ], [customer, txDate, emirate, taxTemplate, lines]);
   const ready = checks.every((c) => c.ok);
 
   async function save(shouldSubmit: boolean) {
@@ -98,9 +151,16 @@ export default function QuotationForm() {
         party_name: customer,
         transaction_date: txDate,
         valid_till: validTill,
-        taxes_and_charges: party.taxes_and_charges || undefined,
+        company,
+        vat_emirate: emirate || undefined,
+        taxes_and_charges: taxTemplate || undefined,
         selling_price_list: party.selling_price_list || undefined,
-        items: lines.map((l) => ({ item_code: l.item_code, qty: l.qty, rate: l.rate, uom: l.uom })),
+        currency: party.currency || session.currency,
+        conversion_rate: conversionRate,
+        customer_address: party.customer_address,
+        shipping_address_name: party.shipping_address_name,
+        contact_person: party.contact_person,
+        items: lines.map((l) => linePayload(l)),
       };
       const docname = isNew
         ? (await create.createDoc(DT.quotation, payload) as { name: string }).name
@@ -132,13 +192,17 @@ export default function QuotationForm() {
           />
         }
       />
-      {(saveError || partyCall.error) && <ErrorBox error={saveError || partyCall.error} />}
+      {(saveError || txn.pricingError || txn.partyCall.error) && <ErrorBox error={saveError || txn.pricingError || txn.partyCall.error} />}
       <FormLayout
         aside={
           <>
             <Card bodyClass="cbody">
-              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("quot.summary")}</h2>
-              <SumRow k={t("sod.net")} v={money(net)} />
+              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>
+                {t("quot.summary")}{previewing ? "…" : ""}
+              </h2>
+              <SumRow k={t("sod.net")} v={money(showNet)} />
+              <SumRow k={t("sod.vat")} v={money(showVat)} />
+              <SumRow k={t("sod.grand")} v={money(showGrand)} cls="rule total" />
             </Card>
             <ReadinessCard checks={checks} title={t("soc.ready")} caption={t("soc.readyCap")} />
           </>
@@ -158,6 +222,22 @@ export default function QuotationForm() {
             <Field label={t("quot.validTill")} htmlFor="quot-valid">
               <input id="quot-valid" className="ctl" type="date" value={validTill} onChange={(e) => setValidTill(e.target.value)} />
             </Field>
+            <Field label={t("f.emirate")} required>
+              <select className="ctl" value={emirate} onChange={(e) => setEmirate(e.target.value)}>
+                <option value="" />
+                {UAE_EMIRATES.map((e) => <option key={e} value={e}>{e}</option>)}
+              </select>
+            </Field>
+            <Field label={t("f.taxTemplate")} required>
+              <select className="ctl" value={taxTemplate} onChange={(e) => setTaxTemplate(e.target.value)}>
+                <option value="" />
+                {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+              </select>
+            </Field>
+          </div>
+          <PartyFields side="selling" partyName={customer} party={party} onChange={(patch) => setParty((p) => ({ ...p, ...patch }))} />
+          <div className="grid3" style={{ marginBlockStart: 14 }}>
+            <ExchangeRateField currency={party.currency || session.currency || undefined} companyCurrency={session.currency || undefined} value={conversionRate} onChange={setConversionRate} />
           </div>
         </Card>
         <Card num={2} title={t("inv.lines")} bodyClass={null as unknown as string}>
@@ -179,6 +259,7 @@ export default function QuotationForm() {
                     <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
                     <td style={{ minWidth: 200 }}>
                       <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                     </td>
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}

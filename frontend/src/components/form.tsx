@@ -23,7 +23,7 @@ export function FormLayout({ children, aside }: {
   );
 }
 
-export type Check = { ok: boolean; label: string };
+export type Check = { ok: boolean; label: string; href?: string };
 
 /**
  * What is still missing before this document can be submitted.
@@ -56,6 +56,42 @@ export function ReadinessCard({ checks, title, caption }: {
       </div>
       <div className="meter"><i style={{ width: `${(done / Math.max(1, checks.length)) * 100}%` }} /></div>
     </Card>
+  );
+}
+
+/**
+ * Focusable list of failed readiness checks after a blocked save/submit.
+ * Complements ReadinessCard; keeps field requirements visible in the aside.
+ */
+export function MissingSummary({
+  checks,
+  active,
+  summaryRef,
+}: {
+  checks: Check[];
+  active: boolean;
+  summaryRef: React.Ref<HTMLDivElement>;
+}) {
+  const missing = checks.filter((c) => !c.ok);
+  if (!active || missing.length === 0) return null;
+  return (
+    <div
+      ref={summaryRef}
+      role="alert"
+      tabIndex={-1}
+      className="alert"
+      style={{ background: "var(--bad-bg)", flexDirection: "column", gap: 8, outline: "none" }}
+      aria-labelledby="txn-missing-title"
+    >
+      <strong id="txn-missing-title">{t("txn.formProblem")}</strong>
+      <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+        {missing.map((c) => (
+          <li key={c.label}>
+            {c.href ? <a href={c.href}>{c.label}</a> : c.label}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

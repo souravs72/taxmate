@@ -65,6 +65,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.resource.get_list", methods)
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
+		self.assertIn("taxmate.api.accounts.apply_price_list", methods)
+		self.assertIn("taxmate.api.accounts.preview_taxes_and_totals", methods)
 		self.assertIn("taxmate.api.sales_order.fulfilment_summary", methods)
 		self.assertIn("taxmate.api.search.awesome", methods)
 		self.assertIn("taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice", methods)
