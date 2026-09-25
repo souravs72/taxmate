@@ -1,32 +1,54 @@
 /**
  * Invite a teammate. Catalog invite_user — User is not a resource doctype.
+ * Roles are multi-select; Frappe unions DocPerms across Has Role rows.
  */
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useFrappePostCall } from "frappe-react-sdk";
+import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
+import { FormLayout } from "../../components/form";
+import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { t } from "../../i18n/strings";
 import { METHOD } from "../../lib/frappe";
 import { canManageUsers, SPA_ROLES, type SpaRole } from "../../lib/roles";
 import { useSession } from "../../lib/session";
-import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
-import { FormLayout } from "../../components/form";
 
 export default function TeamInvite() {
   const nav = useNavigate();
   const session = useSession();
   const owner = canManageUsers(session);
   const invite = useFrappePostCall<{ message: { name: string } }>(METHOD.inviteUser);
+  const flags = useFrappeGetCall<{ message: { addon_roles?: string[] } }>(
+    METHOD.getFeatureFlags,
+    undefined,
+    "invite-feature-flags",
+    { revalidateOnFocus: false },
+  );
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [mobile, setMobile] = useState("");
-  const [role, setRole] = useState<SpaRole>("clerk");
+  const [roles, setRoles] = useState<SpaRole[]>(["clerk"]);
+  const [extraRoles, setExtraRoles] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const addonRoles = flags.data?.message?.addon_roles ?? [];
 
   if (!session.user) return <Loading />;
 
-  const ready = owner && firstName.trim() && email.trim();
+  const ready = owner && firstName.trim() && email.trim() && roles.length > 0;
+
+  function toggleSpa(role: SpaRole) {
+    setRoles((prev) => {
+      const next = prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role];
+      return next.length ? next : prev;
+    });
+  }
+
+  function toggleExtra(role: string) {
+    setExtraRoles((prev) =>
+      prev.includes(role) ? prev.filter((r) => r !== role) : [...prev, role],
+    );
+  }
 
   async function submit() {
     if (!ready) return;
@@ -37,7 +59,8 @@ export default function TeamInvite() {
         first_name: firstName.trim(),
         last_name: lastName.trim(),
         mobile_no: mobile.trim(),
-        spa_role: role,
+        spa_roles: JSON.stringify(roles),
+        extra_roles: JSON.stringify(extraRoles),
         send_welcome_email: 1,
       });
       nav("/team");
@@ -92,13 +115,27 @@ export default function TeamInvite() {
                   autoComplete="tel" onChange={(e) => setMobile(e.target.value)} />
               </Field>
             </div>
-            <Field label={t("team.col.role")} required htmlFor="team-spa-role">
-              <select id="team-spa-role" name="spa_role" className="ctl" aria-label={t("team.col.role")}
-                value={role} onChange={(e) => setRole(e.target.value as SpaRole)}>
+            <Field label={t("team.col.role")} required>
+              <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted)" }}>{t("team.roles.hint")}</p>
+              <div className="stack" style={{ gap: 8 }}>
                 {SPA_ROLES.map((r) => (
-                  <option key={r} value={r}>{t(`role.${r}`)}</option>
+                  <label key={r} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input type="checkbox" checked={roles.includes(r)} onChange={() => toggleSpa(r)} />
+                    {t(`role.${r}`)}
+                  </label>
                 ))}
-              </select>
+                {addonRoles.length > 0 && (
+                  <>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>{t("team.roles.addons")}</div>
+                    {addonRoles.map((r) => (
+                      <label key={r} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <input type="checkbox" checked={extraRoles.includes(r)} onChange={() => toggleExtra(r)} />
+                        {t(`role.${r}`)}
+                      </label>
+                    ))}
+                  </>
+                )}
+              </div>
             </Field>
           </form>
         </Card>

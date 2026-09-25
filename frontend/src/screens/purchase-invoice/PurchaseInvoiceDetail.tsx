@@ -9,6 +9,7 @@ import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Line = {
   name?: string; item_code?: string; item_name?: string; qty?: number; uom?: string;
@@ -21,7 +22,9 @@ type Doc = {
   vat_emirate?: string; taxes_and_charges?: string; tax_id?: string;
   payment_terms_template?: string;
   net_total?: number; total_taxes_and_charges?: number; grand_total?: number;
-  outstanding_amount?: number; currency?: string; docstatus?: 0 | 1 | 2; status?: string;
+  outstanding_amount?: number; currency?: string; total_advance?: number;
+  allocate_advances_automatically?: number; advances?: unknown[];
+  docstatus?: 0 | 1 | 2; status?: string;
   items?: Line[];
 };
 
@@ -74,6 +77,7 @@ export default function PurchaseInvoiceDetail() {
 
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
@@ -111,35 +115,44 @@ export default function PurchaseInvoiceDetail() {
         }
         title={data.supplier_name || data.supplier || data.name}
         actions={
-          <>
-            {draft && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/purchase-invoices/${encodeURIComponent(name)}/edit`)}>
-                {t("inv.edit")}
-              </button>
-            )}
-            {draft && canSubmit && (
-              <button type="button" className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.purchaseInvoice, name } }).then(refresh)}>
-                {t("inv.submit")}
-              </button>
-            )}
-            {submitted && outstanding > 0 && (
-              <button type="button" className="btn"
-                onClick={() => nav(`/payments/new?type=Pay&invoice=${encodeURIComponent(name)}`)}>
-                {t("pi.pay")}
-              </button>
-            )}
-            <button type="button" className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
-              {t("inv.print")}
-            </button>
-            {submitted && canCancel && (
-              <button type="button" className="btn quiet" disabled={cancelCall.loading}
-                onClick={() => void cancelCall.call({ doctype: DT.purchaseInvoice, name }).then(refresh)}>
-                {t("inv.cancel")}
-              </button>
-            )}
-          </>
+          <DetailActions
+            draft={draft}
+            submitted={submitted}
+            cancelled={data.docstatus === 2}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={true}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading}
+            onEdit={() => nav(`/purchase-invoices/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseInvoice, name } }).then(refresh)}
+            onCancel={() => void cancelCall.call({ doctype: DT.purchaseInvoice, name }).then(refresh)}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.purchaseInvoice, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/purchase-invoices/${encodeURIComponent(newName)}`);
+              else refresh();
+            }}
+            extra={
+              <>
+                {submitted && outstanding > 0 && (
+                  <button type="button" className="btn"
+                    onClick={() => nav(`/payments/new?type=Pay&invoice=${encodeURIComponent(name)}`)}>
+                    {t("pi.pay")}
+                  </button>
+                )}
+                {/* DebitNoteForm route. User: Implement the plan… complete all the to-dos. */}
+                {submitted && (
+                  <button type="button" className="btn ghost"
+                    onClick={() => nav(`/purchase-invoices/${encodeURIComponent(name)}/return`)}>
+                    {t("pi.debit")}
+                  </button>
+                )}
+                <button type="button" className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
+                  {t("inv.print")}
+                </button>
+              </>
+            }
+          />
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
@@ -183,6 +196,11 @@ export default function PurchaseInvoiceDetail() {
             <ReadRow k={t("pi.billDate")} v={date(data.bill_date)} />
             <ReadRow k={t("f.taxTemplate")} v={data.taxes_and_charges || "—"} />
             <ReadRow k={t("f.emirate")} v={data.vat_emirate || "—"} />
+            {submitted && outstanding > 0
+              && (Boolean(data.advances?.length) || data.allocate_advances_automatically != null)
+              && data.total_advance != null ? (
+              <ReadRow k={t("txn.totalAdvance")} v={money(data.total_advance)} />
+            ) : null}
           </div>
         </Card>
         <Card title={t("inv.lines")} bodyClass="twrap">

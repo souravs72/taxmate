@@ -1,0 +1,122 @@
+/**
+ * WorkOrderForm — Phase 18. Create + submit Work Order, then create SE.
+ * Callers: App.tsx /work-orders/new, /work-orders/:name/edit
+ * API: taxmate.api.resource.insert / save; workflow.submit
+ */
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useFrappePostCall } from "frappe-react-sdk";
+
+import { DT, METHOD } from "../../lib/frappe";
+import { useDoc, useInsert, useSave } from "../../lib/resource";
+import { useSession } from "../../lib/session";
+import { canSubmitSales } from "../../lib/roles";
+import { parseNum, toIsoDate } from "../../lib/format";
+import { t } from "../../i18n/strings";
+import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { FormActions, FormLayout } from "../../components/form";
+import LinkField from "../../components/LinkField";
+
+const today = toIsoDate(new Date());
+type Doc = { name: string; item_name?: string; bom_no?: string; qty?: number; planned_start_date?: string; wip_warehouse?: string; fg_warehouse?: string; docstatus?: number };
+
+export default function WorkOrderForm() {
+  const { name = "new" } = useParams();
+  const nav = useNavigate();
+  const session = useSession();
+  const isNew = name === "new";
+  const canSubmit = canSubmitSales(session.roles);
+
+  const existing = useDoc<Doc>(DT.workOrder, isNew ? undefined : name, isNew ? null : name, { isPaused: () => isNew });
+  const create = useInsert();
+  const update = useSave();
+  const submitCall = useFrappePostCall(METHOD.submit);
+
+  const [bom, setBom] = useState("");
+  const [qty, setQty] = useState(1);
+  const [startDate, setStartDate] = useState(today);
+  const [wipWarehouse, setWipWarehouse] = useState("");
+  const [fgWarehouse, setFgWarehouse] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<unknown>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const d = existing.data;
+    if (!d || loaded) return;
+    if (d.docstatus !== 0) { nav(`/work-orders/${encodeURIComponent(name)}`, { replace: true }); return; }
+    setBom(d.bom_no || "");
+    setQty(d.qty || 1);
+    setStartDate(d.planned_start_date || today);
+    setWipWarehouse(d.wip_warehouse || "");
+    setFgWarehouse(d.fg_warehouse || "");
+    setLoaded(true);
+  }, [existing.data, loaded]);
+
+  const ready = !!bom && qty > 0;
+
+  async function saveFn(andSubmit = false) {
+    if (!ready) return;
+    setBusy(true); setSaveError(null);
+    try {
+      const payload = {
+        bom_no: bom, qty, planned_start_date: startDate,
+        wip_warehouse: wipWarehouse || undefined,
+        fg_warehouse: fgWarehouse || undefined,
+        company: session.company,
+      };
+      let n: string;
+      if (isNew) {
+        const doc = (await create.createDoc(DT.workOrder, payload)) as { name: string };
+        n = doc.name;
+      } else {
+        await update.updateDoc(DT.workOrder, name, payload);
+        n = name;
+      }
+      if (andSubmit) await submitCall.call({ doctype: DT.workOrder, name: n });
+      nav(`/work-orders/${encodeURIComponent(n)}`);
+    } catch (err) { setSaveError(err); }
+    finally { setBusy(false); }
+  }
+
+  if (!isNew && existing.isLoading) return <Loading />;
+  if (!isNew && existing.error) return <ErrorBox error={existing.error} onRetry={() => existing.mutate()} />;
+
+  return (
+    <>
+      <PageHead
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/work-orders")}>{t("wo.title")}</button>}
+        title={isNew ? t("wo.new") : name}
+      />
+      {saveError ? <ErrorBox error={saveError} /> : null}
+      <FormLayout>
+        <Card>
+          <div className="fg">
+            <Field label={t("wo.col.bom")} required>
+              <LinkField doctype={DT.bom} value={bom} onChange={setBom} placeholder={t("wo.bomPh")} />
+            </Field>
+            <Field label={t("wo.col.qty")}>
+              <input className="ctl" type="number" min={0.001} step={0.001} value={qty} onChange={(e) => setQty(parseNum(e.target.value))} />
+            </Field>
+            <Field label={t("wo.col.start")}>
+              <input className="ctl" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            </Field>
+            <Field label={t("wo.col.wip")}>
+              <LinkField doctype={DT.warehouse} value={wipWarehouse} onChange={setWipWarehouse} placeholder={t("wo.warehousePh")} />
+            </Field>
+            <Field label={t("wo.col.fg")}>
+              <LinkField doctype={DT.warehouse} value={fgWarehouse} onChange={setFgWarehouse} placeholder={t("wo.warehousePh")} />
+            </Field>
+          </div>
+        </Card>
+        <FormActions
+          onSave={() => void saveFn(false)}
+          onSubmit={canSubmit ? () => void saveFn(true) : undefined}
+          onDiscard={() => nav(isNew ? "/work-orders" : `/work-orders/${encodeURIComponent(name)}`)}
+          busy={busy}
+          ready={ready}
+        />
+      </FormLayout>
+    </>
+  );
+}

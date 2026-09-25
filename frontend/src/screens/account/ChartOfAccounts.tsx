@@ -201,7 +201,14 @@ export default function ChartOfAccounts() {
 
   return (
     <>
-      <PageHead title={t("coa.title")} />
+      <PageHead
+        title={t("coa.title")}
+        actions={
+          <button type="button" className="btn primary" onClick={() => nav("/accounts/new")}>
+            {t("coa.new")}
+          </button>
+        }
+      />
 
       {byRoot.ready && (
         <div className="tiles">

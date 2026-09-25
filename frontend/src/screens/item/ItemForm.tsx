@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { DT } from "../../lib/frappe";
+import { useFrappeGetCall } from "frappe-react-sdk";
+import { DT, METHOD } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
+import { useSession } from "../../lib/session";
 import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
+
+const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
+
+type UomConvRow = {
+  _key: string;
+  uom: string;
+  conversion_factor: number;
+};
 
 type ItemDoc = {
   name: string;
@@ -12,18 +23,34 @@ type ItemDoc = {
   item_name?: string;
   item_group?: string;
   stock_uom?: string;
+  brand?: string;
   is_stock_item?: number;
+  is_sales_item?: number;
+  is_purchase_item?: number;
+  description?: string;
+  valuation_method?: string;
   uae_item_type?: string;
   is_zero_rated?: number;
   is_exempt?: number;
   hs_code?: string;
   sac_code?: string;
   standard_rate?: number;
+  safety_stock?: number;
+  has_serial_no?: number;
+  has_batch_no?: number;
+  serial_no_series?: string;
+  create_new_batch?: number;
+  batch_number_series?: string;
+  uoms?: { uom?: string; conversion_factor?: number }[];
+  item_defaults?: { company?: string; default_warehouse?: string }[];
+  barcodes?: { barcode?: string }[];
+  reorder_levels?: { warehouse?: string; warehouse_reorder_level?: number; warehouse_reorder_qty?: number; material_request_type?: string }[];
 };
 
 export default function ItemForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
+  const session = useSession();
   const isNew = name === "new";
   const existing = useDoc<ItemDoc>(DT.item, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
@@ -78,17 +105,49 @@ export default function ItemForm() {
     item_name: "",
     item_group: "",
     stock_uom: "Nos",
+    brand: "",
     is_stock_item: 0 as 0 | 1,
+    is_sales_item: 1 as 0 | 1,
+    is_purchase_item: 1 as 0 | 1,
+    default_warehouse: "",
+    description: "",
+    valuation_method: "",
     uae_item_type: "Service",
     is_zero_rated: 0 as 0 | 1,
     is_exempt: 0 as 0 | 1,
     hs_code: "",
     sac_code: "",
     standard_rate: 0,
+    barcode: "",
+    safety_stock: 0,
+    reorder_warehouse: "",
+    reorder_level: 0,
+    reorder_qty: 0,
+    has_serial_no: 0 as 0 | 1,
+    has_batch_no: 0 as 0 | 1,
+    serial_no_series: "",
+    create_new_batch: 0 as 0 | 1,
+    batch_number_series: "",
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [uomRows, setUomRows] = useState<UomConvRow[]>([]);
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
+  let _uomKey = 0;
+  const newUomKey = () => `u${++_uomKey}`;
+  const onHand = useFrappeGetCall<{ message: { total: number; warehouses: { warehouse: string; actual_qty: number }[] } }>(
+    METHOD.itemQty,
+    !isNew && form.is_stock_item ? { item_code: name } : undefined,
+    !isNew && form.is_stock_item ? `item-qty-${name}` : null,
+  );
+
+  // Check whether SLE exists for this item (limit 1) — serial/batch flags cannot change once stock is posted.
+  const sleList = useDocList<{ name: string }>(
+    DT.stockLedgerEntry,
+    { fields: ["name"], filters: [["item_code", "=", name]] as never, limit: 1 },
+    !isNew ? `sle-exists-${name}` : null,
+  );
+  const hasSle = !isNew && (sleList.data ?? []).length > 0;
 
   /* One effect, not two.
      Item.standard_rate is only read at insert; once an Item Price exists that
@@ -103,20 +162,51 @@ export default function ItemForm() {
   useEffect(() => {
     const d = existing.data;
     if (!d) return;
+    // Prefer company-matched Item Default (ERPNext child). Callers: App /catalogue/items/:name.
+    // User: Complete everything and make frontend completely comprehensive and complete
+    const companyWh = (d.item_defaults ?? []).find((r) => r.company === session.company)?.default_warehouse
+      || (d.item_defaults ?? [])[0]?.default_warehouse
+      || "";
     setForm({
       item_code: d.item_code || d.name,
       item_name: d.item_name || "",
       item_group: d.item_group || "",
       stock_uom: d.stock_uom || "Nos",
+      brand: d.brand || "",
       is_stock_item: (d.is_stock_item || 0) as 0 | 1,
+      is_sales_item: ((d.is_sales_item ?? 1) || 0) as 0 | 1,
+      is_purchase_item: ((d.is_purchase_item ?? 1) || 0) as 0 | 1,
+      default_warehouse: companyWh,
+      description: d.description || "",
+      valuation_method: d.valuation_method || "",
       uae_item_type: d.uae_item_type || "Service",
       is_zero_rated: (d.is_zero_rated || 0) as 0 | 1,
       is_exempt: (d.is_exempt || 0) as 0 | 1,
       hs_code: d.hs_code || "",
       sac_code: d.sac_code || "",
       standard_rate: priceRow ? Number(priceRow.price_list_rate) || 0 : d.standard_rate || 0,
+      barcode: (d.barcodes ?? [])[0]?.barcode || "",
+      safety_stock: Number(d.safety_stock) || 0,
+      reorder_warehouse: (d.reorder_levels ?? [])[0]?.warehouse || "",
+      reorder_level: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_level) || 0,
+      reorder_qty: Number((d.reorder_levels ?? [])[0]?.warehouse_reorder_qty) || 0,
+      has_serial_no: (d.has_serial_no || 0) as 0 | 1,
+      has_batch_no: (d.has_batch_no || 0) as 0 | 1,
+      serial_no_series: d.serial_no_series || "",
+      create_new_batch: (d.create_new_batch || 0) as 0 | 1,
+      batch_number_series: d.batch_number_series || "",
     });
-  }, [existing.data, priceRow]);
+    // Load UOM conversions (exclude the stock UOM row which ERPNext auto-adds with factor 1)
+    setUomRows(
+      (d.uoms ?? [])
+        .filter((r) => r.uom && r.uom !== d.stock_uom)
+        .map((r) => ({
+          _key: `u${Math.random()}`,
+          uom: r.uom || "",
+          conversion_factor: Number(r.conversion_factor) || 1,
+        }))
+    );
+  }, [existing.data, priceRow, session.company]);
 
   const ready =
     !!form.item_code && !!form.item_name && !!form.item_group && !!form.stock_uom &&
@@ -133,14 +223,46 @@ export default function ItemForm() {
         item_name: form.item_name,
         item_group: form.item_group,
         stock_uom: form.stock_uom,
+        brand: form.brand || undefined,
         is_stock_item: form.is_stock_item,
-        is_sales_item: 1,
+        is_sales_item: form.is_sales_item,
+        is_purchase_item: form.is_purchase_item,
+        description: form.description || undefined,
+        valuation_method: form.is_stock_item && form.valuation_method ? form.valuation_method : undefined,
         uae_item_type: form.uae_item_type,
         is_zero_rated: form.is_zero_rated,
         is_exempt: form.is_exempt,
         hs_code: form.hs_code || undefined,
         sac_code: form.sac_code || undefined,
         standard_rate: form.standard_rate,
+        safety_stock: form.safety_stock || undefined,
+        has_serial_no: form.is_stock_item ? form.has_serial_no : 0,
+        has_batch_no: form.is_stock_item ? form.has_batch_no : 0,
+        serial_no_series: form.is_stock_item && form.has_serial_no ? form.serial_no_series || undefined : undefined,
+        create_new_batch: form.is_stock_item && form.has_batch_no ? form.create_new_batch : 0,
+        batch_number_series: form.is_stock_item && form.has_batch_no ? form.batch_number_series || undefined : undefined,
+        barcodes: form.barcode ? [{ barcode: form.barcode }] : undefined,
+        reorder_levels: form.reorder_warehouse
+          ? [{
+              warehouse: form.reorder_warehouse,
+              warehouse_reorder_level: form.reorder_level || 0,
+              warehouse_reorder_qty: form.reorder_qty || 0,
+              material_request_type: "Purchase",
+            }]
+          : undefined,
+        uoms: uomRows.length > 0
+          ? [
+              // ERPNext expects the stock UOM row first with factor 1
+              { uom: form.stock_uom, conversion_factor: 1 },
+              ...uomRows.filter((r) => r.uom && r.conversion_factor > 0).map(({ _key: _k, ...r }) => r),
+            ]
+          : undefined,
+        item_defaults: session.company
+          ? [{
+              company: session.company,
+              default_warehouse: form.default_warehouse || undefined,
+            }]
+          : undefined,
       };
       const doc = isNew
         ? await create.createDoc(DT.item, payload)
@@ -188,11 +310,11 @@ export default function ItemForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav("/catalogue/items")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.items")}</a>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/catalogue/items")}>{t("nav.items")}</button>}
         title={isNew ? t("item.new") : form.item_name || name}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/catalogue/items")}>{t("soc.discard")}</button>
+            <button className="btn ghost" onClick={() => nav("/catalogue/items")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
@@ -208,6 +330,9 @@ export default function ItemForm() {
           <Field label={t("item.col.name")} required>
             <input className="ctl" value={form.item_name} onChange={(e) => set("item_name", e.target.value)} />
           </Field>
+          <Field label={t("item.description")}>
+            <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />
+          </Field>
           <Field label={t("item.col.group")} required>
             <select className="ctl" value={form.item_group} onChange={(e) => set("item_group", e.target.value)}>
               <option value="" />
@@ -216,8 +341,24 @@ export default function ItemForm() {
           </Field>
           <Field label={t("item.uom")} required>
             <select className="ctl" value={form.stock_uom} onChange={(e) => set("stock_uom", e.target.value)}>
-              {(uoms.data ?? [{ name: "Nos" }]).map((u) => <option key={u.name} value={u.name}>{u.name}</option>)}
+              {(() => {
+                const all = (uoms.data ?? []).map((u) => u.name);
+                const preferred = COMMON_UOMS.filter((u) => all.includes(u) || all.length === 0);
+                // Always include current value if missing from preferred
+                const visible = preferred.includes(form.stock_uom) ? preferred : [form.stock_uom, ...preferred];
+                return visible.map((u) => <option key={u} value={u}>{u}</option>);
+              })()}
             </select>
+          </Field>
+          <Field label={t("item.brand")}>
+            <LinkField
+              doctype={DT.brand}
+              value={form.brand}
+              onChange={(v) => set("brand", v)}
+            />
+          </Field>
+          <Field label={t("item.barcode")}>
+            <input className="ctl" value={form.barcode} onChange={(e) => set("barcode", e.target.value)} placeholder="e.g. 6290001234567" />
           </Field>
           <Field label={t("item.col.stock")}>
             <select className="ctl" value={String(form.is_stock_item)} onChange={(e) => set("is_stock_item", Number(e.target.value))}>
@@ -225,6 +366,56 @@ export default function ItemForm() {
               <option value="1">{t("yes")}</option>
             </select>
           </Field>
+          <Field label={t("item.sell")}>
+            <select className="ctl" value={String(form.is_sales_item)} onChange={(e) => set("is_sales_item", Number(e.target.value))} aria-label={t("item.sell")}>
+              <option value="0">{t("no")}</option>
+              <option value="1">{t("yes")}</option>
+            </select>
+          </Field>
+          <Field label={t("item.buy")}>
+            <select className="ctl" value={String(form.is_purchase_item)} onChange={(e) => set("is_purchase_item", Number(e.target.value))} aria-label={t("item.buy")}>
+              <option value="0">{t("no")}</option>
+              <option value="1">{t("yes")}</option>
+            </select>
+          </Field>
+          {!!form.is_stock_item && (
+            <Field label={t("item.valuation")}>
+              <select
+                className="ctl"
+                value={form.valuation_method}
+                onChange={(e) => set("valuation_method", e.target.value)}
+                aria-label={t("item.valuation")}
+              >
+                <option value="">{t("item.valuation.default")}</option>
+                <option value="FIFO">{t("item.valuation.fifo")}</option>
+                <option value="Moving Average">{t("item.valuation.moving")}</option>
+              </select>
+            </Field>
+          )}
+          {!!form.is_stock_item && (
+            <Field label={t("item.defaultWh")}>
+              <LinkField
+                doctype={DT.warehouse}
+                value={form.default_warehouse}
+                onChange={(v) => set("default_warehouse", v)}
+                filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
+              />
+            </Field>
+          )}
+          {!isNew && !!form.is_stock_item && onHand.data?.message && (
+            <Field label={t("item.onHand")}>
+              <div className="ctl" style={{ background: "var(--bg-faint)", cursor: "default" }}>
+                {t("item.onHandTotal")}: {onHand.data.message.total ?? 0}
+                {(onHand.data.message.warehouses ?? []).length > 0 && (
+                  <ul style={{ margin: "6px 0 0", padding: 0, listStyle: "none", fontSize: 12, color: "var(--faint)" }}>
+                    {onHand.data.message.warehouses.map((r) => (
+                      <li key={r.warehouse}>{r.warehouse}: {r.actual_qty}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </Field>
+          )}
           <Field label={t("item.kind")} required>
             <select className="ctl" value={form.uae_item_type} onChange={(e) => set("uae_item_type", e.target.value)}>
               <option value="Goods">{t("item.goods")}</option>
@@ -256,7 +447,167 @@ export default function ItemForm() {
           <Field label={t("item.col.rate")}>
             <input className="ctl" value={form.standard_rate} onChange={(e) => set("standard_rate", parseNum(e.target.value))} />
           </Field>
+          {!!form.is_stock_item && (
+            <Field label={t("item.safetyStock")}>
+              <input className="ctl" type="number" min={0} value={form.safety_stock}
+                onChange={(e) => set("safety_stock", parseNum(e.target.value))} />
+            </Field>
+          )}
         </div>
+      </Card>
+      {!!form.is_stock_item && (
+        <Card title={t("item.reorder")}>
+          <div className="grid2">
+            <Field label={t("item.reorderWh")}>
+              <LinkField
+                doctype={DT.warehouse}
+                value={form.reorder_warehouse}
+                onChange={(v) => set("reorder_warehouse", v)}
+                filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
+              />
+            </Field>
+            <Field label={t("item.reorderLevel")}>
+              <input className="ctl" type="number" min={0} value={form.reorder_level}
+                onChange={(e) => set("reorder_level", parseNum(e.target.value))} />
+            </Field>
+            <Field label={t("item.reorderQty")}>
+              <input className="ctl" type="number" min={0} value={form.reorder_qty}
+                onChange={(e) => set("reorder_qty", parseNum(e.target.value))} />
+            </Field>
+          </div>
+        </Card>
+      )}
+      {!!form.is_stock_item && (
+        <Card title={t("item.serialBatch")}>
+          {hasSle && (
+            <p style={{ color: "var(--warning, #b45309)", marginBottom: 8, fontSize: 13 }}>
+              {t("item.sleWarning")}
+            </p>
+          )}
+          <div className="grid2">
+            <Field label={t("item.hasSerialNo")}>
+              <select className="ctl" value={String(form.has_serial_no)}
+                disabled={hasSle}
+                onChange={(e) => {
+                  set("has_serial_no", Number(e.target.value));
+                  if (!Number(e.target.value)) set("serial_no_series", "");
+                }}>
+                <option value="0">{t("no")}</option>
+                <option value="1">{t("yes")}</option>
+              </select>
+            </Field>
+            {!!form.has_serial_no && (
+              <Field label={t("item.serialNoSeries")}>
+                <input className="ctl" value={form.serial_no_series}
+                  onChange={(e) => set("serial_no_series", e.target.value)}
+                  placeholder="e.g. SN-.####" />
+              </Field>
+            )}
+            <Field label={t("item.hasBatchNo")}>
+              <select className="ctl" value={String(form.has_batch_no)}
+                disabled={hasSle}
+                onChange={(e) => {
+                  set("has_batch_no", Number(e.target.value));
+                  if (!Number(e.target.value)) { set("create_new_batch", 0); set("batch_number_series", ""); }
+                }}>
+                <option value="0">{t("no")}</option>
+                <option value="1">{t("yes")}</option>
+              </select>
+            </Field>
+            {!!form.has_batch_no && (
+              <>
+                <Field label={t("item.createNewBatch")}>
+                  <select className="ctl" value={String(form.create_new_batch)}
+                    onChange={(e) => set("create_new_batch", Number(e.target.value))}>
+                    <option value="0">{t("no")}</option>
+                    <option value="1">{t("yes")}</option>
+                  </select>
+                </Field>
+                <Field label={t("item.batchNumberSeries")}>
+                  <input className="ctl" value={form.batch_number_series}
+                    onChange={(e) => set("batch_number_series", e.target.value)}
+                    placeholder="e.g. BN-.####" />
+                </Field>
+              </>
+            )}
+          </div>
+        </Card>
+      )}
+      <Card title={t("item.uomConversions")}>
+        <p style={{ color: "var(--faint)", fontSize: 12, marginBottom: 8 }}>
+          {t("item.uom.factorHint")
+            .replace("{uom}", "case")
+            .replace("{stockUom}", form.stock_uom || "stock UOM")}
+          {" — "}
+          1 case = X {form.stock_uom || "nos"}
+        </p>
+        {uomRows.length === 0 ? (
+          <p style={{ color: "var(--faint)", marginBottom: 8 }}>{t("item.uomConversions")}: —</p>
+        ) : (
+          <table className="data-table" style={{ marginBottom: 8 }}>
+            <thead>
+              <tr>
+                <th>{t("item.uom.uom")}</th>
+                <th>{t("item.uom.factor")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {uomRows.map((r) => (
+                <tr key={r._key}>
+                  <td>
+                    <select
+                      className="ctl"
+                      value={r.uom}
+                      onChange={(e) =>
+                        setUomRows((rs) =>
+                          rs.map((row) => row._key === r._key ? { ...row, uom: e.target.value } : row)
+                        )
+                      }
+                    >
+                      <option value="" />
+                      {(uoms.data ?? []).map((u) => (
+                        <option key={u.name} value={u.name}>{u.name}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td>
+                    <input
+                      className="ctl"
+                      type="number"
+                      min={0.0001}
+                      step={0.001}
+                      value={r.conversion_factor}
+                      onChange={(e) =>
+                        setUomRows((rs) =>
+                          rs.map((row) => row._key === r._key ? { ...row, conversion_factor: Number(e.target.value) } : row)
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => setUomRows((rs) => rs.filter((row) => row._key !== r._key))}
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() =>
+            setUomRows((rs) => [...rs, { _key: newUomKey(), uom: "", conversion_factor: 1 }])
+          }
+        >
+          {t("item.addUom")}
+        </button>
       </Card>
     </>
   );

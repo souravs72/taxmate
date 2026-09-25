@@ -46,7 +46,7 @@ export default function CustomerList() {
     <>
       <PageHead
         title={t("cust.title")}
-        actions={<IfCanWrite><button className="btn" onClick={() => nav("/customers/new")}>＋ {t("cust.new")}</button></IfCanWrite>}
+        actions={<IfCanWrite><button className="btn" onClick={() => nav("/customers/new")}>{t("cust.new")}</button></IfCanWrite>}
       />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>

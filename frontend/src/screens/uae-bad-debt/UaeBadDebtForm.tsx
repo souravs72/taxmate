@@ -1,0 +1,73 @@
+/**
+ * UaeBadDebtForm — Phase 22. Create/edit UAE Bad Debt Relief.
+ * Callers: App.tsx /uae-bad-debt-relief/new, /:name/edit, /:name
+ */
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { DT } from "../../lib/frappe";
+import { useDoc, useInsert, useSave } from "../../lib/resource";
+import { t } from "../../i18n/strings";
+import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { FormActions, FormLayout } from "../../components/form";
+
+export default function UaeBadDebtForm() {
+  const { name = "new" } = useParams();
+  const nav = useNavigate();
+  const isNew = name === "new";
+  const existing = useDoc(DT.uaeBadDebt, isNew ? undefined : name, isNew ? null : name, { isPaused: () => isNew });
+  const create = useInsert();
+  const update = useSave();
+  const [form, setForm] = useState({ company: "", sales_invoice: "", due_date: "", write_off_date: "", taxable_amount: "", vat_amount: "", notes: "" });
+  const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState<unknown>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    const d = existing.data as Record<string, unknown> | undefined;
+    if (!d || loaded) return;
+    setForm({ company: String(d.company || ""), sales_invoice: String(d.sales_invoice || ""), due_date: String(d.due_date || ""), write_off_date: String(d.write_off_date || ""), taxable_amount: String(d.taxable_amount || ""), vat_amount: String(d.vat_amount || ""), notes: String(d.notes || "") });
+    setLoaded(true);
+  }, [existing.data, loaded]);
+
+  const set = (k: keyof typeof form, v: string) => setForm((f) => ({ ...f, [k]: v }));
+  const ready = !!form.company && !!form.sales_invoice;
+
+  async function saveFn() {
+    if (!ready) return;
+    setBusy(true); setSaveError(null);
+    try {
+      if (isNew) {
+        const doc = (await create.createDoc(DT.uaeBadDebt, form)) as { name: string };
+        nav(`/uae-bad-debt-relief/${encodeURIComponent(doc.name)}`);
+      } else {
+        await update.updateDoc(DT.uaeBadDebt, name, form);
+        nav(`/uae-bad-debt-relief/${encodeURIComponent(name)}`);
+      }
+    } catch (err) { setSaveError(err); }
+    finally { setBusy(false); }
+  }
+
+  if (!isNew && existing.isLoading) return <Loading />;
+  if (!isNew && existing.error) return <ErrorBox error={existing.error} onRetry={() => existing.mutate()} />;
+
+  return (
+    <>
+      <PageHead eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/uae-bad-debt-relief")}>{t("ubd.title")}</button>} title={isNew ? t("ubd.new") : name} />
+      {saveError ? <ErrorBox error={saveError} /> : null}
+      <FormLayout>
+        <Card>
+          <div className="fg">
+            <Field label={t("ubd.col.company")} required><input className="ctl" value={form.company} onChange={(e) => set("company", e.target.value)} /></Field>
+            <Field label={t("ubd.col.invoice")} required><input className="ctl" value={form.sales_invoice} onChange={(e) => set("sales_invoice", e.target.value)} /></Field>
+            <Field label={t("ubd.col.dueDate")}><input className="ctl" type="date" value={form.due_date} onChange={(e) => set("due_date", e.target.value)} /></Field>
+            <Field label={t("ubd.col.writeOffDate")}><input className="ctl" type="date" value={form.write_off_date} onChange={(e) => set("write_off_date", e.target.value)} /></Field>
+            <Field label={t("ubd.col.taxable")}><input className="ctl" type="number" value={form.taxable_amount} onChange={(e) => set("taxable_amount", e.target.value)} /></Field>
+            <Field label={t("ubd.col.vat")}><input className="ctl" type="number" value={form.vat_amount} onChange={(e) => set("vat_amount", e.target.value)} /></Field>
+            <Field label={t("ubd.col.notes")}><textarea className="ctl" value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} /></Field>
+          </div>
+        </Card>
+        <FormActions onSave={() => void saveFn()} onDiscard={() => nav(isNew ? "/uae-bad-debt-relief" : `/uae-bad-debt-relief/${encodeURIComponent(name)}`)} busy={busy} ready={ready} />
+      </FormLayout>
+    </>
+  );
+}

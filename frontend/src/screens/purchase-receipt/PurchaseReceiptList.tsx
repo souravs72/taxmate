@@ -173,7 +173,7 @@ export default function PurchaseReceiptList() {
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/purchase-receipts/new")}>
-              ＋ {t("pr.new")}
+              {t("pr.new")}
             </button>
           ) : null
         }

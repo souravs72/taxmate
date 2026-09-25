@@ -59,11 +59,11 @@ export default function CreditNoteForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav(`/invoices/${encodeURIComponent(name)}`)} style={{ color: "var(--brand)", cursor: "pointer" }}>{name}</a>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav(`/invoices/${encodeURIComponent(name)}`)}>{name}</button>}
         title={t("inv.credit")}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav(`/invoices/${encodeURIComponent(name)}`)}>{t("soc.discard")}</button>
+            <button className="btn ghost" onClick={() => nav(`/invoices/${encodeURIComponent(name)}`)}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !reason.trim()} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
@@ -76,7 +76,7 @@ export default function CreditNoteForm() {
           <input className="ctl" value={reason} onChange={(e) => setReason(e.target.value)} />
         </Field>
       </Card>
-      <Card title={t("inv.lines")} bodyClass={null as unknown as string}>
+      <Card title={t("inv.lines")} bodyClass={null}>
         <div className="twrap">
           <table>
             <thead>

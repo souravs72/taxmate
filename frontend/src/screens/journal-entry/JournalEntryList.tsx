@@ -140,7 +140,7 @@ export default function JournalEntryList() {
         actions={
           canWrite(session) ? (
             <button type="button" className="btn" onClick={() => nav("/journals/new")}>
-              ＋ {t("je.new")}
+              {t("je.new")}
             </button>
           ) : null
         }

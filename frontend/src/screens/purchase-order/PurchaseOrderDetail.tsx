@@ -10,6 +10,7 @@ import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; received_qty?: number;
@@ -38,6 +39,11 @@ export default function PurchaseOrderDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.purchaseOrder, name);
   const makePr = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePurchaseReceipt);
   const makePi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makePurchaseInvoice);
+  const submitCall = useFrappePostCall(METHOD.submit);
+  const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
+  const canSubmit = canWrite(session);
+  const canCancel = canWrite(session);
   const create = useInsert();
   const [busy, setBusy] = useState<"" | "pr" | "pi">("");
   const [mapError, setMapError] = useState<unknown>(null);
@@ -84,18 +90,38 @@ export default function PurchaseOrderDetail() {
         title={data.supplier_name || data.supplier || data.name}
         actions={
           writable ? (
-            <>
-              <button type="button" className="btn ghost"
-                disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
-                onClick={() => void createDownstream("pr")}>
-                {busy === "pr" ? t("soc.saving") : t("po.receive")}
-              </button>
-              <button type="button" className="btn"
-                disabled={!!busy || data.docstatus !== 1 || (data.per_billed ?? 0) >= 100}
-                onClick={() => void createDownstream("pi")}>
-                {busy === "pi" ? t("soc.saving") : t("po.bill")}
-              </button>
-            </>
+            <DetailActions
+              draft={data.docstatus === 0}
+              submitted={data.docstatus === 1}
+              cancelled={data.docstatus === 2}
+              canSubmit={canSubmit}
+              canCancel={canCancel}
+              canWrite={writable}
+              busy={submitCall.loading || cancelCall.loading || amendCall.loading || !!busy}
+              onEdit={() => nav(`/purchase-orders/${encodeURIComponent(name)}/edit`)}
+              onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseOrder, name } }).then(() => mutate())}
+              onCancel={() => void cancelCall.call({ doctype: DT.purchaseOrder, name }).then(() => mutate())}
+              onAmend={async () => {
+                const res = await amendCall.call({ doctype: DT.purchaseOrder, name });
+                const newName = res?.message?.name;
+                if (newName) nav(`/purchase-orders/${encodeURIComponent(newName)}/edit`);
+                else mutate();
+              }}
+              extra={
+                <>
+                  <button type="button" className="btn ghost"
+                    disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
+                    onClick={() => void createDownstream("pr")}>
+                    {busy === "pr" ? t("soc.saving") : t("po.receive")}
+                  </button>
+                  <button type="button" className="btn"
+                    disabled={!!busy || data.docstatus !== 1 || (data.per_billed ?? 0) >= 100}
+                    onClick={() => void createDownstream("pi")}>
+                    {busy === "pi" ? t("soc.saving") : t("po.bill")}
+                  </button>
+                </>
+              }
+            />
           ) : null
         }
       >

@@ -5,6 +5,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type SupplierDoc = {
   name: string;
@@ -19,6 +20,9 @@ type SupplierDoc = {
   uae_peppol_id?: string;
   uae_fz_beneficiary_id?: string;
   uae_in_designated_zone?: 0 | 1;
+  territory?: string;
+  country?: string;
+  tax_category?: string;
   supplier_primary_address?: string;
   supplier_primary_contact?: string;
 };
@@ -48,6 +52,11 @@ export default function SupplierForm() {
     filters: [["is_group", "=", 0]],
     limit: 50,
   });
+  const territories = useDocList<{ name: string }>(DT.territory, {
+    fields: ["name"],
+    filters: [["is_group", "=", 0]],
+    limit: 50,
+  });
   const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
   const create = useInsert();
   const update = useSave();
@@ -58,6 +67,9 @@ export default function SupplierForm() {
     supplier_group: "",
     tax_id: "",
     payment_terms: "",
+    territory: "",
+    country: "United Arab Emirates",
+    tax_category: "",
     trade_license_number: "",
     legal_registration_identifier: "",
     legal_registration_identifier_type: "CRN",
@@ -83,6 +95,9 @@ export default function SupplierForm() {
       supplier_group: d.supplier_group || "",
       tax_id: d.tax_id || "",
       payment_terms: d.payment_terms || "",
+      territory: d.territory || "",
+      country: d.country || "United Arab Emirates",
+      tax_category: d.tax_category || "",
       trade_license_number: d.trade_license_number || "",
       legal_registration_identifier: d.legal_registration_identifier || "",
       legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
@@ -119,6 +134,9 @@ export default function SupplierForm() {
       const group = form.supplier_group || settings.data?.supplier_group;
       const payload = {
         supplier_name: form.supplier_name,
+        territory: form.territory || undefined,
+        country: form.country || "United Arab Emirates",
+        tax_category: form.tax_category || undefined,
         supplier_type: form.supplier_type,
         supplier_group: group,
         tax_id: form.tax_id || undefined,
@@ -195,7 +213,7 @@ export default function SupplierForm() {
         title={isNew ? t("supp.new") : form.supplier_name || name}
         actions={
           <>
-            <button type="button" className="btn quiet" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
+            <button type="button" className="btn ghost" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
             <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
@@ -230,6 +248,19 @@ export default function SupplierForm() {
               <option value="" />
               {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </select>
+          </Field>
+          <Field label={t("f.territory")}>
+            <select className="ctl" value={form.territory} onChange={(e) => set("territory", e.target.value)}>
+              <option value="" />
+              {(territories.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </select>
+          </Field>
+          <Field label={t("f.country")}>
+            <input className="ctl" value={form.country} onChange={(e) => set("country", e.target.value)} />
+          </Field>
+          <Field label={t("f.taxCategory")}>
+            <LinkField doctype={DT.taxCategory} value={form.tax_category}
+              onChange={(v) => set("tax_category", v)} />
           </Field>
         </div>
       </Card>

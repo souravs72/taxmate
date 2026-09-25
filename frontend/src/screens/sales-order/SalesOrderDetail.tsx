@@ -7,11 +7,14 @@ import {
 import type { SalesOrder, SalesOrderItem } from "../../types/erpnext";
 import { DT, METHOD } from "../../lib/frappe";
 import { useDoc, useInsert } from "../../lib/resource";
+import { useSession } from "../../lib/session";
+import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, money, pct, qty } from "../../lib/format";
 import { SO_PILL_CLASS, isLate, toUiStatus } from "../../lib/status";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, MiniBar, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Doc = SalesOrder & { items: SalesOrderItem[] };
 
@@ -37,7 +40,13 @@ export default function SalesOrderDetail() {
      each button maps, inserts the draft, then opens it.                   */
   const makeDn = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeDeliveryNote);
   const makeSi = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeSalesInvoice);
+  const submitCall = useFrappePostCall(METHOD.submit);
+  const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
   const create = useInsert();
+  const session = useSession();
+  const canSubmit = canSubmitSales(session.roles);
+  const canCancel = canCancelSales(session.roles);
   const [busy, setBusy] = useState<"" | "dn" | "si">("");
   const [mapError, setMapError] = useState<unknown>(null);
 
@@ -89,27 +98,53 @@ export default function SalesOrderDetail() {
       <PageHead
         eyebrow={
           <>
-            <a onClick={() => nav("/orders")} style={{ color: "var(--brand)", cursor: "pointer" }}>
+            <button type="button" className="btn quiet" onClick={() => nav("/orders")}>
               {t("nav.salesOrders")}
-            </a>{" / "}{data.name}
+            </button>{" / "}{data.name}
           </>
         }
         title={data.customer_name || data.customer}
         actions={
-          <>
-            {/* Same gate ERPNext's own buttons use: at 100% every row's
-                mapper condition is false and the result has no items.   */}
-            <button className="btn ghost"
-              disabled={!!busy || data.docstatus !== 1 || (data.per_delivered ?? 0) >= 100}
-              onClick={() => void createDownstream("dn")}>
-              {busy === "dn" ? t("soc.saving") : t("sod.createDn")}
-            </button>
-            <button className="btn"
-              disabled={!!busy || data.docstatus !== 1 || (data.per_billed ?? 0) >= 100}
-              onClick={() => void createDownstream("si")}>
-              {busy === "si" ? t("soc.saving") : t("sod.createSi")}
-            </button>
-          </>
+          <DetailActions
+            draft={data.docstatus === 0}
+            submitted={data.docstatus === 1}
+            cancelled={data.docstatus === 2}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={true}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || !!busy}
+            onEdit={() => nav(`/orders/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.salesOrder, name } }).then(() => mutate())}
+            onCancel={() => void cancelCall.call({ doctype: DT.salesOrder, name }).then(() => mutate())}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.salesOrder, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/orders/${encodeURIComponent(newName)}/edit`);
+              else mutate();
+            }}
+            extra={
+              <>
+                {/* Same gate ERPNext's own buttons use: at 100% every row's
+                    mapper condition is false and the result has no items.   */}
+                <button type="button" className="btn ghost"
+                  disabled={!!busy || data.docstatus !== 1 || (data.per_delivered ?? 0) >= 100}
+                  onClick={() => void createDownstream("dn")}>
+                  {busy === "dn" ? t("soc.saving") : t("sod.createDn")}
+                </button>
+                <button type="button" className="btn"
+                  disabled={!!busy || data.docstatus !== 1 || (data.per_billed ?? 0) >= 100}
+                  onClick={() => void createDownstream("si")}>
+                  {busy === "si" ? t("soc.saving") : t("sod.createSi")}
+                </button>
+                {data.docstatus === 1 && (
+                  <button type="button" className="btn ghost"
+                    onClick={() => nav(`/payments/new?type=Receive&party=${encodeURIComponent(data.customer || "")}`)}>
+                    {t("sod.createPayment")}
+                  </button>
+                )}
+              </>
+            }
+          />
         }
       >
         <p className="sub" style={{ display: "flex", flexWrap: "wrap", gap: 8, alignItems: "center", marginTop: 7 }}>
@@ -154,9 +189,12 @@ export default function SalesOrderDetail() {
               linked.map((p) => (
                 <div key={p.name} className="mono" style={{ fontSize: 12 }}>
                   {p.kind === "si" ? (
-                    <a style={{ color: "var(--brand)", cursor: "pointer" }}
-                       onClick={() => nav(`/invoices/${encodeURIComponent(p.name)}`)}>{p.name}</a>
-                  ) : p.name}
+                    <button type="button" className="btn quiet"
+                       onClick={() => nav(`/invoices/${encodeURIComponent(p.name)}`)}>{p.name}</button>
+                  ) : (
+                    <button type="button" className="btn quiet"
+                       onClick={() => nav(`/delivery-notes/${encodeURIComponent(p.name)}`)}>{p.name}</button>
+                  )}
                 </div>
               ))
             )}

@@ -1,29 +1,22 @@
 /**
- * Create a Purchase Order. Catalog insert then workflow.submit.
+ * Purchase Order create/edit. Catalog txn helpers + get-items-from.
  */
-import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { useDocList, useInsert } from "../../lib/resource";
+import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
+import { linePayload, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { ExchangeRateField, LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
-
-type Line = { item_code: string; item_name?: string; uom?: string; qty: number; rate: number };
-type Party = {
-  supplier_address?: string;
-  taxes_and_charges?: string;
-  buying_price_list?: string;
-  payment_terms_template?: string;
-  tax_id?: string;
-  currency?: string;
-};
+import SourceDocPicker from "../../components/SourceDocPicker";
 
 const today = toIsoDate(new Date());
 const plus = (days: number) => {
@@ -36,67 +29,131 @@ export default function PurchaseOrderForm() {
   const nav = useNavigate();
   const session = useSession();
   const canSubmit = canSubmitSales(session.roles);
+  const { name: editName } = useParams<{ name?: string }>();
+  const isEdit = !!editName;
+  const company = session.company;
 
   const [supplier, setSupplier] = useState("");
   const [orderDate, setOrderDate] = useState(today);
   const [requiredBy, setRequiredBy] = useState(plus(14));
   const [taxTemplate, setTaxTemplate] = useState("");
-  const [party, setParty] = useState<Party>({});
-  const [lines, setLines] = useState<Line[]>([]);
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [party, setParty] = useState<PartyDetails>({});
+  const [conversionRate, setConversionRate] = useState(1);
+  const [lines, setLines] = useState<TxnLine[]>([]);
+  const [skipReprice, setSkipReprice] = useState(false);
+
+  type PoDoc = {
+    name: string; supplier?: string; transaction_date?: string; schedule_date?: string;
+    taxes_and_charges?: string; docstatus?: number; items?: TxnLine[];
+  };
+  const existing = useDoc<PoDoc>(DT.purchaseOrder, isEdit ? editName : undefined, isEdit ? editName : null);
+  const [loaded, setLoaded] = useState(false);
+  useEffect(() => {
+    if (isEdit && existing.data && !loaded) {
+      const d = existing.data;
+      if (d.docstatus !== 0) { nav(`/purchase-orders/${encodeURIComponent(editName!)}`, { replace: true }); return; }
+      setSupplier(d.supplier ?? "");
+      setOrderDate(d.transaction_date ?? today);
+      setRequiredBy(d.schedule_date ?? plus(14));
+      setTaxTemplate(d.taxes_and_charges ?? "");
+      setLines((d.items ?? []).map((l) => ({
+        item_code: l.item_code ?? "", item_name: l.item_name, uom: l.uom,
+        qty: l.qty ?? 1, rate: l.rate ?? 0,
+      })));
+      setSkipReprice(true);
+      setLoaded(true);
+    }
+  }, [isEdit, existing.data, loaded, nav, editName]);
 
   const templates = useDocList<{ name: string }>(DT.purchaseTaxTemplate, { fields: ["name"], limit: 50 });
-  const partyCall = useFrappePostCall<{ message: Party }>(METHOD.getPartyDetails);
-  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.getItemDetails);
+  const termsList = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const txn = useTransactionRpc({ doctype: DT.purchaseOrder, side: "buying", company });
   const create = useInsert();
+  const update = useSave();
   const submitCall = useFrappePostCall<{ message: { name: string } }>(METHOD.submit);
-  const busy = create.loading || submitCall.loading;
+  const busy = create.loading || update.loading || submitCall.loading;
 
   useEffect(() => {
     if (!supplier) return;
-    partyCall
-      .call({
-        party: supplier,
-        party_type: "Supplier",
-        doctype: DT.purchaseOrder,
-        company: session.company,
-        posting_date: orderDate,
-      })
-      .then((r) => {
-        const m = r?.message ?? {};
-        setParty(m);
-        if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
-      })
-      .catch(() => undefined);
+    void txn.fetchParty(supplier, orderDate).then(async (m) => {
+      if (!m) return;
+      if (skipReprice) { setSkipReprice(false); return; }
+      setParty(m);
+      if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
+      if (m.payment_terms_template) setPaymentTerms(m.payment_terms_template);
+      const cur = m.currency || session.currency || "";
+      const rate = await txn.fetchExchangeRate(cur, session.currency || cur, orderDate);
+      setConversionRate(rate);
+      if (lines.some((l) => l.item_code)) {
+        setLines(await txn.repriceLines({ party: m, lines, transactionDate: orderDate, currency: m.currency, conversionRate: rate, supplier }));
+      }
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supplier]);
 
   async function pickItem(idx: number, item_code: string) {
     setLines((ls) => ls.map((l, i) => (i === idx ? { ...l, item_code } : l)));
-    try {
-      const r = await itemCall.call({
-        ctx: {
-          item_code,
-          supplier,
-          doctype: DT.purchaseOrder,
-          company: session.company,
-          buying_price_list: party.buying_price_list,
-          currency: party.currency,
-          transaction_date: orderDate,
-          qty: 1,
-        },
-      });
-      const m = (r?.message ?? {}) as Record<string, unknown>;
-      setLines((ls) => ls.map((l, i) => i === idx ? {
-        ...l,
-        item_code,
-        item_name: (m.item_name as string) ?? l.item_name,
-        uom: (m.uom as string) ?? l.uom,
-        rate: Number(m.price_list_rate ?? m.rate ?? l.rate) || l.rate,
-      } : l));
-    } catch { /* itemCall.error */ }
+    const m = await txn.fetchItem({
+      item_code, supplier,
+      buying_price_list: party.buying_price_list,
+      currency: party.currency,
+      transaction_date: orderDate,
+      qty: lines[idx]?.qty || 1,
+    });
+    if (!m) return;
+    setLines((ls) => ls.map((l, i) => (i === idx ? stampItemDetails({ ...l, item_code }, m) : l)));
   }
 
+  function applyMapped(mapped: Record<string, unknown>) {
+    setSkipReprice(true);
+    if (mapped.supplier) setSupplier(String(mapped.supplier));
+    if (mapped.transaction_date) setOrderDate(String(mapped.transaction_date));
+    if (mapped.schedule_date) setRequiredBy(String(mapped.schedule_date));
+    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    const items = (mapped.items as TxnLine[] | undefined) ?? [];
+    setLines(items.map((l) => ({
+      item_code: l.item_code || "", item_name: l.item_name,
+      qty: Number(l.qty) || 1, rate: Number(l.rate) || 0, uom: l.uom,
+    })));
+  }
+
+  const buildPreviewDoc = useCallback(() => {
+    if (!lines.some((l) => l.item_code)) return null;
+    if (!supplier && !taxTemplate) return null;
+    return {
+      supplier,
+      transaction_date: orderDate,
+      schedule_date: requiredBy,
+      company,
+      taxes_and_charges: taxTemplate || undefined,
+      supplier_address: party.supplier_address,
+      buying_price_list: party.buying_price_list,
+      currency: party.currency || session.currency,
+      conversion_rate: conversionRate,
+      items: lines.filter((l) => l.item_code).map((l) => ({
+        item_code: l.item_code, qty: l.qty, rate: l.rate, uom: l.uom, schedule_date: requiredBy,
+      })),
+    };
+  }, [supplier, orderDate, requiredBy, company, taxTemplate, party, session.currency, lines]);
+
+  const { preview, previewing } = useTotalsPreview(
+    buildPreviewDoc,
+    [supplier, orderDate, taxTemplate, lines],
+    txn.previewTotals,
+  );
+
   const net = useMemo(() => lines.reduce((s, l) => s + l.qty * l.rate, 0), [lines]);
+  const showNet = preview?.net_total ?? net;
+  const showVat = preview?.total_taxes_and_charges ?? 0;
+  const showGrand = preview?.grand_total ?? net;
+  const schedule = usePaymentSchedule(
+    paymentTerms || undefined,
+    orderDate,
+    showGrand,
+    showGrand * (conversionRate || 1),
+  );
+
   const checks = [
     [t("nav.suppliers"), !!supplier],
     [t("so.col.orderDate"), !!orderDate],
@@ -106,66 +163,90 @@ export default function PurchaseOrderForm() {
   const ready = checks.every(([, ok]) => ok);
 
   async function save(shouldSubmit: boolean) {
-    const created = await create.createDoc(DT.purchaseOrder, {
+    const doc = {
       supplier,
       transaction_date: orderDate,
       schedule_date: requiredBy,
+      company,
       taxes_and_charges: taxTemplate || undefined,
       supplier_address: party.supplier_address,
       buying_price_list: party.buying_price_list,
-      payment_terms_template: party.payment_terms_template,
-      items: lines.map((l) => ({
-        item_code: l.item_code,
-        qty: l.qty,
-        rate: l.rate,
-        uom: l.uom,
-        schedule_date: requiredBy,
-      })),
-    }) as { name: string };
-    if (shouldSubmit) {
-      await submitCall.call({ doc: { doctype: DT.purchaseOrder, name: created.name } });
+      payment_terms_template: paymentTerms || undefined,
+      currency: party.currency || session.currency,
+      conversion_rate: conversionRate,
+      contact_person: party.contact_person,
+      payment_schedule: schedule.length
+        ? schedule.map((r) => ({
+            payment_term: r.payment_term,
+            description: r.description,
+            due_date: r.due_date,
+            invoice_portion: r.invoice_portion,
+            payment_amount: r.payment_amount,
+            mode_of_payment: r.mode_of_payment,
+          }))
+        : undefined,
+      items: lines.map((l) => ({ ...linePayload(l), schedule_date: requiredBy })),
+    };
+    let finalName: string;
+    if (isEdit && editName) {
+      await update.updateDoc(DT.purchaseOrder, editName, doc);
+      finalName = editName;
+    } else {
+      const created = await create.createDoc(DT.purchaseOrder, doc) as { name: string };
+      finalName = created.name;
     }
-    nav(`/purchase-orders/${encodeURIComponent(created.name)}`);
+    if (shouldSubmit) {
+      await submitCall.call({ doc: { doctype: DT.purchaseOrder, name: finalName } });
+    }
+    nav(`/purchase-orders/${encodeURIComponent(finalName)}`);
   }
 
   return (
     <>
       <PageHead
-        eyebrow={
-          <button type="button" className="btn quiet" onClick={() => nav("/purchase-orders")}>
-            {t("nav.purchaseOrders")}
-          </button>
-        }
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/purchase-orders")}>{t("nav.purchaseOrders")}</button>}
         title={t("po.new")}
         actions={
           <FormActions
             onDiscard={() => nav("/purchase-orders")}
             onSave={() => void save(false)}
             onSubmit={canSubmit ? () => void save(true) : undefined}
-            busy={busy}
-            ready={ready}
-            submitLabel={t("soc.submit")}
+            busy={busy} ready={ready} submitLabel={t("soc.submit")}
           />
         }
       />
-      {(create.error || submitCall.error || partyCall.error) && (
-        <ErrorBox error={create.error || submitCall.error || partyCall.error} />
+      {(txn.pricingError || create.error || submitCall.error || txn.partyCall.error) && (
+        <ErrorBox error={txn.pricingError || create.error || submitCall.error || txn.partyCall.error} />
       )}
       <FormLayout
         aside={
           <>
             <Card bodyClass="cbody">
-              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("soc.summary")}</h2>
-              <SumRow k={t("sod.net")} v={money(net)} />
+              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>
+                {t("soc.summary")}{previewing ? "…" : ""}
+              </h2>
+              <SumRow k={t("sod.net")} v={money(showNet)} />
+              <SumRow k={t("sod.vat")} v={money(showVat)} />
+              <SumRow k={t("sod.grand")} v={money(showGrand)} cls="rule total" />
             </Card>
             <ReadinessCard
               checks={checks.map(([label, ok]) => ({ label, ok }))}
-              title={t("soc.ready")}
-              caption={t("soc.readyCap")}
+              title={t("soc.ready")} caption={t("soc.readyCap")}
             />
           </>
         }
       >
+        {!isEdit && (
+          <Card title={t("txn.getItemsFrom")}>
+            <SourceDocPicker
+              sources={[
+                { label: t("nav.supplierQuotations"), doctype: DT.supplierQuotation, method: METHOD.makeSupplierQuotationPO, arg: "source_name" },
+                { label: t("nav.materialRequests"), doctype: DT.materialRequest, method: METHOD.makeMrPO, arg: "source_name" },
+              ]}
+              onMapped={applyMapped}
+            />
+          </Card>
+        )}
         <Card num={1} title={t("pi.who")}>
           <div className="grid2">
             <Field label={t("nav.suppliers")} required>
@@ -186,7 +267,18 @@ export default function PurchaseOrderForm() {
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
               </select>
             </Field>
+            <Field label={t("f.paymentTerms")}>
+              <select className="ctl" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
+                <option value="" />
+                {(termsList.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+              </select>
+            </Field>
           </div>
+          <PartyFields side="buying" partyName={supplier} party={party} onChange={(patch) => setParty((p) => ({ ...p, ...patch }))} />
+          <div className="grid3" style={{ marginBlockStart: 14 }}>
+            <ExchangeRateField currency={party.currency || session.currency || undefined} companyCurrency={session.currency || undefined} value={conversionRate} onChange={setConversionRate} />
+          </div>
+          <PaymentScheduleTable rows={schedule} />
         </Card>
         <Card num={2} title={t("inv.lines")} bodyClass={null as unknown as string}>
           <div className="twrap">
@@ -207,6 +299,7 @@ export default function PurchaseOrderForm() {
                     <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
                     <td style={{ minWidth: 220 }}>
                       <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                     </td>
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
@@ -229,7 +322,7 @@ export default function PurchaseOrderForm() {
           <div className="addrow">
             <button type="button" className="btn ghost sm"
               onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-              ＋ {t("soc.addLine")}
+              {t("soc.addLine")}
             </button>
           </div>
         </Card>

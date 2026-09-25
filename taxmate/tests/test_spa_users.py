@@ -86,6 +86,39 @@ class TestSpaUsers(FrappeTestCase):
 		finally:
 			self._delete(created["name"])
 
+
+	def test_multi_spa_roles_union(self):
+		"""Multiple TaxMate markers are stored; Frappe unions DocPerms (highest wins UI)."""
+		from taxmate.setup.spa_roles import MARKER, apply_spa_roles, spa_roles_of
+
+		email = f"tm-multi-{uuid.uuid4().hex[:8]}@example.com"
+		created = invite_user(
+			email=email,
+			first_name="Multi",
+			spa_roles=["clerk", "viewer"],
+			send_welcome_email=0,
+		)
+		try:
+			self.assertEqual(set(created["spa_roles"]), {"clerk", "viewer"})
+			self.assertEqual(created["spa_role"], "clerk")
+			roles = set(frappe.get_roles(created["name"]))
+			self.assertIn(MARKER["clerk"], roles)
+			self.assertIn(MARKER["viewer"], roles)
+			updated = set_user_role(
+				user=created["name"],
+				spa_roles=["accountant", "clerk"],
+			)
+			self.assertEqual(set(updated["spa_roles"]), {"accountant", "clerk"})
+			self.assertEqual(updated["spa_role"], "accountant")
+			self.assertEqual(set(spa_roles_of(created["name"])), {"accountant", "clerk"})
+			# Union: accountant cancel + clerk create both present via DocPerms
+			frappe.set_user(created["name"])
+			self.assertTrue(frappe.has_permission("Sales Invoice", "create"))
+			self.assertTrue(frappe.has_permission("Sales Invoice", "cancel"))
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])
+
 	def test_spa_roles_have_no_desk_administrator_does(self):
 		ensure_spa_roles()
 		for name in MARKER.values():

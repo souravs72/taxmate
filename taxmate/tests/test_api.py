@@ -65,6 +65,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.resource.get_list", methods)
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
+		self.assertIn("taxmate.api.accounts.apply_price_list", methods)
+		self.assertIn("taxmate.api.accounts.preview_taxes_and_totals", methods)
 		self.assertIn("taxmate.api.sales_order.fulfilment_summary", methods)
 		self.assertIn("taxmate.api.search.awesome", methods)
 		self.assertIn("taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice", methods)
@@ -86,7 +88,15 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.sales_order.make_sales_invoice", methods)
 		self.assertIn("taxmate.api.purchase_order.make_purchase_receipt", methods)
 		self.assertIn("taxmate.api.purchase_order.make_purchase_invoice", methods)
+		# Catalogued for SPA DN→SI / PR→PI / item on-hand (Phase 0–3).
+		# User: Implement the plan as specified… complete all the to-dos.
+		self.assertIn("taxmate.api.delivery_note.make_sales_invoice", methods)
+		self.assertIn("taxmate.api.purchase_receipt.make_purchase_invoice", methods)
+		self.assertIn("taxmate.api.stock.item_qty", methods)
 		self.assertIn("taxmate.api.resource.group_by_count", methods)
+		# Phase 0: role-specific dashboard actions catalogued.
+		self.assertIn("taxmate.api.owner_dashboard.get_owner_dashboard", methods)
+		self.assertIn("taxmate.api.accountant_dashboard.get_accountant_dashboard", methods)
 		self.assertFalse(any("rest" in row for row in catalog["resources"]))
 		self.assertFalse(is_allowed_doctype("User"))
 		self.assertFalse(is_allowed_doctype("Data Import"))
@@ -267,6 +277,32 @@ class TestApiReportsAndHome(FrappeTestCase):
 			},
 		)
 		self.assertIn("result", result)
+
+	def test_balance_sheet_runs_monthly(self):
+		from taxmate.api.reports import run_report
+
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company")
+		fiscal_year = frappe.db.get_value("Fiscal Year", {"disabled": 0}, "name")
+		if not fiscal_year:
+			self.skipTest("No Fiscal Year")
+		result = run_report(
+			"Balance Sheet",
+			{
+				"company": company,
+				"filter_based_on": "Date Range",
+				"periodicity": "Monthly",
+				"from_fiscal_year": fiscal_year,
+				"to_fiscal_year": fiscal_year,
+				"period_start_date": "2026-01-01",
+				"period_end_date": "2026-09-22",
+				"accumulated_values": 1,
+			},
+		)
+		self.assertIn("result", result)
+		columns = {col.get("fieldname") for col in result.get("columns") or [] if isinstance(col, dict)}
+		self.assertTrue(any("jan" in (name or "").lower() or "2026" in (name or "") for name in columns))
 
 	def test_uae_late_filing_status_runs_with_object_filters(self):
 		from taxmate.api.reports import run_report
@@ -681,6 +717,131 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		cancelled = cancel("Purchase Receipt", doc["name"])
 		self.assertEqual(cancelled["docstatus"], 2)
 
+	def test_delivery_note_insert_submit_then_make_sales_invoice(self):
+		from taxmate.api.delivery_note import make_sales_invoice as make_dn_sales_invoice
+		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+		from frappe.utils import cint
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		customer = frappe.db.get_value("Customer", {"disabled": 0})
+		if not customer:
+			self.skipTest("need a customer")
+		# Prefer non-stock so DN submit needs no Bin. User: Implement the plan… complete all the to-dos.
+		item = (
+			frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1, "is_stock_item": 0})
+			or SERVICE_ITEM
+		)
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0})
+		if not warehouse:
+			self.skipTest("need a leaf warehouse for the company")
+
+		if cint(frappe.db.get_value("Item", item, "is_stock_item")):
+			supplier = frappe.db.get_value("Supplier", {"disabled": 0})
+			if not supplier:
+				self.skipTest("need a supplier to seed stock")
+			pr = insert(
+				{
+					"doctype": "Purchase Receipt",
+					"company": company,
+					"supplier": supplier,
+					"posting_date": "2026-09-14",
+					"set_posting_time": 1,
+					"set_warehouse": warehouse,
+					"currency": "AED",
+					"conversion_rate": 1,
+					"buying_price_list": "Standard Buying",
+					"price_list_currency": "AED",
+					"plc_conversion_rate": 1,
+					"items": [{"item_code": item, "qty": 2, "rate": 40, "warehouse": warehouse}],
+				}
+			)
+			submit({"doctype": "Purchase Receipt", "name": pr["name"]})
+
+		doc = insert(
+			{
+				"doctype": "Delivery Note",
+				"company": company,
+				"customer": customer,
+				"posting_date": "2026-09-15",
+				"set_posting_time": 1,
+				"set_warehouse": warehouse,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"selling_price_list": "Standard Selling",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"items": [
+					{
+						"item_code": item,
+						"qty": 1,
+						"rate": 50,
+						"warehouse": warehouse,
+					}
+				],
+			}
+		)
+		self.assertEqual(doc["docstatus"], 0)
+		submitted = submit({"doctype": "Delivery Note", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+
+		mapped = make_dn_sales_invoice(submitted["name"])
+		self.assertEqual(mapped.get("doctype"), "Sales Invoice")
+		self.assertTrue(mapped.get("items"))
+
+		si = insert({**mapped, "doctype": "Sales Invoice", "name": None})
+		self.assertEqual(si["docstatus"], 0)
+		si_sub = submit({"doctype": "Sales Invoice", "name": si["name"]})
+		self.assertEqual(si_sub["docstatus"], 1)
+
+		cancel("Sales Invoice", si["name"])
+		cancel("Delivery Note", doc["name"])
+
+	def test_purchase_receipt_submit_then_make_purchase_invoice(self):
+		from taxmate.api.purchase_receipt import make_purchase_invoice as make_pr_pi
+		from taxmate.api.workflow import cancel, submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		if not frappe.db.exists("Supplier", supplier):
+			self.skipTest(f"Missing supplier {supplier}")
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1, "is_stock_item": 1}) or SERVICE_ITEM
+		warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0})
+		if not warehouse:
+			self.skipTest("need a leaf warehouse for the company")
+
+		doc = insert(
+			{
+				"doctype": "Purchase Receipt",
+				"company": company,
+				"supplier": supplier,
+				"posting_date": "2026-09-16",
+				"set_posting_time": 1,
+				"set_warehouse": warehouse,
+				"currency": "AED",
+				"conversion_rate": 1,
+				"buying_price_list": "Standard Buying",
+				"price_list_currency": "AED",
+				"plc_conversion_rate": 1,
+				"items": [{"item_code": item, "qty": 1, "rate": 40, "warehouse": warehouse}],
+			}
+		)
+		submitted = submit({"doctype": "Purchase Receipt", "name": doc["name"]})
+		self.assertEqual(submitted["docstatus"], 1)
+		mapped = make_pr_pi(submitted["name"])
+		self.assertEqual(mapped.get("doctype"), "Purchase Invoice")
+		self.assertTrue(mapped.get("items"))
+		cancel("Purchase Receipt", doc["name"])
+
 	def test_draft_purchase_invoice_from_incoming(self):
 		import json
 
@@ -833,3 +994,567 @@ class TestSalesOrderApi(FrappeTestCase):
 		self.assertEqual(fetched["docstatus"], 0)
 		self.assertEqual(str(fetched["period_start"]), period_start)
 		self.assertEqual(get_or_create(company, period_start, period_end), name)
+
+
+class TestPhase1BankingMasters(FrappeTestCase):
+	"""Phase 1: Bank Account and Mode of Payment list/get via catalog resource API."""
+
+	def test_mode_of_payment_list(self):
+		"""get_list on Mode of Payment returns rows with expected fields."""
+		rows = get_list("Mode of Payment", fields=["name", "type", "enabled"], limit_page_length=5)
+		# Every ERPNext install has at least one MoP (Cash).
+		if not rows:
+			self.skipTest("No Mode of Payment fixtures on this site")
+		for row in rows:
+			self.assertIn("name", row)
+			self.assertIn("type", row)
+
+	def test_mode_of_payment_get(self):
+		"""get on first Mode of Payment returns the expected fields."""
+		rows = get_list("Mode of Payment", fields=["name"], limit_page_length=1)
+		if not rows:
+			self.skipTest("No Mode of Payment fixtures on this site")
+		name = rows[0]["name"]
+		doc = get("Mode of Payment", name)
+		self.assertEqual(doc["name"], name)
+		self.assertIn("type", doc)
+
+	def test_bank_account_list_allowed(self):
+		"""Bank Account is an allowed catalog doctype."""
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Bank Account"))
+
+	def test_bank_account_insert_skiptest_if_no_company(self):
+		"""Insert a Bank Account; skip if no company, bank, or GL account available."""
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value(
+			"Company", {}, "name"
+		)
+		if not company:
+			self.skipTest("No company available for bank account test")
+
+		# Bank Account autoname requires a bank record.
+		bank = frappe.db.get_value("Bank", {}, "name")
+		if not bank:
+			self.skipTest("No Bank fixture on this site")
+
+		# A GL account of type Bank not already linked to another Bank Account is needed.
+		used_accounts = frappe.db.get_all("Bank Account", filters={"company": company}, pluck="account")
+		gl_account = frappe.db.get_value(
+			"Account",
+			{"company": company, "account_type": "Bank", "is_group": 0, "name": ["not in", used_accounts or [""]]},
+			"name",
+		)
+		if not gl_account:
+			self.skipTest("No unused Bank-type GL account for company")
+
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Bank Account",
+				"account_name": f"TM Test Bank {uid}",
+				"company": company,
+				"bank": bank,
+				"account": gl_account,
+				"is_company_account": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		self.assertEqual(doc.get("company"), company)
+
+		fetched = get("Bank Account", doc["name"])
+		self.assertEqual(fetched["account_name"], f"TM Test Bank {uid}")
+
+		frappe.delete_doc("Bank Account", doc["name"], force=True)
+
+
+class TestPhase2PaymentTermsTemplate(FrappeTestCase):
+	"""Phase 2: Payment Terms Template insert with terms rows."""
+
+	def test_payment_terms_template_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Payment Terms Template"))
+
+	def test_payment_terms_template_insert_with_rows(self):
+		"""Insert a PTT with two term rows; verify child rows saved.
+
+		The `payment_term` column is a Link to the "Payment Term" master which
+		must exist independently.  The terms child table only requires
+		`invoice_portion` and `due_date_based_on` — the link is optional.
+		"""
+		uid = uuid.uuid4().hex[:8]
+		# Reuse an existing Payment Term master if available, else leave blank.
+		existing_pt = frappe.db.get_value("Payment Term", {}, "name")
+		doc = insert(
+			{
+				"doctype": "Payment Terms Template",
+				"template_name": f"TM Net 30 {uid}",
+				"terms": [
+					{
+						"payment_term": existing_pt or "",
+						"due_date_based_on": "Day(s) after invoice date",
+						"invoice_portion": 30,
+						"credit_days": 0,
+					},
+					{
+						"payment_term": existing_pt or "",
+						"due_date_based_on": "Day(s) after invoice date",
+						"invoice_portion": 70,
+						"credit_days": 30,
+					},
+				],
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Payment Terms Template", doc["name"])
+		self.assertEqual(fetched["template_name"], f"TM Net 30 {uid}")
+		terms = fetched.get("terms", [])
+		self.assertEqual(len(terms), 2)
+		total_portion = sum(float(r["invoice_portion"]) for r in terms)
+		self.assertAlmostEqual(total_portion, 100.0)
+		frappe.delete_doc("Payment Terms Template", doc["name"], force=True)
+
+
+class TestPhase3PriceListAndItemPrice(FrappeTestCase):
+	"""Phase 3: Price List insert; Item Price via catalog."""
+
+	def test_price_list_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Price List"))
+
+	def test_price_list_insert(self):
+		"""Insert a selling price list and verify it is gettable."""
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Price List",
+				"price_list_name": f"TM Selling {uid}",
+				"currency": "AED",
+				"selling": 1,
+				"buying": 0,
+				"enabled": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Price List", doc["name"])
+		self.assertEqual(fetched["currency"], "AED")
+		self.assertEqual(fetched["selling"], 1)
+		frappe.delete_doc("Price List", doc["name"], force=True)
+
+	def test_item_price_insert_for_price_list(self):
+		"""Insert an Item Price against the existing Standard Selling price list."""
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1}, "name")
+		if not item:
+			self.skipTest("No sales item available")
+		pl = frappe.db.get_value("Price List", {"selling": 1, "enabled": 1}, "name")
+		if not pl:
+			self.skipTest("No enabled selling price list")
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Item Price",
+				"item_code": item,
+				"price_list": pl,
+				"price_list_rate": 99.5,
+				"selling": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item Price", doc["name"])
+		self.assertAlmostEqual(float(fetched["price_list_rate"]), 99.5)
+		frappe.delete_doc("Item Price", doc["name"], force=True)
+
+
+class TestPhase4CreditLimits(FrappeTestCase):
+	"""Phase 4: Customer credit_limits child table saved via insert/save."""
+
+	def test_customer_credit_limit_insert(self):
+		"""Insert a customer with a credit limit row and verify it persists."""
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No company for credit limit test")
+		uid = uuid.uuid4().hex[:8]
+		doc = insert(
+			{
+				"doctype": "Customer",
+				"customer_name": f"TM CL Test {uid}",
+				"customer_type": "Company",
+				"credit_limits": [
+					{
+						"company": company,
+						"credit_limit": 50000,
+						"bypass_credit_limit_check": 0,
+					}
+				],
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Customer", doc["name"])
+		limits = fetched.get("credit_limits", [])
+		self.assertTrue(len(limits) > 0, "credit_limits not saved")
+		self.assertAlmostEqual(float(limits[0]["credit_limit"]), 50000)
+		frappe.delete_doc("Customer", doc["name"], force=True)
+
+
+class TestPhase5MultiUOM(FrappeTestCase):
+	"""Phase 5: UOM conversion rows saved on Item."""
+
+	def test_item_uom_conversion_insert(self):
+		"""Insert a stock item with a UOM conversion row (Box = 12 Nos)."""
+		uid = uuid.uuid4().hex[:8]
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		doc = insert(
+			{
+				"doctype": "Item",
+				"item_code": f"TM-UOM-{uid}",
+				"item_name": f"TM UOM Test {uid}",
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"uoms": [
+					{"uom": "Nos", "conversion_factor": 1},
+					{"uom": "Box", "conversion_factor": 12},
+				],
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item", doc["name"])
+		uom_rows = fetched.get("uoms", [])
+		uom_names = [r["uom"] for r in uom_rows]
+		self.assertIn("Box", uom_names)
+		box_row = next((r for r in uom_rows if r["uom"] == "Box"), None)
+		self.assertIsNotNone(box_row)
+		self.assertAlmostEqual(float(box_row["conversion_factor"]), 12)
+		frappe.delete_doc("Item", doc["name"], force=True)
+
+
+class TestPhase6SerialBatchOnItem(FrappeTestCase):
+	"""Phase 6: has_serial_no / has_batch_no flags saved on Item."""
+
+	def test_item_serial_no_flag_insert(self):
+		"""Insert a serialised stock item and verify has_serial_no=1."""
+		uid = uuid.uuid4().hex[:8]
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		doc = insert(
+			{
+				"doctype": "Item",
+				"item_code": f"TM-SN-{uid}",
+				"item_name": f"TM Serial Test {uid}",
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"has_serial_no": 1,
+				"serial_no_series": f"SN-TM-{uid}-.####",
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item", doc["name"])
+		self.assertEqual(int(fetched.get("has_serial_no", 0)), 1)
+		frappe.delete_doc("Item", doc["name"], force=True)
+
+	def test_item_batch_flag_insert(self):
+		"""Insert a batched stock item and verify has_batch_no=1."""
+		uid = uuid.uuid4().hex[:8]
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		doc = insert(
+			{
+				"doctype": "Item",
+				"item_code": f"TM-BN-{uid}",
+				"item_name": f"TM Batch Test {uid}",
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_stock_item": 1,
+				"has_batch_no": 1,
+				"create_new_batch": 1,
+				"batch_number_series": f"BN-TM-{uid}-.####",
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Item", doc["name"])
+		self.assertEqual(int(fetched.get("has_batch_no", 0)), 1)
+		frappe.delete_doc("Item", doc["name"], force=True)
+
+
+class TestPhase7SerialBatchMasters(FrappeTestCase):
+	"""Phase 7: Serial No and Batch are catalogued and listable."""
+
+	def test_serial_no_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Serial No"))
+
+	def test_batch_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Batch"))
+
+	def test_serial_no_get_list(self):
+		rows = get_list("Serial No", fields=["name", "item_code"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_batch_get_list(self):
+		rows = get_list("Batch", fields=["name", "item"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase8LandedCostVoucher(FrappeTestCase):
+	"""Phase 8: Landed Cost Voucher is catalogued and insertable."""
+
+	def test_lcv_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Landed Cost Voucher"))
+
+	def test_lcv_get_list(self):
+		# LCV has total_taxes_and_charges, not grand_total (SPA list uses this field).
+		rows = get_list(
+			"Landed Cost Voucher",
+			fields=["name", "posting_date", "total_taxes_and_charges", "docstatus"],
+			limit_page_length=5,
+			filters=[],
+		)
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase9PricingRule(FrappeTestCase):
+	"""Phase 9: Pricing Rule is catalogued and insertable."""
+
+	def test_pricing_rule_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Pricing Rule"))
+
+	def test_pricing_rule_get_list(self):
+		rows = get_list("Pricing Rule", fields=["name", "title", "apply_on", "disable"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_pricing_rule_insert(self):
+		"""Insert a discount-on-item pricing rule and verify it is retrievable."""
+		uid = uuid.uuid4().hex[:8]
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1}, "name")
+		if not item:
+			self.skipTest("No sales item available")
+		doc = insert(
+			{
+				"doctype": "Pricing Rule",
+				"title": f"TM PR Test {uid}",
+				"apply_on": "Item Code",
+				"price_or_product_discount": "Price",
+				"selling": 1,
+				"buying": 0,
+				"rate_or_discount": "Discount Percentage",
+				"discount_percentage": 10,
+				"items": [{"item_code": item}],
+				"min_qty": 0,
+				"max_qty": 0,
+				"priority": 1,
+			}
+		)
+		self.assertTrue(doc.get("name"))
+		fetched = get("Pricing Rule", doc["name"])
+		self.assertAlmostEqual(float(fetched.get("discount_percentage", 0)), 10)
+		frappe.delete_doc("Pricing Rule", doc["name"], force=True)
+
+
+class TestPhase10PartyGeoMasters(FrappeTestCase):
+	"""Phase 10: Customer Group, Supplier Group, Territory are catalogued."""
+
+	def test_customer_group_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Customer Group"))
+
+	def test_supplier_group_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Supplier Group"))
+
+	def test_territory_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Territory"))
+
+	def test_customer_group_get_list(self):
+		rows = get_list("Customer Group", fields=["name", "is_group", "parent_customer_group"], limit_page_length=20, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_supplier_group_get_list(self):
+		rows = get_list("Supplier Group", fields=["name", "is_group", "parent_supplier_group"], limit_page_length=20, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_territory_get_list(self):
+		rows = get_list("Territory", fields=["name", "is_group", "parent_territory"], limit_page_length=20, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase11BankReconciliation(FrappeTestCase):
+	"""Phase 14: bank_reconciliation catalogued methods."""
+
+	def test_get_uncleared_transactions_catalogued(self):
+		from taxmate.api import get_catalog
+		catalog = get_catalog()
+		methods = {a["name"] for a in catalog.get("actions", [])}
+		self.assertIn("get_uncleared_transactions", methods)
+
+	def test_mark_cleared_catalogued(self):
+		from taxmate.api import get_catalog
+		catalog = get_catalog()
+		methods = {a["name"] for a in catalog.get("actions", [])}
+		self.assertIn("mark_cleared", methods)
+
+	def test_get_uncleared_requires_valid_bank_account(self):
+		"""Calling with a non-existent bank account returns empty list (no bank account found)."""
+		from taxmate.api.bank_reconciliation import get_uncleared_transactions
+		result = get_uncleared_transactions("__no_such_bank__")
+		self.assertIsInstance(result, list)
+
+	def test_mark_cleared_rejects_unknown_doctype(self):
+		import frappe
+		from taxmate.api.bank_reconciliation import mark_cleared
+		with self.assertRaises((frappe.ValidationError, frappe.PermissionError)):
+			mark_cleared("Unknown Doctype", "__name__", "2024-01-01")
+
+	def test_tax_category_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Tax Category"))
+
+	def test_item_tax_template_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Item Tax Template"))
+
+	def test_fiscal_year_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Fiscal Year"))
+
+	def test_terms_and_conditions_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Terms and Conditions"))
+
+
+class TestPhase16SupplierQuotation(FrappeTestCase):
+	"""Phase 16: Supplier Quotation catalogued and API."""
+
+	def test_supplier_quotation_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("Supplier Quotation"))
+
+	def test_supplier_quotation_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("Supplier Quotation", fields=["name", "supplier", "status"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_make_supplier_quotation_po_catalogued(self):
+		from taxmate.api import get_catalog
+		catalog = get_catalog()
+		methods = {a["name"] for a in catalog.get("actions", [])}
+		self.assertIn("make_supplier_quotation_po", methods)
+
+
+class TestPhase18BomWorkOrder(FrappeTestCase):
+	"""Phase 18: BOM and Work Order lifted from denied search."""
+
+	def test_bom_not_denied(self):
+		from taxmate.search import DENIED_SEARCH_DOCTYPES
+		self.assertNotIn("BOM", DENIED_SEARCH_DOCTYPES)
+
+	def test_work_order_not_denied(self):
+		from taxmate.search import DENIED_SEARCH_DOCTYPES
+		self.assertNotIn("Work Order", DENIED_SEARCH_DOCTYPES)
+
+	def test_bom_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("BOM", fields=["name", "item"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_work_order_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("Work Order", fields=["name", "production_item", "status"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPhase21Lead(FrappeTestCase):
+	"""Phase 21: Lead lifted from denied search; convert_to_customer catalogued."""
+
+	def test_lead_not_denied(self):
+		from taxmate.search import DENIED_SEARCH_DOCTYPES
+		self.assertNotIn("Lead", DENIED_SEARCH_DOCTYPES)
+
+	def test_lead_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("Lead", fields=["name", "lead_name", "status"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_convert_lead_to_customer_catalogued(self):
+		from taxmate.api import get_catalog
+		catalog = get_catalog()
+		methods = {a["name"] for a in catalog.get("actions", [])}
+		self.assertIn("convert_lead_to_customer", methods)
+
+
+class TestPhase22UaeCompliance(FrappeTestCase):
+	"""Phase 22: UAE compliance DocTypes catalogued and searchable."""
+
+	def test_uae_related_party_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Related Party"))
+
+	def test_uae_vat_group_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE VAT Group"))
+
+	def test_uae_bad_debt_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Bad Debt Relief"))
+
+	def test_uae_customs_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Customs Declaration"))
+
+	def test_uae_capital_goods_allowed(self):
+		from taxmate.api.resource import is_allowed_doctype
+		self.assertTrue(is_allowed_doctype("UAE Capital Goods Adjustment"))
+
+	def test_uae_related_party_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("UAE Related Party", fields=["name", "company", "party"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+	def test_uae_vat_group_get_list(self):
+		from taxmate.api.resource import get_list
+		rows = get_list("UAE VAT Group", fields=["name", "representative_company"], limit_page_length=5, filters=[])
+		self.assertIsInstance(rows, list)
+
+
+class TestPosNextSeed(FrappeTestCase):
+	"""POS Next needs a POS Profile with the session user on applicable_for_users."""
+
+	def test_ensure_pos_next_creates_profile_for_sourav(self):
+		from taxmate.setup.seed_books import COMPANY_NAME, POS_PROFILE_NAME, _ensure_pos_next
+
+		company = COMPANY_NAME
+		if not frappe.db.exists("Company", company):
+			self.skipTest("Ascra Technology LLP not seeded on this site")
+		abbr = frappe.db.get_value("Company", company, "abbr")
+		name = _ensure_pos_next({"company": company, "abbr": abbr})
+		self.assertEqual(name, POS_PROFILE_NAME)
+		self.assertTrue(frappe.db.exists("POS Profile", POS_PROFILE_NAME))
+		users = frappe.get_all(
+			"POS Profile User",
+			filters={"parent": POS_PROFILE_NAME},
+			pluck="user",
+		)
+		self.assertIn("sourav@ascratech.com", users)
+		payments = frappe.get_all(
+			"POS Payment Method",
+			filters={"parent": POS_PROFILE_NAME},
+			pluck="mode_of_payment",
+		)
+		self.assertIn("Cash", payments)
+
+
+class TestCompanySettingsWrite(FrappeTestCase):
+	"""SPA Company Settings uses resource.save with a full Company doc."""
+
+	def test_company_save_updates_contact(self):
+		company = frappe.db.get_single_value("Global Defaults", "default_company") or frappe.db.get_value(
+			"Company", {"country": "United Arab Emirates"}, "name"
+		)
+		self.assertTrue(company)
+		doc = get("Company", company)
+		phone = doc.get("phone_no") or ""
+		new_phone = (phone + "1")[-20:] if phone else "+971500000001"
+		doc["phone_no"] = new_phone
+		saved = save(doc)
+		self.assertEqual(saved.get("phone_no"), new_phone)

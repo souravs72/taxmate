@@ -5,6 +5,14 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
+
+type CreditLimitRow = {
+  _key: string;
+  company: string;
+  credit_limit: number;
+  bypass_credit_limit_check: 0 | 1;
+};
 
 type CustomerDoc = {
   name: string;
@@ -20,8 +28,11 @@ type CustomerDoc = {
   uae_peppol_id?: string;
   uae_fz_beneficiary_id?: string;
   uae_in_designated_zone?: 0 | 1;
+  selling_price_list?: string;
+  tax_category?: string;
   customer_primary_address?: string;
   customer_primary_contact?: string;
+  credit_limits?: { company?: string; credit_limit?: number; bypass_credit_limit_check?: 0 | 1 }[];
 };
 
 type AddressDoc = {
@@ -43,10 +54,20 @@ export default function CustomerForm() {
   const existing = useDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
     isPaused: () => isNew,
   });
-  const settings = useDoc<{ customer_group?: string; territory?: string }>(DT.sellingSettings, DT.sellingSettings);
+  const settings = useDoc<{ customer_group?: string; territory?: string; selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
   const groups = useDocList<{ name: string }>(DT.customerGroup, {
     fields: ["name"],
     filters: [["is_group", "=", 0]],
+    limit: 50,
+  });
+  const territories = useDocList<{ name: string }>(DT.territory, {
+    fields: ["name"],
+    filters: [["is_group", "=", 0]],
+    limit: 50,
+  });
+  const priceLists = useDocList<{ name: string }>(DT.priceList, {
+    fields: ["name"],
+    filters: [["selling", "=", 1]],
     limit: 50,
   });
   const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
@@ -59,6 +80,9 @@ export default function CustomerForm() {
     customer_group: "",
     tax_id: "",
     payment_terms: "",
+    territory: "",
+    selling_price_list: "",
+    tax_category: "",
     trade_license_number: "",
     legal_registration_identifier: "",
     legal_registration_identifier_type: "CRN",
@@ -71,8 +95,12 @@ export default function CustomerForm() {
     email_id: "",
     phone: "",
   });
+  const [creditLimits, setCreditLimits] = useState<CreditLimitRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+
+  let _clKey = 0;
+  const newClKey = () => `cl${++_clKey}`;
 
   useEffect(() => {
     const d = existing.data;
@@ -84,6 +112,9 @@ export default function CustomerForm() {
       customer_group: d.customer_group || "",
       tax_id: d.tax_id || "",
       payment_terms: d.payment_terms || "",
+      territory: d.territory || "",
+      selling_price_list: d.selling_price_list || "",
+      tax_category: d.tax_category || "",
       trade_license_number: d.trade_license_number || "",
       legal_registration_identifier: d.legal_registration_identifier || "",
       legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
@@ -91,6 +122,14 @@ export default function CustomerForm() {
       uae_fz_beneficiary_id: d.uae_fz_beneficiary_id || "",
       uae_in_designated_zone: d.uae_in_designated_zone || 0,
     }));
+    setCreditLimits(
+      (d.credit_limits ?? []).map((r) => ({
+        _key: `cl${Math.random()}`,
+        company: r.company || "",
+        credit_limit: Number(r.credit_limit) || 0,
+        bypass_credit_limit_check: (r.bypass_credit_limit_check ?? 0) as 0 | 1,
+      }))
+    );
   }, [existing.data]);
 
   const addrName = existing.data?.customer_primary_address;
@@ -123,7 +162,9 @@ export default function CustomerForm() {
         customer_name: form.customer_name,
         customer_type: form.customer_type,
         customer_group: group,
-        territory,
+        territory: form.territory || territory,
+        selling_price_list: form.selling_price_list || undefined,
+        tax_category: form.tax_category || undefined,
         tax_id: form.tax_id || undefined,
         payment_terms: form.payment_terms || undefined,
         trade_license_number: form.trade_license_number || undefined,
@@ -132,6 +173,9 @@ export default function CustomerForm() {
         uae_peppol_id: form.uae_peppol_id || undefined,
         uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
         uae_in_designated_zone: form.uae_in_designated_zone,
+        credit_limits: creditLimits.length > 0
+          ? creditLimits.map(({ _key: _k, ...r }) => r)
+          : undefined,
       };
       const cust = isNew
         ? await create.createDoc(DT.customer, payload)
@@ -192,11 +236,11 @@ export default function CustomerForm() {
   return (
     <>
       <PageHead
-        eyebrow={<a onClick={() => nav("/customers")} style={{ color: "var(--brand)", cursor: "pointer" }}>{t("nav.customers")}</a>}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/customers")}>{t("nav.customers")}</button>}
         title={isNew ? t("cust.new") : form.customer_name || name}
         actions={
           <>
-            <button className="btn quiet" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
+            <button className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
             </button>
@@ -231,6 +275,22 @@ export default function CustomerForm() {
               <option value="" />
               {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </select>
+          </Field>
+          <Field label={t("f.territory")}>
+            <select className="ctl" value={form.territory} onChange={(e) => set("territory", e.target.value)}>
+              <option value="" />
+              {(territories.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </select>
+          </Field>
+          <Field label={t("f.sellingPriceList")}>
+            <select className="ctl" value={form.selling_price_list} onChange={(e) => set("selling_price_list", e.target.value)}>
+              <option value="" />
+              {(priceLists.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+            </select>
+          </Field>
+          <Field label={t("f.taxCategory")}>
+            <LinkField doctype={DT.taxCategory} value={form.tax_category}
+              onChange={(v) => set("tax_category", v)} />
           </Field>
         </div>
       </Card>
@@ -287,6 +347,86 @@ export default function CustomerForm() {
             <input className="ctl" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
           </Field>
         </div>
+      </Card>
+
+      <Card num={4} title={t("cust.creditLimits")}>
+        {creditLimits.length === 0 ? (
+          <p style={{ color: "var(--faint)", marginBottom: 8 }}>{t("cust.noCreditLimits")}</p>
+        ) : (
+          <table className="data-table" style={{ marginBottom: 8 }}>
+            <thead>
+              <tr>
+                <th>{t("cust.cl.company")}</th>
+                <th>{t("cust.cl.limit")}</th>
+                <th>{t("cust.cl.bypass")}</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {creditLimits.map((r) => (
+                <tr key={r._key}>
+                  <td>
+                    <input
+                      className="ctl"
+                      value={r.company}
+                      onChange={(e) =>
+                        setCreditLimits((ls) =>
+                          ls.map((l) => l._key === r._key ? { ...l, company: e.target.value } : l)
+                        )
+                      }
+                      placeholder={t("cust.cl.company")}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="ctl"
+                      type="number"
+                      min={0}
+                      value={r.credit_limit}
+                      onChange={(e) =>
+                        setCreditLimits((ls) =>
+                          ls.map((l) => l._key === r._key ? { ...l, credit_limit: Number(e.target.value) } : l)
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <input
+                      type="checkbox"
+                      checked={!!r.bypass_credit_limit_check}
+                      onChange={(e) =>
+                        setCreditLimits((ls) =>
+                          ls.map((l) => l._key === r._key ? { ...l, bypass_credit_limit_check: e.target.checked ? 1 : 0 } : l)
+                        )
+                      }
+                    />
+                  </td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      onClick={() => setCreditLimits((ls) => ls.filter((l) => l._key !== r._key))}
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() =>
+            setCreditLimits((ls) => [
+              ...ls,
+              { _key: newClKey(), company: "", credit_limit: 0, bypass_credit_limit_check: 0 },
+            ])
+          }
+        >
+          {t("cust.addCreditLimit")}
+        </button>
       </Card>
     </>
   );

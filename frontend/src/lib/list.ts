@@ -31,7 +31,16 @@ export function useListParams(pageSize: number) {
 
   const setPage = useCallback((p: number) => set("page", p > 0 ? String(p) : ""), [set]);
 
-  return { get, set, page, setPage, pageSize, start: page * pageSize };
+  const setMany = useCallback((pairs: Record<string, string>) => {
+    const next = new URLSearchParams(params);
+    for (const [key, value] of Object.entries(pairs)) {
+      if (value) next.set(key, value); else next.delete(key);
+    }
+    next.delete("page");
+    setParams(next);
+  }, [params, setParams]);
+
+  return { get, set, setMany, page, setPage, pageSize, start: page * pageSize };
 }
 
 /* ── Aggregates ───────────────────────────────────────────────────────

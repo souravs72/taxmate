@@ -2,6 +2,13 @@
 
 Invite, role, and enablement go through taxmate.api.users (see get_catalog).
 SPA roles are owner, accountant, clerk, and viewer mapped onto marker Roles.
+Users may hold multiple markers; Frappe unions DocPerms. Optional POSNext add-ons
+are assignable when those Role docs exist on the site.
+
+Callers: frontend TeamList/TeamInvite, taxmate.api.get_catalog actions,
+test_spa_users. Schema: User Has Role child rows (Frappe union of DocPerms).
+User: "roles could be multiple select rather than 1 role. And use frappe standard
+for roles - union of permissions." Also POSNext sidebar when installed.
 """
 
 from __future__ import annotations
@@ -13,7 +20,16 @@ from frappe import _
 from frappe.utils import cint, random_string, validate_email_address
 
 from taxmate.api.resource import require_login
-from taxmate.setup.spa_roles import MARKER, SPA_ROLES, apply_spa_role, ensure_marker_roles, spa_role_of
+from taxmate.setup.spa_roles import (
+	MARKER,
+	SPA_ROLES,
+	addon_roles_of,
+	apply_spa_roles,
+	available_addon_roles,
+	ensure_marker_roles,
+	spa_role_of,
+	spa_roles_of,
+)
 
 _SKIP_USERS = frozenset({"Guest", "Administrator"})
 
@@ -39,8 +55,69 @@ def _is_system_manager(user: str) -> bool:
 	return bool(frappe.db.exists("Has Role", {"parent": user, "role": "System Manager"}))
 
 
+def _parse_spa_roles(
+	spa_role: str | None = None,
+	spa_roles: Any = None,
+) -> list[str]:
+	"""Accept spa_roles list/JSON/comma string, or legacy spa_role singular."""
+	raw: Any = spa_roles
+	if raw is None or raw == "" or raw == []:
+		if spa_role:
+			return [spa_role]
+		frappe.throw(_("At least one role is required"))
+	if isinstance(raw, str):
+		text = raw.strip()
+		if text.startswith("["):
+			raw = frappe.parse_json(text)
+		else:
+			raw = [part.strip() for part in text.split(",") if part.strip()]
+	if not isinstance(raw, (list, tuple)):
+		frappe.throw(_("Unknown role"))
+	out: list[str] = []
+	for item in raw:
+		name = str(item).strip()
+		if not name:
+			continue
+		if name not in SPA_ROLES:
+			frappe.throw(_("Unknown role"))
+		if name not in out:
+			out.append(name)
+	if not out:
+		frappe.throw(_("At least one role is required"))
+	return out
+
+
+def _parse_extra_roles(extra_roles: Any = None) -> list[str] | None:
+	"""None means preserve existing add-ons; explicit list (incl. empty) replaces them."""
+	if extra_roles is None:
+		return None
+	raw: Any = extra_roles
+	if isinstance(raw, str):
+		text = raw.strip()
+		if not text:
+			return []
+		if text.startswith("["):
+			raw = frappe.parse_json(text)
+		else:
+			raw = [part.strip() for part in text.split(",") if part.strip()]
+	if not isinstance(raw, (list, tuple)):
+		frappe.throw(_("Unknown role"))
+	allowed = frozenset(available_addon_roles())
+	out: list[str] = []
+	for item in raw:
+		name = str(item).strip()
+		if not name:
+			continue
+		if name not in allowed:
+			frappe.throw(_("Unknown role"))
+		if name not in out:
+			out.append(name)
+	return out
+
+
 def _as_user_row(name: str) -> dict[str, Any]:
 	doc = frappe.get_doc("User", name)
+	roles = spa_roles_of(doc.name)
 	return {
 		"name": doc.name,
 		"email": doc.email or doc.name,
@@ -49,7 +126,9 @@ def _as_user_row(name: str) -> dict[str, Any]:
 		"last_name": doc.last_name,
 		"mobile_no": doc.mobile_no,
 		"enabled": int(doc.enabled or 0),
-		"spa_role": spa_role_of(doc.name),
+		"spa_role": roles[0] if roles else spa_role_of(doc.name),
+		"spa_roles": roles,
+		"extra_roles": addon_roles_of(doc.name),
 		"last_active": str(doc.last_active) if doc.last_active else None,
 	}
 
@@ -83,7 +162,9 @@ def list_users() -> list[dict[str, Any]]:
 def invite_user(
 	email: str,
 	first_name: str,
-	spa_role: str = "clerk",
+	spa_role: str | None = None,
+	spa_roles: Any = None,
+	extra_roles: Any = None,
 	last_name: str | None = None,
 	mobile_no: str | None = None,
 	send_welcome_email: int | str = 1,
@@ -97,8 +178,8 @@ def invite_user(
 	if not first_name:
 		frappe.throw(_("First name is required"))
 	validate_email_address(email, throw=True)
-	if spa_role not in SPA_ROLES:
-		frappe.throw(_("Unknown role"))
+	roles = _parse_spa_roles(spa_role=spa_role or ("clerk" if spa_roles is None else None), spa_roles=spa_roles)
+	addons = _parse_extra_roles(extra_roles)
 	if frappe.db.exists("User", email):
 		frappe.throw(_("That user already exists"))
 
@@ -117,7 +198,7 @@ def invite_user(
 		user.new_password = random_string(16)
 		user.flags.no_welcome_mail = True
 	user.insert(ignore_permissions=True)
-	apply_spa_role(user.name, spa_role)
+	apply_spa_roles(user.name, roles, extra_roles=addons if addons is not None else [])
 	company = frappe.defaults.get_user_default("Company")
 	if company:
 		frappe.defaults.set_user_default("Company", company, user.name)
@@ -125,19 +206,24 @@ def invite_user(
 
 
 @frappe.whitelist(methods=["POST"])
-def set_user_role(user: str, spa_role: str) -> dict[str, Any]:
+def set_user_role(
+	user: str,
+	spa_role: str | None = None,
+	spa_roles: Any = None,
+	extra_roles: Any = None,
+) -> dict[str, Any]:
 	require_login()
 	_require_owner()
 	ensure_marker_roles()
 	_assert_mutable_user(user)
 	if user == frappe.session.user:
 		frappe.throw(_("You cannot change your own role"))
-	if spa_role not in SPA_ROLES:
-		frappe.throw(_("Unknown role"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
 
-	apply_spa_role(user, spa_role)
+	roles = _parse_spa_roles(spa_role=spa_role, spa_roles=spa_roles)
+	addons = _parse_extra_roles(extra_roles)
+	apply_spa_roles(user, roles, extra_roles=addons)
 	return _as_user_row(user)
 
 
@@ -160,6 +246,7 @@ def set_user_enabled(user: str, enabled: int | str = 0) -> dict[str, Any]:
 
 def _as_profile(user: str) -> dict[str, Any]:
 	doc = frappe.get_doc("User", user)
+	roles = spa_roles_of(doc.name)
 	return {
 		"name": doc.name,
 		"email": doc.email or doc.name,
@@ -167,7 +254,9 @@ def _as_profile(user: str) -> dict[str, Any]:
 		"last_name": doc.last_name,
 		"full_name": doc.full_name or doc.first_name or doc.name,
 		"mobile_no": doc.mobile_no,
-		"spa_role": spa_role_of(doc.name),
+		"spa_role": roles[0] if roles else spa_role_of(doc.name),
+		"spa_roles": roles,
+		"extra_roles": addon_roles_of(doc.name),
 	}
 
 

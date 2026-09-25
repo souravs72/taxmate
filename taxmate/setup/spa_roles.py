@@ -21,6 +21,9 @@ MARKER: dict[str, str] = {
 # SPA bundles are marker-only. Desk ERPNext roles are listed so apply_spa_role strips them.
 BUNDLE: dict[str, tuple[str, ...]] = {spa: (name,) for spa, name in MARKER.items()}
 
+# POSNext add-ons — assigned via Team multi-select when those Role docs exist.
+ADDON_ROLES: tuple[str, ...] = ("POSNext Cashier", "Nexus POS Manager")
+
 LEGACY_DESK_ROLES: frozenset[str] = frozenset(
 	{
 		"Accounts Manager",
@@ -153,36 +156,85 @@ def ensure_spa_roles() -> None:
 	_strip_desk_roles_from_spa_users()
 
 
-def spa_role_of(user: str | None = None) -> str:
-	"""Map Frappe roles onto one SPA role. System Manager is always Owner (Admin in the SPA)."""
+def available_addon_roles() -> list[str]:
+	"""Return add-on Role names that exist on this site (e.g. after installing pos_next)."""
+	return [name for name in ADDON_ROLES if frappe.db.exists("Role", name)]
+
+
+def addon_roles_of(user: str | None = None) -> list[str]:
+	"""Installed add-on roles currently assigned to the user."""
 	user = user or frappe.session.user
 	roles = set(frappe.get_roles(user))
-	if "System Manager" in roles or MARKER["owner"] in roles:
-		return "owner"
-	if MARKER["accountant"] in roles:
-		return "accountant"
-	if MARKER["clerk"] in roles:
-		return "clerk"
-	if MARKER["viewer"] in roles:
-		return "viewer"
+	return [name for name in ADDON_ROLES if name in roles]
+
+
+def spa_roles_of(user: str | None = None) -> list[str]:
+	"""All TaxMate SPA markers on the user, highest first. System Manager → owner only."""
+	user = user or frappe.session.user
+	roles = set(frappe.get_roles(user))
+	if "System Manager" in roles:
+		return ["owner"]
+	found: list[str] = []
+	for key in SPA_ROLES:
+		if MARKER[key] in roles:
+			found.append(key)
+	if found:
+		return found
 	if "Accounts Manager" in roles or "UAE Tax Manager" in roles:
-		return "accountant"
+		return ["accountant"]
 	if "Accounts User" in roles:
-		return "clerk"
-	return "viewer"
+		return ["clerk"]
+	return ["viewer"]
+
+
+def spa_role_of(user: str | None = None) -> str:
+	"""Highest SPA role for UI gates. System Manager is always Owner (Admin in the SPA)."""
+	roles = spa_roles_of(user)
+	return roles[0] if roles else "viewer"
 
 
 def apply_spa_role(user: str, spa_role: str) -> None:
-	if spa_role not in SPA_ROLES:
-		frappe.throw(frappe._("Unknown role"))
+	"""Assign a single TaxMate marker (preserves existing add-on roles)."""
+	apply_spa_roles(user, [spa_role], extra_roles=None)
+
+
+def apply_spa_roles(
+	user: str,
+	spa_roles: list[str] | tuple[str, ...] | None,
+	extra_roles: list[str] | tuple[str, ...] | None = None,
+) -> None:
+	"""Assign one or more TaxMate markers plus optional add-ons. Frappe unions DocPerms."""
+	if not spa_roles:
+		frappe.throw(frappe._("At least one role is required"))
+	normalized: list[str] = []
+	for spa_role in spa_roles:
+		if spa_role not in SPA_ROLES:
+			frappe.throw(frappe._("Unknown role"))
+		if spa_role not in normalized:
+			normalized.append(spa_role)
 	if user in ("Administrator", "Guest"):
 		frappe.throw(frappe._("That user cannot be changed from TaxMate"))
 	if "System Manager" in frappe.get_roles(user):
 		frappe.throw(frappe._("System managers cannot be changed from TaxMate"), frappe.PermissionError)
 
 	doc = frappe.get_doc("User", user)
-	keep = [row.role for row in doc.roles if row.role not in MANAGED_ROLES and row.role != "System Manager"]
-	wanted = (*keep, *BUNDLE[spa_role])
+	addon_set = frozenset(ADDON_ROLES)
+	keep = [
+		row.role
+		for row in doc.roles
+		if row.role not in MANAGED_ROLES and row.role != "System Manager" and row.role not in addon_set
+	]
+	if extra_roles is None:
+		extras = [row.role for row in doc.roles if row.role in addon_set]
+	else:
+		allowed = frozenset(available_addon_roles())
+		extras = []
+		for role in extra_roles:
+			if role in allowed and role not in extras:
+				extras.append(role)
+
+	markers = [MARKER[spa] for spa in normalized]
+	wanted = tuple(dict.fromkeys([*keep, *markers, *extras]))
 	current = tuple(row.role for row in doc.roles)
 	needs_home = (doc.redirect_url or "") != "/taxmate" or getattr(doc, "default_app", None) != "taxmate"
 	if current == wanted and not needs_home:
@@ -358,4 +410,4 @@ def _strip_desk_roles_from_spa_users() -> None:
 			continue
 		if not (roles & strip):
 			continue
-		apply_spa_role(user, spa_role_of(user))
+		apply_spa_roles(user, spa_roles_of(user), extra_roles=None)

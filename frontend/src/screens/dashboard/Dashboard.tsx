@@ -22,6 +22,8 @@ import { getLocale } from "../../lib/i18n";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { SplitBar, Spark, TrendChart, whole } from "../../components/charts";
+import AccountantDashboard from "./AccountantDashboard";
+import { DashSwitch, useDashMode } from "./DashSwitch";
 import "./dashboard.css";
 
 /* ── Payload ─────────────────────────────────────────────────────────── */
@@ -66,11 +68,11 @@ const VIEWS: View[] = ["growth", "report", "margin"];
 /* ── Colours (tokens; see dashboard.css) ─────────────────────────────── */
 
 const C = {
-  rev: "var(--c-confirmed)",
-  exp: "var(--c-draft)",
-  profit: "var(--c-billed)",
-  cashIn: "var(--c-delivered)",
-  opex: "var(--od-age-3)",
+  rev: "var(--c-confirmed)",      /* brand blue — invoiced/revenue */
+  exp: "var(--c-draft)",          /* amber — bills/expenses */
+  profit: "var(--c-billed)",      /* green — net profit */
+  cashIn: "var(--c-delivered)",   /* teal — cash received */
+  opex: "var(--c-draft)",         /* amber (same family as expenses) */
   age: ["var(--od-age-0)", "var(--od-age-1)", "var(--od-age-2)", "var(--od-age-3)", "var(--od-age-4)"],
 };
 
@@ -124,7 +126,12 @@ function daysText(days: number | null): string {
 
 /* ── Screen ──────────────────────────────────────────────────────────── */
 
+/** Home screen: the owner or the accountant view (see DashSwitch). */
 export default function Dashboard() {
+  return useDashMode() === "accountant" ? <AccountantDashboard /> : <OwnerDashboard />;
+}
+
+function OwnerDashboard() {
   const nav = useNavigate();
   const session = useSession();
   const [params, setParams] = useSearchParams();
@@ -157,9 +164,10 @@ export default function Dashboard() {
         sub={session.company ? `${session.company} · ${date(session.today)}` : date(session.today)}
         actions={
           <>
+            <DashSwitch />
             <button type="button" className="btn ghost" onClick={() => nav("/payments/new")}>{t("hub.receive")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices/new")}>{t("od.newBill")}</button>
-            <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
+            <button type="button" className="btn" onClick={() => nav("/invoices/new")}>{t("hub.newSale")}</button>
           </>
         }
       />
@@ -311,7 +319,6 @@ function ProfitCard({ d, view, cur }: { d: Payload; view: View; cur: string }) {
   const nm = p.revenue ? (np / p.revenue) * 100 : 0;
   const nmPrev = p.prev.revenue ? (npPrev / p.prev.revenue) * 100 : 0;
   const gm = p.revenue ? ((p.revenue - p.cogs) / p.revenue) * 100 : 0;
-  const opex = p.expenses - p.cogs;
   const dNp = change(np, npPrev);
   const pts = nm - nmPrev;
 
@@ -342,34 +349,36 @@ function ProfitCard({ d, view, cur }: { d: Payload; view: View; cur: string }) {
           </div>
         )}
       </div>
-      {p.revenue > 0 && (
-        <div className="od-split">
-          <span className="od-k">{t("od.split")}</span>
-          <SplitBar
-            ariaLabel={t("od.split")}
-            segments={[
-              { label: t("od.cogs"), value: p.cogs, colour: C.exp },
-              { label: t("od.opex"), value: opex, colour: C.opex },
-              { label: t("od.np"), value: Math.max(0, np), colour: C.profit },
-            ]}
-          />
-          <div className="od-legend3">
-            {[
-              [t("od.cogs"), p.cogs, C.exp],
-              [t("od.opex"), opex, C.opex],
-              [t("od.np"), np, C.profit],
-            ].map(([label, v, colour]) => (
-              <div key={label as string}>
-                <i className="sw" style={{ background: colour as string }} />
-                <span>
-                  <span className="od-muted">{label as string}</span>
-                  <b className="num">{pctText(((v as number) / p.revenue) * 100)} · {whole(v as number)}</b>
-                </span>
-              </div>
-            ))}
+      {p.revenue > 0 && (() => {
+        const cogsAmt = Math.abs(p.cogs);
+        const opexAmt = Math.max(0, Math.abs(p.expenses) - cogsAmt);
+        const profitAmt = Math.max(0, np);
+        const parts: [string, number, string][] = [
+          [t("od.cogs"), cogsAmt, C.exp],
+          [t("od.opex"), opexAmt, C.opex],
+          [t("od.np"), profitAmt, C.profit],
+        ];
+        return (
+          <div className="od-split">
+            <span className="od-k">{t("od.split")}</span>
+            <SplitBar
+              ariaLabel={t("od.split")}
+              segments={parts.map(([label, value, colour]) => ({ label, value, colour }))}
+            />
+            <div className="od-legend3">
+              {parts.map(([label, v, colour]) => (
+                <div key={label}>
+                  <i className="sw" style={{ background: colour }} />
+                  <span>
+                    <span className="od-muted">{label}</span>
+                    <b className="num">{pctText((v / p.revenue) * 100)} · {whole(v)}</b>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </section>
   );
 }
@@ -426,10 +435,10 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
   const tiles: {
     key: keyof Payload["flows"]; colour: string; tint: string; upGood: boolean; to: string; icon: string; ratio: number | null;
   }[] = [
-    { key: "invoiced", colour: C.rev, tint: "rgba(79,70,229,.12)", upGood: true, to: "/invoices", icon: '<path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3M6.5 9.5h5M6.5 12.5h3.5"/>', ratio: gm },
-    { key: "bills", colour: C.exp, tint: "rgba(217,119,6,.12)", upGood: false, to: "/purchase-invoices", icon: '<path d="M3 10l1.5-6.5h9L15 10v5H3z"/><path d="M3 10h4l1 1.5h2l1-1.5h4"/>', ratio: f.bills && rev ? (f.bills.value / rev) * 100 : null },
-    { key: "received", colour: C.cashIn, tint: "rgba(8,145,178,.12)", upGood: true, to: "/payments?type=Receive", icon: '<path d="M9 3v8M6 8l3 3 3-3M4 15h10"/>', ratio: f.received && rev ? (f.received.value / rev) * 100 : null },
-    { key: "paid", colour: C.opex, tint: "rgba(234,88,12,.11)", upGood: false, to: "/payments?type=Pay", icon: '<path d="M9 11V3M6 6l3-3 3 3M4 15h10"/>', ratio: f.paid && f.bills?.value ? (f.paid.value / f.bills.value) * 100 : null },
+    { key: "invoiced", colour: C.rev,    tint: "rgba(37,99,235,.08)",   upGood: true,  to: "/invoices",              icon: '<path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3M6.5 9.5h5M6.5 12.5h3.5"/>', ratio: gm },
+    { key: "bills",    colour: C.exp,    tint: "rgba(180,83,9,.08)",    upGood: false, to: "/purchase-invoices",      icon: '<path d="M3 10l1.5-6.5h9L15 10v5H3z"/><path d="M3 10h4l1 1.5h2l1-1.5h4"/>',      ratio: f.bills && rev ? (f.bills.value / rev) * 100 : null },
+    { key: "received", colour: C.cashIn, tint: "rgba(13,148,136,.08)",  upGood: true,  to: "/payments?type=Receive",  icon: '<path d="M9 3v8M6 8l3 3 3-3M4 15h10"/>',                                          ratio: f.received && rev ? (f.received.value / rev) * 100 : null },
+    { key: "paid",     colour: C.opex,   tint: "rgba(180,83,9,.07)",    upGood: false, to: "/payments?type=Pay",      icon: '<path d="M9 11V3M6 6l3-3 3 3M4 15h10"/>',                                          ratio: f.paid && f.bills?.value ? (f.paid.value / f.bills.value) * 100 : null },
   ];
 
   return (
@@ -455,8 +464,13 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
                 {!flow ? t("od.noAccess")
                   : view === "growth" ? (
                     <>
-                      <span className={`delta ${dlt == null ? "" : (dlt >= 0) === tl.upGood ? "up" : "down"}`}>{deltaText(dlt)}</span>
-                      {fill(t("od.vsPrev"), { v: `${cur} ${whole(flow.prev)}` })}
+                      {/* Only show delta when prev > 0; otherwise it would mislead (∞ %) */}
+                      {dlt != null && flow.prev > 0 && (
+                        <span className={`delta ${(dlt >= 0) === tl.upGood ? "up" : "down"}`}>{deltaText(dlt)}</span>
+                      )}
+                      {flow.prev > 0
+                        ? fill(t("od.vsPrev"), { v: `${cur} ${whole(flow.prev)}` })
+                        : <span className="od-muted">{t("od.noPrior")}</span>}
                     </>
                   ) : view === "report" ? (
                     <>

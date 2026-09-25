@@ -4,11 +4,12 @@ import { useFrappePostCall } from "frappe-react-sdk";
 import { DT, METHOD } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
-import { canCancelSales, canSubmitSales } from "../../lib/roles";
+import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import DetailActions from "../../components/DetailActions";
 
 type Line = {
   account?: string;
@@ -46,6 +47,7 @@ export default function JournalEntryDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.journalEntry, name);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
+  const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
 
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
@@ -54,8 +56,11 @@ export default function JournalEntryDetail() {
   const cur = data.currency || session.currency || "";
   const draft = data.docstatus === 0;
   const submitted = data.docstatus === 1;
+  const cancelled = data.docstatus === 2;
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
+  const writable = canWrite(session);
+  const busy = submitCall.loading || cancelCall.loading || amendCall.loading;
   const busyError = submitCall.error || cancelCall.error;
 
   return (
@@ -68,26 +73,24 @@ export default function JournalEntryDetail() {
         }
         title={data.voucher_type || data.name}
         actions={
-          <>
-            {draft && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/journals/${encodeURIComponent(name)}/edit`)}>
-                {t("inv.edit")}
-              </button>
-            )}
-            {draft && canSubmit && (
-              <button type="button" className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.journalEntry, name } }).then(() => mutate())}>
-                {t("inv.submit")}
-              </button>
-            )}
-            {submitted && canCancel && (
-              <button type="button" className="btn quiet" disabled={cancelCall.loading}
-                onClick={() => void cancelCall.call({ doctype: DT.journalEntry, name }).then(() => mutate())}>
-                {t("inv.cancel")}
-              </button>
-            )}
-          </>
+          <DetailActions
+            draft={draft}
+            submitted={submitted}
+            cancelled={cancelled}
+            canSubmit={canSubmit}
+            canCancel={canCancel}
+            canWrite={writable}
+            busy={busy}
+            onEdit={() => nav(`/journals/${encodeURIComponent(name)}/edit`)}
+            onSubmit={() => void submitCall.call({ doc: { doctype: DT.journalEntry, name } }).then(() => mutate())}
+            onCancel={() => void cancelCall.call({ doctype: DT.journalEntry, name }).then(() => mutate())}
+            onAmend={async () => {
+              const res = await amendCall.call({ doctype: DT.journalEntry, name });
+              const newName = res?.message?.name;
+              if (newName) nav(`/journals/${encodeURIComponent(newName)}/edit`);
+              else void mutate();
+            }}
+          />
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

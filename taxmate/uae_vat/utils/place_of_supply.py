@@ -142,6 +142,13 @@ def validate_sales_order(doc, on_submit: bool = False) -> None:
 	frappe.msgprint(message, title=_("Place of Supply"), indicator="orange", alert=True)
 
 
+def resolve_company_emirate(company: str | None, company_address: str | None = None) -> str | None:
+	"""Public helper for SPA / API: Emirate of the supplying establishment."""
+	if not company:
+		return None
+	return _resolve_company_emirate(frappe._dict(company=company, company_address=company_address))
+
+
 def _resolve_company_emirate(doc) -> str | None:
 	"""Emirate of the supplying establishment, mirroring the Desk fetch_from."""
 	if not frappe.db.has_column("Address", "emirate"):

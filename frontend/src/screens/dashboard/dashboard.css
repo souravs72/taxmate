@@ -9,13 +9,14 @@
    ───────────────────────────────────────────────────────────────────── */
 
 .odash{
-  --od-age-0:#0891b2; --od-age-1:#ca8a04; --od-age-2:#d97706; --od-age-3:#ea580c; --od-age-4:#dc2626;
+  /* Ageing ramp: teal → amber → orange → red — soft, not neon */
+  --od-age-0:#0D9488; --od-age-1:#D97706; --od-age-2:#EA580C; --od-age-3:#DC2626; --od-age-4:#991B1B;
   display:flex; flex-direction:column; gap:16px;
 }
 @media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]) .odash{--od-age-0:#0f93b0; --od-age-1:#c9a227; --od-age-2:#d98a1c; --od-age-3:#e06a2c; --od-age-4:#e5484d}
+  :root:not([data-theme="light"]) .odash{--od-age-0:#2DD4BF; --od-age-1:#F59E0B; --od-age-2:#F97316; --od-age-3:#F87171; --od-age-4:#FCA5A5}
 }
-:root[data-theme="dark"] .odash{--od-age-0:#0f93b0; --od-age-1:#c9a227; --od-age-2:#d98a1c; --od-age-3:#e06a2c; --od-age-4:#e5484d}
+:root[data-theme="dark"] .odash{--od-age-0:#2DD4BF; --od-age-1:#F59E0B; --od-age-2:#F97316; --od-age-3:#F87171; --od-age-4:#FCA5A5}
 
 /* Grids place cards side by side; the global `.card + .card` stacking
    margin would push the second card down. */
@@ -135,3 +136,4 @@
 .od-cmp-i:hover{background:var(--hover)}
 div.od-cmp-i{cursor:default}
 div.od-cmp-i:hover{background:transparent}
+.od-ok{color:var(--ok); font-weight:500}

@@ -80,7 +80,6 @@ export function DataTable<Row>({
                 {c.header}
               </th>
             ))}
-            {onOpen && <th />}
           </tr>
         </thead>
         <tbody>
@@ -106,12 +105,6 @@ export function DataTable<Row>({
                 {columns.map((c) => (
                   <td key={c.key} className={c.className}>{c.cell(row)}</td>
                 ))}
-                {onOpen && (
-                  <td>
-                    <svg className="chev" width="14" height="14" viewBox="0 0 16 16" fill="none"
-                         stroke="currentColor" strokeWidth="1.8"><path d="M6 3.5 10.5 8 6 12.5" /></svg>
-                  </td>
-                )}
               </tr>
             );
           })}

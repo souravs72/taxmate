@@ -59,7 +59,7 @@ export default function ItemList() {
     <>
       <PageHead
         title={t("item.title")}
-        actions={<IfCanWrite><button className="btn" onClick={() => nav("/catalogue/items/new")}>＋ {t("item.new")}</button></IfCanWrite>}
+        actions={<IfCanWrite><button className="btn" onClick={() => nav("/catalogue/items/new")}>{t("item.new")}</button></IfCanWrite>}
       />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>

@@ -163,12 +163,9 @@ export default function SalesOrderList() {
       <PageHead
         title={t("so.title")}
         actions={
-          <>
-            <button className="btn ghost">{t("so.export")}</button>
-            <IfCanWrite>
-              <button className="btn" onClick={() => nav("/orders/new")}>＋ {t("so.new")}</button>
-            </IfCanWrite>
-          </>
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/orders/new")}>{t("so.new")}</button>
+          </IfCanWrite>
         }
       />
 
@@ -218,7 +215,7 @@ export default function SalesOrderList() {
         )}
       </div>
 
-      <Card bodyClass={null as unknown as string}>
+      <Card bodyClass={null}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("so.col.no")} />
           <LinkFilter doctype={DT.customer} value={customer} onChange={(v) => set("customer", v)}
