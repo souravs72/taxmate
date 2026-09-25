@@ -68,10 +68,7 @@ doctype_list_js = {
 # Home Pages
 # ----------
 
-# SPA users land on /taxmate after login. Do not set role_home_page:
-# Administrator's get_roles() includes every Role, so that hook would send
-# Desk Administrator to /taxmate. website_user_home_page returns None for
-# Administrator so Desk login is unchanged.
+# Everyone except Administrator lands on /taxmate after login (no Desk).
 get_website_user_home_page = "taxmate.setup.spa_roles.website_user_home_page"
 
 # Generators

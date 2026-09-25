@@ -219,13 +219,35 @@ GLOBAL_SEARCH_DOCTYPES = [
 
 
 def is_taxmate_product_site() -> bool:
+	"""True when TaxMate (or the opt-in sidebar filter) is on this site."""
 	apps = set(frappe.get_installed_apps())
 	return "taxmate" in apps or bool(frappe.conf.get("taxmate_sidebar_filter"))
 
 
-def boot_session(bootinfo) -> None:
-	"""Attach search allowlist for Desk AwesomeBar filtering."""
+def desk_search_is_scoped() -> bool:
+	"""Desk AwesomeBar scoping is opt-in (slim Desk) or for SPA-only users.
+
+	With the SPA as the product surface, Desk users need full ERPNext / POS / IDP
+	search. SPA marker roles keep desk_access=0 and still get the allowlist if they
+	somehow hit Desk.
+	"""
+	if frappe.conf.get("taxmate_sidebar_filter"):
+		return True
 	if not is_taxmate_product_site():
+		return False
+	user = frappe.session.user
+	if not user or user in ("Guest", "Administrator"):
+		return False
+	try:
+		return not frappe.get_doc("User", user).has_desk_access()
+	except Exception:
+		return False
+
+
+def boot_session(bootinfo) -> None:
+	"""Attach search allowlist for Desk AwesomeBar filtering when scoped."""
+	if not desk_search_is_scoped():
+		bootinfo.taxmate_search = {"enabled": False}
 		return
 
 	from taxmate.idp.clerk import IDP_ADMIN_SEARCH_DOCTYPES, is_idp_manager
@@ -251,8 +273,12 @@ def boot_session(bootinfo) -> None:
 
 
 def configure_global_search() -> None:
-	"""Replace Global Search Settings with TaxMate product doctypes only."""
-	if not is_taxmate_product_site():
+	"""Optionally narrow Global Search Settings to TaxMate product doctypes.
+
+	Only when ``taxmate_sidebar_filter`` is set — otherwise leave Desk search alone
+	so other installed apps remain discoverable.
+	"""
+	if not frappe.conf.get("taxmate_sidebar_filter"):
 		return
 	if not frappe.db.exists("DocType", "Global Search Settings"):
 		return
