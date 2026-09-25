@@ -125,6 +125,7 @@ def run(force: bool | int | str = False) -> dict:
 	pipeline = _seed_trading_pipelines(ctx)
 	journals = _seed_journals(ctx)
 	_ensure_spa_users(ctx)
+	pos_profile = _ensure_pos_next(ctx)
 	_ensure_legacy_prove_aliases()
 	if frappe.db.exists("Item", "DEMO-VAT-CONSULTING"):
 		frappe.db.set_value("Item", "DEMO-VAT-CONSULTING", "disabled", 1)
@@ -143,6 +144,7 @@ def run(force: bool | int | str = False) -> dict:
 		or frappe.db.count("Payment Entry", {"company": company, "docstatus": 1}),
 		**pipeline,
 		"journal_entries": journals,
+		"pos_profile": pos_profile,
 	}
 
 
@@ -1470,3 +1472,146 @@ def _ensure_spa_users(ctx: dict) -> None:
 			frappe.db.set_value("User", u["email"], "enabled", 1)
 		apply_spa_role(u["email"], u["role"])
 		frappe.defaults.set_user_default("company", ctx["company"], u["email"])
+
+
+POS_PROFILE_NAME = "Ascra Front Desk"
+POS_PROFILE_USERS = ("sourav@ascratech.com", "Administrator")
+
+
+def _ensure_mop_account(mode_of_payment: str, company: str, default_account: str) -> None:
+	"""Attach a company default account to a Mode of Payment (idempotent)."""
+	if not frappe.db.exists("Mode of Payment", mode_of_payment):
+		return
+	if not default_account or not frappe.db.exists("Account", default_account):
+		return
+	if frappe.db.exists(
+		"Mode of Payment Account",
+		{"parent": mode_of_payment, "company": company},
+	):
+		return
+	mop = frappe.get_doc("Mode of Payment", mode_of_payment)
+	mop.append("accounts", {"company": company, "default_account": default_account})
+	mop.flags.ignore_permissions = True
+	mop.save()
+
+
+def _ensure_pos_cashier_role(user: str) -> None:
+	"""Grant POSNext Cashier add-on without stripping TaxMate markers."""
+	if not user or user in ("Administrator", "Guest"):
+		return
+	if not frappe.db.exists("User", user) or not frappe.db.exists("Role", "POSNext Cashier"):
+		return
+	from taxmate.setup.spa_roles import apply_spa_roles, spa_roles_of
+
+	roles = spa_roles_of(user) or ["owner"]
+	apply_spa_roles(user, roles, extra_roles=["POSNext Cashier"])
+
+
+def _ensure_pos_next(ctx: dict) -> str | None:
+	"""Seed a POS Profile so POS Next can open a shift for Ascra cashiers.
+
+	POS Next lists profiles via INNER JOIN on `POS Profile User` for the session
+	user — without applicable_for_users the Open Shift dialog stays empty.
+	"""
+	if not frappe.db.exists("DocType", "POS Profile"):
+		return None
+
+	company = ctx["company"]
+	abbr = ctx["abbr"]
+	warehouse = f"Stores - {abbr}"
+	cash_gl = f"Cash - {abbr}"
+	sales_gl = f"Sales - {abbr}"
+	write_off = f"Write Off - {abbr}"
+	cost_center = f"Main - {abbr}"
+	tax_template = f"UAE VAT 5% - {abbr}"
+	price_list = "Standard Selling"
+	customer = "Walk-in Customer"
+	bank_gl = ctx.get("bank_gl") or frappe.db.get_value(
+		"Account",
+		{"company": company, "account_type": "Bank", "is_group": 0},
+		"name",
+	)
+
+	_ensure_mop_account("Cash", company, cash_gl)
+	if bank_gl:
+		_ensure_mop_account("Credit Card", company, bank_gl)
+
+	for email in POS_PROFILE_USERS:
+		if email != "Administrator":
+			_ensure_pos_cashier_role(email)
+
+	users = [u for u in POS_PROFILE_USERS if frappe.db.exists("User", u)]
+	if not users:
+		return None
+
+	for label, doctype, name in (
+		("warehouse", "Warehouse", warehouse),
+		("write_off_account", "Account", write_off),
+		("write_off_cost_center", "Cost Center", cost_center),
+		("income_account", "Account", sales_gl),
+		("account_for_change_amount", "Account", cash_gl),
+	):
+		if not frappe.db.exists(doctype, name):
+			frappe.log_error(title=f"TaxMate POS seed missing {label}", message=name)
+			return None
+
+	payments = [{"mode_of_payment": "Cash", "default": 1}]
+	if frappe.db.exists("Mode of Payment", "Credit Card") and frappe.db.exists(
+		"Mode of Payment Account", {"parent": "Credit Card", "company": company}
+	):
+		payments.append({"mode_of_payment": "Credit Card", "default": 0})
+
+	user_rows = [{"user": u, "default": 1 if i == 0 else 0} for i, u in enumerate(users)]
+
+	if frappe.db.exists("POS Profile", POS_PROFILE_NAME):
+		doc = frappe.get_doc("POS Profile", POS_PROFILE_NAME)
+		doc.disabled = 0
+		doc.company = company
+		doc.currency = "AED"
+		doc.warehouse = warehouse
+		doc.selling_price_list = price_list if frappe.db.exists("Price List", price_list) else doc.selling_price_list
+		if frappe.db.exists("Customer", customer):
+			doc.customer = customer
+		doc.write_off_account = write_off
+		doc.write_off_cost_center = cost_center
+		doc.write_off_limit = doc.write_off_limit or 1
+		doc.income_account = sales_gl
+		doc.account_for_change_amount = cash_gl
+		if frappe.db.exists("Sales Taxes and Charges Template", tax_template):
+			doc.taxes_and_charges = tax_template
+		existing_users = {row.user for row in doc.applicable_for_users}
+		for row in user_rows:
+			if row["user"] not in existing_users:
+				doc.append("applicable_for_users", row)
+		if not doc.payments:
+			for pay in payments:
+				doc.append("payments", pay)
+		doc.flags.ignore_permissions = True
+		doc.save()
+		return doc.name
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "POS Profile",
+			"name": POS_PROFILE_NAME,
+			"company": company,
+			"currency": "AED",
+			"warehouse": warehouse,
+			"selling_price_list": price_list if frappe.db.exists("Price List", price_list) else None,
+			"customer": customer if frappe.db.exists("Customer", customer) else None,
+			"write_off_account": write_off,
+			"write_off_cost_center": cost_center,
+			"write_off_limit": 1,
+			"income_account": sales_gl,
+			"account_for_change_amount": cash_gl,
+			"taxes_and_charges": tax_template
+			if frappe.db.exists("Sales Taxes and Charges Template", tax_template)
+			else None,
+			"update_stock": 1,
+			"payments": payments,
+			"applicable_for_users": user_rows,
+		}
+	)
+	doc.flags.ignore_permissions = True
+	doc.insert()
+	return doc.name

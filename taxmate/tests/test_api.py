@@ -1517,6 +1517,33 @@ class TestPhase22UaeCompliance(FrappeTestCase):
 		self.assertIsInstance(rows, list)
 
 
+class TestPosNextSeed(FrappeTestCase):
+	"""POS Next needs a POS Profile with the session user on applicable_for_users."""
+
+	def test_ensure_pos_next_creates_profile_for_sourav(self):
+		from taxmate.setup.seed_books import COMPANY_NAME, POS_PROFILE_NAME, _ensure_pos_next
+
+		company = COMPANY_NAME
+		if not frappe.db.exists("Company", company):
+			self.skipTest("Ascra Technology LLP not seeded on this site")
+		abbr = frappe.db.get_value("Company", company, "abbr")
+		name = _ensure_pos_next({"company": company, "abbr": abbr})
+		self.assertEqual(name, POS_PROFILE_NAME)
+		self.assertTrue(frappe.db.exists("POS Profile", POS_PROFILE_NAME))
+		users = frappe.get_all(
+			"POS Profile User",
+			filters={"parent": POS_PROFILE_NAME},
+			pluck="user",
+		)
+		self.assertIn("sourav@ascratech.com", users)
+		payments = frappe.get_all(
+			"POS Payment Method",
+			filters={"parent": POS_PROFILE_NAME},
+			pluck="mode_of_payment",
+		)
+		self.assertIn("Cash", payments)
+
+
 class TestCompanySettingsWrite(FrappeTestCase):
 	"""SPA Company Settings uses resource.save with a full Company doc."""
 
