@@ -120,20 +120,21 @@ _PERM_FLAGS: tuple[str, ...] = (
 
 
 def website_user_home_page(user: str | None = None) -> str | None:
-	"""Send SPA users to /taxmate after login. Administrator / Desk users are unchanged."""
+	"""Everyone except Administrator lands on /taxmate after login."""
 	user = user or frappe.session.user
 	if not user or user in ("Guest", "Administrator"):
 		return None
-	roles = set(frappe.get_roles(user))
-	if "System Manager" in roles:
-		return None
-	if roles.intersection(MARKER.values()):
-		return "taxmate"
-	return None
+	return "taxmate"
+
+
+def _role_grants_desk(role: str) -> bool:
+	if not role or not frappe.db.exists("Role", role):
+		return False
+	return bool(cint(frappe.db.get_value("Role", role, "desk_access")))
 
 
 def ensure_marker_roles() -> None:
-	"""Create TaxMate roles with desk_access=0. Safe on a whitelist request."""
+	"""Create TaxMate roles with desk_access=0. Zero desk on known SPA add-ons too."""
 	for name in MARKER.values():
 		if frappe.db.exists("Role", name):
 			if cint(frappe.db.get_value("Role", name, "desk_access")):
@@ -146,14 +147,18 @@ def ensure_marker_roles() -> None:
 				"desk_access": 0,
 			}
 		).insert(ignore_permissions=True)
+	for name in ADDON_ROLES:
+		if frappe.db.exists("Role", name) and cint(frappe.db.get_value("Role", name, "desk_access")):
+			frappe.db.set_value("Role", name, "desk_access", 0)
 
 
 def ensure_spa_roles() -> None:
-	"""Create marker roles, books DocPerms, and strip Desk roles. Call from install."""
+	"""Create marker roles, books DocPerms, and lock non-Admin users to the SPA."""
 	ensure_marker_roles()
 	_ensure_books_perms()
 	_allow_reports()
 	_strip_desk_roles_from_spa_users()
+	_lock_non_admin_users_to_spa()
 
 
 def available_addon_roles() -> list[str]:
@@ -219,11 +224,14 @@ def apply_spa_roles(
 
 	doc = frappe.get_doc("User", user)
 	addon_set = frozenset(ADDON_ROLES)
-	keep = [
-		row.role
-		for row in doc.roles
-		if row.role not in MANAGED_ROLES and row.role != "System Manager" and row.role not in addon_set
-	]
+	keep = []
+	for row in doc.roles:
+		role = row.role
+		if role in MANAGED_ROLES or role == "System Manager" or role in addon_set:
+			continue
+		if _role_grants_desk(role):
+			continue
+		keep.append(role)
 	if extra_roles is None:
 		extras = [row.role for row in doc.roles if row.role in addon_set]
 	else:
@@ -237,7 +245,10 @@ def apply_spa_roles(
 	wanted = tuple(dict.fromkeys([*keep, *markers, *extras]))
 	current = tuple(row.role for row in doc.roles)
 	needs_home = (doc.redirect_url or "") != "/taxmate" or getattr(doc, "default_app", None) != "taxmate"
-	if current == wanted and not needs_home:
+	if doc.meta.has_field("default_workspace") and doc.get("default_workspace"):
+		needs_home = True
+	needs_website = doc.user_type != "Website User" and not doc.has_desk_access()
+	if current == wanted and not needs_home and not needs_website:
 		return
 
 	if current != wanted:
@@ -248,6 +259,11 @@ def apply_spa_roles(
 	doc.redirect_url = "/taxmate"
 	if hasattr(doc, "default_app"):
 		doc.default_app = "taxmate"
+	if doc.meta.has_field("default_workspace"):
+		doc.default_workspace = None
+	# Recompute after role rewrite — Website User cannot open /desk by URL.
+	if not any(_role_grants_desk(row.role) for row in doc.roles):
+		doc.user_type = "Website User"
 	doc.save(ignore_permissions=True)
 	frappe.clear_cache(user=user)
 
@@ -411,3 +427,59 @@ def _strip_desk_roles_from_spa_users() -> None:
 		if not (roles & strip):
 			continue
 		apply_spa_roles(user, spa_roles_of(user), extra_roles=None)
+
+
+def _lock_non_admin_users_to_spa() -> None:
+	"""Except Administrator: no Desk roles, home = /taxmate."""
+	users = frappe.get_all(
+		"User",
+		filters={"enabled": 1, "name": ["not in", ["Administrator", "Guest"]]},
+		pluck="name",
+	)
+	for user in users:
+		_lock_user_to_spa(user)
+
+
+def _lock_user_to_spa(user: str) -> None:
+	if user in ("Administrator", "Guest"):
+		return
+
+	doc = frappe.get_doc("User", user)
+	roles_now = [row.role for row in doc.roles]
+	spa = spa_roles_of(user)
+	# spa_roles_of maps System Manager → owner; after we strip SM they need a marker.
+	if "System Manager" in roles_now and not any(r in MARKER.values() for r in roles_now):
+		spa = ["owner"]
+	if not spa:
+		spa = ["viewer"]
+
+	extras = [r for r in roles_now if r in ADDON_ROLES]
+	try:
+		apply_spa_roles(user, spa, extra_roles=extras)
+	except frappe.PermissionError:
+		# apply_spa_roles refuses System Manager — strip SM first then retry.
+		doc = frappe.get_doc("User", user)
+		doc.set("roles", [{"role": r} for r in roles_now if r != "System Manager"])
+		doc.save(ignore_permissions=True)
+		frappe.clear_cache(user=user)
+		apply_spa_roles(user, spa, extra_roles=extras)
+
+	doc = frappe.get_doc("User", user)
+	if doc.has_desk_access():
+		# Last resort: drop any remaining desk-granting roles.
+		kept = [row.role for row in doc.roles if not _role_grants_desk(row.role)]
+		if not any(r in MARKER.values() for r in kept):
+			kept.append(MARKER[spa[0]])
+		doc.set("roles", [])
+		for role in dict.fromkeys(kept):
+			if role and frappe.db.exists("Role", role):
+				doc.append("roles", {"role": role})
+		doc.redirect_url = "/taxmate"
+		if hasattr(doc, "default_app"):
+			doc.default_app = "taxmate"
+		if doc.meta.has_field("default_workspace"):
+			doc.default_workspace = None
+		if not doc.has_desk_access():
+			doc.user_type = "Website User"
+		doc.save(ignore_permissions=True)
+		frappe.clear_cache(user=user)
