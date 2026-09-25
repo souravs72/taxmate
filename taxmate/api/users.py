@@ -21,6 +21,7 @@ from frappe.utils import cint, random_string, validate_email_address
 
 from taxmate.api.resource import require_login
 from taxmate.setup.spa_roles import (
+	ALL_MARKER_ROLE_NAMES,
 	MARKER,
 	SPA_ROLES,
 	addon_roles_of,
@@ -125,11 +126,15 @@ def _as_user_row(name: str) -> dict[str, Any]:
 		"first_name": doc.first_name,
 		"last_name": doc.last_name,
 		"mobile_no": doc.mobile_no,
+		"language": doc.language,
+		"user_type": doc.user_type,
 		"enabled": int(doc.enabled or 0),
 		"spa_role": roles[0] if roles else spa_role_of(doc.name),
 		"spa_roles": roles,
 		"extra_roles": addon_roles_of(doc.name),
 		"last_active": str(doc.last_active) if doc.last_active else None,
+		"last_login": str(doc.last_login) if getattr(doc, "last_login", None) else None,
+		"creation": str(doc.creation) if doc.creation else None,
 	}
 
 
@@ -143,7 +148,7 @@ def list_users() -> list[dict[str, Any]]:
 		row.parent
 		for row in frappe.get_all(
 			"Has Role",
-			filters={"role": ["in", list(MARKER.values())], "parenttype": "User"},
+			filters={"role": ["in", list(ALL_MARKER_ROLE_NAMES)], "parenttype": "User"},
 			fields=["parent"],
 		)
 	}
@@ -156,6 +161,73 @@ def list_users() -> list[dict[str, Any]]:
 		out.append(_as_user_row(name))
 	out.sort(key=lambda row: (0 if row.get("enabled") else 1, (row.get("full_name") or row["name"]).lower()))
 	return out
+
+
+@frappe.whitelist()
+def get_user(user: str) -> dict[str, Any]:
+	"""One teammate for the Team detail form (Frappe User fields + SPA roles)."""
+	require_login()
+	_require_team_read()
+	ensure_marker_roles()
+	user = (user or "").strip()
+	if not user or user in _SKIP_USERS or _is_system_manager(user):
+		frappe.throw(_("User not found"))
+	if not frappe.db.exists("User", user):
+		frappe.throw(_("User not found"))
+	# Must hold a TaxMate marker (or legacy) — not arbitrary Desk users.
+	held = set(frappe.get_roles(user))
+	if not held.intersection(ALL_MARKER_ROLE_NAMES):
+		frappe.throw(_("User not found"))
+	return _as_user_row(user)
+
+
+@frappe.whitelist(methods=["POST"])
+def update_user(
+	user: str,
+	first_name: str,
+	last_name: str | None = None,
+	mobile_no: str | None = None,
+	language: str | None = None,
+) -> dict[str, Any]:
+	"""Owner edits teammate identity fields (email stays the User name)."""
+	require_login()
+	_require_owner()
+	_assert_mutable_user(user)
+	if not frappe.db.exists("User", user):
+		frappe.throw(_("User not found"))
+
+	first_name = (first_name or "").strip()
+	if not first_name:
+		frappe.throw(_("First name is required"))
+
+	doc = frappe.get_doc("User", user)
+	doc.first_name = first_name
+	doc.last_name = (last_name or "").strip()
+	doc.mobile_no = (mobile_no or "").strip()
+	if language is not None:
+		doc.language = (language or "").strip() or None
+	doc.save(ignore_permissions=True)
+	frappe.clear_cache(user=user)
+	return _as_user_row(user)
+
+
+@frappe.whitelist(methods=["POST"])
+def reset_user_password(user: str) -> dict[str, str]:
+	"""Send Frappe password-reset email to a teammate."""
+	require_login()
+	_require_owner()
+	_assert_mutable_user(user)
+	if user == frappe.session.user:
+		frappe.throw(_("Use Profile to change your own password"))
+	if not frappe.db.exists("User", user):
+		frappe.throw(_("User not found"))
+
+	doc = frappe.get_doc("User", user)
+	if not cint(doc.enabled):
+		frappe.throw(_("Enable the user before resetting the password"))
+	doc.validate_reset_password()
+	doc._reset_password(send_email=True)
+	return {"ok": "1"}
 
 
 @frappe.whitelist(methods=["POST"])

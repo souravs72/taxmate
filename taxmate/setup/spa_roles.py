@@ -26,6 +26,11 @@ _LEGACY_MARKER_RENAMES: dict[str, str] = {
 	"TaxMate Viewer": "TaxMate Auditor",
 }
 
+# Current + legacy Role names (list_users Has Role lookup during transition).
+ALL_MARKER_ROLE_NAMES: tuple[str, ...] = tuple(
+	dict.fromkeys([*MARKER.values(), *_LEGACY_MARKER_RENAMES.keys()])
+)
+
 # SPA bundles are marker-only. Desk ERPNext roles are listed so apply_spa_role strips them.
 BUNDLE: dict[str, tuple[str, ...]] = {spa: (name,) for spa, name in MARKER.items()}
 

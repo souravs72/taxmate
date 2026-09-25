@@ -16,11 +16,13 @@ from taxmate.api.resource import is_allowed_doctype
 from taxmate.api.users import (
 	change_password,
 	get_profile,
+	get_user,
 	invite_user,
 	list_users,
 	set_user_enabled,
 	set_user_role,
 	update_profile,
+	update_user,
 )
 from taxmate.setup.spa_roles import MARKER, ensure_spa_roles, spa_role_of
 
@@ -55,9 +57,12 @@ class TestSpaUsers(FrappeTestCase):
 		self.assertFalse(is_allowed_doctype("User"))
 		methods = {row["method"] for row in catalog["actions"]}
 		self.assertIn("taxmate.api.users.list_users", methods)
+		self.assertIn("taxmate.api.users.get_user", methods)
 		self.assertIn("taxmate.api.users.invite_user", methods)
+		self.assertIn("taxmate.api.users.update_user", methods)
 		self.assertIn("taxmate.api.users.set_user_role", methods)
 		self.assertIn("taxmate.api.users.set_user_enabled", methods)
+		self.assertIn("taxmate.api.users.reset_user_password", methods)
 		self.assertIn("taxmate.api.users.get_profile", methods)
 		self.assertIn("taxmate.api.users.update_profile", methods)
 		self.assertIn("taxmate.api.users.change_password", methods)
@@ -86,6 +91,23 @@ class TestSpaUsers(FrappeTestCase):
 		finally:
 			self._delete(created["name"])
 
+
+	def test_get_and_update_user(self):
+		created = self._invite("clerk")
+		try:
+			row = get_user(user=created["name"])
+			self.assertEqual(row["name"], created["name"])
+			self.assertEqual(row["spa_role"], "clerk")
+			updated = update_user(
+				user=created["name"],
+				first_name="Renamed",
+				last_name="Teammate",
+				mobile_no="+971500000099",
+			)
+			self.assertEqual(updated["first_name"], "Renamed")
+			self.assertEqual(updated["mobile_no"], "+971500000099")
+		finally:
+			self._delete(created["name"])
 
 	def test_multi_spa_roles_union(self):
 		"""Multiple TaxMate markers are stored; Frappe unions DocPerms (highest wins UI)."""
