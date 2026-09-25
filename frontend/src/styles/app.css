@@ -564,3 +564,13 @@ td.pick{width:38px; padding-inline-end:0}
 .umdrop-sep{height:1px; background:var(--border); margin:4px 6px}
 .umdrop-ic{width:16px; height:16px; flex:none; display:flex; align-items:center; justify-content:center; color:var(--muted)}
 .umdrop-item.danger .umdrop-ic{color:var(--bad)}
+
+
+/* Frappe-like form tabs (Team User detail) */
+.ftabs{display:flex; gap:0; margin:0 0 14px; border-block-end:1px solid var(--border); overflow-x:auto}
+.ftab{appearance:none; background:transparent; border:0; border-block-end:2px solid transparent; margin-block-end:-1px; padding:10px 14px; font:inherit; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; white-space:nowrap}
+.ftab:hover{color:var(--text)}
+.ftab.on{color:var(--text); border-block-end-color:var(--accent, var(--text))}
+.team-pills{display:flex; flex-wrap:wrap; gap:4px}
+.team-check{display:flex; align-items:center; gap:8px; font-size:13px}
+.team-addon-label{font-size:11.5px; color:var(--muted); margin-top:6px}
