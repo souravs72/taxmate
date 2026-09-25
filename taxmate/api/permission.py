@@ -15,7 +15,14 @@ def has_app_permission() -> bool:
 		return False
 	roles = set(frappe.get_roles())
 	if "System Manager" in roles or roles.intersection(
-		{"TaxMate Owner", "TaxMate Accountant", "TaxMate Clerk", "TaxMate Viewer"}
+		{
+			"TaxMate Owner",
+			"TaxMate Accountant",
+			"TaxMate Accounts Officer",
+			"TaxMate Auditor",
+			"TaxMate Clerk",
+			"TaxMate Viewer",
+		}
 	):
 		return True
 	return bool(
