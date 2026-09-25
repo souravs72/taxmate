@@ -182,7 +182,10 @@ export default function TeamDetail() {
             key={item.id}
             type="button"
             role="tab"
+            id={`team-tab-${item.id}`}
+            aria-controls={`team-panel-${item.id}`}
             aria-selected={tab === item.id}
+            tabIndex={tab === item.id ? 0 : -1}
             className={`ftab${tab === item.id ? " on" : ""}`}
             onClick={() => setTab(item.id)}
           >
@@ -193,6 +196,7 @@ export default function TeamDetail() {
 
       <FormLayout>
         {tab === "details" && (
+          <div role="tabpanel" id="team-panel-details" aria-labelledby="team-tab-details">
           <Card title={t("team.tab.details")}>
             <form
               className="stack"
@@ -254,9 +258,11 @@ export default function TeamDetail() {
               )}
             </form>
           </Card>
+          </div>
         )}
 
         {tab === "roles" && (
+          <div role="tabpanel" id="team-panel-roles" aria-labelledby="team-tab-roles">
           <Card title={t("team.tab.roles")} hint={t("team.roles.hint")}>
             <div className="stack" style={{ gap: 10 }}>
               {SPA_ROLES.map((role) => (
@@ -300,9 +306,11 @@ export default function TeamDetail() {
               )}
             </div>
           </Card>
+          </div>
         )}
 
         {tab === "access" && (
+          <div role="tabpanel" id="team-panel-access" aria-labelledby="team-tab-access">
           <Card title={t("team.tab.access")}>
             <div className="stack" style={{ gap: 14 }}>
               <div className="grid2">
@@ -342,6 +350,7 @@ export default function TeamDetail() {
               )}
             </div>
           </Card>
+          </div>
         )}
       </FormLayout>
     </>

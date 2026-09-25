@@ -215,7 +215,7 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{
 		"label": "Team",
 		"route": "/team",
-		"keywords": "users roles team staff invite admin finance manager accounts officer read-only owner accountant clerk viewer",
+		"keywords": "users roles team staff invite admin finance manager accounts user auditor owner accountant clerk viewer",
 	},
 	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
 	{"label": "Bank Accounts", "route": "/bank-accounts", "keywords": "bank account banking cash gl"},

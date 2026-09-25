@@ -45,6 +45,13 @@ def _require_team_read() -> None:
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 
+def _assert_taxmate_teammate(user: str) -> None:
+	"""Reject Desk-only / unrelated Users — Team APIs are TaxMate-marker scoped."""
+	held = set(frappe.get_roles(user))
+	if not held.intersection(ALL_MARKER_ROLE_NAMES):
+		frappe.throw(_("User not found"))
+
+
 def _assert_mutable_user(user: str) -> None:
 	if not user or user in _SKIP_USERS:
 		frappe.throw(_("That user cannot be changed from TaxMate"))
@@ -174,10 +181,7 @@ def get_user(user: str) -> dict[str, Any]:
 		frappe.throw(_("User not found"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
-	# Must hold a TaxMate marker (or legacy) — not arbitrary Desk users.
-	held = set(frappe.get_roles(user))
-	if not held.intersection(ALL_MARKER_ROLE_NAMES):
-		frappe.throw(_("User not found"))
+	_assert_taxmate_teammate(user)
 	return _as_user_row(user)
 
 
@@ -195,6 +199,7 @@ def update_user(
 	_assert_mutable_user(user)
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
+	_assert_taxmate_teammate(user)
 
 	first_name = (first_name or "").strip()
 	if not first_name:
@@ -221,6 +226,7 @@ def reset_user_password(user: str) -> dict[str, str]:
 		frappe.throw(_("Use Profile to change your own password"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
+	_assert_taxmate_teammate(user)
 
 	doc = frappe.get_doc("User", user)
 	if not cint(doc.enabled):
@@ -292,6 +298,7 @@ def set_user_role(
 		frappe.throw(_("You cannot change your own role"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
+	_assert_taxmate_teammate(user)
 
 	roles = _parse_spa_roles(spa_role=spa_role, spa_roles=spa_roles)
 	addons = _parse_extra_roles(extra_roles)
@@ -308,6 +315,7 @@ def set_user_enabled(user: str, enabled: int | str = 0) -> dict[str, Any]:
 		frappe.throw(_("You cannot disable yourself"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
+	_assert_taxmate_teammate(user)
 
 	doc = frappe.get_doc("User", user)
 	doc.enabled = 1 if cint(enabled) else 0

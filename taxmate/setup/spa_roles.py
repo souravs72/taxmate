@@ -31,6 +31,13 @@ ALL_MARKER_ROLE_NAMES: tuple[str, ...] = tuple(
 	dict.fromkeys([*MARKER.values(), *_LEGACY_MARKER_RENAMES.keys()])
 )
 
+# Legacy Role.role_name → spa key (for session gates before rename finishes).
+_LEGACY_SPA_KEYS: dict[str, str] = {
+	"TaxMate Clerk": "clerk",
+	"TaxMate Accounts Officer": "clerk",
+	"TaxMate Viewer": "viewer",
+}
+
 # SPA bundles are marker-only. Desk ERPNext roles are listed so apply_spa_role strips them.
 BUNDLE: dict[str, tuple[str, ...]] = {spa: (name,) for spa, name in MARKER.items()}
 
@@ -178,11 +185,10 @@ def _rename_legacy_markers() -> None:
 				"""
 				update `tabHas Role`
 				set role = %s
-				where role = %s and parenttype = 'User'
-				and parent not in (
-					select parent from (
-						select parent from `tabHas Role`
-						where role = %s and parenttype = 'User'
+				where role = %s
+				and name not in (
+					select name from (
+						select name from `tabHas Role` where role = %s
 					) t
 				)
 				""",
@@ -237,10 +243,15 @@ def spa_roles_of(user: str | None = None) -> list[str]:
 	for key in SPA_ROLES:
 		if MARKER[key] in roles:
 			found.append(key)
+	for legacy, spa in _LEGACY_SPA_KEYS.items():
+		if legacy in roles and spa not in found:
+			found.append(spa)
 	if found:
-		return found
+		# Keep SPA_ROLES priority order.
+		return [key for key in SPA_ROLES if key in found]
 	if "Accounts Manager" in roles or "UAE Tax Manager" in roles:
 		return ["accountant"]
+	# ERPNext Desk "Accounts User" (not TaxMate Accounts User) → clerk.
 	if "Accounts User" in roles:
 		return ["clerk"]
 	return ["viewer"]
