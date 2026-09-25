@@ -219,6 +219,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "make_purchase_return", "method": "taxmate.api.accounts.make_purchase_return"},
 			{"name": "run_report", "method": "taxmate.api.reports.run_report"},
 			{"name": "list_reports", "method": "taxmate.api.reports.list_reports"},
+			{"name": "get_report_badges", "method": "taxmate.api.report_badges.get_report_badges"},
 			{"name": "get_home", "method": "taxmate.api.dashboard.get_home"},
 			{
 				"name": "fulfilment_summary",
