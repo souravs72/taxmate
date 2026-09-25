@@ -18,6 +18,7 @@ def has_app_permission() -> bool:
 		{
 			"TaxMate Owner",
 			"TaxMate Accountant",
+			"TaxMate Accounts User",
 			"TaxMate Accounts Officer",
 			"TaxMate Auditor",
 			"TaxMate Clerk",

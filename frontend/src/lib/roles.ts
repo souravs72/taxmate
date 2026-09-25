@@ -28,6 +28,7 @@ export function isAppProvider(session: {
     [
       "TaxMate Owner",
       "TaxMate Accountant",
+      "TaxMate Accounts User",
       "TaxMate Accounts Officer",
       "TaxMate Auditor",
       "TaxMate Clerk",
@@ -52,7 +53,7 @@ export function spaRolesOf(session: {
   const found: SpaRole[] = [];
   if (roles.includes("TaxMate Owner") || roles.includes("System Manager")) found.push("owner");
   if (roles.includes("TaxMate Accountant")) found.push("accountant");
-  if (roles.includes("TaxMate Accounts Officer") || roles.includes("TaxMate Clerk")) found.push("clerk");
+  if (roles.includes("TaxMate Accounts User") || roles.includes("TaxMate Accounts Officer") || roles.includes("TaxMate Clerk")) found.push("clerk");
   if (roles.includes("TaxMate Auditor") || roles.includes("TaxMate Viewer")) found.push("viewer");
   if (found.length) return found;
   if (roles.includes("Accounts Manager") || roles.includes("UAE Tax Manager")) return ["accountant"];

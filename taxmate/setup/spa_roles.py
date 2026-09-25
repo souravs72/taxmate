@@ -1,7 +1,7 @@
 """Four TaxMate SPA roles. Marker Role.role_name only — no ERPNext Desk roles.
 
 spa_role is owner, accountant, clerk, or viewer. Marker Roles have desk_access=0.
-Display names: Owner, Accountant, Accounts Officer (clerk), Auditor (viewer).
+Display names: Owner, Accountant, Accounts User (clerk), Auditor (viewer).
 The Frappe Administrator user keeps System Manager and Desk. SPA Admin is TaxMate Owner.
 """
 
@@ -15,13 +15,14 @@ SPA_ROLES: tuple[str, ...] = ("owner", "accountant", "clerk", "viewer")
 MARKER: dict[str, str] = {
 	"owner": "TaxMate Owner",
 	"accountant": "TaxMate Accountant",
-	"clerk": "TaxMate Accounts Officer",
+	"clerk": "TaxMate Accounts User",
 	"viewer": "TaxMate Auditor",
 }
 
 # Older marker names → current (rename on migrate).
 _LEGACY_MARKER_RENAMES: dict[str, str] = {
-	"TaxMate Clerk": "TaxMate Accounts Officer",
+	"TaxMate Clerk": "TaxMate Accounts User",
+	"TaxMate Accounts Officer": "TaxMate Accounts User",
 	"TaxMate Viewer": "TaxMate Auditor",
 }
 
@@ -162,7 +163,7 @@ def ensure_marker_roles() -> None:
 
 
 def _rename_legacy_markers() -> None:
-	"""TaxMate Clerk → Accounts Officer, TaxMate Viewer → Auditor."""
+	"""TaxMate Clerk / Accounts Officer → Accounts User; Viewer → Auditor."""
 	for old, new in _LEGACY_MARKER_RENAMES.items():
 		if not frappe.db.exists("Role", old):
 			continue
