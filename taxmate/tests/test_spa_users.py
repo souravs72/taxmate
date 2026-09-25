@@ -69,7 +69,7 @@ class TestSpaUsers(FrappeTestCase):
 			self.assertEqual(spa_role_of(created["name"]), "clerk")
 			roles = frappe.get_roles(created["name"])
 			self.assertNotIn("System Manager", roles)
-			self.assertIn("TaxMate Clerk", roles)
+			self.assertIn("TaxMate Accounts Officer", roles)
 			self.assertNotIn("Accounts User", roles)
 			self.assertNotIn("Accounts Manager", roles)
 			user = frappe.get_doc("User", created["name"])

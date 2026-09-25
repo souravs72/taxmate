@@ -23,6 +23,13 @@ def get_context(context):
 		frappe.local.flags.redirect_location = f"/login?redirect-to={target}"
 		raise frappe.Redirect
 
+	# Home page hook returns "taxmate", so Frappe can render this template at `/`.
+	# The SPA's BrowserRouter basename is `/taxmate` — serving it at `/` is a blank page.
+	req_path = (frappe.request.path if frappe.request else "/taxmate").rstrip("/") or "/"
+	if req_path == "/":
+		frappe.local.flags.redirect_location = "/taxmate"
+		raise frappe.Redirect
+
 	if not has_app_permission():
 		frappe.throw(_("You do not have permission to access TaxMate"), frappe.PermissionError)
 

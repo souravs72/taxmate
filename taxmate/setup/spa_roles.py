@@ -1,6 +1,7 @@
 """Four TaxMate SPA roles. Marker Role.role_name only — no ERPNext Desk roles.
 
 spa_role is owner, accountant, clerk, or viewer. Marker Roles have desk_access=0.
+Display names: Owner, Accountant, Accounts Officer (clerk), Auditor (viewer).
 The Frappe Administrator user keeps System Manager and Desk. SPA Admin is TaxMate Owner.
 """
 
@@ -14,8 +15,14 @@ SPA_ROLES: tuple[str, ...] = ("owner", "accountant", "clerk", "viewer")
 MARKER: dict[str, str] = {
 	"owner": "TaxMate Owner",
 	"accountant": "TaxMate Accountant",
-	"clerk": "TaxMate Clerk",
-	"viewer": "TaxMate Viewer",
+	"clerk": "TaxMate Accounts Officer",
+	"viewer": "TaxMate Auditor",
+}
+
+# Older marker names → current (rename on migrate).
+_LEGACY_MARKER_RENAMES: dict[str, str] = {
+	"TaxMate Clerk": "TaxMate Accounts Officer",
+	"TaxMate Viewer": "TaxMate Auditor",
 }
 
 # SPA bundles are marker-only. Desk ERPNext roles are listed so apply_spa_role strips them.
@@ -36,8 +43,9 @@ LEGACY_DESK_ROLES: frozenset[str] = frozenset(
 	}
 )
 
-MANAGED_ROLES: frozenset[str] = frozenset((*MARKER.values(), *LEGACY_DESK_ROLES))
-
+MANAGED_ROLES: frozenset[str] = frozenset(
+	(*MARKER.values(), *_LEGACY_MARKER_RENAMES.keys(), *LEGACY_DESK_ROLES)
+)
 READ_ONLY_DOCTYPES: frozenset[str] = frozenset({"GL Entry", "Fiscal Year"})
 SETTINGS_DOCTYPES: frozenset[str] = frozenset(
 	{
@@ -135,6 +143,7 @@ def _role_grants_desk(role: str) -> bool:
 
 def ensure_marker_roles() -> None:
 	"""Create TaxMate roles with desk_access=0. Zero desk on known SPA add-ons too."""
+	_rename_legacy_markers()
 	for name in MARKER.values():
 		if frappe.db.exists("Role", name):
 			if cint(frappe.db.get_value("Role", name, "desk_access")):
@@ -150,6 +159,45 @@ def ensure_marker_roles() -> None:
 	for name in ADDON_ROLES:
 		if frappe.db.exists("Role", name) and cint(frappe.db.get_value("Role", name, "desk_access")):
 			frappe.db.set_value("Role", name, "desk_access", 0)
+
+
+def _rename_legacy_markers() -> None:
+	"""TaxMate Clerk → Accounts Officer, TaxMate Viewer → Auditor."""
+	for old, new in _LEGACY_MARKER_RENAMES.items():
+		if not frappe.db.exists("Role", old):
+			continue
+		if frappe.db.exists("Role", new):
+			# Move Has Role rows then drop the legacy Role.
+			frappe.db.sql(
+				"""
+				update `tabHas Role`
+				set role = %s
+				where role = %s and parenttype = 'User'
+				and parent not in (
+					select parent from (
+						select parent from `tabHas Role`
+						where role = %s and parenttype = 'User'
+					) t
+				)
+				""",
+				(new, old, new),
+			)
+			frappe.db.sql(
+				"""
+				update `tabCustom DocPerm`
+				set role = %s
+				where role = %s
+				and name not in (
+					select name from (
+						select name from `tabCustom DocPerm` where role = %s
+					) t
+				)
+				""",
+				(new, old, new),
+			)
+			frappe.delete_doc("Role", old, force=True, ignore_permissions=True)
+			continue
+		frappe.rename_doc("Role", old, new, force=True, merge=False)
 
 
 def ensure_spa_roles() -> None:
