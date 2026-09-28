@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { useLang } from "../lib/i18n";
-import { toggleTheme } from "../lib/theme";
+import { appearance, toggleTheme } from "../lib/theme";
 import { useSession } from "../lib/session";
 import { canOpenPosNext, canViewTeam } from "../lib/roles";
 import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
@@ -38,6 +38,13 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     });
   }
   const { lang, set: setLocale } = useLang();
+  const [mode, setMode] = useState(appearance);
+  useEffect(() => {
+    const mq = matchMedia("(prefers-color-scheme: dark)");
+    const sync = () => setMode(appearance());
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
   const [open, setOpen] = useState(loadOpen);
   const location = useLocation();
   const session = useSession();
@@ -155,20 +162,37 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <GlobalSearch />
 
           <div className="tright">
-            <button
-              type="button"
-              className="langbtn"
-              onClick={() => setLocale(lang === "en" ? "ar" : "en")}
-            >
-              {lang === "en" ? "عربي" : "English"}
-            </button>
-            <button type="button" className="iconbtn bordered" onClick={toggleTheme} aria-label={t("a11y.toggleTheme")}>
-              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6">
-                <circle cx="9" cy="9" r="3.4" />
-                <path d="M9 1.6v2M9 14.4v2M16.4 9h-2M3.6 9h-2M14.2 3.8l-1.4 1.4M5.2 12.8l-1.4 1.4M14.2 14.2l-1.4-1.4M5.2 5.2 3.8 3.8" />
-              </svg>
-            </button>
-<UserMenu />
+            <div className="tools">
+              <button
+                type="button"
+                className="langbtn"
+                lang={lang === "en" ? "ar" : "en"}
+                onClick={() => setLocale(lang === "en" ? "ar" : "en")}
+              >
+                {lang === "en" ? "عربي" : "English"}
+              </button>
+              <button
+                type="button"
+                className="iconbtn bordered"
+                onClick={() => {
+                  toggleTheme();
+                  setMode(appearance());
+                }}
+                aria-label={mode === "dark" ? t("a11y.themeLight") : t("a11y.themeDark")}
+              >
+                {mode === "dark" ? (
+                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                    <circle cx="9" cy="9" r="3.4" />
+                    <path d="M9 1.6v2M9 14.4v2M16.4 9h-2M3.6 9h-2M14.2 3.8l-1.4 1.4M5.2 12.8l-1.4 1.4M14.2 14.2l-1.4-1.4M5.2 5.2 3.8 3.8" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                    <path d="M14.5 11.2A6.2 6.2 0 0 1 6.8 3.5 6.4 6.4 0 1 0 14.5 11.2z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+            <UserMenu />
           </div>
         </div>
 

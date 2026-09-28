@@ -14,7 +14,7 @@ required_apps = ["erpnext"]
 add_to_apps_screen = [
 	{
 		"name": "taxmate",
-		"logo": "/assets/taxmate/logo.png",
+			"logo": "/assets/taxmate/logo.svg",
 		"title": "TaxMate",
 		"route": "/taxmate",
 		"has_permission": "taxmate.api.permission.has_app_permission",
@@ -278,7 +278,7 @@ override_whitelisted_methods = {
 
 # Request Events
 # ----------------
-# before_request = ["taxmate.utils.before_request"]
+before_request = ["taxmate.setup.desk_gate.block_desk_for_non_admin"]
 # after_request = ["taxmate.utils.after_request"]
 
 # Job Events

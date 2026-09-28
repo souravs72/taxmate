@@ -16,6 +16,61 @@ from frappe import _
 from taxmate.api.resource import require_login
 
 
+def _uncleared_journals(
+	gl_account: str,
+	from_date: str | None,
+	to_date: str | None,
+) -> list[dict[str, Any]]:
+	"""Submitted journals that hit the bank GL account and are not yet cleared."""
+	from frappe.query_builder.functions import Max, Sum
+
+	je = frappe.qb.DocType("Journal Entry")
+	jea = frappe.qb.DocType("Journal Entry Account")
+	query = (
+		frappe.qb.from_(jea)
+		.inner_join(je)
+		.on(jea.parent == je.name)
+		.select(
+			je.name,
+			je.posting_date,
+			Sum(jea.debit_in_account_currency).as_("debit"),
+			Sum(jea.credit_in_account_currency).as_("credit"),
+			Max(jea.party).as_("party"),
+			Max(je.cheque_no).as_("cheque_no"),
+			Max(je.user_remark).as_("user_remark"),
+		)
+		.where(
+			(jea.account == gl_account)
+			& (je.docstatus == 1)
+			& ((je.clearance_date.isnull()) | (je.clearance_date == "0000-00-00"))
+			& ((je.is_opening.isnull()) | (je.is_opening == "No"))
+		)
+		.groupby(je.name, je.posting_date)
+		.orderby(je.posting_date)
+	)
+	if from_date:
+		query = query.where(je.posting_date >= from_date)
+	if to_date:
+		query = query.where(je.posting_date <= to_date)
+
+	rows: list[dict[str, Any]] = []
+	for row in query.run(as_dict=True):
+		debit = float(row.debit or 0)
+		credit = float(row.credit or 0)
+		rows.append(
+			{
+				"doctype": "Journal Entry",
+				"name": row.name,
+				"date": str(row.posting_date) if row.posting_date else "",
+				"party": row.party or "",
+				"amount": debit or credit,
+				"reference": row.cheque_no or row.user_remark or "",
+				"type": "Journal Entry",
+			}
+		)
+	return rows
+
+
 @frappe.whitelist()
 def get_uncleared_transactions(
 	bank_account: str,
@@ -62,44 +117,9 @@ def get_uncleared_transactions(
 			}
 		)
 
-	# --- Journal Entries via account rows ---
+	# clearance_date sits on Journal Entry. The account row has neither that field nor docstatus.
 	if gl_account:
-		je_accounts = frappe.db.get_all(
-			"Journal Entry Account",
-			fields=["parent"],
-			filters={
-				"account": gl_account,
-				"clearance_date": ("is", "not set"),
-				"docstatus": 1,
-			},
-			pluck="parent",
-			limit=500,
-		)
-		if je_accounts:
-			je_extra: list = [["name", "in", je_accounts], ["docstatus", "=", "1"]]
-			if from_date:
-				je_extra.append(["posting_date", ">=", from_date])
-			if to_date:
-				je_extra.append(["posting_date", "<=", to_date])
-			je_list = frappe.get_list(
-				"Journal Entry",
-				fields=["name", "posting_date", "total_debit", "user_remark"],
-				filters=je_extra,
-				limit=500,
-				order_by="posting_date asc",
-			)
-			for je in je_list:
-				results.append(
-					{
-						"doctype": "Journal Entry",
-						"name": je.name,
-						"date": str(je.posting_date) if je.posting_date else "",
-						"party": "",
-						"amount": float(je.total_debit or 0),
-						"reference": je.get("user_remark") or "",
-						"type": "Journal Entry",
-					}
-				)
+		results.extend(_uncleared_journals(gl_account, from_date, to_date))
 
 	results.sort(key=lambda r: r["date"])
 	return results
@@ -107,7 +127,7 @@ def get_uncleared_transactions(
 
 @frappe.whitelist()
 def mark_cleared(doctype: str, name: str, clearance_date: str) -> dict[str, str]:
-	"""Set *clearance_date* on a Payment Entry or Journal Entry account rows."""
+	"""Set clearance_date on a Payment Entry or on the Journal Entry itself."""
 	require_login()
 	if doctype == "Payment Entry":
 		if not frappe.has_permission("Payment Entry", "write", name):
@@ -117,9 +137,14 @@ def mark_cleared(doctype: str, name: str, clearance_date: str) -> dict[str, str]
 	elif doctype == "Journal Entry":
 		if not frappe.has_permission("Journal Entry", "write", name):
 			frappe.throw(_("Not permitted"), frappe.PermissionError)
-		frappe.db.sql(
-			"UPDATE `tabJournal Entry Account` SET clearance_date = %s WHERE parent = %s",
-			(clearance_date, name),
+		if not frappe.db.exists("Journal Entry", name):
+			frappe.throw(_("Not found"), frappe.DoesNotExistError)
+		frappe.db.set_value(
+			"Journal Entry",
+			name,
+			"clearance_date",
+			clearance_date,
+			update_modified=False,
 		)
 		frappe.db.commit()
 	else:

@@ -137,3 +137,40 @@
 div.od-cmp-i{cursor:default}
 div.od-cmp-i:hover{background:transparent}
 .od-ok{color:var(--ok); font-weight:500}
+
+.idp-back{
+  position:fixed; inset:0; z-index:40; display:flex; align-items:flex-start; justify-content:center;
+  padding:10vh 16px 24px; background:color-mix(in srgb, var(--text) 28%, transparent);
+}
+.idp-panel{
+  width:min(560px, 100%); max-height:min(78vh, 720px); overflow:auto;
+  background:var(--surface); color:var(--text); border:1px solid var(--border);
+  border-radius:var(--r-sm); padding:16px 16px 12px;
+}
+.idp-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px}
+.idp-head h2{font-size:16px; font-weight:600; margin:0}
+.idp-notes{margin:0 0 12px; padding-inline-start:18px; color:var(--muted); font-size:13px}
+.idp-notes li + li{margin-top:4px}
+.idp-job{padding:10px 0; border-top:1px solid var(--border)}
+.idp-job h3{font-size:14px; font-weight:600; margin:0 0 4px}
+.idp-job p{margin:0; color:var(--muted); font-size:13px}
+.idp-targets{display:flex; flex-wrap:wrap; gap:6px; margin-top:8px}
+.idp-targets span{font-size:12px; padding:3px 8px; border:1px solid var(--border); border-radius:var(--r-sm)}
+
+.idp-jobs{display:flex; flex-wrap:wrap; gap:6px}
+.idp-file{display:flex; flex-direction:column; gap:4px; margin:10px 0; font-size:13px}
+.idp-file input[type="text"],
+.idp-file input[type="date"],
+.idp-file select{
+  border:1px solid var(--border); background:var(--input); color:var(--text);
+  border-radius:var(--r-sm); padding:6px 8px; font:inherit;
+}
+.idp-jobs button[aria-pressed="true"],
+.idp-targets button[aria-pressed="true"]{
+  border-color:var(--brand); color:var(--brand); background:var(--brand-soft);
+}
+.idp-kicker{margin:10px 0 4px; font-size:12px; font-weight:600; color:var(--text)}
+.idp-read{display:flex; flex-direction:column; gap:4px; margin:0 0 8px}
+.idp-read div{display:flex; justify-content:space-between; gap:16px; font-size:13px}
+.idp-read span{color:var(--muted)}
+.idp-read b{font-weight:600}

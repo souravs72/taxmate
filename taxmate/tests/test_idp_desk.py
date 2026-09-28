@@ -1,0 +1,329 @@
+"""Dashboard IDP surface. No site and no OpenAI.
+
+Run: PYTHONPATH=apps/taxmate python -m unittest taxmate.tests.test_idp_desk
+"""
+
+from __future__ import annotations
+
+import unittest
+
+from taxmate.idp.desk import (
+	JOBS,
+	TARGETS,
+	build_surface,
+	diffs_from_compare,
+	apply_writes,
+	attach_item_codes,
+	finish_draft,
+	draft_instructions,
+	gaps_from_validation,
+	submit_requested,
+	draft_only_error,
+	file_read_error,
+	header_updates,
+	match_filters,
+	matches_from_rows,
+	plan_run,
+	resolve_ocr_language,
+	review_from_extract,
+	search_arguments,
+)
+
+
+def _allow_all(_doctype: str, _permission: str) -> bool:
+	return True
+
+
+class TestIdpDeskSurface(unittest.TestCase):
+	def test_lists_the_six_user_jobs_and_not_submit(self):
+		surface = build_surface(can=_allow_all, llm_ready=True)
+		ids = [row["id"] for row in surface["actions"]]
+		self.assertEqual(ids, ["create", "compare", "search", "update", "match", "delete"])
+		self.assertNotIn("submit", ids)
+		self.assertNotIn("create_master", ids)
+
+	def test_uae_notices_are_part_of_the_payload(self):
+		surface = build_surface(can=_allow_all, llm_ready=True)
+		self.assertEqual(
+			surface["notices"],
+			["idp.notice.draft", "idp.notice.masters", "idp.notice.language"],
+		)
+
+	def test_permission_drops_a_doctype_and_an_empty_job(self):
+		def can(doctype: str, permission: str) -> bool:
+			return doctype == "Sales Invoice" and permission == "create"
+
+		surface = build_surface(can=can, llm_ready=True)
+		self.assertEqual([row["id"] for row in surface["actions"]], ["create"])
+		targets = surface["actions"][0]["targets"]
+		self.assertEqual([row["doctype"] for row in targets], ["Sales Invoice"])
+
+	def test_opportunity_has_no_desk_route(self):
+		surface = build_surface(can=_allow_all, llm_ready=True)
+		create = surface["actions"][0]
+		opportunity = next(row for row in create["targets"] if row["doctype"] == "Opportunity")
+		self.assertIsNone(opportunity["route"])
+		self.assertFalse(opportunity["ready"])
+		for action in surface["actions"]:
+			for target in action["targets"]:
+				route = target["route"] or ""
+				self.assertNotIn("/app/", route)
+
+	def test_every_job_runs_without_a_model_key(self):
+		surface = build_surface(can=_allow_all, llm_ready=False)
+		self.assertIsNone(surface["blocked_key"])
+		runnable = [row["id"] for row in surface["actions"] if row["runnable"]]
+		self.assertEqual(runnable, ["create", "compare", "search", "update", "match", "delete"])
+		self.assertEqual([row["id"] for row in JOBS], runnable)
+
+	def test_plan_run_refuses_unwired_jobs_and_unknown_files(self):
+		surface = build_surface(can=_allow_all, llm_ready=True)
+		self.assertEqual(
+			plan_run(surface, action="delete", target="Sales Invoice", file_name=None)["error_key"],
+			"idp.query",
+		)
+		self.assertTrue(
+			plan_run(surface, action="delete", target="Sales Invoice", file_name=None, query="ACC-SINV-0001")["ok"]
+		)
+		self.assertTrue(
+			plan_run(surface, action="search", target="Sales Invoice", file_name=None, query="Acme")["ok"]
+		)
+		self.assertEqual(
+			plan_run(surface, action="create", target="Opportunity", file_name="bill.pdf")["error_key"],
+			"idp.noRoute",
+		)
+		self.assertEqual(
+			plan_run(surface, action="create", target="Sales Invoice", file_name="bill.exe")["error_key"],
+			"idp.file",
+		)
+		planned = plan_run(surface, action="create", target="Purchase Invoice", file_name="/private/files/bill.pdf")
+		self.assertTrue(planned["ok"])
+		self.assertEqual(planned["route"], "/purchase-invoices")
+
+	def test_draft_is_never_a_submit(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {"customer": "Acme"},
+				"items": [{"item_code": "ITEM-1", "item_name": "Desk"}],
+			},
+			"validation": {"is_valid": True, "errors": [], "warnings": [], "missing_masters": []},
+		}
+		review = review_from_extract(extracted, route="/invoices")
+		self.assertTrue(review["can_save"])
+		self.assertEqual(review["lines"], [{"label_key": "f.customer", "value": "Acme"}])
+		self.assertEqual(review["items"], [{"label": "Desk"}])
+		instructions = draft_instructions(extracted)
+		self.assertFalse(instructions["submit"])
+		self.assertTrue(instructions["user_confirmed"])
+		self.assertNotIn("docstatus", instructions["header"])
+
+	def test_draft_drops_docstatus_and_keeps_the_party(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"supplier": "Acme", "docstatus": 1, "posting_date": "2026-09-01"},
+				"items": [],
+			},
+			"validation": {"is_valid": True, "errors": [], "warnings": [], "missing_masters": []},
+		}
+		instructions = draft_instructions(extracted)
+		self.assertEqual(instructions["header"], {"supplier": "Acme", "posting_date": "2026-09-01"})
+		self.assertFalse(instructions["submit"])
+		review = review_from_extract(extracted, route="/purchase-invoices")
+		self.assertEqual(
+			[row["label_key"] for row in review["lines"]],
+			["idp.field.supplier", "idp.field.date"],
+		)
+
+	def test_ocr_language_never_stays_auto(self):
+		known = {"en", "ar"}
+		self.assertEqual(resolve_ocr_language("auto", known), "en")
+		self.assertEqual(resolve_ocr_language("ar", known), "ar")
+		self.assertEqual(resolve_ocr_language("ar-AE", known), "ar")
+		self.assertEqual(resolve_ocr_language("", known), "en")
+
+	def test_file_read_requires_a_row_and_permission(self):
+		self.assertEqual(file_read_error(found=False, allowed=False), "idp.file")
+		self.assertEqual(file_read_error(found=True, allowed=False), "idp.file")
+		self.assertIsNone(file_read_error(found=True, allowed=True))
+
+	def test_review_hides_system_fields_and_names_the_gaps(self):
+		validation = {
+			"errors": [
+				{"field": "customer", "message": 'Required field "Customer" is missing'},
+				{"field": "selling_price_list", "message": 'Required field "Price List" is missing'},
+				{"field": "base_grand_total", "message": 'Required field "Grand Total (Company Currency)" is missing'},
+				{"field": "grand_total", "message": 'Required field "Grand Total" is missing'},
+				{"field": "price_list_currency", "message": 'Required field "Price List Currency" is missing'},
+			],
+			"warnings": [{"field": "", "message": "At least one line item is required"}],
+		}
+		self.assertEqual(
+			gaps_from_validation(validation),
+			["f.customer", "idp.field.total", "idp.gap.items"],
+		)
+
+	def test_a_missing_cost_center_can_be_typed_and_submit_stays_off(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {"customer": "Acme", "posting_date": "2026-09-27", "taxes_and_charges": "12.50"},
+				"items": [{"item_name": "Paper"}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [
+					{"field": "cost_center", "message": 'Required field "Cost Center" is missing'},
+					{"field": "selling_price_list", "message": 'Required field "Price List" is missing'},
+				],
+				"warnings": [],
+				"missing_masters": [],
+			},
+		}
+		review = review_from_extract(extracted, route="/invoices")
+		self.assertTrue(review["can_save"])
+		self.assertTrue(review["can_submit"])
+		self.assertEqual(review["gaps"], [])
+		self.assertEqual([row["field"] for row in review["writes"]], ["due_date", "cost_center", "vat_emirate"])
+		self.assertIn("Dubai", review["writes"][-1]["options"])
+		instructions = draft_instructions(extracted)
+		self.assertFalse(instructions["submit"])
+		header, items = apply_writes(
+			instructions["header"],
+			instructions["items"],
+			{"cost_center": "Main - ATL", "due_date": "2026-10-27", "docstatus": "1"},
+			default_cost_center="Other - ATL",
+		)
+		self.assertEqual(header["customer"], "Acme")
+		self.assertEqual(header["cost_center"], "Main - ATL")
+		self.assertEqual(header["due_date"], "2026-10-27")
+		self.assertNotIn("docstatus", header)
+		self.assertNotIn("taxes_and_charges", header)
+		self.assertEqual(items[0]["cost_center"], "Main - ATL")
+		self.assertFalse(submit_requested(""))
+		self.assertFalse(submit_requested("0"))
+		self.assertTrue(submit_requested("1"))
+
+	def test_calculated_invoice_fields_do_not_block_the_draft(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {
+					"customer": "Nordic Tax Partners AB",
+					"posting_date": "2026-09-27",
+					"due_date": "2026-10-27",
+					"currency": "AED",
+					"grand_total": 262.5,
+				},
+				"items": [{"item_name": "A4 Copy Paper (5 Reams)", "qty": 10, "rate": 25}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [
+					{"field": "selling_price_list", "message": 'Required field "Price List" is missing'},
+					{"field": "uom", "message": 'Row 1 — Required field "UOM" is missing'},
+					{"field": "charge_type", "message": 'Row 1 — Required field "Type" is missing'},
+					{"field": "income_account", "message": 'Row 1 — Required field "Income Account" is missing'},
+					{"field": "cost_center", "message": 'Row 1 — Required field "Cost Center" is missing'},
+				],
+				"warnings": [],
+				"missing_masters": [],
+			},
+		}
+		review = review_from_extract(extracted, route="/invoices")
+		self.assertTrue(review["can_save"])
+		self.assertEqual(review["gaps"], [])
+		self.assertEqual([row["field"] for row in review["writes"]], ["cost_center", "vat_emirate"])
+		header, items = finish_draft(
+			extracted["extracted_data"]["header"],
+			extracted["extracted_data"]["items"],
+			{"vat_emirate": "Not a place"},
+			{
+				"company": "Ascra Technology LLP",
+				"cost_center": "Main - ATL",
+				"vat_emirate": "Dubai",
+				"selling_price_list": "Standard Selling",
+				"income_account": "Sales - ATL",
+				"item_uom": {},
+			},
+		)
+		self.assertEqual(header["vat_emirate"], "Dubai")
+		self.assertEqual(header["company"], "Ascra Technology LLP")
+		self.assertEqual(items[0]["cost_center"], "Main - ATL")
+		self.assertEqual(items[0]["income_account"], "Sales - ATL")
+
+	def test_the_model_can_add_an_item_code_the_rules_missed(self):
+		try:
+			from idp.mappers.base import MappedDocument
+			from idp.mappers.hybrid_mapper import HybridFieldMapper
+		except ImportError:
+			self.skipTest("idp is not on PYTHONPATH")
+		mapper = HybridFieldMapper(object(), object())
+		rule = MappedDocument(
+			doctype="Sales Invoice",
+			items=[{"item_name": "A4 Copy Paper (5 Reams)", "qty": 10}],
+		)
+		merged = mapper._merge(
+			rule,
+			{
+				"header": {},
+				"items": [{"item_name": "A4 Copy Paper (5 Reams)", "item_code": "PAP-A4-01", "uom": "Nos"}],
+			},
+		)
+		self.assertEqual(merged.items[0]["item_code"], "PAP-A4-01")
+		self.assertEqual(merged.items[0]["uom"], "Nos")
+		self.assertEqual(merged.items[0]["qty"], 10)
+
+	def test_a_printed_item_name_uses_the_existing_code(self):
+		items = [{"item_name": "A4 Copy Paper (5 Reams)", "qty": 10}]
+		attach_item_codes(items, lambda name: "PAP-A4-01" if "Paper" in name else None)
+		self.assertEqual(items[0]["item_code"], "PAP-A4-01")
+		attach_item_codes(items, lambda _name: "OTHER")
+		self.assertEqual(items[0]["item_code"], "PAP-A4-01")
+
+	def test_draft_blocks_missing_masters(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {"doctype": "Purchase Invoice", "header": {"supplier": "New Co"}, "items": []},
+			"validation": {"is_valid": True, "errors": [], "warnings": [], "missing_masters": ["supplier"]},
+		}
+		self.assertFalse(draft_instructions(extracted)["ok"])
+		self.assertEqual(draft_instructions(extracted)["error_key"], "idp.notice.masters")
+
+	def test_targets_match_idp_when_the_app_imports(self):
+		try:
+			from idp.core.constants import SUPPORTED_DOCTYPES
+		except ImportError:
+			self.skipTest("idp is not on PYTHONPATH")
+		self.assertEqual([row["doctype"] for row in TARGETS], list(SUPPORTED_DOCTYPES))
+
+	def test_accepts_the_idp_file_types(self):
+		surface = build_surface(can=_allow_all, llm_ready=True)
+		for ext in (".pdf", ".png", ".jpg", ".xlsx", ".csv", ".docx"):
+			self.assertIn(ext, surface["accept"])
+
+	def test_search_matches_the_name_or_the_party(self):
+		args = search_arguments("Sales Invoice", "Acme")
+		self.assertEqual(args["or_filters"], {"name": "Acme", "customer": "Acme"})
+		self.assertEqual(args["filters"], {})
+		self.assertEqual(match_filters({"customer": "Acme", "posting_date": "2026-09-01"}), {"customer": "Acme"})
+		self.assertEqual(match_filters({"remarks": "hello"}), {})
+
+	def test_update_keeps_scalars_and_drafts_only(self):
+		self.assertEqual(header_updates({"customer": "Acme", "docstatus": 1, "items": [{"item_code": "A"}]}), {"customer": "Acme"})
+		self.assertIsNone(draft_only_error(0))
+		self.assertEqual(draft_only_error(1), "idp.submitted")
+
+	def test_compare_rows_use_labels_and_routes(self):
+		diffs = diffs_from_compare(
+			[{"fieldname": "customer", "expected": "Acme", "actual": "Old", "status": "mismatch"}]
+		)
+		self.assertEqual(diffs[0]["label_key"], "f.customer")
+		self.assertEqual(diffs[0]["after"], "Acme")
+		matches = matches_from_rows([{"name": "ACC-SINV-0001"}], "/invoices")
+		self.assertEqual(matches, [{"name": "ACC-SINV-0001", "label": "ACC-SINV-0001", "route": "/invoices/ACC-SINV-0001"}])

@@ -1400,6 +1400,17 @@ class TestPhase11BankReconciliation(FrappeTestCase):
 		result = get_uncleared_transactions("__no_such_bank__")
 		self.assertIsInstance(result, list)
 
+	def test_uncleared_for_a_real_bank_does_not_query_the_line_clearance_date(self):
+		"""Journal lines have no clearance_date. The parent Journal Entry does."""
+		banks = frappe.get_all("Bank Account", pluck="name", limit=1)
+		if not banks:
+			return
+		from taxmate.api.bank_reconciliation import get_uncleared_transactions
+		rows = get_uncleared_transactions(banks[0], "2026-09-07", "2026-09-30")
+		self.assertIsInstance(rows, list)
+		for row in rows:
+			self.assertIn(row["doctype"], ("Payment Entry", "Journal Entry"))
+
 	def test_mark_cleared_rejects_unknown_doctype(self):
 		import frappe
 		from taxmate.api.bank_reconciliation import mark_cleared
