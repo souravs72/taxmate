@@ -68,7 +68,26 @@ def _uncleared_journals(
 				"type": "Journal Entry",
 			}
 		)
-	return rows
+	if not rows:
+		return []
+	# Query Builder does not apply user permissions. Keep only journals this user may read.
+	visible = set(
+		frappe.get_list(
+			"Journal Entry",
+			filters={"name": ["in", [row["name"] for row in rows]], "docstatus": 1},
+			pluck="name",
+			limit=len(rows),
+		)
+	)
+	return [row for row in rows if row["name"] in visible]
+
+
+def _require_submitted(doctype: str, name: str) -> None:
+	status = frappe.db.get_value(doctype, name, "docstatus")
+	if status is None:
+		frappe.throw(_("Not found"), frappe.DoesNotExistError)
+	if int(status) != 1:
+		frappe.throw(_("Only a submitted document can be cleared"), frappe.ValidationError)
 
 
 @frappe.whitelist()
@@ -129,21 +148,22 @@ def get_uncleared_transactions(
 def mark_cleared(doctype: str, name: str, clearance_date: str) -> dict[str, str]:
 	"""Set clearance_date on a Payment Entry or on the Journal Entry itself."""
 	require_login()
+	clearance = frappe.utils.getdate(clearance_date)
 	if doctype == "Payment Entry":
 		if not frappe.has_permission("Payment Entry", "write", name):
 			frappe.throw(_("Not permitted"), frappe.PermissionError)
-		frappe.db.set_value("Payment Entry", name, "clearance_date", clearance_date)
+		_require_submitted("Payment Entry", name)
+		frappe.db.set_value("Payment Entry", name, "clearance_date", clearance)
 		frappe.db.commit()
 	elif doctype == "Journal Entry":
 		if not frappe.has_permission("Journal Entry", "write", name):
 			frappe.throw(_("Not permitted"), frappe.PermissionError)
-		if not frappe.db.exists("Journal Entry", name):
-			frappe.throw(_("Not found"), frappe.DoesNotExistError)
+		_require_submitted("Journal Entry", name)
 		frappe.db.set_value(
 			"Journal Entry",
 			name,
 			"clearance_date",
-			clearance_date,
+			clearance,
 			update_modified=False,
 		)
 		frappe.db.commit()
