@@ -459,7 +459,7 @@ def _header_rows(header: dict[str, Any]) -> dict[str, Any]:
 	"""Show ERPNext-shaped fields first; hide raw OCR aliases and bank rails."""
 	rows: dict[str, Any] = {}
 	# Prefer known document fields so the panel reads like a draft, not a dump.
-	for key in list(FIELD_LABELS) + ["currency", "tax_id", "remarks", "terms"]:
+	for key in [*FIELD_LABELS, "currency", "tax_id", "remarks", "terms"]:
 		value = header.get(key)
 		if value in (None, "") or key in BLOCKED_HEADER:
 			continue

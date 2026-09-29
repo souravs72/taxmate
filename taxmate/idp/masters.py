@@ -510,7 +510,7 @@ def _clean_item_label(label: str) -> str:
 	words = text.split()
 	if len(words) > 8:
 		text = " ".join(words[:8])
-	return text.strip(" -–,") or label.strip()
+	return text.strip(" -,") or label.strip()
 
 
 def _slug_code(label: str) -> str:
