@@ -441,7 +441,7 @@ def get_payment_terms(
 
 
 @frappe.whitelist()
-def get_credit_balance(customer=None, company=None, extra_amount=0):
+def get_credit_balance(customer: str | None = None, company: str | None = None, extra_amount: float | int | str = 0):
 	"""Advisory credit balance for Sales forms. Does not throw — submit still validates on the server."""
 	require_login()
 	if not customer:
@@ -471,7 +471,7 @@ def get_credit_balance(customer=None, company=None, extra_amount=0):
 
 
 @frappe.whitelist(methods=["POST"])
-def preview_taxes_and_totals(doc=None):
+def preview_taxes_and_totals(doc: dict | str | None = None):
 	"""Run ERPNext ``calculate_taxes_and_totals`` on an unsaved doc dict.
 
 	Does not invent tax math — uses AccountsController. Does not save.

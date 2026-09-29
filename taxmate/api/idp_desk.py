@@ -453,7 +453,8 @@ def _save_create(
 	}
 	if not submit_requested(submit) or not name:
 		return payload
-	frappe.db.commit()
+	# Draft must be visible to submit() in this same request before the auto-commit.
+	frappe.db.commit()  # nosemgrep
 	try:
 		from taxmate.api.workflow import submit as submit_doc
 

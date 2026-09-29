@@ -287,10 +287,12 @@ def party_by_trn(doctype: str, trn: str | None) -> str | None:
 		return None
 	import frappe
 
-	row = frappe.db.sql(
-		f"select name from `tab{doctype}` where replace(ifnull(tax_id, ''), ' ', '') = %s limit 1",
-		cleaned,
-	)
+	# Static SQL per doctype — table name is never user input.
+	query = {
+		"Supplier": "select name from `tabSupplier` where replace(ifnull(tax_id, ''), ' ', '') = %s limit 1",
+		"Customer": "select name from `tabCustomer` where replace(ifnull(tax_id, ''), ' ', '') = %s limit 1",
+	}[doctype]
+	row = frappe.db.sql(query, cleaned)
 	return row[0][0] if row else None
 
 
@@ -667,12 +669,13 @@ def _existing_party(doctype: str, name: str, tax_id: str | None) -> str | None:
 
 def _attach_address_contact(link_doctype: str, link_name: str, title: str, values: dict[str, str]) -> None:
 	import frappe
+	from frappe import _
 
 	line1 = values.get("address_line1") or ""
 	city = values.get("city") or ""
 	state = values.get("state") or ""
 	if not (line1 and city and state):
-		frappe.throw("Address line, city, and emirate are required")
+		frappe.throw(_("Address line, city, and emirate are required"))
 	addr = frappe.get_doc(
 		{
 			"doctype": "Address",
