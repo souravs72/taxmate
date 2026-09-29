@@ -211,9 +211,15 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
     : review?.stage_log ?? [];
 
   const reviewReady = proposalsReady(proposals);
-  const canSave = Boolean(review && (review.can_save || review.can_delete) && reviewReady);
+  // Match draft_instructions: confirmed proposals unlock save even when schema
+  // still lists ERPNext auto-filled row fields as errors.
+  const canSave = Boolean(
+    review &&
+      reviewReady &&
+      (review.can_delete || review.can_save || proposals.length > 0)
+  );
   const canSubmit = Boolean(
-    review && (review.can_submit || (review.can_save && proposals.length > 0 && reviewReady))
+    review && reviewReady && (review.can_submit || (canSave && proposals.length > 0 && !review.can_delete))
   );
   const consentPending = proposals.some((row) => !row.confirmed);
   const fieldsPending = proposals.some(
@@ -231,7 +237,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
           : "idp.propose.needConsent"
       : review.gaps && review.gaps.length > 0
         ? "idp.blocked.gaps"
-        : !review.can_save && !review.can_delete
+        : !canSave
           ? "idp.blocked.save"
           : null;
 
