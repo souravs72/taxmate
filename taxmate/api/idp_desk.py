@@ -70,7 +70,19 @@ def _read(file_url: str, target: str, *, use_model: bool = False) -> dict:
 		extracted = extract_document(file_url=file_url, target_doctype=target, language=language)
 	if isinstance(extracted, dict):
 		extracted["ocr_language"] = language
-		from taxmate.idp.masters import bind_parties_by_trn, normalize_extract, promote_unresolved_items
+		from taxmate.idp.masters import (
+			bind_parties_by_trn,
+			normalize_extract,
+			promote_unresolved_items,
+			salvage_from_ocr_text,
+		)
+
+		try:
+			from idp.extractors import extract_content
+
+			salvage_from_ocr_text(extracted, extract_content(file_url, lang=language).text)
+		except Exception:
+			frappe.log_error(title="TaxMate IDP OCR salvage skipped", message=frappe.get_traceback())
 
 		# Party/address first; item-code fill waits until name lookup runs.
 		normalize_extract(extracted, promote_items=False)

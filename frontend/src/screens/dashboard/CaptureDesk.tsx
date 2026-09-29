@@ -573,10 +573,10 @@ function RequiredMark() {
 
 function FieldLabel({ labelKey, required }: { labelKey: string; required?: boolean }) {
   return (
-    <>
+    <span className="idp-label-text">
       {fieldLabel(labelKey)}
       {required ? <RequiredMark /> : null}
-    </>
+    </span>
   );
 }
 

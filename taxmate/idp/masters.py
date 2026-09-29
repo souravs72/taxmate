@@ -73,18 +73,26 @@ _CUSTOMER_ALIASES: tuple[str, ...] = (
 	"ship_to",
 	"customer_address_title",
 )
-_ADDRESS_ALIASES: tuple[str, ...] = (
-	"billing_address",
-	"address",
+_SELLER_ADDRESS_ALIASES: tuple[str, ...] = (
 	"supplier_address",
-	"customer_address",
 	"seller_address",
 	"vendor_address",
 	"company_address",
 	"from_address",
-	"bill_address",
-	"address_line1",
+	"remitter_address",
 )
+_BUYER_ADDRESS_ALIASES: tuple[str, ...] = (
+	"billing_address",
+	"customer_address",
+	"bill_to_address",
+	"buyer_address",
+	"ship_to_address",
+	"bill_address",
+)
+_ADDRESS_ALIASES: tuple[str, ...] = (
+	_SELLER_ADDRESS_ALIASES + _BUYER_ADDRESS_ALIASES + ("address", "address_line1")
+)
+_PHONE_ALIASES: tuple[str, ...] = ("phone", "mobile_no", "mobile", "tel", "telephone", "contact_number")
 _HEADER_ALIASES: dict[str, tuple[str, ...]] = {
 	"bill_no": ("invoice_number", "invoice_no", "bill_number", "inv_no", "bill_no"),
 	"posting_date": ("date", "invoice_date", "bill_date", "posting_date"),
@@ -94,6 +102,138 @@ _HEADER_ALIASES: dict[str, tuple[str, ...]] = {
 	"currency": ("currency",),
 	"tax_id": ("tax_id", "trn", "vat_number", "supplier_trn", "customer_trn", "gstin"),
 }
+
+
+def salvage_from_ocr_text(extracted: dict[str, Any], ocr_text: str | None) -> None:
+	"""Fill gaps the LLM left using the raw OCR text (UAE tax-invoice layout)."""
+	if not extracted.get("success") or not ocr_text:
+		return
+	data = extracted.get("extracted_data")
+	if not isinstance(data, dict):
+		return
+	header = data.get("header")
+	if not isinstance(header, dict):
+		return
+	doctype = str(data.get("doctype") or "")
+	body = ocr_text.replace("\r", "")
+
+	if doctype.startswith("Purchase") or doctype == "Supplier Quotation":
+		if not str(header.get("supplier") or "").strip():
+			m = re.search(r"Account\s*Name\s*[-\u2013:]\s*(.+)", body, re.IGNORECASE)
+			if m:
+				header["supplier"] = m.group(1).strip().split("\n")[0].strip()
+				header.setdefault("account_name", header["supplier"])
+		if not str(header.get("address_line1") or header.get("seller_address") or "").strip():
+			# Letterhead block sits above "Bill To" on most UAE tax invoices.
+			m = re.search(r"^(.+?)Bill\s*To\s*:", body, re.IGNORECASE | re.DOTALL)
+			if m:
+				block = m.group(1)
+				lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+				addr_lines = [
+					ln
+					for ln in lines
+					if not re.fullmatch(r"\+?\d[\d\s-]{7,}", ln)
+					and "tax invoice" not in ln.lower()
+					and len(ln) > 8
+				]
+				picked = [
+					ln
+					for ln in addr_lines
+					if re.search(r"PO Box|Park|Street|Road|Dubai|Abu|Sharjah|UAE|Emirates", ln, re.I)
+				]
+				if picked:
+					raw_addr = re.sub(r"\s+", " ", ", ".join(picked[:3])).strip()
+					# Never assign free text to Link field supplier_address.
+					header["seller_address"] = raw_addr
+					line1, city, state = _split_address(raw_addr)
+					header["address_line1"] = line1 or raw_addr
+					if city and not header.get("city"):
+						header["city"] = city
+					if state:
+						header["state"] = state
+						header["vat_emirate"] = state
+		if not str(header.get("phone") or "").strip():
+			m = re.search(r"(\+\d{8,15})", body)
+			if m:
+				header["phone"] = m.group(1)
+
+	if doctype.startswith("Sales") or doctype in ("Quotation", "Delivery Note"):
+		if not str(header.get("customer") or "").strip():
+			m = re.search(r"Bill\s*To\s*:\s*(.+)", body, re.IGNORECASE)
+			if m:
+				header["customer"] = m.group(1).strip().split("\n")[0].strip()
+
+	items = data.get("items") if isinstance(data.get("items"), list) else []
+	supplier_hint = str(header.get("supplier") or header.get("account_name") or "").strip().lower()
+	bad = not items
+	for row in items:
+		if not isinstance(row, dict):
+			continue
+		label = str(row.get("item_name") or row.get("description") or "").strip().lower()
+		if not label:
+			bad = True
+			break
+		# LLM often parks the issuer letterhead on the only item row.
+		if supplier_hint and (supplier_hint in label or label in supplier_hint):
+			bad = True
+			break
+		if (
+			re.search(r"\bfzco\b|\bllc\b|\bl\.l\.c\b", label)
+			and "device" not in label
+			and "service" not in label
+		):
+			bad = True
+			break
+	if bad:
+		desc = ""
+		for m in re.finditer(r"(?m)^(?P<line>.{20,180})$", body):
+			line = re.sub(r"\s+", " ", m.group("line")).strip()
+			lower = line.lower()
+			if supplier_hint and (supplier_hint in lower or lower in supplier_hint):
+				continue
+			if any(
+				tok in lower
+				for tok in (
+					"bank name",
+					"iban",
+					"swift",
+					"subtotal",
+					"total due",
+					"tax invoice",
+					"bill to",
+					"thank you",
+				)
+			):
+				continue
+			if re.search(r"from\s+\d|device|service|license|subscription|orch", lower):
+				desc = line
+				break
+		if not desc:
+			m = re.search(
+				r"Description\s*\n(.+?)(?:\n\s*(?:Quantity|SUBTOTAL|Bank Name|Unit Price)|$)",
+				body,
+				re.IGNORECASE | re.DOTALL,
+			)
+			if m:
+				desc = re.sub(r"\s+", " ", m.group(1)).strip()
+		if desc:
+			qty = 1
+			qm = re.search(r"Quantity\s*\n\s*(\d+)", body, re.IGNORECASE)
+			if qm:
+				qty = int(qm.group(1))
+			rate = header.get("net_total") or header.get("grand_total") or header.get("total_due") or 0
+			data["items"] = [
+				{
+					"item_name": desc,
+					"description": desc,
+					"qty": qty,
+					"quantity": qty,
+					"rate": rate,
+					"unit_price": rate,
+					"amount": rate,
+					"uom": "Nos",
+				}
+			]
 
 
 def normalize_extract(extracted: dict[str, Any], *, promote_items: bool = True) -> None:
@@ -116,9 +256,11 @@ def normalize_extract(extracted: dict[str, Any], *, promote_items: bool = True) 
 	doctype = str(data.get("doctype") or "")
 	_promote_header_scalars(header, doctype)
 	_promote_party(header, doctype)
-	_promote_address(header)
+	_promote_address(header, doctype)
+	_promote_phone(header)
 	_promote_totals(header)
 	_scrub_contact_noise(header)
+	_scrub_address_links(header)
 	_ensure_line_from_total(data)
 	if promote_items:
 		items = data.get("items")
@@ -163,10 +305,17 @@ def _promote_party(header: dict[str, Any], doctype: str) -> None:
 		header[link] = value
 
 
-def _promote_address(header: dict[str, Any]) -> None:
+def _promote_address(header: dict[str, Any], doctype: str = "") -> None:
 	if str(header.get("address_line1") or "").strip():
 		return
-	raw = _alias_value(header, _ADDRESS_ALIASES)
+	link = _PARTY_BY_DOCTYPE.get(doctype)
+	if link == "supplier":
+		aliases = [*_SELLER_ADDRESS_ALIASES, "address", "address_line1"]
+	elif link == "customer":
+		aliases = [*_BUYER_ADDRESS_ALIASES, "address", "address_line1"]
+	else:
+		aliases = _ADDRESS_ALIASES
+	raw = _alias_value(header, aliases)
 	if not raw:
 		return
 	line1, city, state = _split_address(raw)
@@ -176,6 +325,14 @@ def _promote_address(header: dict[str, Any]) -> None:
 	if state and not header.get("state") and not header.get("vat_emirate"):
 		header["state"] = state
 		header["vat_emirate"] = state
+
+
+def _promote_phone(header: dict[str, Any]) -> None:
+	if str(header.get("phone") or header.get("mobile_no") or "").strip():
+		return
+	value = _alias_value(header, _PHONE_ALIASES)
+	if value:
+		header["phone"] = value
 
 
 def _promote_item_codes(items: list[Any]) -> None:
@@ -222,6 +379,8 @@ def _split_address(raw: str) -> tuple[str, str, str]:
 		lower = token.lower().replace(".", "")
 		if lower in {"uae", "united arab emirates", "u a e"}:
 			continue
+		if token.isdigit() or lower.startswith("po box"):
+			continue
 		for emirate in EMIRATES:
 			compact = emirate.lower().replace(" ", "")
 			if emirate.lower() in lower or lower in emirate.lower() or compact in lower.replace(" ", ""):
@@ -238,6 +397,7 @@ def _split_address(raw: str) -> tuple[str, str, str]:
 			and compact_state not in p.lower().replace(" ", "")
 			and p.lower().replace(".", "") not in {"uae", "united arab emirates"}
 		]
+	parts = [p for p in parts if not p.strip().isdigit() and not p.strip().lower().startswith("po box")]
 	if parts:
 		# Last remaining segment often the city / area.
 		city_candidate = parts[-1]
@@ -245,6 +405,9 @@ def _split_address(raw: str) -> tuple[str, str, str]:
 			city = city_candidate
 			parts = parts[:-1]
 	line1 = ", ".join(parts) if parts else raw.strip()
+	# Short campus codes (DDP, DIFC) are not cities — prefer the emirate.
+	if city and state and city.isupper() and len(city) <= 5:
+		city = state
 	return line1, city, state
 
 
@@ -371,6 +534,18 @@ def build_proposals(extracted: dict[str, Any]) -> list[dict[str, Any]]:
 	return proposals
 
 
+def _party_address_line(doctype: str, header: dict[str, Any]) -> str:
+	aliases = _SELLER_ADDRESS_ALIASES if doctype == "Supplier" else _BUYER_ADDRESS_ALIASES
+	raw = _alias_value(header, aliases)
+	if raw:
+		return raw
+	# Fall back to promoted address_line1 only when no opposing party address is present.
+	opposing = _BUYER_ADDRESS_ALIASES if doctype == "Supplier" else _SELLER_ADDRESS_ALIASES
+	if _alias_value(header, opposing):
+		return ""
+	return str(header.get("address_line1") or header.get("address") or "").strip()
+
+
 def _party_proposal(doctype: str, missing: dict[str, str], header: dict[str, Any]) -> dict[str, Any] | None:
 	link_field = missing.get("field") or _PARTY_LINK[doctype]
 	raw_name = str(missing.get("name") or header.get(link_field) or "").strip()
@@ -379,15 +554,15 @@ def _party_proposal(doctype: str, missing: dict[str, str], header: dict[str, Any
 	name_field = "supplier_name" if doctype == "Supplier" else "customer_name"
 	type_field = "supplier_type" if doctype == "Supplier" else "customer_type"
 	trn = _header_trn(header)
+	addr = _party_address_line(doctype, header)
+	line1, city, state = _split_address(addr) if addr else ("", "", "")
 	source = {
 		name_field: raw_name,
 		type_field: "Company",
 		"tax_id": trn,
-		"address_line1": str(
-			header.get("address_line1") or header.get("supplier_address") or header.get("address") or ""
-		).strip(),
-		"city": str(header.get("city") or "").strip(),
-		"state": _emirate(header),
+		"address_line1": line1 or addr,
+		"city": str(header.get("city") or "").strip() or city,
+		"state": _emirate(header) or state,
 		"email_id": _safe_email(header.get("email_id") or header.get("email")),
 		"phone": str(header.get("phone") or header.get("mobile_no") or "").strip(),
 	}
@@ -516,6 +691,16 @@ def _ensure_line_from_total(data: dict[str, Any]) -> None:
 			"uom": "Nos",
 		}
 	]
+
+
+def _scrub_address_links(header: dict[str, Any]) -> None:
+	"""Drop free-text values parked on Address Link fields (they are not Address names)."""
+	for key in ("supplier_address", "customer_address", "shipping_address", "billing_address_name"):
+		value = str(header.get(key) or "").strip()
+		if not value:
+			continue
+		if "," in value or len(value) > 60 or "\n" in value:
+			header.pop(key, None)
 
 
 def _scrub_contact_noise(header: dict[str, Any]) -> None:

@@ -501,6 +501,7 @@ _ERP_FILLED: frozenset[str] = _SYSTEM_GAPS | frozenset(
 		"uom",
 		"stock_uom",
 		"conversion_factor",
+		"stock_qty",
 		"income_account",
 		"expense_account",
 		"base_rate",
