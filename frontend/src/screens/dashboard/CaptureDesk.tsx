@@ -233,102 +233,122 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
 
         {surface ? (
           <>
-            <ul className="idp-notes">
-              {surface.notices.map((key) => (
-                <li key={key}>{t(key)}</li>
-              ))}
-            </ul>
-            {surface.actions.length === 0 ? <p>{t("idp.empty")}</p> : null}
-            <div className="idp-jobs" role="group" aria-label={t("idp.title")}>
-              {surface.actions.map((row) => (
+            {!review ? (
+              <>
+                <ul className="idp-notes">
+                  {surface.notices.map((key) => (
+                    <li key={key}>{t(key)}</li>
+                  ))}
+                </ul>
+                {surface.actions.length === 0 ? <p>{t("idp.empty")}</p> : null}
+                <div className="idp-jobs" role="group" aria-label={t("idp.title")}>
+                  {surface.actions.map((row) => (
+                    <button
+                      key={row.id}
+                      type="button"
+                      className="btn ghost sm"
+                      aria-pressed={row.id === actionId}
+                      onClick={() => {
+                        setActionId(row.id);
+                        setTarget(null);
+                        setFile(null);
+                        setFileUrl(null);
+                        setQuery("");
+                        setReview(null);
+                        setProposals([]);
+                      }}
+                    >
+                      {t(row.label_key)}
+                    </button>
+                  ))}
+                </div>
+
+                {action && !action.runnable ? <p className="idp-job">{t(action.pending_key)}</p> : null}
+
+                {action?.runnable ? (
+                  <div className="idp-job">
+                    <p>{t(action.pick_key)}</p>
+                    <div className="idp-targets">
+                      {action.targets
+                        .filter((row) => row.ready)
+                        .map((row) => (
+                          <button
+                            key={row.doctype}
+                            type="button"
+                            className="btn ghost sm"
+                            aria-pressed={target === row.doctype}
+                            onClick={() => setTarget(row.doctype)}
+                          >
+                            {t(row.label_key)}
+                          </button>
+                        ))}
+                    </div>
+                    {action.targets.some((row) => !row.ready) ? (
+                      <p>
+                        {action.targets
+                          .filter((row) => !row.ready)
+                          .map((row) => t(row.label_key))
+                          .join(", ")}{" "}
+                        · {t("idp.noRoute")}
+                      </p>
+                    ) : null}
+                    {action.needs_file ? (
+                      <label className="idp-file">
+                        {t("idp.fileLabel")}
+                        <input
+                          type="file"
+                          accept={surface.accept.join(",")}
+                          onChange={(event) => {
+                            setFile(event.target.files?.[0] ?? null);
+                            setReview(null);
+                            setProposals([]);
+                            setFileUrl(null);
+                          }}
+                        />
+                      </label>
+                    ) : null}
+                    {action.needs_query ? (
+                      <label className="idp-file">
+                        {t(action.query_key || "idp.query.doc")}
+                        <input
+                          type="text"
+                          value={query}
+                          onChange={(event) => {
+                            setQuery(event.target.value);
+                            setReview(null);
+                            setProposals([]);
+                          }}
+                        />
+                      </label>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="btn"
+                      disabled={busy || !target || (action.needs_file && !file) || (action.needs_query && !query.trim())}
+                      onClick={readFile}
+                    >
+                      {busy ? t(action.needs_file ? "idp.reading" : "idp.working") : t(action.run_key)}
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <div className="idp-job">
                 <button
-                  key={row.id}
                   type="button"
                   className="btn ghost sm"
-                  aria-pressed={row.id === actionId}
                   onClick={() => {
-                    setActionId(row.id);
-                    setTarget(null);
-                    setFile(null);
-                    setFileUrl(null);
-                    setQuery("");
                     setReview(null);
                     setProposals([]);
+                    setWrites([]);
+                    setFile(null);
+                    setFileUrl(null);
                   }}
                 >
-                  {t(row.label_key)}
-                </button>
-              ))}
-            </div>
-
-            {action && !action.runnable ? <p className="idp-job">{t(action.pending_key)}</p> : null}
-
-            {action?.runnable ? (
-              <div className="idp-job">
-                <p>{t(action.pick_key)}</p>
-                <div className="idp-targets">
-                  {action.targets
-                    .filter((row) => row.ready)
-                    .map((row) => (
-                      <button
-                        key={row.doctype}
-                        type="button"
-                        className="btn ghost sm"
-                        aria-pressed={target === row.doctype}
-                        onClick={() => setTarget(row.doctype)}
-                      >
-                        {t(row.label_key)}
-                      </button>
-                    ))}
-                </div>
-                {action.targets.some((row) => !row.ready) ? (
-                  <p>
-                    {action.targets
-                      .filter((row) => !row.ready)
-                      .map((row) => t(row.label_key))
-                      .join(", ")}{" "}
-                    · {t("idp.noRoute")}
-                  </p>
-                ) : null}
-                {action.needs_file ? (
-                  <label className="idp-file">
-                    {t("idp.fileLabel")}
-                    <input
-                      type="file"
-                      accept={surface.accept.join(",")}
-                      onChange={(event) => {
-                        setFile(event.target.files?.[0] ?? null);
-                        setReview(null);
-                        setProposals([]);
-                        setFileUrl(null);
-                      }}
-                    />
-                  </label>
-                ) : null}
-                {action.needs_query ? (
-                  <label className="idp-file">
-                    {t(action.query_key || "idp.query.doc")}
-                    <input
-                      type="text"
-                      value={query}
-                      onChange={(event) => {
-                        setQuery(event.target.value);
-                        setReview(null);
-                        setProposals([]);
-                      }}
-                    />
-                  </label>
-                ) : null}
-                <button
-                  type="button"
-                  className="btn"
-                  disabled={busy || !target || (action.needs_file && !file) || (action.needs_query && !query.trim())}
-                  onClick={readFile}
-                >
-                  {busy ? t(action.needs_file ? "idp.reading" : "idp.working") : t(action.run_key)}
+                  {t("idp.again")}
                 </button>
               </div>
-            ) : null}
+            )}
 
             {liveStages.length > 0 ? <StageList stages={liveStages} /> : null}
 

@@ -51,10 +51,17 @@ _SUPPLIER_ALIASES: tuple[str, ...] = (
 	"supplier_name",
 	"vendor",
 	"seller",
+	"seller_name",
 	"bill_from",
 	"sold_by",
 	"from",
 	"supplier_address_title",
+	# Invoice PDFs often print the issuer only as the bank beneficiary.
+	"account_name",
+	"beneficiary",
+	"beneficiary_name",
+	"company_name",
+	"remitter",
 )
 _CUSTOMER_ALIASES: tuple[str, ...] = (
 	"customer",
@@ -165,17 +172,22 @@ def _promote_address(header: dict[str, Any]) -> None:
 
 
 def _promote_item_codes(items: list[Any]) -> None:
-	"""When OCR only printed a name, put it on item_code so Link validation can propose create."""
+	"""When OCR only printed a name, put a short code on item_code and keep the label as name."""
 	for row in items:
 		if not isinstance(row, dict):
 			continue
-		if str(row.get("item_code") or "").strip():
-			continue
 		label = str(row.get("item_name") or row.get("description") or "").strip()
-		if label:
-			row["item_code"] = label
-			if not row.get("item_name"):
+		existing = str(row.get("item_code") or "").strip()
+		if existing and not _looks_like_description(existing):
+			if not row.get("item_name") and label:
 				row["item_name"] = label
+			continue
+		source = existing or label
+		if not source:
+			continue
+		clean_name = _clean_item_label(source)
+		row["item_name"] = clean_name or source
+		row["item_code"] = _slug_code(clean_name or source)
 
 
 def _alias_value(header: dict[str, Any], aliases: tuple[str, ...]) -> str:
@@ -400,10 +412,12 @@ def _party_proposal(doctype: str, missing: dict[str, str], header: dict[str, Any
 def _item_proposal(missing: dict[str, str], items: list[dict[str, Any]]) -> dict[str, Any] | None:
 	raw = str(missing.get("name") or "").strip()
 	row = _item_row_for(raw, items)
-	label = str((row or {}).get("item_name") or (row or {}).get("description") or raw).strip()
+	raw_label = str((row or {}).get("item_name") or (row or {}).get("description") or raw).strip()
+	label = _clean_item_label(raw_label) or raw_label
 	if not label:
 		return None
-	code = str((row or {}).get("item_code") or "").strip() or _slug_code(label)
+	existing = str((row or {}).get("item_code") or "").strip()
+	code = existing if existing and not _looks_like_description(existing) else _slug_code(label)
 	uom = str((row or {}).get("uom") or (row or {}).get("stock_uom") or "Nos").strip() or "Nos"
 	source = {
 		"item_code": code,
@@ -456,6 +470,47 @@ def _field(field: str, label_key: str, value: str, options: list[str] | None = N
 	if options:
 		row["options"] = options
 	return row
+
+
+def _looks_like_description(value: str) -> bool:
+	"""True when OCR dumped a line description into item_code instead of a SKU."""
+	text = value.strip()
+	if not text:
+		return False
+	if len(text) > 40:
+		return True
+	if " " in text and len(text) > 24:
+		return True
+	lower = text.lower()
+	if any(token in lower for token in (" from ", " to ", " with ", " actionable ", " orch")):
+		return True
+	return False
+
+
+def _clean_item_label(label: str) -> str:
+	"""Drop leading qty and trailing service-window clauses from OCR line text."""
+	text = re.sub(r"\s+", " ", (label or "").strip())
+	if not text:
+		return ""
+	# "300 Critical Device with …" → drop leading quantity.
+	text = re.sub(r"^\d{1,6}\s+", "", text)
+	# Drop trailing "from 15th Aug'26 to 14thAug'29" style windows.
+	text = re.sub(
+		r"\s+from\s+\d{1,2}\w{0,2}\s+\w{3}'?\d{2}\s+to\s+\d{1,2}\w{0,2}\s*\w{3}'?\d{2}\s*$",
+		"",
+		text,
+		flags=re.IGNORECASE,
+	)
+	text = re.sub(r"\s+from\s+.+\s+to\s+.+$", "", text, flags=re.IGNORECASE)
+	# Prefer the clause before the first comma when OCR packed marketing copy.
+	if "," in text:
+		head = text.split(",", 1)[0].strip()
+		if len(head) >= 8:
+			text = head
+	words = text.split()
+	if len(words) > 8:
+		text = " ".join(words[:8])
+	return text.strip(" -–,") or label.strip()
 
 
 def _slug_code(label: str) -> str:

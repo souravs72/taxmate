@@ -433,10 +433,10 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertEqual(header["bill_no"], "SOC_0001/2026")
 		self.assertTrue(header.get("address_line1"))
 		self.assertEqual(header.get("state") or header.get("vat_emirate"), "Abu Dhabi")
-		self.assertEqual(
-			extracted["extracted_data"]["items"][0]["item_code"],
-			"Eprotect 360 Cyber Security - FZCO",
-		)
+		item = extracted["extracted_data"]["items"][0]
+		self.assertEqual(item["item_name"], "Eprotect 360 Cyber Security - FZCO")
+		self.assertLessEqual(len(item["item_code"]), 20)
+		self.assertNotIn(" ", item["item_code"])
 		extracted["validation"]["missing_masters"] = [
 			{"doctype": "Customer", "name": header["customer"], "field": "customer"},
 			{
@@ -472,6 +472,56 @@ class TestIdpDeskSurface(unittest.TestCase):
 		extracted["extracted_data"]["header"].pop("vendor", None)
 		normalize_extract(extracted)
 		self.assertNotIn("supplier", extracted["extracted_data"]["header"])
+
+	def test_ocr_account_name_becomes_supplier_on_purchase(self):
+		from taxmate.idp.masters import build_proposals, normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {
+					"bill_to": "NAS NEURON Health Services",
+					"account_name": "Eprotect360 Cyber Security FZCO",
+					"invoice_number": "SOC_0001/2026",
+					"Date": "2026-08-18",
+					"total_due": 271000,
+					"Currency": "AED",
+					"bank_name": "WIO Bank",
+					"iban_number": "AE870860000009365222307",
+				},
+				"items": [
+					{
+						"item_name": (
+							"300 Critical Device with actionable intelligence, "
+							"security orch from 15th Aug'26 to 14thAug'29"
+						),
+						"qty": 300,
+						"uom": "Nos",
+					}
+				],
+			},
+			"validation": {"is_valid": False, "errors": [], "warnings": [], "missing_masters": []},
+		}
+		normalize_extract(extracted)
+		header = extracted["extracted_data"]["header"]
+		self.assertEqual(header["supplier"], "Eprotect360 Cyber Security FZCO")
+		self.assertNotEqual(header.get("supplier"), header.get("bill_to"))
+		item = extracted["extracted_data"]["items"][0]
+		self.assertEqual(item["item_name"], "Critical Device with actionable intelligence")
+		self.assertEqual(item["item_code"], "CRITICAL-DEVICE-WITH")
+		extracted["validation"]["missing_masters"] = [
+			{"doctype": "Supplier", "name": header["supplier"], "field": "supplier"},
+			{"doctype": "Item", "name": item["item_code"], "field": "item_code"},
+		]
+		proposals = build_proposals(extracted)
+		self.assertEqual([row["doctype"] for row in proposals], ["Supplier", "Item"])
+		self.assertEqual(proposals[1]["source_fields"]["item_code"], "CRITICAL-DEVICE-WITH")
+		review = review_from_extract(extracted, route="/purchases")
+		line_keys = [row["label_key"] for row in review["lines"]]
+		self.assertIn("idp.field.supplier", line_keys)
+		self.assertNotIn("idp.field.account_name", line_keys)
+		self.assertFalse(any("iban" in key.lower() for key in line_keys))
 
 	def test_proposal_merge_and_consent(self):
 		from taxmate.idp.masters import merge_proposal_values, proposals_complete

@@ -409,10 +409,69 @@ def label_key_for(field: str) -> str:
 	return FIELD_LABELS.get(field, f"idp.field.{field}")
 
 
+# OCR noise that must not crowd the review panel (bank rails, raw aliases).
+_REVIEW_NOISE: frozenset[str] = frozenset(
+	{
+		"iban",
+		"iban_number",
+		"account_number",
+		"swift",
+		"swift_code",
+		"bank_name",
+		"account_name",
+		"beneficiary",
+		"beneficiary_name",
+		"hsn_code",
+		"hsn",
+		"requisition_number",
+		"requisition_no",
+		"bill_to",
+		"bill_from",
+		"sold_to",
+		"sold_by",
+		"vendor",
+		"seller",
+		"buyer",
+		"client",
+		"from",
+		"billing_address",
+		"supplier_address",
+		"customer_address",
+		"invoice_number",
+		"invoice_no",
+		"bill_number",
+		"inv_no",
+		"date",
+		"invoice_date",
+		"bill_date",
+		"total",
+		"total_amount",
+		"amount_due",
+		"total_due",
+		"subtotal",
+		"sub_total",
+		"net_amount",
+	}
+)
+
+
 def _header_rows(header: dict[str, Any]) -> dict[str, Any]:
+	"""Show ERPNext-shaped fields first; hide raw OCR aliases and bank rails."""
 	rows: dict[str, Any] = {}
+	# Prefer known document fields so the panel reads like a draft, not a dump.
+	for key in list(FIELD_LABELS) + ["currency", "tax_id", "remarks", "terms"]:
+		value = header.get(key)
+		if value in (None, "") or key in BLOCKED_HEADER:
+			continue
+		rows[str(key)] = value
 	for key, value in header.items():
-		if key in BLOCKED_HEADER or value in (None, ""):
+		norm = str(key).strip().lower().replace(" ", "_")
+		if key in BLOCKED_HEADER or norm in _REVIEW_NOISE or value in (None, ""):
+			continue
+		if str(key) in rows:
+			continue
+		# Skip duplicate aliases already promoted onto FIELD_LABELS keys.
+		if norm in {k.lower() for k in rows}:
 			continue
 		rows[str(key)] = value
 	return rows
