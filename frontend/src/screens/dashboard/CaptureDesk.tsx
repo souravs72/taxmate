@@ -1,6 +1,6 @@
 /**
  * Scan panel. Renders the dashboard IDP payload and decides nothing.
- * The backend names the jobs, the documents, and whether a draft can be saved.
+ * The backend names the jobs, the documents, proposals, and whether a draft can be saved.
  */
 
 import { useEffect, useId, useRef, useState } from "react";
@@ -30,14 +30,27 @@ type Action = {
   targets: Target[];
 };
 
+type Stage = { key: string; label_key: string; status?: string };
+
 type Surface = {
   title_key: string;
   notices: string[];
   accept: string[];
+  read_stages?: Stage[];
   actions: Action[];
 };
 
 type Write = { field: string; label_key: string; value: string; options?: string[] };
+
+type Proposal = {
+  key: string;
+  doctype: string;
+  title: string;
+  consent_label_key: string;
+  confirmed: boolean;
+  required_fields: Write[];
+  optional_fields: Write[];
+};
 
 type Review = {
   ok?: boolean;
@@ -48,6 +61,8 @@ type Review = {
   items?: { label: string }[];
   gaps?: string[];
   writes?: Write[];
+  proposals?: Proposal[];
+  stage_log?: Stage[];
   can_save?: boolean;
   can_submit?: boolean;
   can_delete?: boolean;
@@ -98,8 +113,11 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [writes, setWrites] = useState<Write[]>([]);
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [paceStage, setPaceStage] = useState(0);
 
   const action = surface?.actions.find((row) => row.id === actionId) ?? null;
+  const stages = surface?.read_stages ?? [];
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -114,6 +132,18 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  useEffect(() => {
+    if (!busy || stages.length === 0) {
+      setPaceStage(0);
+      return;
+    }
+    setPaceStage(0);
+    const timers = stages.slice(0, -1).map((_, index) =>
+      window.setTimeout(() => setPaceStage(index + 1), (index + 1) * 700)
+    );
+    return () => timers.forEach((id) => window.clearTimeout(id));
+  }, [busy, stages]);
+
   async function readFile() {
     if (lock.current || !action || !target) return;
     if (action.needs_file && !file) return;
@@ -121,6 +151,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
     lock.current = true;
     setBusy(true);
     setReview(null);
+    setProposals([]);
     try {
       let url = "";
       if (action.needs_file && file) {
@@ -136,6 +167,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
       });
       setReview(result);
       setWrites(Array.isArray(result.writes) ? result.writes : []);
+      setProposals(Array.isArray(result.proposals) ? cloneProposals(result.proposals) : []);
     } catch (err) {
       setReview({ ok: false, error_key: "idp.readFailed", detail: readableError(err).join(" ") });
     } finally {
@@ -147,6 +179,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
   async function saveDraft(submit = false) {
     if (lock.current || !action || !target) return;
     if (action.needs_file && !fileUrl) return;
+    if (!proposalsReady(proposals)) return;
     lock.current = true;
     setBusy(true);
     try {
@@ -157,6 +190,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
         file_url: fileUrl || "",
         query: query.trim(),
         fills: JSON.stringify(fills),
+        proposals: JSON.stringify(proposals),
         submit: submit ? "1" : "",
       });
       setReview(result);
@@ -168,6 +202,13 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
       setBusy(false);
     }
   }
+
+  const liveStages = busy
+    ? stages.map((row, index) => ({
+        ...row,
+        status: index < paceStage ? "done" : index === paceStage ? "active" : "pending",
+      }))
+    : review?.stage_log ?? [];
 
   return (
     <div className="idp-back" onMouseDown={onClose}>
@@ -212,6 +253,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
                     setFileUrl(null);
                     setQuery("");
                     setReview(null);
+                    setProposals([]);
                   }}
                 >
                   {t(row.label_key)}
@@ -257,6 +299,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
                       onChange={(event) => {
                         setFile(event.target.files?.[0] ?? null);
                         setReview(null);
+                        setProposals([]);
                         setFileUrl(null);
                       }}
                     />
@@ -271,6 +314,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
                       onChange={(event) => {
                         setQuery(event.target.value);
                         setReview(null);
+                        setProposals([]);
                       }}
                     />
                   </label>
@@ -286,14 +330,18 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
               </div>
             ) : null}
 
+            {liveStages.length > 0 ? <StageList stages={liveStages} /> : null}
+
             {review ? (
               <ReviewBlock
                 review={review}
                 writes={writes}
+                proposals={proposals}
                 busy={busy}
                 onWrite={(field, value) =>
                   setWrites((rows) => rows.map((row) => (row.field === field ? { ...row, value } : row)))
                 }
+                onProposal={setProposals}
                 onSave={saveDraft}
                 onOpen={nav}
               />
@@ -305,21 +353,41 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
   );
 }
 
+function StageList({ stages }: { stages: Stage[] }) {
+  return (
+    <ol className="idp-stages" aria-live="polite" aria-label={t("idp.stages")}>
+      {stages.map((row) => (
+        <li key={row.key} data-status={row.status || "pending"}>
+          {t(row.label_key)}
+        </li>
+      ))}
+    </ol>
+  );
+}
+
 function ReviewBlock({
   review,
   writes,
+  proposals,
   busy,
   onWrite,
+  onProposal,
   onSave,
   onOpen,
 }: {
   review: Review;
   writes: Write[];
+  proposals: Proposal[];
   busy: boolean;
   onWrite: (field: string, value: string) => void;
+  onProposal: (rows: Proposal[] | ((prev: Proposal[]) => Proposal[])) => void;
   onSave: (submit?: boolean) => void;
   onOpen: (route: string) => void;
 }) {
+  const ready = proposalsReady(proposals);
+  const canSave = Boolean(review.can_save || review.can_delete) && ready;
+  const canSubmit = Boolean(review.can_submit || (review.can_save && proposals.length > 0 && ready));
+
   return (
     <div className="idp-job" role="status" aria-live="polite">
       {review.error_key ? <p>{t(review.error_key)}</p> : null}
@@ -361,6 +429,20 @@ function ReviewBlock({
               <li key={key}>{t(key)}</li>
             ))}
           </ul>
+        </>
+      ) : null}
+      {proposals.length > 0 ? (
+        <>
+          <p className="idp-kicker">{t("idp.propose.title")}</p>
+          {proposals.map((row) => (
+            <ProposalCard
+              key={row.key}
+              proposal={row}
+              onChange={(next) =>
+                onProposal((rows) => rows.map((item) => (item.key === next.key ? next : item)))
+              }
+            />
+          ))}
         </>
       ) : null}
       {review.matches && review.matches.length > 0 ? (
@@ -421,12 +503,12 @@ function ReviewBlock({
           })}
         </>
       ) : null}
-      {review.can_save || review.can_delete ? (
+      {canSave ? (
         <div className="idp-jobs">
           <button type="button" className="btn" disabled={busy} onClick={() => onSave(false)}>
             {busy ? t("idp.saving") : t(review.save_key || "idp.save")}
           </button>
-          {review.can_submit ? (
+          {canSubmit && !review.can_delete ? (
             <button type="button" className="btn ghost" disabled={busy} onClick={() => onSave(true)}>
               {t("idp.submit")}
             </button>
@@ -434,6 +516,90 @@ function ReviewBlock({
         </div>
       ) : null}
     </div>
+  );
+}
+
+function ProposalCard({
+  proposal,
+  onChange,
+}: {
+  proposal: Proposal;
+  onChange: (row: Proposal) => void;
+}) {
+  const consentId = `idp-consent-${proposal.key}`;
+  function patchField(bucket: "required_fields" | "optional_fields", field: string, value: string) {
+    onChange({
+      ...proposal,
+      [bucket]: proposal[bucket].map((row) => (row.field === field ? { ...row, value } : row)),
+    });
+  }
+  return (
+    <fieldset className="idp-propose">
+      <legend>{proposal.title}</legend>
+      <label className="idp-consent" htmlFor={consentId}>
+        <input
+          id={consentId}
+          type="checkbox"
+          checked={proposal.confirmed}
+          onChange={(event) => onChange({ ...proposal, confirmed: event.target.checked })}
+        />
+        {t(proposal.consent_label_key)}
+      </label>
+      {[...proposal.required_fields, ...proposal.optional_fields].map((row) => {
+        const fieldId = `idp-prop-${proposal.key}-${row.field}`;
+        const required = proposal.required_fields.some((item) => item.field === row.field);
+        return (
+          <label className="idp-file" key={row.field} htmlFor={fieldId}>
+            {fieldLabel(row.label_key)}
+            {row.options && row.options.length > 0 ? (
+              <select
+                id={fieldId}
+                value={row.value}
+                required={required}
+                onChange={(event) =>
+                  patchField(required ? "required_fields" : "optional_fields", row.field, event.target.value)
+                }
+              >
+                <option value="" />
+                {row.options.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                id={fieldId}
+                type="text"
+                value={row.value}
+                required={required}
+                onChange={(event) =>
+                  patchField(required ? "required_fields" : "optional_fields", row.field, event.target.value)
+                }
+              />
+            )}
+          </label>
+        );
+      })}
+    </fieldset>
+  );
+}
+
+function cloneProposals(rows: Proposal[]): Proposal[] {
+  return rows.map((row) => ({
+    ...row,
+    confirmed: Boolean(row.confirmed),
+    required_fields: (row.required_fields || []).map((field) => ({ ...field, value: field.value || "" })),
+    optional_fields: (row.optional_fields || []).map((field) => ({ ...field, value: field.value || "" })),
+  }));
+}
+
+function proposalsReady(rows: Proposal[]): boolean {
+  if (rows.length === 0) return true;
+  return rows.every(
+    (row) =>
+      row.confirmed &&
+      row.required_fields.every((field) => String(field.value || "").trim().length > 0)
   );
 }
 

@@ -293,7 +293,204 @@ class TestIdpDeskSurface(unittest.TestCase):
 			"validation": {"is_valid": True, "errors": [], "warnings": [], "missing_masters": ["supplier"]},
 		}
 		self.assertFalse(draft_instructions(extracted)["ok"])
-		self.assertEqual(draft_instructions(extracted)["error_key"], "idp.notice.masters")
+		self.assertEqual(draft_instructions(extracted)["error_key"], "idp.propose.needConsent")
+
+	def test_unresolved_supplier_becomes_a_proposal(self):
+		from taxmate.idp.masters import build_proposals, proposals_complete, split_missing
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {
+					"supplier": "Scan Co LLC",
+					"tax_id": "100123456700003",
+					"address_line1": "Sheikh Zayed Rd",
+					"city": "Dubai",
+					"vat_emirate": "Dubai",
+				},
+				"items": [{"item_name": "Office Chair", "qty": 2}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [],
+				"warnings": [],
+				"missing_masters": ["supplier", {"doctype": "Item", "name": "Office Chair", "field": "item_code"}],
+			},
+		}
+		creatable, blocked = split_missing(extracted["validation"]["missing_masters"])
+		self.assertEqual([row["doctype"] for row in creatable], ["Supplier", "Item"])
+		self.assertEqual(blocked, [])
+		review = review_from_extract(extracted, route="/purchase-invoices")
+		self.assertTrue(review["ok"])
+		self.assertTrue(review["can_save"])
+		self.assertFalse(review["can_submit"])
+		self.assertEqual(review["error_key"], "idp.notice.propose")
+		self.assertEqual(review["lines"][0]["value"], "Scan Co LLC")
+		self.assertEqual(len(review["proposals"]), 2)
+		self.assertEqual(review["proposals"][0]["doctype"], "Supplier")
+		self.assertEqual(review["proposals"][1]["doctype"], "Item")
+		self.assertFalse(proposals_complete(review["proposals"]))
+		self.assertEqual(len(build_proposals(extracted)), 2)
+		self.assertTrue(any(row["status"] == "done" for row in review["stage_log"]))
+
+	def test_missing_account_still_blocks(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"supplier": "Acme", "credit_to": "Creditors - X"},
+				"items": [],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [],
+				"warnings": [],
+				"missing_masters": [{"doctype": "Account", "name": "Creditors - X", "field": "credit_to"}],
+			},
+		}
+		review = review_from_extract(extracted, route="/purchase-invoices")
+		self.assertFalse(review["can_save"])
+		self.assertEqual(review["error_key"], "idp.notice.masters")
+		self.assertEqual(review["proposals"], [])
+		self.assertFalse(draft_instructions(extracted)["ok"])
+
+	def test_sales_invoice_customer_proposal(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {
+					"customer": "Buyer LLC",
+					"tax_id": "100987654300003",
+					"address_line1": "Marina Walk",
+					"city": "Dubai",
+					"vat_emirate": "Dubai",
+				},
+				"items": [{"item_code": "EXISTING", "item_name": "Paper"}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [],
+				"warnings": [],
+				"missing_masters": ["customer"],
+			},
+		}
+		review = review_from_extract(extracted, route="/invoices")
+		self.assertEqual(len(review["proposals"]), 1)
+		self.assertEqual(review["proposals"][0]["doctype"], "Customer")
+		self.assertEqual(review["proposals"][0]["consent_label_key"], "idp.propose.customer")
+		self.assertEqual(review["error_key"], "idp.notice.propose")
+
+	def test_surface_exposes_read_stages(self):
+		surface = build_surface(can=_allow_all, llm_ready=True)
+		self.assertEqual(
+			[row["key"] for row in surface["read_stages"]],
+			["upload", "ocr", "parties", "items", "review"],
+		)
+
+	
+	def test_ocr_bill_to_becomes_customer_proposal(self):
+		from taxmate.idp.masters import build_proposals, normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {
+					"invoice_number": "SOC_0001/2026",
+					"bill_to": "NAS NEURON Health Services",
+					"billing_address": "302, Sheikh Mohamed Building, Salam, Lulu Center, AbuDhabi, UAE",
+					"Date": "2026-08-18",
+					"subtotal": 271000,
+					"Total": 271000,
+					"Currency": "AED",
+				},
+				"items": [{"item_name": "Eprotect 360 Cyber Security - FZCO", "qty": 1}],
+			},
+			"validation": {"is_valid": False, "errors": [], "warnings": [], "missing_masters": []},
+		}
+		normalize_extract(extracted)
+		header = extracted["extracted_data"]["header"]
+		self.assertEqual(header["customer"], "NAS NEURON Health Services")
+		self.assertEqual(header["bill_no"], "SOC_0001/2026")
+		self.assertTrue(header.get("address_line1"))
+		self.assertEqual(header.get("state") or header.get("vat_emirate"), "Abu Dhabi")
+		self.assertEqual(
+			extracted["extracted_data"]["items"][0]["item_code"],
+			"Eprotect 360 Cyber Security - FZCO",
+		)
+		extracted["validation"]["missing_masters"] = [
+			{"doctype": "Customer", "name": header["customer"], "field": "customer"},
+			{
+				"doctype": "Item",
+				"name": "Eprotect 360 Cyber Security - FZCO",
+				"field": "item_code",
+			},
+		]
+		proposals = build_proposals(extracted)
+		self.assertEqual([row["doctype"] for row in proposals], ["Customer", "Item"])
+		self.assertEqual(proposals[0]["source_fields"].get("city"), "Lulu Center")
+		review = review_from_extract(extracted, route="/invoices")
+		self.assertEqual(review["error_key"], "idp.notice.propose")
+		self.assertTrue(review["can_save"])
+		self.assertEqual(len(review["proposals"]), 2)
+
+	def test_ocr_bill_to_becomes_supplier_on_purchase(self):
+		from taxmate.idp.masters import normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"bill_to": "Buyer Co LLC", "vendor": "Real Supplier LLC"},
+				"items": [],
+			},
+			"validation": {"missing_masters": []},
+		}
+		normalize_extract(extracted)
+		self.assertEqual(extracted["extracted_data"]["header"]["supplier"], "Real Supplier LLC")
+		# bill_to is the buyer — must not overwrite supplier on purchase docs
+		extracted["extracted_data"]["header"].pop("supplier", None)
+		extracted["extracted_data"]["header"].pop("vendor", None)
+		normalize_extract(extracted)
+		self.assertNotIn("supplier", extracted["extracted_data"]["header"])
+
+	def test_proposal_merge_and_consent(self):
+		from taxmate.idp.masters import merge_proposal_values, proposals_complete
+
+		base = [
+			{
+				"key": "supplier:Acme",
+				"doctype": "Supplier",
+				"confirmed": False,
+				"required_fields": [
+					{"field": "supplier_name", "label_key": "idp.field.supplier", "value": "Acme"},
+					{"field": "address_line1", "label_key": "idp.field.addressLine", "value": ""},
+					{"field": "city", "label_key": "idp.field.city", "value": ""},
+					{"field": "state", "label_key": "idp.field.emirate", "value": ""},
+				],
+				"optional_fields": [],
+				"source_fields": {"supplier_name": "Acme"},
+			}
+		]
+		self.assertFalse(proposals_complete(base))
+		merged = merge_proposal_values(
+			base,
+			[
+				{
+					"key": "supplier:Acme",
+					"confirmed": True,
+					"required_fields": [
+						{"field": "address_line1", "value": "Street 1"},
+						{"field": "city", "value": "Dubai"},
+						{"field": "state", "value": "Dubai"},
+					],
+				}
+			],
+		)
+		self.assertTrue(merged[0]["confirmed"])
+		self.assertTrue(proposals_complete(merged))
 
 	def test_targets_match_idp_when_the_app_imports(self):
 		try:

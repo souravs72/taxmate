@@ -27,9 +27,9 @@ TARGETS: tuple[dict[str, str | None], ...] = (
 )
 
 # User-facing IDP jobs. Internal tools (ask_user, audit, validate,
-# read_attachment_more) are not jobs. create_master is not a job: a UAE
-# scan must not invent a customer, supplier, or item.
-# runnable flips to True in the phase that wires the job.
+# read_attachment_more) are not jobs. create_master is not a job: the scan
+# never invents masters alone. Supplier / Customer / Item may be proposed and
+# created only after the clerk confirms (taxmate.idp.masters).
 # Local OCR feeds compare, match, and update. None of these jobs call the model.
 JOBS: tuple[dict[str, Any], ...] = (
 	{"id": "create", "needs_file": True, "needs_target": True, "needs_query": False, "permission": "create", "needs_model": False, "runnable": True, "query_key": None, "run_key": "idp.read", "save_key": "idp.save"},
@@ -58,6 +58,14 @@ NOTICES: tuple[str, ...] = (
 	"idp.notice.draft",
 	"idp.notice.masters",
 	"idp.notice.language",
+)
+
+READ_STAGES: tuple[dict[str, str], ...] = (
+	{"key": "upload", "label_key": "idp.stage.upload"},
+	{"key": "ocr", "label_key": "idp.stage.ocr"},
+	{"key": "parties", "label_key": "idp.stage.parties"},
+	{"key": "items", "label_key": "idp.stage.items"},
+	{"key": "review", "label_key": "idp.stage.review"},
 )
 
 ACCEPT: tuple[str, ...] = (
@@ -168,6 +176,7 @@ def build_surface(*, can: Can, llm_ready: bool) -> dict[str, Any]:
 		"title_key": "idp.title",
 		"notices": list(NOTICES),
 		"accept": list(ACCEPT),
+		"read_stages": [dict(row) for row in READ_STAGES],
 		"llm_ready": bool(llm_ready),
 		"blocked_key": None,
 		"actions": actions,
@@ -554,6 +563,8 @@ def submit_requested(flag: str | None) -> bool:
 
 def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict[str, Any]:
 	"""Turn an IDP extract payload into the panel review. Draft save stays off until the map is valid."""
+	from taxmate.idp.masters import build_proposals, split_missing
+
 	if not extracted.get("success"):
 		return {"ok": False, "step": "review", "error_key": "idp.readFailed", "can_save": False}
 	data = extracted.get("extracted_data") or {}
@@ -568,13 +579,23 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 			items.append({"label": str(label)})
 	validation = extracted.get("validation") or {}
 	missing = validation.get("missing_masters") or []
+	_creatable, blocked = split_missing(missing)
+	proposals = build_proposals(extracted) if not blocked else []
 	raw_header = data.get("header") or {}
-	gaps = [] if missing else gaps_from_validation(validation)
-	writes = [] if missing else writes_from_extract(raw_header, validation, doctype=data.get("doctype"))
-	can_save = not missing and bool(header) and not gaps and not _unexplained(validation)
+	# Gaps and typed fields stay available when the only missing Links are creatable.
+	gaps = gaps_from_validation(validation) if not blocked else []
+	writes = writes_from_extract(raw_header, validation, doctype=data.get("doctype")) if not blocked else []
+	has_blockers = bool(blocked)
+	can_save = not has_blockers and bool(header) and not gaps and not _unexplained(validation)
 	error_key = None
-	if not can_save:
-		error_key = "idp.notice.masters" if missing else (None if gaps else "idp.invalid")
+	if has_blockers:
+		error_key = "idp.notice.masters"
+		can_save = False
+	elif proposals:
+		error_key = "idp.notice.propose"
+	elif not can_save:
+		error_key = None if gaps else "idp.invalid"
+	stage_log = [{"key": row["key"], "label_key": row["label_key"], "status": "done"} for row in READ_STAGES]
 	return {
 		"ok": True,
 		"step": "review",
@@ -584,16 +605,26 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 		"items": items,
 		"gaps": gaps,
 		"writes": writes,
+		"proposals": proposals,
+		"stage_log": stage_log,
 		"can_save": can_save,
-		"can_submit": can_save,
+		"can_submit": can_save and not proposals,
 		"error_key": error_key,
 	}
 
 
-def draft_instructions(extracted: dict[str, Any]) -> dict[str, Any]:
-	"""The insert payload. Submit is never set."""
+def draft_instructions(extracted: dict[str, Any], *, proposals: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+	"""The insert payload. Submit is never set. Unconfirmed proposals block the draft."""
+	from taxmate.idp.masters import proposals_complete, split_missing
+
 	review = review_from_extract(extracted, route=None)
-	if not review.get("can_save"):
+	pending = proposals if proposals is not None else review.get("proposals") or []
+	_creatable, blocked = split_missing((extracted.get("validation") or {}).get("missing_masters"))
+	if blocked:
+		return {"ok": False, "error_key": "idp.notice.masters"}
+	if pending and not proposals_complete(pending):
+		return {"ok": False, "error_key": "idp.propose.needConsent"}
+	if not review.get("can_save") and not pending:
 		return {"ok": False, "error_key": review.get("error_key") or "idp.invalid"}
 	data = extracted.get("extracted_data") or {}
 	header = _header_rows(data.get("header") or {})

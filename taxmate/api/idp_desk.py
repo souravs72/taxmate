@@ -68,7 +68,16 @@ def _read(file_url: str, target: str, *, use_model: bool = False) -> dict:
 		extracted = extract_document(file_url=file_url, target_doctype=target, language=language)
 	if isinstance(extracted, dict):
 		extracted["ocr_language"] = language
+		from taxmate.idp.masters import bind_parties_by_trn, normalize_extract, promote_unresolved_items
+
+		# Party/address first; item-code fill waits until name lookup runs.
+		normalize_extract(extracted, promote_items=False)
 		_bind_known_items(extracted)
+		items = (extracted.get("extracted_data") or {}).get("items")
+		if isinstance(items, list):
+			promote_unresolved_items(items)
+		bind_parties_by_trn(extracted)
+		_refresh_validation(extracted)
 	return extracted
 
 
@@ -239,6 +248,7 @@ def save(
 	query: str | None = None,
 	fills: str | None = None,
 	submit: str | None = None,
+	proposals: str | None = None,
 ) -> dict:
 	"""Apply the job the clerk confirmed. Submit runs only when they ask."""
 	require_login()
@@ -246,7 +256,9 @@ def save(
 	if not planned.get("ok"):
 		return planned
 	if action == "create":
-		return _save_create(planned, file_url or "", fills=fills, submit=submit)
+		return _save_create(
+			planned, file_url or "", fills=fills, submit=submit, proposals=proposals
+		)
 	if action == "update":
 		return _save_update(planned, file_url or "")
 	if action == "delete":
@@ -380,11 +392,38 @@ def _preview_delete(planned: dict) -> dict:
 	}
 
 
-def _save_create(planned: dict, file_url: str, *, fills: str | None, submit: str | None) -> dict:
+def _save_create(
+	planned: dict,
+	file_url: str,
+	*,
+	fills: str | None,
+	submit: str | None,
+	proposals: str | None = None,
+) -> dict:
+	from taxmate.idp.masters import (
+		apply_created_links,
+		build_proposals,
+		create_confirmed,
+		merge_proposal_values,
+		split_missing,
+	)
+
 	extracted = _read(file_url, planned["doctype"], use_model=True)
 	if extracted.get("error_key"):
 		return {"ok": False, "error_key": extracted["error_key"]}
-	instructions = draft_instructions(extracted)
+	_creatable, blocked = split_missing((extracted.get("validation") or {}).get("missing_masters"))
+	if blocked:
+		return {"ok": False, "error_key": "idp.notice.masters"}
+	pending = merge_proposal_values(build_proposals(extracted), _proposals(proposals))
+	if pending:
+		made = create_confirmed(pending)
+		if not made.get("ok"):
+			return {"ok": False, "error_key": made.get("error_key") or "idp.propose.failed"}
+		apply_created_links(extracted, made.get("created") or {})
+		_refresh_validation(extracted)
+	if build_proposals(extracted):
+		return {"ok": False, "error_key": "idp.propose.needConsent"}
+	instructions = draft_instructions(extracted, proposals=[])
 	if not instructions.get("ok"):
 		return instructions
 	header, items = finish_draft(
@@ -426,6 +465,20 @@ def _save_create(planned: dict, file_url: str, *, fills: str | None, submit: str
 	payload["step"] = "submitted"
 	payload["docstatus"] = submitted.get("docstatus") if isinstance(submitted, dict) else payload["docstatus"]
 	return payload
+
+
+def _proposals(raw: str | None) -> list[dict]:
+	import json
+
+	if not raw:
+		return []
+	try:
+		data = json.loads(raw)
+	except (TypeError, ValueError):
+		return []
+	if not isinstance(data, list):
+		return []
+	return [row for row in data if isinstance(row, dict)]
 
 
 def _fills(raw: str | None) -> dict:
