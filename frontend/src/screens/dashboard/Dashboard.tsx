@@ -23,7 +23,6 @@ import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { SplitBar, Spark, TrendChart, whole } from "../../components/charts";
 import AccountantDashboard from "./AccountantDashboard";
-import { CaptureDesk } from "./CaptureDesk";
 import { DashSwitch, useDashMode } from "./DashSwitch";
 import "./dashboard.css";
 
@@ -166,7 +165,6 @@ function OwnerDashboard() {
         actions={
           <>
             <DashSwitch />
-            <CaptureDesk />
             <button type="button" className="btn ghost" onClick={() => nav("/payments/new")}>{t("hub.receive")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices/new")}>{t("od.newBill")}</button>
             <button type="button" className="btn" onClick={() => nav("/invoices/new")}>{t("hub.newSale")}</button>

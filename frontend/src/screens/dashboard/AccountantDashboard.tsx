@@ -24,7 +24,6 @@ import { getLocale } from "../../lib/i18n";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { whole } from "../../components/charts";
-import { CaptureDesk } from "./CaptureDesk";
 import { DashSwitch } from "./DashSwitch";
 import "./dashboard.css";
 import "./accountant.css";
@@ -185,7 +184,6 @@ export default function AccountantDashboard() {
         actions={
           <>
             <DashSwitch />
-            <CaptureDesk />
             <button type="button" className="btn ghost" onClick={openBankRec}>{t("ad.reconcileBank")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/journals/new")}>{t("ad.journal")}</button>
             <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>

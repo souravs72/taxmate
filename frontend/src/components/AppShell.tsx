@@ -11,6 +11,7 @@ import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
 import UserMenu from "./UserMenu";
 import { navIcon } from "./navIcons";
+import { CaptureDesk } from "../screens/dashboard/CaptureDesk";
 
 const RAIL_KEY = "taxmate-rail";
 const OPEN_KEY = "taxmate-nav-open";
@@ -163,6 +164,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
           <div className="tright">
             <div className="tools">
+              <CaptureDesk />
               <button
                 type="button"
                 className="langbtn"
