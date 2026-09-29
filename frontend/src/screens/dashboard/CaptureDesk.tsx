@@ -407,6 +407,23 @@ function ReviewBlock({
   const ready = proposalsReady(proposals);
   const canSave = Boolean(review.can_save || review.can_delete) && ready;
   const canSubmit = Boolean(review.can_submit || (review.can_save && proposals.length > 0 && ready));
+  const consentPending = proposals.some((row) => !row.confirmed);
+  const fieldsPending = proposals.some(
+    (row) =>
+      row.confirmed &&
+      row.required_fields.some((field) => !String(field.value || "").trim())
+  );
+  const blockHint = !ready
+    ? consentPending
+      ? "idp.propose.needConsent"
+      : fieldsPending
+        ? "idp.propose.needFields"
+        : "idp.propose.needConsent"
+    : review.gaps && review.gaps.length > 0
+      ? "idp.blocked.gaps"
+      : !review.can_save && !review.can_delete
+        ? "idp.blocked.save"
+        : null;
 
   return (
     <div className="idp-job" role="status" aria-live="polite">
@@ -523,18 +540,20 @@ function ReviewBlock({
           })}
         </>
       ) : null}
-      {canSave ? (
+      {proposals.length > 0 ? <p className="idp-hint">{t("idp.propose.onSave")}</p> : null}
+      <div className="idp-actions">
+        {blockHint && !canSave ? <p className="idp-hint">{t(blockHint)}</p> : null}
         <div className="idp-jobs">
-          <button type="button" className="btn" disabled={busy} onClick={() => onSave(false)}>
+          <button type="button" className="btn" disabled={busy || !canSave} onClick={() => onSave(false)}>
             {busy ? t("idp.saving") : t(review.save_key || "idp.save")}
           </button>
           {canSubmit && !review.can_delete ? (
-            <button type="button" className="btn ghost" disabled={busy} onClick={() => onSave(true)}>
+            <button type="button" className="btn ghost" disabled={busy || !canSave} onClick={() => onSave(true)}>
               {t("idp.submit")}
             </button>
           ) : null}
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }

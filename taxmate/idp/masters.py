@@ -85,8 +85,8 @@ _HEADER_ALIASES: dict[str, tuple[str, ...]] = {
 	"bill_no": ("invoice_number", "invoice_no", "bill_number", "inv_no", "bill_no"),
 	"posting_date": ("date", "invoice_date", "bill_date", "posting_date"),
 	"transaction_date": ("date", "order_date", "po_date", "transaction_date"),
-	"grand_total": ("total", "total_amount", "grand_total", "amount_due"),
-	"net_total": ("subtotal", "sub_total", "net_total", "net_amount"),
+	"grand_total": ("total", "total_amount", "grand_total", "amount_due", "total_due"),
+	"net_total": ("subtotal", "sub_total", "net_total", "net_amount", "total_due"),
 	"currency": ("currency",),
 	"tax_id": ("tax_id", "trn", "vat_number", "supplier_trn", "customer_trn", "gstin"),
 }
@@ -113,6 +113,9 @@ def normalize_extract(extracted: dict[str, Any], *, promote_items: bool = True) 
 	_promote_header_scalars(header, doctype)
 	_promote_party(header, doctype)
 	_promote_address(header)
+	_promote_totals(header)
+	_scrub_contact_noise(header)
+	_ensure_line_from_total(data)
 	if promote_items:
 		items = data.get("items")
 		if isinstance(items, list):
@@ -381,7 +384,7 @@ def _party_proposal(doctype: str, missing: dict[str, str], header: dict[str, Any
 		).strip(),
 		"city": str(header.get("city") or "").strip(),
 		"state": _emirate(header),
-		"email_id": str(header.get("email_id") or header.get("email") or "").strip(),
+		"email_id": _safe_email(header.get("email_id") or header.get("email")),
 		"phone": str(header.get("phone") or header.get("mobile_no") or "").strip(),
 	}
 	required = [
@@ -470,6 +473,66 @@ def _field(field: str, label_key: str, value: str, options: list[str] | None = N
 	if options:
 		row["options"] = options
 	return row
+
+
+def _promote_totals(header: dict[str, Any]) -> None:
+	"""Fill grand_total from net/total_due when OCR only printed one amount."""
+	if not str(header.get("grand_total") or "").strip():
+		for key in ("net_total", "total_due", "amount_due", "total"):
+			value = header.get(key)
+			if value not in (None, ""):
+				header["grand_total"] = value
+				break
+	if not str(header.get("net_total") or "").strip() and header.get("grand_total") not in (None, ""):
+		header["net_total"] = header["grand_total"]
+
+
+def _ensure_line_from_total(data: dict[str, Any]) -> None:
+	"""When OCR lost the line table, seed one service row from the document total."""
+	items = data.get("items")
+	if isinstance(items, list) and any(
+		isinstance(row, dict)
+		and (str(row.get("item_code") or row.get("item_name") or row.get("description") or "").strip())
+		for row in items
+	):
+		return
+	header = data.get("header") if isinstance(data.get("header"), dict) else {}
+	total = header.get("grand_total") or header.get("net_total")
+	if total in (None, ""):
+		return
+	label = str(header.get("remarks") or header.get("bill_no") or "Services as per document").strip()
+	data["items"] = [
+		{
+			"item_name": label if not label.startswith("SOC_") else "Services as per document",
+			"description": label,
+			"qty": 1,
+			"rate": total,
+			"amount": total,
+			"uom": "Nos",
+		}
+	]
+
+
+def _scrub_contact_noise(header: dict[str, Any]) -> None:
+	"""Drop OCR values wrongly parked on contact fields (e.g. requisition → email)."""
+	for key in ("email_id", "email"):
+		if key in header:
+			clean = _safe_email(header.get(key))
+			if clean:
+				header[key] = clean
+			else:
+				header.pop(key, None)
+
+
+def _safe_email(value: Any) -> str:
+	"""Drop OCR noise that is clearly not an email (requisition refs, names, etc.)."""
+	text = str(value or "").strip()
+	if not text or "@" not in text:
+		return ""
+	local, _, domain = text.partition("@")
+	if not local or "." not in domain or " " in text or "/" in text:
+		return ""
+	return text
 
 
 def _looks_like_description(value: str) -> bool:

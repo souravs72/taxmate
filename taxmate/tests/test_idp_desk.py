@@ -523,6 +523,46 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertNotIn("idp.field.account_name", line_keys)
 		self.assertFalse(any("iban" in key.lower() for key in line_keys))
 
+	def test_ocr_rejects_fake_email_and_fills_total(self):
+		from taxmate.idp.masters import build_proposals, normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {
+					"bill_to": "NAS NEURON Health Services",
+					"email": "NNHS/2026/0023",
+					"invoice_number": "SOC_0001/2026",
+					"Date": "2026-08-18",
+					"net_total": 271000,
+					"Currency": "AED",
+				},
+				"items": [],
+			},
+			"validation": {"is_valid": False, "errors": [], "warnings": [], "missing_masters": []},
+		}
+		normalize_extract(extracted)
+		header = extracted["extracted_data"]["header"]
+		self.assertEqual(header["customer"], "NAS NEURON Health Services")
+		self.assertEqual(header["grand_total"], 271000)
+		self.assertNotIn("email", header)
+		self.assertNotIn("email_id", header)
+		items = extracted["extracted_data"]["items"]
+		self.assertEqual(len(items), 1)
+		self.assertEqual(items[0]["rate"], 271000)
+		extracted["validation"]["missing_masters"] = [
+			{"doctype": "Customer", "name": header["customer"], "field": "customer"},
+			{"doctype": "Item", "name": items[0]["item_code"], "field": "item_code"},
+		]
+		proposals = build_proposals(extracted)
+		by_dt = {row["doctype"]: row for row in proposals}
+		self.assertIn("Customer", by_dt)
+		self.assertEqual(by_dt["Customer"]["source_fields"].get("email_id"), "")
+		review = review_from_extract(extracted, route="/invoices")
+		self.assertTrue(review["can_save"])
+		self.assertEqual(review["gaps"], [])
+
 	def test_proposal_merge_and_consent(self):
 		from taxmate.idp.masters import merge_proposal_values, proposals_complete
 
