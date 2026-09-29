@@ -236,12 +236,14 @@ class _Ctx:
 		return self._accounts
 
 	def _gl_sum_by_account(self, accounts: list[str], start: date, end: date) -> dict[str, float]:
-		"""Net debit − credit per account over [start, end]."""
+		"""Net debit - credit per account over [start, end]."""
 		if not accounts:
 			return {}
 		rows = frappe.get_list(
 			"GL Entry",
-			filters=self._gl_filters([["account", "in", accounts], ["posting_date", "between", [start, end]]]),
+			filters=self._gl_filters(
+				[["account", "in", accounts], ["posting_date", "between", [start, end]]]
+			),
 			fields=["account", {"SUM": "debit", "as": "dr"}, {"SUM": "credit", "as": "cr"}],
 			group_by="account",
 			order_by="account",
@@ -254,7 +256,9 @@ class _Ctx:
 			return []
 		return frappe.get_list(
 			"GL Entry",
-			filters=self._gl_filters([["account", "in", accounts], ["posting_date", "between", [self.series_start, self.on]]]),
+			filters=self._gl_filters(
+				[["account", "in", accounts], ["posting_date", "between", [self.series_start, self.on]]]
+			),
 			fields=["posting_date", {"SUM": "debit", "as": "dr"}, {"SUM": "credit", "as": "cr"}],
 			group_by="posting_date",
 			order_by="posting_date",
@@ -316,7 +320,9 @@ class _Ctx:
 		def total(start: date, end: date) -> tuple[float, int]:
 			rows = frappe.get_list(
 				doctype,
-				filters=self._doc_filters(doctype, (extra or []) + [["posting_date", "between", [start, end]]]),
+				filters=self._doc_filters(
+					doctype, (extra or []) + [["posting_date", "between", [start, end]]]
+				),
 				fields=[{"SUM": value_field, "as": "v"}, {"COUNT": "*", "as": "n"}],
 				limit=1,
 			)
@@ -326,7 +332,9 @@ class _Ctx:
 		prev, prev_count = total(self.b["prev_start"], self.b["prev_end"])
 		daily = frappe.get_list(
 			doctype,
-			filters=self._doc_filters(doctype, (extra or []) + [["posting_date", "between", [self.series_start, self.on]]]),
+			filters=self._doc_filters(
+				doctype, (extra or []) + [["posting_date", "between", [self.series_start, self.on]]]
+			),
 			fields=["posting_date", {"SUM": value_field, "as": "v"}],
 			group_by="posting_date",
 			order_by="posting_date",
@@ -346,7 +354,9 @@ class _Ctx:
 		return {
 			"invoiced": self._flow("Sales Invoice", "base_net_total"),
 			"bills": self._flow("Purchase Invoice", "base_net_total"),
-			"received": self._flow("Payment Entry", "base_received_amount", [["payment_type", "=", "Receive"]]),
+			"received": self._flow(
+				"Payment Entry", "base_received_amount", [["payment_type", "=", "Receive"]]
+			),
 			"paid": self._flow("Payment Entry", "base_paid_amount", [["payment_type", "=", "Pay"]]),
 		}
 
@@ -364,7 +374,8 @@ class _Ctx:
 		rows = frappe.get_list(
 			"GL Entry",
 			filters=self._gl_filters(
-				[["account", "in", [a.name for a in accts]], ["posting_date", "<=", self.on]], company_wide=True
+				[["account", "in", [a.name for a in accts]], ["posting_date", "<=", self.on]],
+				company_wide=True,
 			),
 			fields=["account", {"SUM": "debit", "as": "dr"}, {"SUM": "credit", "as": "cr"}],
 			group_by="account",
@@ -373,7 +384,15 @@ class _Ctx:
 		)
 		bal = {r.account: flt(r.dr) - flt(r.cr) for r in rows}
 		out = sorted(
-			({"name": a.name, "label": a.account_name, "type": a.account_type, "balance": round(bal.get(a.name, 0.0), 2)} for a in accts),
+			(
+				{
+					"name": a.name,
+					"label": a.account_name,
+					"type": a.account_type,
+					"balance": round(bal.get(a.name, 0.0), 2),
+				}
+				for a in accts
+			),
 			key=lambda x: -x["balance"],
 		)
 		return {"total": round(sum(bal.values()), 2), "accounts": out, "company_wide": True}
@@ -389,14 +408,29 @@ class _Ctx:
 		rows = frappe.get_list(
 			_VAT_LOG,
 			filters=[["company", "=", self.company], ["docstatus", "<", 2]],
-			fields=["name", "period_start", "period_end", "filing_due_date", "status", "deadline_status", "net_vat_due", "tax_currency"],
+			fields=[
+				"name",
+				"period_start",
+				"period_end",
+				"filing_due_date",
+				"status",
+				"deadline_status",
+				"net_vat_due",
+				"tax_currency",
+			],
 			order_by="period_end desc",
 			limit=12,
 		)
 		if not rows:
 			return None
 		current = next(
-			(r for r in rows if r.period_start and r.period_end and getdate(r.period_start) <= self.on <= getdate(r.period_end)),
+			(
+				r
+				for r in rows
+				if r.period_start
+				and r.period_end
+				and getdate(r.period_start) <= self.on <= getdate(r.period_end)
+			),
 			None,
 		)
 		if current is None:
@@ -440,10 +474,14 @@ class _Ctx:
 		prorated by days into the selected period. A Budget Distribution
 		(monthly weights) is not applied yet — evenly spread for now.
 		"""
-		if not frappe.db.exists("DocType", "Budget") or not all(self._can(d) for d in ("Budget", "GL Entry", "Account")):
+		if not frappe.db.exists("DocType", "Budget") or not all(
+			self._can(d) for d in ("Budget", "GL Entry", "Account")
+		):
 			return None
 		meta = frappe.get_meta("Budget")
-		if not all(meta.has_field(f) for f in ("account", "budget_amount", "budget_start_date", "budget_end_date")):
+		if not all(
+			meta.has_field(f) for f in ("account", "budget_amount", "budget_start_date", "budget_end_date")
+		):
 			# A Budget schema this code does not know. Better no card than a wrong one.
 			return None
 		filters = [
@@ -466,7 +504,11 @@ class _Ctx:
 			if not (b.account and b.budget_start_date and b.budget_end_date):
 				continue
 			planned[b.account] = planned.get(b.account, 0.0) + prorate(
-				b.budget_amount, self.b["start"], self.b["end"], getdate(b.budget_start_date), getdate(b.budget_end_date)
+				b.budget_amount,
+				self.b["start"],
+				self.b["end"],
+				getdate(b.budget_start_date),
+				getdate(b.budget_end_date),
 			)
 		if not planned:
 			return None
@@ -475,7 +517,12 @@ class _Ctx:
 		names = {a.name: a.account_name for a in self._accounts_by_root()["Expense"]}
 		rows = sorted(
 			(
-				{"account": acc, "label": names.get(acc, acc), "budget": round(p, 2), "actual": round(actual.get(acc, 0.0), 2)}
+				{
+					"account": acc,
+					"label": names.get(acc, acc),
+					"budget": round(p, 2),
+					"actual": round(actual.get(acc, 0.0), 2),
+				}
 				for acc, p in planned.items()
 			),
 			key=lambda r: -r["budget"],
@@ -493,7 +540,9 @@ class _Ctx:
 		# ordering by an aggregate alias is not something every query builder allows.
 		rows = frappe.get_list(
 			"Sales Invoice",
-			filters=self._doc_filters("Sales Invoice", [["posting_date", "between", [self.b["start"], self.b["end"]]]]),
+			filters=self._doc_filters(
+				"Sales Invoice", [["posting_date", "between", [self.b["start"], self.b["end"]]]]
+			),
 			fields=["customer", {"SUM": "base_net_total", "as": "v"}],
 			group_by="customer",
 			order_by="customer",
@@ -523,7 +572,10 @@ class _Ctx:
 			return []
 		rows = frappe.get_list(
 			"Sales Invoice",
-			filters=self._doc_filters("Sales Invoice", [["outstanding_amount", ">", 0], ["due_date", "is", "set"], ["due_date", "<", self.on]]),
+			filters=self._doc_filters(
+				"Sales Invoice",
+				[["outstanding_amount", ">", 0], ["due_date", "is", "set"], ["due_date", "<", self.on]],
+			),
 			fields=["name", "customer", "customer_name", "due_date", "outstanding_amount", "currency"],
 			order_by="outstanding_amount desc",
 			limit=5,
@@ -547,7 +599,11 @@ class _Ctx:
 			"Purchase Invoice",
 			filters=self._doc_filters(
 				"Purchase Invoice",
-				[["outstanding_amount", ">", 0], ["due_date", "is", "set"], ["due_date", "between", [self.on, self.on + timedelta(days=6)]]],
+				[
+					["outstanding_amount", ">", 0],
+					["due_date", "is", "set"],
+					["due_date", "between", [self.on, self.on + timedelta(days=6)]],
+				],
 			),
 			fields=["name", "supplier", "supplier_name", "due_date", "outstanding_amount", "currency"],
 			order_by="due_date asc",
@@ -579,7 +635,14 @@ class _Ctx:
 					["deadline_status", "!=", "Filed"],
 					["filing_due_date", "is", "set"],
 				],
-				fields=["name", "period_start", "period_end", "filing_due_date", "deadline_status", amount_field],
+				fields=[
+					"name",
+					"period_start",
+					"period_end",
+					"filing_due_date",
+					"deadline_status",
+					amount_field,
+				],
 				order_by="filing_due_date asc",
 				limit=3,
 			)
@@ -617,4 +680,3 @@ def _filing_row(r, on: date, amount_field: str = "net_vat_due") -> dict:
 		"status": r.get("deadline_status") or r.get("status"),
 		"amount": flt(r.get(amount_field)),
 	}
-

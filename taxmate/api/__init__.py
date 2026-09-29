@@ -10,7 +10,7 @@ from taxmate.api.resource import require_login
 from taxmate.search import ALLOWED_SEARCH_DOCTYPES, DENIED_SEARCH_DOCTYPES, GLOBAL_SEARCH_DOCTYPES
 from taxmate.setup.financial_reports import CORE_REPORT_LINKS, TAXMATE_REPORT_LINKS
 from taxmate.setup.home import DAILY_SHORTCUTS, HOME_LINKS, UAE_SHORTCUTS
-from taxmate.setup.spa_roles import spa_role_of, spa_roles_of, addon_roles_of
+from taxmate.setup.spa_roles import addon_roles_of, spa_role_of, spa_roles_of
 
 # Masters a books frontend needs that are not always in global search.
 _CORE_MASTERS: tuple[str, ...] = (
@@ -34,11 +34,11 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Payment Terms Template",
 	"Price List",
 	"Terms and Conditions",
-		"UAE Related Party",
-		"UAE VAT Group",
-		"UAE Bad Debt Relief",
-		"UAE Customs Declaration",
-		"UAE Capital Goods Adjustment",
+	"UAE Related Party",
+	"UAE VAT Group",
+	"UAE Bad Debt Relief",
+	"UAE Customs Declaration",
+	"UAE Capital Goods Adjustment",
 	"Brand",
 	"UOM",
 	"Customer Group",
@@ -211,7 +211,10 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "get_outstanding_invoices", "method": "taxmate.api.accounts.get_outstanding_invoices"},
 			{"name": "get_payment_entry", "method": "taxmate.api.accounts.get_payment_entry"},
 			{"name": "resolve_payment_accounts", "method": "taxmate.api.accounts.resolve_payment_accounts"},
-			{"name": "resolve_internal_transfer_accounts", "method": "taxmate.api.accounts.resolve_internal_transfer_accounts"},
+			{
+				"name": "resolve_internal_transfer_accounts",
+				"method": "taxmate.api.accounts.resolve_internal_transfer_accounts",
+			},
 			{"name": "get_je_account_details", "method": "taxmate.api.accounts.get_je_account_details"},
 			{"name": "get_je_party_account", "method": "taxmate.api.accounts.get_je_party_account"},
 			{"name": "get_accounting_dimensions", "method": "taxmate.api.accounts.get_accounting_dimensions"},
@@ -232,7 +235,10 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "make_purchase_invoice", "method": "taxmate.api.purchase_order.make_purchase_invoice"},
 			{"name": "make_dn_sales_invoice", "method": "taxmate.api.delivery_note.make_sales_invoice"},
 			{"name": "make_dn_return", "method": "taxmate.api.delivery_note.make_return"},
-			{"name": "make_pr_purchase_invoice", "method": "taxmate.api.purchase_receipt.make_purchase_invoice"},
+			{
+				"name": "make_pr_purchase_invoice",
+				"method": "taxmate.api.purchase_receipt.make_purchase_invoice",
+			},
 			{"name": "make_pr_return", "method": "taxmate.api.purchase_receipt.make_return"},
 			{"name": "item_qty", "method": "taxmate.api.stock.item_qty"},
 			{"name": "make_quotation_so", "method": "taxmate.api.quotation.make_sales_order"},
@@ -243,7 +249,10 @@ def get_catalog() -> dict[str, Any]:
 				"method": "taxmate.api.bank_reconciliation.get_uncleared_transactions",
 			},
 			{"name": "mark_cleared", "method": "taxmate.api.bank_reconciliation.mark_cleared"},
-			{"name": "make_supplier_quotation_po", "method": "taxmate.api.supplier_quotation.make_purchase_order"},
+			{
+				"name": "make_supplier_quotation_po",
+				"method": "taxmate.api.supplier_quotation.make_purchase_order",
+			},
 			{"name": "convert_lead_to_customer", "method": "taxmate.api.lead.convert_to_customer"},
 			{
 				"name": "make_pick_list_from_dn",
@@ -271,7 +280,10 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "get_session", "method": "taxmate.api.get_session"},
 			{"name": "get_catalog", "method": "taxmate.api.get_catalog"},
 			{"name": "owner_dashboard", "method": "taxmate.api.owner_dashboard.get_owner_dashboard"},
-			{"name": "accountant_dashboard", "method": "taxmate.api.accountant_dashboard.get_accountant_dashboard"},
+			{
+				"name": "accountant_dashboard",
+				"method": "taxmate.api.accountant_dashboard.get_accountant_dashboard",
+			},
 			{"name": "idp_surface", "method": "taxmate.api.idp_desk.get_surface"},
 			{"name": "idp_upload", "method": "taxmate.api.idp_desk.upload"},
 			{"name": "idp_run", "method": "taxmate.api.idp_desk.run"},

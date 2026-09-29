@@ -14,7 +14,7 @@ required_apps = ["erpnext"]
 add_to_apps_screen = [
 	{
 		"name": "taxmate",
-			"logo": "/assets/taxmate/logo.svg",
+		"logo": "/assets/taxmate/logo.svg",
 		"title": "TaxMate",
 		"route": "/taxmate",
 		"has_permission": "taxmate.api.permission.has_app_permission",

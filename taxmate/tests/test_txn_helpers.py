@@ -164,9 +164,13 @@ class TestTxnHelpers(FrappeTestCase):
 		)
 		self.assertAlmostEqual(float(purchase.get("rate") or 0), float(buy_item.price_list_rate))
 
-		customer = frappe.db.get_value("Customer", {"disabled": 0, "default_price_list": ["in", ["", None]]}, "name")
+		customer = frappe.db.get_value(
+			"Customer", {"disabled": 0, "default_price_list": ["in", ["", None]]}, "name"
+		)
 		if customer:
-			party = get_party_details(party=customer, party_type="Customer", company=company, doctype="Sales Order")
+			party = get_party_details(
+				party=customer, party_type="Customer", company=company, doctype="Sales Order"
+			)
 			self.assertEqual(party.get("selling_price_list"), selling)
 
 	def test_party_details_stamps_default_taxes_when_no_tax_rule(self):
@@ -234,7 +238,9 @@ class TestTxnHelpers(FrappeTestCase):
 				"price_list_currency": "AED",
 				"plc_conversion_rate": 1,
 				"transaction_date": frappe.utils.today(),
-				"items": [{"item_code": item, "qty": 1, "uom": frappe.get_cached_value("Item", item, "stock_uom")}],
+				"items": [
+					{"item_code": item, "qty": 1, "uom": frappe.get_cached_value("Item", item, "stock_uom")}
+				],
 			}
 		)
 		self.assertIn("children", out)
@@ -313,8 +319,9 @@ class TestPaymentInternalTransfer(FrappeTestCase):
 		self.assertIn("taxmate.api.accounts.resolve_internal_transfer_accounts", methods)
 
 	def test_resolve_internal_transfer_throws_without_mop(self):
-		from taxmate.api.accounts import resolve_internal_transfer_accounts
 		import frappe
+
+		from taxmate.api.accounts import resolve_internal_transfer_accounts
 
 		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
 		if not company:

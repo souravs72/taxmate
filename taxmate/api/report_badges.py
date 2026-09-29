@@ -112,7 +112,11 @@ def _vat(company: str, on) -> dict | None:
 	if not rows:
 		return None
 	current = next(
-		(r for r in rows if r.period_start and r.period_end and getdate(r.period_start) <= on <= getdate(r.period_end)),
+		(
+			r
+			for r in rows
+			if r.period_start and r.period_end and getdate(r.period_start) <= on <= getdate(r.period_end)
+		),
 		None,
 	)
 	if current is None:
@@ -132,12 +136,12 @@ def _period_label(row) -> str:
 	start, end = getdate(row.period_start), getdate(row.period_end)
 	months = (end.year - start.year) * 12 + end.month - start.month + 1
 	# Only a period on a calendar-quarter boundary gets a Qn label: the FTA hands
-	# out staggered quarters (Feb–Apr, Nov–Jan …) and those have no quarter number.
+	# out staggered quarters (Feb-Apr, Nov-Jan …) and those have no quarter number.
 	if months == 3 and start.month in (1, 4, 7, 10):
 		return f"Q{(start.month - 1) // 3 + 1}"
 	if months == 1:
 		return start.strftime("%b")
-	return f"{start.strftime('%b')}–{end.strftime('%b')}"
+	return f"{start.strftime('%b')}-{end.strftime('%b')}"
 
 
 def _einvoice(company: str) -> dict | None:

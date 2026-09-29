@@ -256,7 +256,9 @@ def invite_user(
 	if not first_name:
 		frappe.throw(_("First name is required"))
 	validate_email_address(email, throw=True)
-	roles = _parse_spa_roles(spa_role=spa_role or ("clerk" if spa_roles is None else None), spa_roles=spa_roles)
+	roles = _parse_spa_roles(
+		spa_role=spa_role or ("clerk" if spa_roles is None else None), spa_roles=spa_roles
+	)
 	addons = _parse_extra_roles(extra_roles)
 	if frappe.db.exists("User", email):
 		frappe.throw(_("That user already exists"))
