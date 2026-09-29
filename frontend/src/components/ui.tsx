@@ -94,17 +94,17 @@ export function StatTile({
                strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
                dangerouslySetInnerHTML={{ __html: icon }} />
         </span>
-        <span style={{ minWidth: 0 }}>
+        <div className="copy">
           <span className="k">{label}</span>
           <div className="v">{unit && <small>{unit}</small>} {value}</div>
-        </span>
+        </div>
         {spark && (
           <svg className="spark" width="66" height="26" viewBox="0 0 66 26" fill="none" aria-hidden="true">
             <polyline points={spark} stroke={colour} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         )}
       </div>
-      {foot && <div className="foot">{foot}</div>}
+      {foot && <div className="tnote">{foot}</div>}
     </div>
   );
 }

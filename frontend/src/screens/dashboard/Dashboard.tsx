@@ -456,13 +456,13 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"
                     strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: tl.icon }} />
                 </span>
-                <span style={{ minWidth: 0 }}>
+                <div className="copy">
                   <span className="k">{t(`od.${tl.key}`)}</span>
                   <div className="v"><small>{cur}</small> {flow ? whole(flow.value) : "—"}</div>
-                </span>
+                </div>
                 {view === "growth" && flow && <Spark values={flow.by_month} colour={tl.colour} />}
               </div>
-              <div className="foot">
+              <div className="tnote">
                 {!flow ? t("od.noAccess")
                   : view === "growth" ? (
                     <>
