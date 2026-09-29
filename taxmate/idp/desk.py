@@ -32,12 +32,78 @@ TARGETS: tuple[dict[str, str | None], ...] = (
 # created only after the clerk confirms (taxmate.idp.masters).
 # Local OCR feeds compare, match, and update. None of these jobs call the model.
 JOBS: tuple[dict[str, Any], ...] = (
-	{"id": "create", "needs_file": True, "needs_target": True, "needs_query": False, "permission": "create", "needs_model": False, "runnable": True, "query_key": None, "run_key": "idp.read", "save_key": "idp.save"},
-	{"id": "compare", "needs_file": True, "needs_target": True, "needs_query": True, "permission": "read", "needs_model": False, "runnable": True, "query_key": "idp.query.doc", "run_key": "idp.compare", "save_key": None},
-	{"id": "search", "needs_file": False, "needs_target": True, "needs_query": True, "permission": "read", "needs_model": False, "runnable": True, "query_key": "idp.query.find", "run_key": "idp.find", "save_key": None},
-	{"id": "update", "needs_file": True, "needs_target": True, "needs_query": True, "permission": "write", "needs_model": False, "runnable": True, "query_key": "idp.query.doc", "run_key": "idp.update", "save_key": "idp.apply"},
-	{"id": "match", "needs_file": True, "needs_target": True, "needs_query": False, "permission": "read", "needs_model": False, "runnable": True, "query_key": None, "run_key": "idp.match", "save_key": None},
-	{"id": "delete", "needs_file": False, "needs_target": True, "needs_query": True, "permission": "delete", "needs_model": False, "runnable": True, "query_key": "idp.query.doc", "run_key": "idp.delete", "save_key": "idp.deleteConfirm"},
+	{
+		"id": "create",
+		"needs_file": True,
+		"needs_target": True,
+		"needs_query": False,
+		"permission": "create",
+		"needs_model": False,
+		"runnable": True,
+		"query_key": None,
+		"run_key": "idp.read",
+		"save_key": "idp.save",
+	},
+	{
+		"id": "compare",
+		"needs_file": True,
+		"needs_target": True,
+		"needs_query": True,
+		"permission": "read",
+		"needs_model": False,
+		"runnable": True,
+		"query_key": "idp.query.doc",
+		"run_key": "idp.compare",
+		"save_key": None,
+	},
+	{
+		"id": "search",
+		"needs_file": False,
+		"needs_target": True,
+		"needs_query": True,
+		"permission": "read",
+		"needs_model": False,
+		"runnable": True,
+		"query_key": "idp.query.find",
+		"run_key": "idp.find",
+		"save_key": None,
+	},
+	{
+		"id": "update",
+		"needs_file": True,
+		"needs_target": True,
+		"needs_query": True,
+		"permission": "write",
+		"needs_model": False,
+		"runnable": True,
+		"query_key": "idp.query.doc",
+		"run_key": "idp.update",
+		"save_key": "idp.apply",
+	},
+	{
+		"id": "match",
+		"needs_file": True,
+		"needs_target": True,
+		"needs_query": False,
+		"permission": "read",
+		"needs_model": False,
+		"runnable": True,
+		"query_key": None,
+		"run_key": "idp.match",
+		"save_key": None,
+	},
+	{
+		"id": "delete",
+		"needs_file": False,
+		"needs_target": True,
+		"needs_query": True,
+		"permission": "delete",
+		"needs_model": False,
+		"runnable": True,
+		"query_key": "idp.query.doc",
+		"run_key": "idp.delete",
+		"save_key": "idp.deleteConfirm",
+	},
 )
 
 # Equality field used when a find box is not a document name.
@@ -441,7 +507,9 @@ def writes_from_extract(
 	doctype: str | None = None,
 ) -> list[dict[str, Any]]:
 	"""Fields the file left empty. The clerk can type them before save or submit."""
-	missing = {str(row.get("field") or "") for row in (validation.get("errors") or []) if isinstance(row, dict)}
+	missing = {
+		str(row.get("field") or "") for row in (validation.get("errors") or []) if isinstance(row, dict)
+	}
 	rows: list[dict[str, Any]] = []
 	for field in _WRITABLE:
 		if field == "vat_emirate" and doctype not in _SALES_EMIRATE:
@@ -613,7 +681,9 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 	}
 
 
-def draft_instructions(extracted: dict[str, Any], *, proposals: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+def draft_instructions(
+	extracted: dict[str, Any], *, proposals: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
 	"""The insert payload. Submit is never set. Unconfirmed proposals block the draft."""
 	from taxmate.idp.masters import proposals_complete, split_missing
 
@@ -638,7 +708,6 @@ def draft_instructions(extracted: dict[str, Any], *, proposals: list[dict[str, A
 		"submit": False,
 		"user_confirmed": True,
 	}
-
 
 
 def get_surface() -> dict[str, Any]:

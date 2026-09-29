@@ -7,7 +7,8 @@ TaxMate inserts Supplier / Customer / Item (and Address) before the draft.
 from __future__ import annotations
 
 import re
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from taxmate.uae.constants import UAE_EMIRATES
 

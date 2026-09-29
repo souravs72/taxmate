@@ -10,16 +10,15 @@ import unittest
 from taxmate.idp.desk import (
 	JOBS,
 	TARGETS,
-	build_surface,
-	diffs_from_compare,
 	apply_writes,
 	attach_item_codes,
-	finish_draft,
+	build_surface,
+	diffs_from_compare,
 	draft_instructions,
-	gaps_from_validation,
-	submit_requested,
 	draft_only_error,
 	file_read_error,
+	finish_draft,
+	gaps_from_validation,
 	header_updates,
 	match_filters,
 	matches_from_rows,
@@ -27,6 +26,7 @@ from taxmate.idp.desk import (
 	resolve_ocr_language,
 	review_from_extract,
 	search_arguments,
+	submit_requested,
 )
 
 
@@ -83,7 +83,9 @@ class TestIdpDeskSurface(unittest.TestCase):
 			"idp.query",
 		)
 		self.assertTrue(
-			plan_run(surface, action="delete", target="Sales Invoice", file_name=None, query="ACC-SINV-0001")["ok"]
+			plan_run(surface, action="delete", target="Sales Invoice", file_name=None, query="ACC-SINV-0001")[
+				"ok"
+			]
 		)
 		self.assertTrue(
 			plan_run(surface, action="search", target="Sales Invoice", file_name=None, query="Acme")["ok"]
@@ -96,7 +98,9 @@ class TestIdpDeskSurface(unittest.TestCase):
 			plan_run(surface, action="create", target="Sales Invoice", file_name="bill.exe")["error_key"],
 			"idp.file",
 		)
-		planned = plan_run(surface, action="create", target="Purchase Invoice", file_name="/private/files/bill.pdf")
+		planned = plan_run(
+			surface, action="create", target="Purchase Invoice", file_name="/private/files/bill.pdf"
+		)
 		self.assertTrue(planned["ok"])
 		self.assertEqual(planned["route"], "/purchase-invoices")
 
@@ -155,9 +159,15 @@ class TestIdpDeskSurface(unittest.TestCase):
 			"errors": [
 				{"field": "customer", "message": 'Required field "Customer" is missing'},
 				{"field": "selling_price_list", "message": 'Required field "Price List" is missing'},
-				{"field": "base_grand_total", "message": 'Required field "Grand Total (Company Currency)" is missing'},
+				{
+					"field": "base_grand_total",
+					"message": 'Required field "Grand Total (Company Currency)" is missing',
+				},
 				{"field": "grand_total", "message": 'Required field "Grand Total" is missing'},
-				{"field": "price_list_currency", "message": 'Required field "Price List Currency" is missing'},
+				{
+					"field": "price_list_currency",
+					"message": 'Required field "Price List Currency" is missing',
+				},
 			],
 			"warnings": [{"field": "", "message": "At least one line item is required"}],
 		}
@@ -188,7 +198,9 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertTrue(review["can_save"])
 		self.assertTrue(review["can_submit"])
 		self.assertEqual(review["gaps"], [])
-		self.assertEqual([row["field"] for row in review["writes"]], ["due_date", "cost_center", "vat_emirate"])
+		self.assertEqual(
+			[row["field"] for row in review["writes"]], ["due_date", "cost_center", "vat_emirate"]
+		)
 		self.assertIn("Dubai", review["writes"][-1]["options"])
 		instructions = draft_instructions(extracted)
 		self.assertFalse(instructions["submit"])
@@ -228,7 +240,10 @@ class TestIdpDeskSurface(unittest.TestCase):
 					{"field": "selling_price_list", "message": 'Required field "Price List" is missing'},
 					{"field": "uom", "message": 'Row 1 — Required field "UOM" is missing'},
 					{"field": "charge_type", "message": 'Row 1 — Required field "Type" is missing'},
-					{"field": "income_account", "message": 'Row 1 — Required field "Income Account" is missing'},
+					{
+						"field": "income_account",
+						"message": 'Row 1 — Required field "Income Account" is missing',
+					},
 					{"field": "cost_center", "message": 'Row 1 — Required field "Cost Center" is missing'},
 				],
 				"warnings": [],
@@ -315,7 +330,10 @@ class TestIdpDeskSurface(unittest.TestCase):
 				"is_valid": False,
 				"errors": [],
 				"warnings": [],
-				"missing_masters": ["supplier", {"doctype": "Item", "name": "Office Chair", "field": "item_code"}],
+				"missing_masters": [
+					"supplier",
+					{"doctype": "Item", "name": "Office Chair", "field": "item_code"},
+				],
 			},
 		}
 		creatable, blocked = split_missing(extracted["validation"]["missing_masters"])
@@ -389,7 +407,6 @@ class TestIdpDeskSurface(unittest.TestCase):
 			["upload", "ocr", "parties", "items", "review"],
 		)
 
-	
 	def test_ocr_bill_to_becomes_customer_proposal(self):
 		from taxmate.idp.masters import build_proposals, normalize_extract
 
@@ -508,11 +525,16 @@ class TestIdpDeskSurface(unittest.TestCase):
 		args = search_arguments("Sales Invoice", "Acme")
 		self.assertEqual(args["or_filters"], {"name": "Acme", "customer": "Acme"})
 		self.assertEqual(args["filters"], {})
-		self.assertEqual(match_filters({"customer": "Acme", "posting_date": "2026-09-01"}), {"customer": "Acme"})
+		self.assertEqual(
+			match_filters({"customer": "Acme", "posting_date": "2026-09-01"}), {"customer": "Acme"}
+		)
 		self.assertEqual(match_filters({"remarks": "hello"}), {})
 
 	def test_update_keeps_scalars_and_drafts_only(self):
-		self.assertEqual(header_updates({"customer": "Acme", "docstatus": 1, "items": [{"item_code": "A"}]}), {"customer": "Acme"})
+		self.assertEqual(
+			header_updates({"customer": "Acme", "docstatus": 1, "items": [{"item_code": "A"}]}),
+			{"customer": "Acme"},
+		)
 		self.assertIsNone(draft_only_error(0))
 		self.assertEqual(draft_only_error(1), "idp.submitted")
 
@@ -523,4 +545,6 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertEqual(diffs[0]["label_key"], "f.customer")
 		self.assertEqual(diffs[0]["after"], "Acme")
 		matches = matches_from_rows([{"name": "ACC-SINV-0001"}], "/invoices")
-		self.assertEqual(matches, [{"name": "ACC-SINV-0001", "label": "ACC-SINV-0001", "route": "/invoices/ACC-SINV-0001"}])
+		self.assertEqual(
+			matches, [{"name": "ACC-SINV-0001", "label": "ACC-SINV-0001", "route": "/invoices/ACC-SINV-0001"}]
+		)

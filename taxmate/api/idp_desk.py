@@ -11,13 +11,12 @@ import frappe
 from taxmate.api.resource import require_login
 from taxmate.idp.desk import (
 	attach_item_codes,
-	finish_draft,
 	diffs_from_compare,
 	diffs_from_update,
 	draft_instructions,
 	draft_only_error,
 	file_read_error,
-	get_surface as _get_surface,
+	finish_draft,
 	header_updates,
 	match_filters,
 	matches_from_rows,
@@ -26,6 +25,9 @@ from taxmate.idp.desk import (
 	review_from_extract,
 	search_arguments,
 	submit_requested,
+)
+from taxmate.idp.desk import (
+	get_surface as _get_surface,
 )
 
 SURFACE_METHOD = "taxmate.api.idp_desk.get_surface"
@@ -129,7 +131,8 @@ def _read_with_model(file_url: str, target: str, language: str) -> dict | None:
 				{"field": e.field, "message": e.message, "severity": e.severity} for e in schema_result.errors
 			],
 			"warnings": [
-				{"field": w.field, "message": w.message, "severity": w.severity} for w in schema_result.warnings
+				{"field": w.field, "message": w.message, "severity": w.severity}
+				for w in schema_result.warnings
 			]
 			+ [{"field": "", "message": w, "severity": "warning"} for w in biz_warnings],
 			"missing_masters": schema_result.missing_masters,
@@ -140,7 +143,6 @@ def _read_with_model(file_url: str, target: str, language: str) -> dict | None:
 def _file_gate(file_url: str) -> str | None:
 	"""The File row must exist and this user must be allowed to read it."""
 	import frappe
-
 	from idp.core.exceptions import IDPPermissionError
 	from idp.core.security import check_file_access
 
@@ -256,9 +258,7 @@ def save(
 	if not planned.get("ok"):
 		return planned
 	if action == "create":
-		return _save_create(
-			planned, file_url or "", fills=fills, submit=submit, proposals=proposals
-		)
+		return _save_create(planned, file_url or "", fills=fills, submit=submit, proposals=proposals)
 	if action == "update":
 		return _save_update(planned, file_url or "")
 	if action == "delete":
@@ -526,10 +526,12 @@ def _refresh_validation(extracted: dict) -> None:
 	extracted["validation"] = {
 		"is_valid": schema_result.is_valid,
 		"errors": [
-			{"field": row.field, "message": row.message, "severity": row.severity} for row in schema_result.errors
+			{"field": row.field, "message": row.message, "severity": row.severity}
+			for row in schema_result.errors
 		],
 		"warnings": [
-			{"field": row.field, "message": row.message, "severity": row.severity} for row in schema_result.warnings
+			{"field": row.field, "message": row.message, "severity": row.severity}
+			for row in schema_result.warnings
 		]
 		+ [{"field": "", "message": row, "severity": "warning"} for row in biz_warnings],
 		"missing_masters": schema_result.missing_masters,
@@ -561,7 +563,9 @@ def _draft_defaults(items: list) -> dict:
 	return {
 		"company": company or "",
 		"cost_center": frappe.db.get_value("Company", company, "cost_center") if company else "",
-		"income_account": frappe.db.get_value("Company", company, "default_income_account") if company else "",
+		"income_account": frappe.db.get_value("Company", company, "default_income_account")
+		if company
+		else "",
 		"selling_price_list": frappe.db.get_single_value("Selling Settings", "selling_price_list") or "",
 		"vat_emirate": _company_emirate(company or ""),
 		"item_uom": uoms,
