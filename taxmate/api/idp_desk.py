@@ -475,7 +475,7 @@ def _proposals(raw: str | None) -> list[dict]:
 		return []
 	try:
 		data = json.loads(raw)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return []
 	if not isinstance(data, list):
 		return []
@@ -489,7 +489,7 @@ def _fills(raw: str | None) -> dict:
 		return {}
 	try:
 		data = json.loads(raw)
-	except (TypeError, ValueError):
+	except TypeError, ValueError:
 		return {}
 	if not isinstance(data, dict):
 		return {}

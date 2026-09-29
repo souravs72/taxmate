@@ -441,7 +441,9 @@ def get_payment_terms(
 
 
 @frappe.whitelist()
-def get_credit_balance(customer: str | None = None, company: str | None = None, extra_amount: float | int | str = 0):
+def get_credit_balance(
+	customer: str | None = None, company: str | None = None, extra_amount: float | int | str = 0
+):
 	"""Advisory credit balance for Sales forms. Does not throw — submit still validates on the server."""
 	require_login()
 	if not customer:
