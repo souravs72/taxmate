@@ -29,11 +29,12 @@ export function applyTheme(): void {
   else root.setAttribute("data-theme", t);
 }
 
+export function appearance(): "light" | "dark" {
+  const chosen = getTheme();
+  if (chosen === "light" || chosen === "dark") return chosen;
+  return matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
 export function toggleTheme(): void {
-  const t = getTheme();
-  if (t === "system") {
-    setTheme(matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
-  } else {
-    setTheme(t === "dark" ? "light" : "dark");
-  }
+  setTheme(appearance() === "dark" ? "light" : "dark");
 }

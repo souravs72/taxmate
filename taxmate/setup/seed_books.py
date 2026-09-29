@@ -32,7 +32,12 @@ CUSTOMERS: list[dict] = [
 	{"name": "Gulf Ledger Advisory LLC", "trn": "100276543100003", "emirate": "Abu Dhabi", "type": "Company"},
 	{"name": "Marina Office Fitout LLC", "trn": "100455667700003", "emirate": "Dubai", "type": "Company"},
 	{"name": "Shams Procurement Co. LLC", "trn": "100188992200003", "emirate": "Sharjah", "type": "Company"},
-	{"name": "Barakah Clinics Group LLC", "trn": "100533441100003", "emirate": "Abu Dhabi", "type": "Company"},
+	{
+		"name": "Barakah Clinics Group LLC",
+		"trn": "100533441100003",
+		"emirate": "Abu Dhabi",
+		"type": "Company",
+	},
 	{"name": "Horizon Properties LLC", "trn": "100622778800003", "emirate": "Dubai", "type": "Company"},
 	{"name": "Saqr Logistics LLC", "trn": "100711223300003", "emirate": "Ajman", "type": "Company"},
 	{"name": "Quay Hospitality LLC", "trn": "100844556600003", "emirate": "Dubai", "type": "Company"},
@@ -49,7 +54,12 @@ CUSTOMERS: list[dict] = [
 
 SUPPLIERS: list[dict] = [
 	{"name": "Desert Supplies LLC", "trn": "100167889900003", "group": "Local", "country": UAE_COUNTRY},
-	{"name": "Emirates Office Systems LLC", "trn": "100278991100003", "group": "Local", "country": UAE_COUNTRY},
+	{
+		"name": "Emirates Office Systems LLC",
+		"trn": "100278991100003",
+		"group": "Local",
+		"country": UAE_COUNTRY,
+	},
 	{"name": "Jebel Ali Packaging LLC", "trn": "100389112200003", "group": "Local", "country": UAE_COUNTRY},
 	{"name": "Al Ain Print & Paper LLC", "trn": "100490223300003", "group": "Local", "country": UAE_COUNTRY},
 	{"name": "Shenzhen Office Hardware Ltd", "trn": None, "group": "Distributor", "country": "China"},
@@ -59,23 +69,168 @@ SUPPLIERS: list[dict] = [
 ]
 
 ITEMS: list[dict] = [
-	{"code": "CHR-ERG-01", "name": "Ergonomic Mesh Office Chair", "group": "Products", "stock": 1, "rate": 685, "buy": 410, "uom": "Nos"},
-	{"code": "DSK-STD-01", "name": "Height-Adjustable Desk 140cm", "group": "Products", "stock": 1, "rate": 1450, "buy": 920, "uom": "Nos"},
-	{"code": "MON-27-01", "name": "27-inch IPS Monitor", "group": "Products", "stock": 1, "rate": 980, "buy": 640, "uom": "Nos"},
-	{"code": "KB-MEC-01", "name": "Mechanical Keyboard", "group": "Products", "stock": 1, "rate": 320, "buy": 185, "uom": "Nos"},
-	{"code": "MSE-WL-01", "name": "Wireless Mouse", "group": "Products", "stock": 1, "rate": 95, "buy": 48, "uom": "Nos"},
-	{"code": "LMP-LED-01", "name": "LED Desk Lamp", "group": "Products", "stock": 1, "rate": 145, "buy": 72, "uom": "Nos"},
-	{"code": "FIL-A4-01", "name": "A4 Filing Cabinet 4-Drawer", "group": "Products", "stock": 1, "rate": 890, "buy": 540, "uom": "Nos"},
-	{"code": "WST-BIN-01", "name": "Office Waste Bin Set", "group": "Consumable", "stock": 1, "rate": 65, "buy": 28, "uom": "Nos"},
-	{"code": "PAP-A4-01", "name": "A4 Copy Paper (5 Reams)", "group": "Consumable", "stock": 1, "rate": 78, "buy": 42, "uom": "Nos"},
-	{"code": "CBL-USB-01", "name": "USB-C Hub 7-in-1", "group": "Products", "stock": 1, "rate": 210, "buy": 115, "uom": "Nos"},
-	{"code": "SVC-VAT-ADVISORY", "name": "VAT Advisory Retainer (Monthly)", "group": "Services", "stock": 0, "rate": 4500, "buy": 0, "uom": "Nos", "sac": "998311"},
-	{"code": "SVC-BOOKKEEP", "name": "Bookkeeping Package", "group": "Services", "stock": 0, "rate": 2800, "buy": 0, "uom": "Nos", "sac": "998311"},
-	{"code": "SVC-PAYROLL", "name": "Payroll Processing", "group": "Services", "stock": 0, "rate": 1600, "buy": 0, "uom": "Nos", "sac": "998311"},
-	{"code": "SVC-IMPL", "name": "ERP Implementation Day Rate", "group": "Services", "stock": 0, "rate": 2200, "buy": 0, "uom": "Nos", "sac": "998314"},
-	{"code": "SVC-TRAIN", "name": "Staff Training Workshop", "group": "Services", "stock": 0, "rate": 3500, "buy": 0, "uom": "Nos", "sac": "999293"},
-	{"code": "SVC-ZERO-EXP", "name": "Cross-border Advisory (Export)", "group": "Services", "stock": 0, "rate": 5000, "buy": 0, "uom": "Nos", "sac": "998311", "zero": 1},
-	{"code": "SVC-EXEMPT-EDU", "name": "Exempt Education Advisory", "group": "Services", "stock": 0, "rate": 1800, "buy": 0, "uom": "Nos", "sac": "999293", "exempt": 1},
+	{
+		"code": "CHR-ERG-01",
+		"name": "Ergonomic Mesh Office Chair",
+		"group": "Products",
+		"stock": 1,
+		"rate": 685,
+		"buy": 410,
+		"uom": "Nos",
+	},
+	{
+		"code": "DSK-STD-01",
+		"name": "Height-Adjustable Desk 140cm",
+		"group": "Products",
+		"stock": 1,
+		"rate": 1450,
+		"buy": 920,
+		"uom": "Nos",
+	},
+	{
+		"code": "MON-27-01",
+		"name": "27-inch IPS Monitor",
+		"group": "Products",
+		"stock": 1,
+		"rate": 980,
+		"buy": 640,
+		"uom": "Nos",
+	},
+	{
+		"code": "KB-MEC-01",
+		"name": "Mechanical Keyboard",
+		"group": "Products",
+		"stock": 1,
+		"rate": 320,
+		"buy": 185,
+		"uom": "Nos",
+	},
+	{
+		"code": "MSE-WL-01",
+		"name": "Wireless Mouse",
+		"group": "Products",
+		"stock": 1,
+		"rate": 95,
+		"buy": 48,
+		"uom": "Nos",
+	},
+	{
+		"code": "LMP-LED-01",
+		"name": "LED Desk Lamp",
+		"group": "Products",
+		"stock": 1,
+		"rate": 145,
+		"buy": 72,
+		"uom": "Nos",
+	},
+	{
+		"code": "FIL-A4-01",
+		"name": "A4 Filing Cabinet 4-Drawer",
+		"group": "Products",
+		"stock": 1,
+		"rate": 890,
+		"buy": 540,
+		"uom": "Nos",
+	},
+	{
+		"code": "WST-BIN-01",
+		"name": "Office Waste Bin Set",
+		"group": "Consumable",
+		"stock": 1,
+		"rate": 65,
+		"buy": 28,
+		"uom": "Nos",
+	},
+	{
+		"code": "PAP-A4-01",
+		"name": "A4 Copy Paper (5 Reams)",
+		"group": "Consumable",
+		"stock": 1,
+		"rate": 78,
+		"buy": 42,
+		"uom": "Nos",
+	},
+	{
+		"code": "CBL-USB-01",
+		"name": "USB-C Hub 7-in-1",
+		"group": "Products",
+		"stock": 1,
+		"rate": 210,
+		"buy": 115,
+		"uom": "Nos",
+	},
+	{
+		"code": "SVC-VAT-ADVISORY",
+		"name": "VAT Advisory Retainer (Monthly)",
+		"group": "Services",
+		"stock": 0,
+		"rate": 4500,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "998311",
+	},
+	{
+		"code": "SVC-BOOKKEEP",
+		"name": "Bookkeeping Package",
+		"group": "Services",
+		"stock": 0,
+		"rate": 2800,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "998311",
+	},
+	{
+		"code": "SVC-PAYROLL",
+		"name": "Payroll Processing",
+		"group": "Services",
+		"stock": 0,
+		"rate": 1600,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "998311",
+	},
+	{
+		"code": "SVC-IMPL",
+		"name": "ERP Implementation Day Rate",
+		"group": "Services",
+		"stock": 0,
+		"rate": 2200,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "998314",
+	},
+	{
+		"code": "SVC-TRAIN",
+		"name": "Staff Training Workshop",
+		"group": "Services",
+		"stock": 0,
+		"rate": 3500,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "999293",
+	},
+	{
+		"code": "SVC-ZERO-EXP",
+		"name": "Cross-border Advisory (Export)",
+		"group": "Services",
+		"stock": 0,
+		"rate": 5000,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "998311",
+		"zero": 1,
+	},
+	{
+		"code": "SVC-EXEMPT-EDU",
+		"name": "Exempt Education Advisory",
+		"group": "Services",
+		"stock": 0,
+		"rate": 1800,
+		"buy": 0,
+		"uom": "Nos",
+		"sac": "999293",
+		"exempt": 1,
+	},
 ]
 
 STOCK_PREFIXES = ("CHR", "DSK", "MON", "KB", "MSE", "LMP", "FIL", "WST", "PAP", "CBL")
@@ -140,8 +295,7 @@ def run(force: bool | int | str = False) -> dict:
 		"sales_invoices": sales or frappe.db.count("Sales Invoice", {"company": company, "docstatus": 1}),
 		"purchase_invoices": purchases
 		or frappe.db.count("Purchase Invoice", {"company": company, "docstatus": 1}),
-		"payment_entries": payments
-		or frappe.db.count("Payment Entry", {"company": company, "docstatus": 1}),
+		"payment_entries": payments or frappe.db.count("Payment Entry", {"company": company, "docstatus": 1}),
 		**pipeline,
 		"journal_entries": journals,
 		"pos_profile": pos_profile,
@@ -394,7 +548,6 @@ def _party_address(party_type: str, party: str, emirate: str, trn: str | None) -
 	if trn and doc.meta.has_field("tax_id"):
 		doc.tax_id = trn
 	doc.insert(ignore_permissions=True)
-
 
 
 def _ensure_brands() -> None:
@@ -878,9 +1031,12 @@ def _top_up_stock(ctx: dict) -> None:
 	stock_items = [i for i in ITEMS if i["stock"]]
 	need = []
 	for item in stock_items:
-		qty = frappe.db.get_value(
-			"Bin", {"item_code": item["code"], "warehouse": ctx["warehouse"]}, "actual_qty"
-		) or 0
+		qty = (
+			frappe.db.get_value(
+				"Bin", {"item_code": item["code"], "warehouse": ctx["warehouse"]}, "actual_qty"
+			)
+			or 0
+		)
 		if float(qty) < 40:
 			need.append(item)
 	if not need:
@@ -1026,7 +1182,12 @@ def _seed_quotations(ctx: dict) -> int:
 			customer = customers[(mi + n) % len(customers)]
 			if frappe.db.exists(
 				"Quotation",
-				{"company": ctx["company"], "party_name": customer, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+				{
+					"company": ctx["company"],
+					"party_name": customer,
+					"transaction_date": txn.isoformat(),
+					"docstatus": ["<", 2],
+				},
 			):
 				continue
 			if n % 2 == 0:
@@ -1110,18 +1271,40 @@ def _seed_sales_orders(ctx: dict) -> int:
 			customer = customers[(mi * 3 + n) % len(customers)]
 			if frappe.db.exists(
 				"Sales Order",
-				{"company": ctx["company"], "customer": customer, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+				{
+					"company": ctx["company"],
+					"customer": customer,
+					"transaction_date": txn.isoformat(),
+					"docstatus": ["<", 2],
+				},
 			):
 				continue
 			if n == 0:
 				item = services[mi % len(services)]
-				lines = [{"item_code": item["code"], "qty": 1, "rate": item["rate"], "delivery_date": delivery.isoformat()}]
+				lines = [
+					{
+						"item_code": item["code"],
+						"qty": 1,
+						"rate": item["rate"],
+						"delivery_date": delivery.isoformat(),
+					}
+				]
 			else:
 				a = stock[(mi + n) % len(stock)]
 				b = stock[(mi + n + 4) % len(stock)]
 				lines = [
-					{"item_code": a["code"], "qty": 4 + n, "rate": a["rate"], "delivery_date": delivery.isoformat()},
-					{"item_code": b["code"], "qty": 2, "rate": b["rate"], "delivery_date": delivery.isoformat()},
+					{
+						"item_code": a["code"],
+						"qty": 4 + n,
+						"rate": a["rate"],
+						"delivery_date": delivery.isoformat(),
+					},
+					{
+						"item_code": b["code"],
+						"qty": 2,
+						"rate": b["rate"],
+						"delivery_date": delivery.isoformat(),
+					},
 				]
 			doc = frappe.get_doc(
 				{
@@ -1155,7 +1338,12 @@ def _seed_delivery_notes(ctx: dict) -> int:
 	created = 0
 	orders = frappe.get_all(
 		"Sales Order",
-		filters={"company": ctx["company"], "docstatus": 1, "per_delivered": ["<", 99.99], "status": ["!=", "Closed"]},
+		filters={
+			"company": ctx["company"],
+			"docstatus": 1,
+			"per_delivered": ["<", 99.99],
+			"status": ["!=", "Closed"],
+		},
 		fields=["name", "customer", "transaction_date"],
 		order_by="transaction_date asc",
 		limit_page_length=40,
@@ -1191,12 +1379,19 @@ def _seed_delivery_notes(ctx: dict) -> int:
 	stock = [i for i in ITEMS if i["stock"]]
 	customers = [c["name"] for c in CUSTOMERS if c.get("trn")]
 	for mi, month_start in enumerate(_months()[::2]):
-		txn = date(month_start.year, month_start.month, min(18, monthrange(month_start.year, month_start.month)[1]))
+		txn = date(
+			month_start.year, month_start.month, min(18, monthrange(month_start.year, month_start.month)[1])
+		)
 		customer = customers[mi % len(customers)]
 		item = stock[mi % len(stock)]
 		if frappe.db.exists(
 			"Delivery Note",
-			{"company": ctx["company"], "customer": customer, "posting_date": txn.isoformat(), "docstatus": ["<", 2]},
+			{
+				"company": ctx["company"],
+				"customer": customer,
+				"posting_date": txn.isoformat(),
+				"docstatus": ["<", 2],
+			},
 		):
 			continue
 		doc = frappe.get_doc(
@@ -1246,7 +1441,12 @@ def _seed_supplier_quotations(ctx: dict) -> int:
 		item = stock[mi % len(stock)]
 		if frappe.db.exists(
 			"Supplier Quotation",
-			{"company": ctx["company"], "supplier": supplier, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+			{
+				"company": ctx["company"],
+				"supplier": supplier,
+				"transaction_date": txn.isoformat(),
+				"docstatus": ["<", 2],
+			},
 		):
 			continue
 		doc = frappe.get_doc(
@@ -1320,7 +1520,12 @@ def _seed_purchase_orders(ctx: dict) -> int:
 			item = stock[(mi + n * 2) % len(stock)]
 			if frappe.db.exists(
 				"Purchase Order",
-				{"company": ctx["company"], "supplier": supplier, "transaction_date": txn.isoformat(), "docstatus": ["<", 2]},
+				{
+					"company": ctx["company"],
+					"supplier": supplier,
+					"transaction_date": txn.isoformat(),
+					"docstatus": ["<", 2],
+				},
 			):
 				continue
 			doc = frappe.get_doc(
@@ -1359,7 +1564,12 @@ def _seed_purchase_receipts(ctx: dict) -> int:
 	created = 0
 	orders = frappe.get_all(
 		"Purchase Order",
-		filters={"company": ctx["company"], "docstatus": 1, "per_received": ["<", 99.99], "status": ["!=", "Closed"]},
+		filters={
+			"company": ctx["company"],
+			"docstatus": 1,
+			"per_received": ["<", 99.99],
+			"status": ["!=", "Closed"],
+		},
 		fields=["name", "supplier", "transaction_date"],
 		order_by="transaction_date asc",
 		limit_page_length=40,
@@ -1409,7 +1619,9 @@ def _seed_journals(ctx: dict) -> int:
 	cc = ctx.get("cost_center")
 	created = 0
 	for mi, month_start in enumerate(_months()[::2]):
-		txn = date(month_start.year, month_start.month, min(25, monthrange(month_start.year, month_start.month)[1]))
+		txn = date(
+			month_start.year, month_start.month, min(25, monthrange(month_start.year, month_start.month)[1])
+		)
 		if frappe.db.exists(
 			"Journal Entry",
 			{"company": ctx["company"], "posting_date": txn.isoformat(), "docstatus": ["<", 2]},
@@ -1425,8 +1637,18 @@ def _seed_journals(ctx: dict) -> int:
 				"voucher_type": "Journal Entry",
 				"user_remark": f"Office supplies accrual {txn.strftime('%b %Y')}",
 				"accounts": [
-					{**line, "account": expense, "debit_in_account_currency": amount, "credit_in_account_currency": 0},
-					{**line, "account": bank, "debit_in_account_currency": 0, "credit_in_account_currency": amount},
+					{
+						**line,
+						"account": expense,
+						"debit_in_account_currency": amount,
+						"credit_in_account_currency": 0,
+					},
+					{
+						**line,
+						"account": bank,
+						"debit_in_account_currency": 0,
+						"credit_in_account_currency": amount,
+					},
 				],
 			}
 		)
@@ -1441,7 +1663,7 @@ def _ensure_spa_users(ctx: dict) -> None:
 
 	ensure_spa_roles()
 	try:
-		from taxmate.setup.spa_roles import _ensure_books_perms, _allow_reports
+		from taxmate.setup.spa_roles import _allow_reports, _ensure_books_perms
 
 		_ensure_books_perms()
 		_allow_reports()
@@ -1569,7 +1791,9 @@ def _ensure_pos_next(ctx: dict) -> str | None:
 		doc.company = company
 		doc.currency = "AED"
 		doc.warehouse = warehouse
-		doc.selling_price_list = price_list if frappe.db.exists("Price List", price_list) else doc.selling_price_list
+		doc.selling_price_list = (
+			price_list if frappe.db.exists("Price List", price_list) else doc.selling_price_list
+		)
 		if frappe.db.exists("Customer", customer):
 			doc.customer = customer
 		doc.write_off_account = write_off

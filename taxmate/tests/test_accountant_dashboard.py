@@ -52,15 +52,28 @@ class TestMonths(unittest.TestCase):
 
 class TestHelpers(unittest.TestCase):
 	def test_unallocated_in_company_currency(self):
-		receive = {"payment_type": "Receive", "unallocated_amount": 100, "source_exchange_rate": 3.6725, "target_exchange_rate": 1}
-		pay = {"payment_type": "Pay", "unallocated_amount": 100, "source_exchange_rate": 1, "target_exchange_rate": 3.6725}
+		receive = {
+			"payment_type": "Receive",
+			"unallocated_amount": 100,
+			"source_exchange_rate": 3.6725,
+			"target_exchange_rate": 1,
+		}
+		pay = {
+			"payment_type": "Pay",
+			"unallocated_amount": 100,
+			"source_exchange_rate": 1,
+			"target_exchange_rate": 3.6725,
+		}
 		self.assertAlmostEqual(to_company_currency(receive), 367.25)
 		self.assertAlmostEqual(to_company_currency(pay), 367.25)
 		self.assertEqual(to_company_currency({"payment_type": "Pay", "unallocated_amount": 100}), 100.0)
 
 	def test_ageing_by_party_top_six_then_others(self):
 		on = D(2026, 9, 21)
-		rows = [{"party": f"P{i}", "label": f"Party {i}", "due_date": D(2026, 9, 30), "v": 100 * (i + 1)} for i in range(8)]
+		rows = [
+			{"party": f"P{i}", "label": f"Party {i}", "due_date": D(2026, 9, 30), "v": 100 * (i + 1)}
+			for i in range(8)
+		]
 		rows.append({"party": "P0", "label": "Party 0", "due_date": D(2026, 6, 1), "v": 1000})
 		data = ageing_by_party(rows, on)
 		self.assertEqual(len(data["rows"]), TOP_PARTIES)
@@ -69,7 +82,9 @@ class TestHelpers(unittest.TestCase):
 		self.assertEqual(data["rows"][0]["party"], "P0")
 		self.assertEqual(data["rows"][0]["buckets"], [100.0, 0.0, 0.0, 0.0, 1000.0])
 		self.assertAlmostEqual(data["total"]["total"], sum(r["v"] for r in rows))
-		self.assertAlmostEqual(data["total"]["total"], sum(r["total"] for r in data["rows"]) + data["others"]["total"])
+		self.assertAlmostEqual(
+			data["total"]["total"], sum(r["total"] for r in data["rows"]) + data["others"]["total"]
+		)
 
 	def test_ageing_by_party_without_others(self):
 		data = ageing_by_party([{"party": "A", "label": "A", "due_date": None, "v": 5}], D(2026, 9, 21))
@@ -109,7 +124,9 @@ class TestEndpoint(FrappeTestCase):
 			for side in ("receivable", "payable"):
 				ageing = data["ageing"][side]
 				if ageing is not None:
-					parts = sum(r["total"] for r in ageing["rows"]) + (ageing["others"]["total"] if ageing["others"] else 0)
+					parts = sum(r["total"] for r in ageing["rows"]) + (
+						ageing["others"]["total"] if ageing["others"] else 0
+					)
 					self.assertAlmostEqual(parts, ageing["total"]["total"], places=2)
 
 	def test_unknown_month_falls_back_to_current(self):

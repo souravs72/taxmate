@@ -10,6 +10,8 @@ export default function UserMenu() {
   const [open, setOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const nav = useNavigate();
   const session = useSession();
   const { currentUser, logout } = useFrappeAuth();
@@ -39,11 +41,38 @@ export default function UserMenu() {
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onPointer);
+    const items = menuRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled)");
+    items?.[0]?.focus();
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("mousedown", onPointer);
     };
   }, [open]);
+
+  function onMenuKey(event: React.KeyboardEvent<HTMLDivElement>) {
+    const items = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>("[role='menuitem']:not(:disabled)") ?? [])];
+    if (items.length === 0) return;
+    const index = items.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "Escape") {
+      event.preventDefault();
+      setOpen(false);
+      btnRef.current?.focus();
+      return;
+    }
+    if (event.key === "Tab") {
+      setOpen(false);
+      return;
+    }
+    const next =
+      event.key === "ArrowDown" ? (index + 1) % items.length
+      : event.key === "ArrowUp" ? (index - 1 + items.length) % items.length
+      : event.key === "Home" ? 0
+      : event.key === "End" ? items.length - 1
+      : -1;
+    if (next < 0) return;
+    event.preventDefault();
+    items[next]?.focus();
+  }
 
   async function signOut() {
     if (signingOut) return;
@@ -64,18 +93,20 @@ export default function UserMenu() {
   return (
     <div className="umwrap" ref={wrapRef}>
       <button
+        ref={btnRef}
         type="button"
         className="umavbtn"
-        aria-label={displayName}
+        aria-label={`${t("a11y.account")}, ${displayName}`}
         aria-expanded={open}
         aria-haspopup="menu"
+        aria-controls="account-menu"
         onClick={() => setOpen((o) => !o)}
       >
         {initials}
       </button>
 
       {open && (
-        <div className="umdrop" role="menu">
+        <div id="account-menu" className="umdrop" role="menu" onKeyDown={onMenuKey} ref={menuRef}>
           <div className="umdrop-header" role="presentation">
             <span className="umdrop-name">{displayName}</span>
             <span className="umdrop-role">{roleLabel}</span>

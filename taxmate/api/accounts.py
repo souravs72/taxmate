@@ -238,12 +238,8 @@ def get_payment_entry(dt, dn, party_amount=None, bank_account=None, payment_type
 	)
 
 
-_SELLING_TXN = frozenset(
-	{"Quotation", "Sales Order", "Delivery Note", "Sales Invoice", "POS Invoice"}
-)
-_BUYING_TXN = frozenset(
-	{"Supplier Quotation", "Purchase Order", "Purchase Receipt", "Purchase Invoice"}
-)
+_SELLING_TXN = frozenset({"Quotation", "Sales Order", "Delivery Note", "Sales Invoice", "POS Invoice"})
+_BUYING_TXN = frozenset({"Supplier Quotation", "Purchase Order", "Purchase Receipt", "Purchase Invoice"})
 _TXN_DOCTYPES = _SELLING_TXN | _BUYING_TXN
 
 
@@ -257,13 +253,9 @@ def _settings_price_list(doctype: str | None) -> str | None:
 def _stamp_default_price_list(details: dict, party_type: str) -> None:
 	if party_type == "Supplier":
 		if not details.get("buying_price_list"):
-			details["buying_price_list"] = frappe.db.get_single_value(
-				"Buying Settings", "buying_price_list"
-			)
+			details["buying_price_list"] = frappe.db.get_single_value("Buying Settings", "buying_price_list")
 	elif not details.get("selling_price_list"):
-		details["selling_price_list"] = frappe.db.get_single_value(
-			"Selling Settings", "selling_price_list"
-		)
+		details["selling_price_list"] = frappe.db.get_single_value("Selling Settings", "selling_price_list")
 
 
 def _tax_master_doctype(doctype: str | None, party_type: str | None = None) -> str:
@@ -282,6 +274,8 @@ def _stamp_default_taxes(
 	master = _tax_master_doctype(doctype, party_type)
 	from erpnext.controllers.accounts_controller import (
 		get_default_taxes_and_charges,
+	)
+	from erpnext.controllers.accounts_controller import (
 		get_taxes_and_charges as erp_get_taxes_and_charges,
 	)
 
@@ -447,7 +441,9 @@ def get_payment_terms(
 
 
 @frappe.whitelist()
-def get_credit_balance(customer=None, company=None, extra_amount=0):
+def get_credit_balance(
+	customer: str | None = None, company: str | None = None, extra_amount: float | int | str = 0
+):
 	"""Advisory credit balance for Sales forms. Does not throw — submit still validates on the server."""
 	require_login()
 	if not customer:
@@ -460,8 +456,8 @@ def get_credit_balance(customer=None, company=None, extra_amount=0):
 		frappe.throw(_("Company is required"))
 	assert_company_read(company)
 
-	from frappe.utils import flt
 	from erpnext.selling.doctype.customer.customer import get_credit_limit, get_customer_outstanding
+	from frappe.utils import flt
 
 	credit_limit = flt(get_credit_limit(customer, company))
 	outstanding = flt(get_customer_outstanding(customer, company))
@@ -477,7 +473,7 @@ def get_credit_balance(customer=None, company=None, extra_amount=0):
 
 
 @frappe.whitelist(methods=["POST"])
-def preview_taxes_and_totals(doc=None):
+def preview_taxes_and_totals(doc: dict | str | None = None):
 	"""Run ERPNext ``calculate_taxes_and_totals`` on an unsaved doc dict.
 
 	Does not invent tax math — uses AccountsController. Does not save.
@@ -500,9 +496,7 @@ def preview_taxes_and_totals(doc=None):
 				get_taxes_and_charges as erp_get_taxes_and_charges,
 			)
 
-			rows = erp_get_taxes_and_charges(
-				_tax_master_doctype(doctype), preview.taxes_and_charges
-			)
+			rows = erp_get_taxes_and_charges(_tax_master_doctype(doctype), preview.taxes_and_charges)
 			for row in rows or []:
 				preview.append("taxes", row)
 
@@ -511,9 +505,7 @@ def preview_taxes_and_totals(doc=None):
 			preview.set_missing_values(for_validate=True)
 		except Exception as exc:
 			# Draft previews often miss warehouse/account defaults; still show totals.
-			frappe.logger("taxmate.api.accounts").debug(
-				"preview set_missing_values skipped: %s", exc
-			)
+			frappe.logger("taxmate.api.accounts").debug("preview set_missing_values skipped: %s", exc)
 
 	preview.flags.ignore_permissions = True
 	preview.calculate_taxes_and_totals()
@@ -650,14 +642,17 @@ def get_je_account_details(
 		get_account_details_and_party_type,
 	)
 
-	return get_account_details_and_party_type(
-		account=account,
-		date=date,
-		company=company,
-		debit=debit,
-		credit=credit,
-		exchange_rate=exchange_rate,
-	) or {}
+	return (
+		get_account_details_and_party_type(
+			account=account,
+			date=date,
+			company=company,
+			debit=debit,
+			credit=credit,
+			exchange_rate=exchange_rate,
+		)
+		or {}
+	)
 
 
 @frappe.whitelist()

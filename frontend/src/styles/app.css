@@ -86,7 +86,7 @@ svg{display:block}
   color:var(--muted); display:grid; place-items:center; cursor:pointer; flex:none;
 }
 .iconbtn:hover{background:var(--hover); color:var(--text)}
-.iconbtn.bordered{border-color:var(--border-2); background:var(--surface)}
+.iconbtn.bordered{width:40px; height:40px; border-radius:10px; border-color:var(--border-2); background:var(--surface); color:var(--text)}
 .tsearch{position:relative; flex:1; min-width:150px; max-width:380px; z-index:40}
 .tsearch svg{position:absolute; inset-inline-start:11px; top:50%; transform:translateY(-50%); color:var(--faint); pointer-events:none}
 .tsearch input{width:100%; background:var(--sunk); border:1px solid transparent; border-radius:9px; padding:8px 52px 8px 34px; font-size:13px}
@@ -102,11 +102,13 @@ svg{display:block}
 .tsearch-desc{font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .tsearch-empty,.tsearch-hint{padding:10px; font-size:12px; color:var(--faint)}
 .tsearch-hint{border-block-start:1px solid var(--border); margin-block-start:4px}
-.tright{display:flex; align-items:center; gap:8px; margin-inline-start:auto}
+.tright{display:flex; align-items:center; gap:10px; margin-inline-start:auto}
+.tools{display:flex; align-items:center; gap:6px}
 .co{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; padding-inline-start:8px; border-inline-start:1px solid var(--border); white-space:nowrap}
 .co .av{width:26px; height:26px; border-radius:8px; background:var(--brand-soft); color:var(--brand); display:grid; place-items:center; font-size:10px; font-weight:700; flex:none}
-.langbtn{font-size:12px; font-weight:600; padding:6px 11px; border-radius:9px; border:1px solid var(--border-2); background:var(--surface); color:var(--muted); cursor:pointer; white-space:nowrap}
-.langbtn:hover{color:var(--text); background:var(--hover)}
+.langbtn{height:40px; min-width:40px; padding:0 12px; border-radius:10px; border:1px solid var(--border-2); background:var(--surface); color:var(--text); font-size:13px; font-weight:650; cursor:pointer; white-space:nowrap}
+.scanbtn{height:40px; padding:0 14px; border-radius:10px; gap:6px}
+.langbtn:hover,.iconbtn.bordered:hover{background:var(--hover)}
 
 .page{padding:18px; display:flex; flex-direction:column; gap:16px}
 @media (max-width:520px){.page{padding-inline:14px}}
@@ -114,6 +116,7 @@ svg{display:block}
 /* ── Common ────────────────────────────────────────────────────────── */
 .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r)}
 .card + .card{margin-block-start:16px}
+.charts > .card{margin-block-start:0; height:100%}
 .chead{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; justify-content:space-between; padding:14px 16px; border-block-end:1px solid var(--border)}
 .chead.bare{border-block-end:0; padding-block-end:0}
 .chead h2{margin:0; font-size:13.5px; font-weight:600}
@@ -158,7 +161,7 @@ svg{display:block}
 .cur{font-size:11.5px; color:var(--muted); font-weight:500; margin-inline-end:3px}
 
 /* Stat tiles — the gradient-tint pattern */
-.tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:14px}
+.tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:stretch}
 @media (max-width:1100px){.tiles{grid-template-columns:repeat(2,1fr)}}
 @media (max-width:560px){.tiles{grid-template-columns:1fr}}
 .dash-board{display:grid; grid-template-columns:1.15fr .85fr; gap:16px; align-items:start}
@@ -175,16 +178,17 @@ button.qrow:hover .qtitle{color:var(--brand)}
 .qrow .qsub{display:block; font-size:11.5px; color:var(--muted); margin-block-start:2px}
 .qrow .qmeta{margin-inline-start:auto; display:flex; align-items:center; gap:10px; flex:none}
 .qrow .qamt{font-variant-numeric:tabular-nums; font-weight:600; font-family:var(--mono); font-size:12.5px; white-space:nowrap}
-.tile{border:1px solid var(--border); border-radius:var(--r); padding:15px 16px; background:var(--surface); position:relative; overflow:hidden}
+.tile{border:1px solid var(--border); border-radius:var(--r); padding:15px 16px; background:var(--surface); position:relative; overflow:hidden; display:flex; flex-direction:column; height:100%}
 .tile::before{content:""; position:absolute; inset:0; background:linear-gradient(to left, var(--tint) 0%, transparent 62%); pointer-events:none}
 [dir="rtl"] .tile::before{background:linear-gradient(to right, var(--tint) 0%, transparent 62%)}
 .tile > *{position:relative}
 .tile .row{display:flex; align-items:center; gap:11px}
+.tile .copy{min-width:0; flex:1}
 .tile .bdg{width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:#fff; flex:none}
-.tile .k{font-size:12px; color:var(--muted); font-weight:500}
-.tile .v{font-size:21px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums; margin-block-start:1px}
+.tile .k{display:block; font-size:12px; color:var(--muted); font-weight:500}
+.tile .v{font-size:21px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums; margin-block-start:1px; line-height:1.15}
 .tile .v small{font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0}
-.tile .foot{margin-block-start:10px; font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.tile .tnote{margin-block-start:auto; padding-block-start:10px; font-size:11.5px; color:var(--muted); line-height:1.35; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
 .tile .delta{font-weight:600}
 .tile .delta.up{color:var(--ok)} .tile .delta.down{color:var(--bad)}
 .spark{margin-inline-start:auto; flex:none}
@@ -271,9 +275,20 @@ tbody tr:last-child td{border-block-end:0}
 .step .sub{font-size:11.5px; color:var(--muted)}
 .sbar{height:5px; border-radius:3px; background:var(--track); overflow:hidden; margin-inline-end:16px}
 .sbar i{display:block; height:100%; border-radius:3px}
-.body2{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start}
-@media (max-width:1100px){.body2{grid-template-columns:1fr}}
-.side{display:flex; flex-direction:column; gap:16px; position:sticky; top:14px}
+.body2{display:grid; grid-template-columns:minmax(0,1fr) 320px; column-gap:16px; align-items:start}
+/* Pair each main card with the aside card in the same row. */
+.body2 > .stack,
+.body2 > .side{
+  display:grid; grid-template-rows:subgrid; grid-row:span 8; row-gap:16px;
+}
+.body2 > .stack > .card,
+.body2 > .side > .card{margin-block-start:0}
+@media (max-width:1100px){
+  .body2{grid-template-columns:1fr; row-gap:16px}
+  .body2 > .stack,
+  .body2 > .side{display:flex; flex-direction:column; grid-row:auto; gap:16px}
+}
+.side{position:sticky; top:14px}
 @media (max-width:1100px){.side{position:static}}
 .fg{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 20px}
 @media (max-width:680px){.fg{grid-template-columns:1fr 1fr}}
@@ -536,14 +551,14 @@ td.pick{width:38px; padding-inline-end:0}
 .rpt-sheet td:first-child{white-space:normal; max-width:360px}
 
 /* ── User menu (top-right avatar + dropdown) ─────────────────────────── */
-.umwrap{position:relative}
+.umwrap{position:relative; display:flex; align-items:center; padding-inline-start:10px; border-inline-start:1px solid var(--border)}
 .umavbtn{
-  width:34px; height:34px; border-radius:50%; border:2px solid var(--border-2);
-  background:var(--brand-soft); color:var(--brand);
-  display:grid; place-items:center; font-size:12px; font-weight:700; cursor:pointer;
-  transition:border-color .15s;
+  width:40px; height:40px; border-radius:50%; border:0;
+  background:var(--brand); color:var(--brand-ink);
+  display:grid; place-items:center; font-size:13px; font-weight:700; letter-spacing:.02em; cursor:pointer;
 }
-.umavbtn:hover,.umavbtn[aria-expanded="true"]{border-color:var(--brand)}
+.umavbtn:hover,.umavbtn[aria-expanded="true"]{background:var(--brand-hover)}
+.umdrop-item:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
 .umdrop{
   position:absolute; inset-inline-end:0; top:calc(100% + 8px); min-width:200px;
   background:var(--surface); border:1px solid var(--border-2);

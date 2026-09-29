@@ -154,8 +154,16 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "Dashboard", "route": "/", "keywords": "home overview kpi books"},
 	{"label": "Sales Orders", "route": "/orders", "keywords": "home dashboard sales order so"},
 	{"label": "Delivery Notes", "route": "/delivery-notes", "keywords": "dn delivery note despatch"},
-	{"label": "Stock Entries", "route": "/stock-entries", "keywords": "stock entry material receipt issue transfer"},
-	{"label": "Stock Reconciliation", "route": "/stock-reconciliations", "keywords": "stock count opening reconciliation"},
+	{
+		"label": "Stock Entries",
+		"route": "/stock-entries",
+		"keywords": "stock entry material receipt issue transfer",
+	},
+	{
+		"label": "Stock Reconciliation",
+		"route": "/stock-reconciliations",
+		"keywords": "stock count opening reconciliation",
+	},
 	{"label": "Material Requests", "route": "/material-requests", "keywords": "material request indent mr"},
 	{"label": "Quotations", "route": "/quotations", "keywords": "quotation quote estimate"},
 	{"label": "Customers", "route": "/customers", "keywords": "customer party"},
@@ -196,7 +204,11 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 		"keywords": "trial balance general ledger profit loss balance sheet cash flow reports vat 201 late filing esr compliance emaratax",
 	},
 	{"label": "Items", "route": "/catalogue/items", "keywords": "item product catalogue"},
-	{"label": "Item Groups", "route": "/catalogue/item-groups", "keywords": "item group category catalogue tree"},
+	{
+		"label": "Item Groups",
+		"route": "/catalogue/item-groups",
+		"keywords": "item group category catalogue tree",
+	},
 	{"label": "Brands", "route": "/catalogue/brands", "keywords": "brand manufacturer label"},
 	{"label": "UOMs", "route": "/catalogue/uoms", "keywords": "uom unit of measure uom nos kg litre"},
 	{"label": "Warehouses", "route": "/warehouses", "keywords": "warehouse stock location store"},
@@ -219,48 +231,128 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	},
 	{"label": "Profile", "route": "/profile", "keywords": "profile password phone mobile name account me"},
 	{"label": "Bank Accounts", "route": "/bank-accounts", "keywords": "bank account banking cash gl"},
-	{"label": "Modes of Payment", "route": "/modes-of-payment", "keywords": "mode of payment cash bank general payment method"},
-	{"label": "Payment Terms Templates", "route": "/payment-terms-templates", "keywords": "payment terms template net 30 days due date credit period"},
-	{"label": "Price Lists", "route": "/price-lists", "keywords": "price list selling buying rate currency standard"},
-	{"label": "Serial Numbers", "route": "/serial-nos", "keywords": "serial no number serialised traceable lot"},
+	{
+		"label": "Modes of Payment",
+		"route": "/modes-of-payment",
+		"keywords": "mode of payment cash bank general payment method",
+	},
+	{
+		"label": "Payment Terms Templates",
+		"route": "/payment-terms-templates",
+		"keywords": "payment terms template net 30 days due date credit period",
+	},
+	{
+		"label": "Price Lists",
+		"route": "/price-lists",
+		"keywords": "price list selling buying rate currency standard",
+	},
+	{
+		"label": "Serial Numbers",
+		"route": "/serial-nos",
+		"keywords": "serial no number serialised traceable lot",
+	},
 	{"label": "Batches", "route": "/batches", "keywords": "batch lot expiry manufacturing date"},
-	{"label": "Landed Cost Vouchers", "route": "/landed-cost-vouchers", "keywords": "landed cost voucher lcv freight customs duty charges allocation"},
-	{"label": "Pricing Rules", "route": "/pricing-rules", "keywords": "pricing rule discount rate promotion item customer brand"},
-	{"label": "Customer Groups", "route": "/customer-groups", "keywords": "customer group category classification party"},
-	{"label": "Supplier Groups", "route": "/supplier-groups", "keywords": "supplier group vendor category classification"},
-	{"label": "Territories", "route": "/territories", "keywords": "territory region zone sales area geography"},
+	{
+		"label": "Landed Cost Vouchers",
+		"route": "/landed-cost-vouchers",
+		"keywords": "landed cost voucher lcv freight customs duty charges allocation",
+	},
+	{
+		"label": "Pricing Rules",
+		"route": "/pricing-rules",
+		"keywords": "pricing rule discount rate promotion item customer brand",
+	},
+	{
+		"label": "Customer Groups",
+		"route": "/customer-groups",
+		"keywords": "customer group category classification party",
+	},
+	{
+		"label": "Supplier Groups",
+		"route": "/supplier-groups",
+		"keywords": "supplier group vendor category classification",
+	},
+	{
+		"label": "Territories",
+		"route": "/territories",
+		"keywords": "territory region zone sales area geography",
+	},
 	# Phase 11
-	{"label": "Tax Categories", "route": "/tax-categories", "keywords": "tax category vat reverse charge uae"},
-	{"label": "Item Tax Templates", "route": "/item-tax-templates", "keywords": "item tax template rate exemption zero rated"},
+	{
+		"label": "Tax Categories",
+		"route": "/tax-categories",
+		"keywords": "tax category vat reverse charge uae",
+	},
+	{
+		"label": "Item Tax Templates",
+		"route": "/item-tax-templates",
+		"keywords": "item tax template rate exemption zero rated",
+	},
 	# Phase 12
 	{"label": "Addresses", "route": "/addresses", "keywords": "address billing shipping emirate location"},
 	{"label": "Contacts", "route": "/contacts", "keywords": "contact person phone email mobile"},
 	# Phase 13
 	{"label": "Fiscal Years", "route": "/fiscal-years", "keywords": "fiscal year period accounting year"},
-	{"label": "Chart of Accounts New", "route": "/accounts/new", "keywords": "create account leaf coa opening balance"},
+	{
+		"label": "Chart of Accounts New",
+		"route": "/accounts/new",
+		"keywords": "create account leaf coa opening balance",
+	},
 	# Phase 14
-	{"label": "Bank Reconciliation", "route": "/bank-reconciliation", "keywords": "bank reconciliation statement clearance uncleared"},
+	{
+		"label": "Bank Reconciliation",
+		"route": "/bank-reconciliation",
+		"keywords": "bank reconciliation statement clearance uncleared",
+	},
 	# Phase 15
-	{"label": "Terms and Conditions", "route": "/terms-and-conditions", "keywords": "terms conditions sales note template payment"},
+	{
+		"label": "Terms and Conditions",
+		"route": "/terms-and-conditions",
+		"keywords": "terms conditions sales note template payment",
+	},
 	# Phase 16
-	{"label": "Supplier Quotations", "route": "/supplier-quotations", "keywords": "supplier quotation rfq request for quotation vendor price"},
+	{
+		"label": "Supplier Quotations",
+		"route": "/supplier-quotations",
+		"keywords": "supplier quotation rfq request for quotation vendor price",
+	},
 	# Phase 17/18
 	{"label": "BOMs", "route": "/boms", "keywords": "bill of materials bom manufacturing component"},
 	{"label": "Work Orders", "route": "/work-orders", "keywords": "work order manufacture production job"},
 	# Phase 21
 	{"label": "Leads", "route": "/leads", "keywords": "lead prospect crm potential customer sales inquiry"},
 	# Phase 22 — UAE compliance write screens
-	{"label": "UAE Related Parties", "route": "/uae-related-parties", "keywords": "ct corporate tax related party disclosure"},
+	{
+		"label": "UAE Related Parties",
+		"route": "/uae-related-parties",
+		"keywords": "ct corporate tax related party disclosure",
+	},
 	{"label": "UAE VAT Groups", "route": "/uae-vat-groups", "keywords": "vat group representative trn"},
-	{"label": "UAE Bad Debt Relief", "route": "/uae-bad-debt-relief", "keywords": "bad debt vat relief write off"},
-	{"label": "UAE Customs Declarations", "route": "/uae-customs-declarations", "keywords": "customs declaration import vat"},
-	{"label": "UAE Capital Goods Adjustments", "route": "/uae-capital-goods-adjustments", "keywords": "capital goods adjustment vat"},
+	{
+		"label": "UAE Bad Debt Relief",
+		"route": "/uae-bad-debt-relief",
+		"keywords": "bad debt vat relief write off",
+	},
+	{
+		"label": "UAE Customs Declarations",
+		"route": "/uae-customs-declarations",
+		"keywords": "customs declaration import vat",
+	},
+	{
+		"label": "UAE Capital Goods Adjustments",
+		"route": "/uae-capital-goods-adjustments",
+		"keywords": "capital goods adjustment vat",
+	},
 	{"label": "Pick Lists", "route": "/pick-lists", "keywords": "pick list picking delivery"},
 	{"label": "POS Invoices", "route": "/pos-invoices", "keywords": "pos point of sale invoice retail"},
 	{"label": "POS Profiles", "route": "/pos-profiles", "keywords": "pos profile point of sale setup"},
 	{"label": "Loyalty Programs", "route": "/loyalty-programs", "keywords": "loyalty program points rewards"},
 	{"label": "Loyalty Points", "route": "/loyalty-point-entries", "keywords": "loyalty points entries"},
-	{"label": "Currency Exchange", "route": "/currency-exchanges", "keywords": "currency exchange rate forex fx"},
+	{
+		"label": "Currency Exchange",
+		"route": "/currency-exchanges",
+		"keywords": "currency exchange rate forex fx",
+	},
 	{"label": "Assets", "route": "/assets", "keywords": "fixed asset asset register"},
 	{"label": "Asset Categories", "route": "/asset-categories", "keywords": "asset category fixed assets"},
 )

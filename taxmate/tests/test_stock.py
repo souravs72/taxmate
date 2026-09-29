@@ -22,9 +22,7 @@ def _require_company_warehouse() -> tuple[str, str, str]:
 	warehouse = frappe.db.get_value("Warehouse", {"company": company, "is_group": 0}, "name")
 	if not warehouse:
 		raise unittest.SkipTest("Need a leaf warehouse for the company")
-	item = frappe.db.get_value(
-		"Item", {"disabled": 0, "is_stock_item": 1, "is_purchase_item": 1}, "name"
-	)
+	item = frappe.db.get_value("Item", {"disabled": 0, "is_stock_item": 1, "is_purchase_item": 1}, "name")
 	if not item:
 		raise unittest.SkipTest("Need a stock item marked is_purchase_item")
 	return company, warehouse, item
@@ -103,7 +101,7 @@ class TestStockEntryReceipt(FrappeTestCase):
 
 	def test_material_transfer_insert_then_submit(self):
 		try:
-			company, warehouse, item = _require_company_warehouse()
+			company, _warehouse, item = _require_company_warehouse()
 		except unittest.SkipTest as exc:
 			self.skipTest(str(exc))
 
@@ -137,9 +135,7 @@ class TestStockEntryReceipt(FrappeTestCase):
 				"stock_entry_type": "Material Transfer",
 				"posting_date": "2026-09-23",
 				"set_posting_time": 1,
-				"items": [
-					{"item_code": item, "qty": 3, "s_warehouse": src_wh, "t_warehouse": tgt_wh}
-				],
+				"items": [{"item_code": item, "qty": 3, "s_warehouse": src_wh, "t_warehouse": tgt_wh}],
 			}
 		)
 		self.assertEqual(doc["docstatus"], 0)
@@ -159,17 +155,14 @@ class TestStockReconciliation(FrappeTestCase):
 
 		# Opening Stock reconciliation requires a difference_account of Asset/Liability type.
 		# ERPNext's own fixtures use "Temporary Opening" or a Current Asset account.
-		diff_account = (
-			frappe.db.get_value(
-				"Account",
-				{"account_type": "Temporary", "company": company},
-				"name",
-			)
-			or frappe.db.get_value(
-				"Account",
-				{"root_type": "Asset", "account_type": "Current Asset", "is_group": 0, "company": company},
-				"name",
-			)
+		diff_account = frappe.db.get_value(
+			"Account",
+			{"account_type": "Temporary", "company": company},
+			"name",
+		) or frappe.db.get_value(
+			"Account",
+			{"root_type": "Asset", "account_type": "Current Asset", "is_group": 0, "company": company},
+			"name",
 		)
 		if not diff_account:
 			self.skipTest("No Temporary or Current Asset account available for Opening Stock reconciliation")
@@ -243,15 +236,17 @@ class TestQuotationInsert(FrappeTestCase):
 		if not item:
 			self.skipTest("No sales item available")
 
-		doc = insert({
-			"doctype": "Quotation",
-			"quotation_to": "Customer",
-			"party_name": customer,
-			"transaction_date": "2026-09-23",
-			"valid_till": "2026-12-31",
-			"company": company,
-			"items": [{"item_code": item, "qty": 1, "rate": 100}],
-		})
+		doc = insert(
+			{
+				"doctype": "Quotation",
+				"quotation_to": "Customer",
+				"party_name": customer,
+				"transaction_date": "2026-09-23",
+				"valid_till": "2026-12-31",
+				"company": company,
+				"items": [{"item_code": item, "qty": 1, "rate": 100}],
+			}
+		)
 		self.assertEqual(doc["docstatus"], 0)
 		submitted = submit({"doctype": "Quotation", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
@@ -265,19 +260,23 @@ class TestMaterialRequestPurchaseInsert(FrappeTestCase):
 		except unittest.SkipTest as exc:
 			self.skipTest(str(exc))
 
-		doc = insert({
-			"doctype": "Material Request",
-			"material_request_type": "Purchase",
-			"transaction_date": "2026-09-23",
-			"schedule_date": "2026-10-01",
-			"company": company,
-			"items": [{
-				"item_code": item,
-				"qty": 10,
-				"warehouse": warehouse,
+		doc = insert(
+			{
+				"doctype": "Material Request",
+				"material_request_type": "Purchase",
+				"transaction_date": "2026-09-23",
 				"schedule_date": "2026-10-01",
-			}],
-		})
+				"company": company,
+				"items": [
+					{
+						"item_code": item,
+						"qty": 10,
+						"warehouse": warehouse,
+						"schedule_date": "2026-10-01",
+					}
+				],
+			}
+		)
 		self.assertEqual(doc["docstatus"], 0)
 		self.assertEqual(doc["material_request_type"], "Purchase")
 		submitted = submit({"doctype": "Material Request", "name": doc["name"]})
@@ -307,64 +306,65 @@ class TestQuotationMapper(FrappeTestCase):
 
 
 class TestDnPrReturnCatalog(FrappeTestCase):
-    """Catalog includes the DN and PR return mapper methods."""
+	"""Catalog includes the DN and PR return mapper methods."""
 
-    def test_dn_return_in_catalog(self):
-        from taxmate.api import get_catalog
+	def test_dn_return_in_catalog(self):
+		from taxmate.api import get_catalog
 
-        catalog = get_catalog()
-        methods = {row["method"] for row in catalog["actions"]}
-        self.assertIn("taxmate.api.delivery_note.make_return", methods)
+		catalog = get_catalog()
+		methods = {row["method"] for row in catalog["actions"]}
+		self.assertIn("taxmate.api.delivery_note.make_return", methods)
 
-    def test_pr_return_in_catalog(self):
-        from taxmate.api import get_catalog
+	def test_pr_return_in_catalog(self):
+		from taxmate.api import get_catalog
 
-        catalog = get_catalog()
-        methods = {row["method"] for row in catalog["actions"]}
-        self.assertIn("taxmate.api.purchase_receipt.make_return", methods)
+		catalog = get_catalog()
+		methods = {row["method"] for row in catalog["actions"]}
+		self.assertIn("taxmate.api.purchase_receipt.make_return", methods)
 
-    def test_master_doctypes_in_catalog(self):
-        """Item Group, Brand, UOM should appear in catalog resources."""
-        from taxmate.api import get_catalog
+	def test_master_doctypes_in_catalog(self):
+		"""Item Group, Brand, UOM should appear in catalog resources."""
+		from taxmate.api import get_catalog
 
-        catalog = get_catalog()
-        doctypes = {row["doctype"] for row in catalog["resources"]}
-        for dt in ("Item Group", "Brand", "UOM"):
-            if frappe.db.exists("DocType", dt):
-                self.assertIn(dt, doctypes, f"{dt} should be in catalog resources")
+		catalog = get_catalog()
+		doctypes = {row["doctype"] for row in catalog["resources"]}
+		for dt in ("Item Group", "Brand", "UOM"):
+			if frappe.db.exists("DocType", dt):
+				self.assertIn(dt, doctypes, f"{dt} should be in catalog resources")
 
 
 class TestMakeDnReturn(FrappeTestCase):
-    """make_return on a submitted Delivery Note produces a valid unsaved return."""
+	"""make_return on a submitted Delivery Note produces a valid unsaved return."""
 
-    def test_make_dn_return_requires_submitted(self):
-        company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
-        if not company:
-            self.skipTest("No Company configured")
-        # Use a Draft DN to verify the guard
-        draft_dn = frappe.db.get_value(
-            "Delivery Note",
-            {"docstatus": 0, "company": company, "is_return": 0},
-            "name",
-        )
-        if not draft_dn:
-            self.skipTest("No draft DN available for negative test")
-        from taxmate.api.delivery_note import make_return
-        with self.assertRaises(Exception):
-            make_return(source_name=draft_dn)
+	def test_make_dn_return_requires_submitted(self):
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company configured")
+		# Use a Draft DN to verify the guard
+		draft_dn = frappe.db.get_value(
+			"Delivery Note",
+			{"docstatus": 0, "company": company, "is_return": 0},
+			"name",
+		)
+		if not draft_dn:
+			self.skipTest("No draft DN available for negative test")
+		from taxmate.api.delivery_note import make_return
 
-    def test_make_pr_return_requires_submitted(self):
-        company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
-        if not company:
-            self.skipTest("No Company configured")
-        draft_pr = frappe.db.get_value(
-            "Purchase Receipt",
-            {"docstatus": 0, "company": company, "is_return": 0},
-            "name",
-        )
-        if not draft_pr:
-            self.skipTest("No draft PR available for negative test")
-        from taxmate.api.purchase_receipt import make_return
-        with self.assertRaises(Exception):
-            make_return(source_name=draft_pr)
+		with self.assertRaises(Exception):
+			make_return(source_name=draft_dn)
 
+	def test_make_pr_return_requires_submitted(self):
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company configured")
+		draft_pr = frappe.db.get_value(
+			"Purchase Receipt",
+			{"docstatus": 0, "company": company, "is_return": 0},
+			"name",
+		)
+		if not draft_pr:
+			self.skipTest("No draft PR available for negative test")
+		from taxmate.api.purchase_receipt import make_return
+
+		with self.assertRaises(Exception):
+			make_return(source_name=draft_pr)

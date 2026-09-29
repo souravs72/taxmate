@@ -91,7 +91,6 @@ class TestSpaUsers(FrappeTestCase):
 		finally:
 			self._delete(created["name"])
 
-
 	def test_get_and_update_user(self):
 		created = self._invite("clerk")
 		try:

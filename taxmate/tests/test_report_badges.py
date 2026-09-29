@@ -51,13 +51,13 @@ class TestPeriodLabel(unittest.TestCase):
 
 	def test_staggered_quarter_is_not_numbered(self):
 		# The FTA assigns quarters that do not line up with the calendar.
-		self.assertEqual(_period_label(period(D(2026, 2, 1), D(2026, 4, 30))), "Feb–Apr")
-		self.assertEqual(_period_label(period(D(2026, 8, 1), D(2026, 10, 31))), "Aug–Oct")
-		self.assertEqual(_period_label(period(D(2026, 11, 1), D(2027, 1, 31))), "Nov–Jan")
+		self.assertEqual(_period_label(period(D(2026, 2, 1), D(2026, 4, 30))), "Feb-Apr")
+		self.assertEqual(_period_label(period(D(2026, 8, 1), D(2026, 10, 31))), "Aug-Oct")
+		self.assertEqual(_period_label(period(D(2026, 11, 1), D(2027, 1, 31))), "Nov-Jan")
 
 	def test_other_spans(self):
-		self.assertEqual(_period_label(period(D(2026, 8, 1), D(2026, 9, 30))), "Aug–Sep")
-		self.assertEqual(_period_label(period(D(2026, 7, 1), D(2026, 10, 31))), "Jul–Oct")
+		self.assertEqual(_period_label(period(D(2026, 8, 1), D(2026, 9, 30))), "Aug-Sep")
+		self.assertEqual(_period_label(period(D(2026, 7, 1), D(2026, 10, 31))), "Jul-Oct")
 
 	def test_missing_dates(self):
 		self.assertEqual(_period_label(period(None, D(2026, 9, 30))), "")

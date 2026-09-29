@@ -38,11 +38,15 @@ class TestPeriodBounds(unittest.TestCase):
 
 	def test_quarter(self):
 		b = period_bounds("quarter", D(2026, 9, 21))
-		self.assertEqual((b["start"], b["prev_start"], b["prev_end"]), (D(2026, 7, 1), D(2026, 4, 1), D(2026, 6, 22)))
+		self.assertEqual(
+			(b["start"], b["prev_start"], b["prev_end"]), (D(2026, 7, 1), D(2026, 4, 1), D(2026, 6, 22))
+		)
 
 	def test_year_is_last_twelve_months(self):
 		b = period_bounds("year", D(2026, 9, 21))
-		self.assertEqual((b["start"], b["prev_start"], b["prev_end"]), (D(2025, 10, 1), D(2024, 10, 1), D(2025, 9, 21)))
+		self.assertEqual(
+			(b["start"], b["prev_start"], b["prev_end"]), (D(2025, 10, 1), D(2024, 10, 1), D(2025, 9, 21))
+		)
 
 	def test_unknown_period_is_refused(self):
 		with self.assertRaises(frappe.ValidationError):
@@ -69,7 +73,9 @@ class TestHelpers(unittest.TestCase):
 			self.assertEqual(age_bucket(due, on), expected, due)
 
 	def test_prorate(self):
-		self.assertAlmostEqual(prorate(36500, D(2026, 9, 1), D(2026, 9, 21), D(2026, 1, 1), D(2026, 12, 31)), 2100)
+		self.assertAlmostEqual(
+			prorate(36500, D(2026, 9, 1), D(2026, 9, 21), D(2026, 1, 1), D(2026, 12, 31)), 2100
+		)
 		self.assertEqual(prorate(1000, D(2027, 1, 1), D(2027, 1, 5), D(2026, 1, 1), D(2026, 12, 31)), 0.0)
 
 	def test_bucket_by_month_ignores_rows_outside_the_window(self):
