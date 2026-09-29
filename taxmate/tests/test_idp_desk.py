@@ -573,29 +573,16 @@ class TestIdpDeskSurface(unittest.TestCase):
 				"confirmed": False,
 				"required_fields": [
 					{"field": "supplier_name", "label_key": "idp.field.supplier", "value": "Acme"},
-					{"field": "address_line1", "label_key": "idp.field.addressLine", "value": ""},
-					{"field": "city", "label_key": "idp.field.city", "value": ""},
-					{"field": "state", "label_key": "idp.field.emirate", "value": ""},
+					{"field": "supplier_type", "label_key": "idp.field.partyType", "value": "Company"},
 				],
-				"optional_fields": [],
+				"optional_fields": [
+					{"field": "address_line1", "label_key": "idp.field.addressLine", "value": ""},
+				],
 				"source_fields": {"supplier_name": "Acme"},
 			}
 		]
 		self.assertFalse(proposals_complete(base))
-		merged = merge_proposal_values(
-			base,
-			[
-				{
-					"key": "supplier:Acme",
-					"confirmed": True,
-					"required_fields": [
-						{"field": "address_line1", "value": "Street 1"},
-						{"field": "city", "value": "Dubai"},
-						{"field": "state", "value": "Dubai"},
-					],
-				}
-			],
-		)
+		merged = merge_proposal_values(base, [{"key": "supplier:Acme", "confirmed": True}])
 		self.assertTrue(merged[0]["confirmed"])
 		self.assertTrue(proposals_complete(merged))
 

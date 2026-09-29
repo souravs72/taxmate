@@ -78,6 +78,10 @@ _ADDRESS_ALIASES: tuple[str, ...] = (
 	"address",
 	"supplier_address",
 	"customer_address",
+	"seller_address",
+	"vendor_address",
+	"company_address",
+	"from_address",
 	"bill_address",
 	"address_line1",
 )
@@ -390,11 +394,11 @@ def _party_proposal(doctype: str, missing: dict[str, str], header: dict[str, Any
 	required = [
 		_field(name_field, _PARTY_LABEL.get(name_field, f"idp.field.{name_field}"), source[name_field]),
 		_field(type_field, "idp.field.partyType", source[type_field], options=["Company", "Individual"]),
+	]
+	optional = [
 		_field("address_line1", "idp.field.addressLine", source["address_line1"]),
 		_field("city", "idp.field.city", source["city"]),
 		_field("state", "idp.field.emirate", source["state"], options=list(EMIRATES)),
-	]
-	optional = [
 		_field("tax_id", "f.customerTrn" if doctype == "Customer" else "idp.field.trn", source["tax_id"]),
 		_field("email_id", "idp.field.email", source["email_id"]),
 		_field("phone", "idp.field.phone", source["phone"]),
@@ -422,10 +426,11 @@ def _item_proposal(missing: dict[str, str], items: list[dict[str, Any]]) -> dict
 	existing = str((row or {}).get("item_code") or "").strip()
 	code = existing if existing and not _looks_like_description(existing) else _slug_code(label)
 	uom = str((row or {}).get("uom") or (row or {}).get("stock_uom") or "Nos").strip() or "Nos"
+	group = _default_item_group()
 	source = {
 		"item_code": code,
 		"item_name": label,
-		"item_group": "",
+		"item_group": group,
 		"stock_uom": uom,
 	}
 	required = [
@@ -576,6 +581,19 @@ def _clean_item_label(label: str) -> str:
 	return text.strip(" -,") or label.strip()
 
 
+def _default_item_group() -> str:
+	"""Stock Settings default, else first leaf Item Group. Empty when DB is unavailable."""
+	try:
+		import frappe
+
+		group = frappe.db.get_single_value("Stock Settings", "item_group")
+		if group:
+			return str(group)
+		return str(frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "")
+	except Exception:
+		return ""
+
+
 def _slug_code(label: str) -> str:
 	slug = re.sub(r"[^A-Za-z0-9]+", "-", label).strip("-").upper()
 	return (slug[:20] or "ITEM")[:140]
@@ -710,7 +728,8 @@ def _create_supplier(values: dict[str, str]) -> str:
 		}
 	)
 	doc.insert()
-	_attach_address_contact("Supplier", doc.name, name, values)
+	if _has_address(values):
+		_attach_address_contact("Supplier", doc.name, name, values)
 	return doc.name
 
 
@@ -740,7 +759,8 @@ def _create_customer(values: dict[str, str]) -> str:
 		}
 	)
 	doc.insert()
-	_attach_address_contact("Customer", doc.name, name, values)
+	if _has_address(values):
+		_attach_address_contact("Customer", doc.name, name, values)
 	return doc.name
 
 
@@ -783,6 +803,14 @@ def _existing_party(doctype: str, name: str, tax_id: str | None) -> str | None:
 	if frappe.db.exists(doctype, name):
 		return name
 	return frappe.db.get_value(doctype, {display: name}, "name")
+
+
+def _has_address(values: dict[str, str]) -> bool:
+	return bool(
+		(values.get("address_line1") or "").strip()
+		and (values.get("city") or "").strip()
+		and (values.get("state") or "").strip()
+	)
 
 
 def _attach_address_contact(link_doctype: str, link_name: str, title: str, values: dict[str, str]) -> None:

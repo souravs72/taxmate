@@ -143,18 +143,19 @@ div.od-cmp-i:hover{background:transparent}
   padding:10vh 16px 24px; background:color-mix(in srgb, var(--text) 28%, transparent);
 }
 .idp-panel{
-  width:min(560px, 100%); max-height:min(78vh, 720px); overflow:auto;
+  width:min(560px, 100%); max-height:min(78vh, 720px); overflow:hidden;
   background:var(--surface); color:var(--text); border:1px solid var(--border);
-  border-radius:var(--r-sm); padding:16px 16px 12px;
+  border-radius:var(--r-sm); padding:0;
   display:flex; flex-direction:column;
 }
-.idp-actions{
-  position:sticky; bottom:0; margin-top:12px; padding-top:10px;
-  background:linear-gradient(to top, var(--surface) 70%, transparent);
-  border-top:1px solid var(--border);
+.idp-body{flex:1 1 auto; min-height:0; overflow:auto; padding:0 16px 12px}
+.idp-foot{
+  flex:none; padding:10px 16px 12px; border-top:1px solid var(--border);
+  background:var(--surface);
 }
 .idp-hint{margin:0 0 8px; font-size:12px; color:var(--muted);}
-.idp-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px}
+.idp-file .req{margin-inline-start:3px; color:var(--bad); font-weight:700}
+.idp-head{display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:0; padding:16px 16px 8px}
 .idp-head h2{font-size:16px; font-weight:600; margin:0}
 .idp-notes{margin:0 0 12px; padding-inline-start:18px; color:var(--muted); font-size:13px}
 .idp-notes li + li{margin-top:4px}
