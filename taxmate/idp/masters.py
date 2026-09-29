@@ -261,6 +261,8 @@ def normalize_extract(extracted: dict[str, Any], *, promote_items: bool = True) 
 	_promote_totals(header)
 	_scrub_contact_noise(header)
 	_scrub_address_links(header)
+	_sanitize_header_values(header)
+	_sanitize_item_values(data)
 	_ensure_line_from_total(data)
 	if promote_items:
 		items = data.get("items")
@@ -701,6 +703,113 @@ def _scrub_address_links(header: dict[str, Any]) -> None:
 			continue
 		if "," in value or len(value) > 60 or "\n" in value:
 			header.pop(key, None)
+
+
+def _sanitize_header_values(header: dict[str, Any]) -> None:
+	"""Normalize OCR dates and amounts so schema validation stops blocking save."""
+	for key in ("posting_date", "transaction_date", "due_date", "bill_date", "date"):
+		if key not in header and key != "date":
+			continue
+		raw = header.get(key) if key != "date" else header.get("posting_date") or header.get("date")
+		if raw in (None, ""):
+			continue
+		parsed = _parse_ocr_date(str(raw))
+		if parsed:
+			if key == "date":
+				header["posting_date"] = parsed
+			else:
+				header[key] = parsed
+	# Promote date alias onto posting_date when still missing.
+	if not str(header.get("posting_date") or "").strip() and header.get("date"):
+		parsed = _parse_ocr_date(str(header.get("date")))
+		if parsed:
+			header["posting_date"] = parsed
+	for key in ("net_total", "grand_total", "total", "total_due", "amount_due", "subtotal"):
+		if key not in header or header.get(key) in (None, ""):
+			continue
+		num = _parse_ocr_amount(header.get(key))
+		if num is not None:
+			header[key] = num
+	if header.get("currency") in (None, ""):
+		# common OCR miss on receipts
+		pass
+
+
+def _sanitize_item_values(data: dict[str, Any]) -> None:
+	items = data.get("items")
+	if not isinstance(items, list):
+		return
+	for row in items:
+		if not isinstance(row, dict):
+			continue
+		for key in ("qty", "quantity", "received_qty", "rate", "unit_price", "amount", "line_total"):
+			if key not in row or row.get(key) in (None, ""):
+				continue
+			num = _parse_ocr_amount(row.get(key))
+			if num is not None:
+				row[key] = num
+		# Align qty aliases for purchase receipt validators.
+		qty = row.get("qty")
+		if qty in (None, "") and row.get("quantity") not in (None, ""):
+			row["qty"] = row["quantity"]
+		if row.get("received_qty") in (None, "") and row.get("qty") not in (None, ""):
+			row["received_qty"] = row["qty"]
+		if row.get("rate") in (None, "") and row.get("unit_price") not in (None, ""):
+			row["rate"] = row["unit_price"]
+		if not row.get("stock_uom"):
+			row["stock_uom"] = row.get("uom") or "Nos"
+		if not row.get("uom"):
+			row["uom"] = row.get("stock_uom") or "Nos"
+
+
+def _parse_ocr_amount(value: Any) -> float | None:
+	text = str(value or "").strip()
+	if not text:
+		return None
+	cleaned = text.replace(",", "").replace("AED", "").replace(" ", "")
+	try:
+		return float(cleaned)
+	except ValueError:
+		return None
+
+
+def _parse_ocr_date(value: str) -> str:
+	"""Return YYYY-MM-DD when OCR printed a long date, else the original if already ISO."""
+	text = (value or "").strip()
+	if not text:
+		return ""
+	if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+		return text
+	# 18th August,2026 / 18 August 2026 / 18th Aug'26
+	m = re.search(
+		r"(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]{3,9})'?[,\s]+(\d{2,4})",
+		text,
+	)
+	if not m:
+		return ""
+	day = int(m.group(1))
+	month_token = m.group(2)[:3].lower()
+	year = int(m.group(3))
+	if year < 100:
+		year += 2000
+	months = {
+		"jan": 1,
+		"feb": 2,
+		"mar": 3,
+		"apr": 4,
+		"may": 5,
+		"jun": 6,
+		"jul": 7,
+		"aug": 8,
+		"sep": 9,
+		"oct": 10,
+		"nov": 11,
+		"dec": 12,
+	}
+	month = months.get(month_token)
+	if not month or day < 1 or day > 31:
+		return ""
+	return f"{year:04d}-{month:02d}-{day:02d}"
 
 
 def _scrub_contact_noise(header: dict[str, Any]) -> None:
