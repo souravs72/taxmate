@@ -12,7 +12,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
 const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Personal", "Other"];
@@ -32,6 +32,7 @@ type Doc = {
   country?: string;
   email_id?: string;
   phone?: string;
+  disabled?: 0 | 1;
   links?: { link_doctype?: string; link_name?: string }[];
 };
 
@@ -62,6 +63,7 @@ export default function AddressForm() {
     country: "United Arab Emirates",
     email_id: "",
     phone: "",
+    disabled: 0 as 0 | 1,
   });
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -82,6 +84,7 @@ export default function AddressForm() {
       country: d.country || "United Arab Emirates",
       email_id: d.email_id || "",
       phone: d.phone || "",
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     });
     setLinks(
       (d.links ?? []).map((l) => ({
@@ -140,6 +143,12 @@ export default function AddressForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("common.disabled")}
+              hint={t("doc.offHint")}
+              checked={!!form.disabled}
+              onChange={(on) => setForm((f) => ({ ...f, disabled: on ? 1 : 0 }))}
+            />
             <Field label={t("addr.col.title")} required>
               <input
                 className="ctl"

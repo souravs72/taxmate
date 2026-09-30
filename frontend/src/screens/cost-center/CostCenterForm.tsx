@@ -10,7 +10,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = {
@@ -19,6 +19,7 @@ type Doc = {
   company?: string;
   parent_cost_center?: string;
   is_group?: number;
+  disabled?: 0 | 1;
 };
 
 export default function CostCenterForm() {
@@ -49,6 +50,7 @@ export default function CostCenterForm() {
     company,
     parent_cost_center: "",
     is_group: 0,
+    disabled: 0 as 0 | 1,
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -61,6 +63,7 @@ export default function CostCenterForm() {
       company: d.company || company,
       parent_cost_center: d.parent_cost_center || "",
       is_group: d.is_group || 0,
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     });
   }, [existing.data, company]);
 
@@ -106,6 +109,12 @@ export default function CostCenterForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("common.disabled")}
+              hint={t("doc.offHint")}
+              checked={!!form.disabled}
+              onChange={(on) => setForm((f) => ({ ...f, disabled: on ? 1 : 0 }))}
+            />
             <Field label={t("cc.col.name")} required>
               <input
                 className="ctl"

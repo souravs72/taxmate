@@ -12,7 +12,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
 const CHARGE_TYPES = [
@@ -36,6 +36,7 @@ type Doc = {
   title?: string;
   company?: string;
   is_default?: 0 | 1;
+  disabled?: 0 | 1;
   taxes?: {
     charge_type?: string;
     account_head?: string;
@@ -82,6 +83,7 @@ export default function TaxTemplateForm() {
 
   const [title, setTitle] = useState("");
   const [isDefault, setIsDefault] = useState<0 | 1>(0);
+  const [disabled, setDisabled] = useState<0 | 1>(0);
   const [rows, setRows] = useState<TaxRow[]>([emptyRow()]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -91,6 +93,7 @@ export default function TaxTemplateForm() {
     if (!d) return;
     setTitle(d.title || d.name || "");
     setIsDefault(d.is_default ? 1 : 0);
+    setDisabled(d.disabled ? 1 : 0);
     setRows(
       (d.taxes ?? []).length > 0
         ? (d.taxes ?? []).map((r) => ({
@@ -122,6 +125,7 @@ export default function TaxTemplateForm() {
         title,
         company,
         is_default: isDefault,
+        disabled,
         taxes: rows.map(({ _key: _k2, ...r }) => r),
       };
       if (isNew) {
@@ -161,6 +165,12 @@ export default function TaxTemplateForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("common.disabled")}
+              hint={t("doc.offHint")}
+              checked={!!disabled}
+              onChange={(on) => setDisabled(on ? 1 : 0)}
+            />
             <Field label={t("tx.col.name")} required>
               <input
                 className="ctl"

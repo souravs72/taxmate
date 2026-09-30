@@ -6,7 +6,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
 
 const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
@@ -334,16 +334,12 @@ export default function ItemForm() {
           <Field label={t("item.col.name")} required>
             <input className="ctl" value={form.item_name} onChange={(e) => set("item_name", e.target.value)} />
           </Field>
-          <Field label={t("item.disabled")}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <input
-                type="checkbox"
-                checked={!!form.disabled}
-                onChange={(e) => set("disabled", e.target.checked ? 1 : 0)}
-              />
-              {t("item.disabledHint")}
-            </label>
-          </Field>
+          <CheckField
+            label={t("common.disabled")}
+            hint={t("doc.offHint")}
+            checked={!!form.disabled}
+            onChange={(on) => set("disabled", on ? 1 : 0)}
+          />
           <Field label={t("item.description")}>
             <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />
           </Field>

@@ -1,6 +1,6 @@
 /** Shared primitives. Every one maps to a class in styles/app.css. */
 
-import { createContext, useEffect, useRef, useSyncExternalStore } from "react";
+import { createContext, useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import { money, pct } from "../lib/format";
@@ -356,6 +356,18 @@ export function Field({ label, required, hint, htmlFor, children }: {
       {children}
       {hint && <span className="help">{hint}</span>}
     </div>
+  );
+}
+
+/** Checkbox for a doctype flag such as Disabled or Enabled. */
+export function CheckField({ label, hint, checked, onChange }: {
+  label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <Field label={label} hint={hint} htmlFor={id}>
+      <input id={id} className="check" type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </Field>
   );
 }
 

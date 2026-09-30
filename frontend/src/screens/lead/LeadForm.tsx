@@ -9,12 +9,12 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
 const STATUSES = ["Open", "Replied", "Opportunity", "Interested", "Converted", "Do Not Contact", "Lost Quotation"];
 
-type Doc = { name: string; lead_name?: string; company_name?: string; email_id?: string; mobile_no?: string; status?: string; city?: string; country?: string };
+type Doc = { name: string; lead_name?: string; company_name?: string; email_id?: string; mobile_no?: string; status?: string; city?: string; country?: string; disabled?: 0 | 1 };
 
 export default function LeadForm() {
   const { name = "new" } = useParams();
@@ -25,7 +25,7 @@ export default function LeadForm() {
   const create = useInsert();
   const update = useSave();
 
-  const [form, setForm] = useState({ lead_name: "", company_name: "", email_id: "", mobile_no: "", status: "Open", city: "", country: "United Arab Emirates" });
+  const [form, setForm] = useState({ lead_name: "", company_name: "", email_id: "", mobile_no: "", status: "Open", city: "", country: "United Arab Emirates", disabled: 0 as 0 | 1 });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
   const [loaded, setLoaded] = useState(false);
@@ -41,6 +41,7 @@ export default function LeadForm() {
       status: d.status || "Open",
       city: d.city || "",
       country: d.country || "United Arab Emirates",
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     });
     setLoaded(true);
   }, [existing.data, loaded]);
@@ -76,6 +77,12 @@ export default function LeadForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("common.disabled")}
+              hint={t("doc.offHint")}
+              checked={!!form.disabled}
+              onChange={(on) => setForm((f) => ({ ...f, disabled: on ? 1 : 0 }))}
+            />
             <Field label={t("lead.col.name")} required>
               <input className="ctl" value={form.lead_name} onChange={(e) => setField("lead_name", e.target.value)} placeholder={t("lead.namePh")} />
             </Field>

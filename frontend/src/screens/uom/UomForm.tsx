@@ -9,9 +9,9 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 
-type Doc = { name: string; uom_name?: string; must_be_whole_number?: number };
+type Doc = { name: string; uom_name?: string; must_be_whole_number?: number; enabled?: number };
 
 export default function UomForm() {
   const { name = "new" } = useParams();
@@ -24,7 +24,7 @@ export default function UomForm() {
   const create = useInsert();
   const update = useSave();
 
-  const [form, setForm] = useState({ uom_name: "", must_be_whole_number: 0 as 0 | 1 });
+  const [form, setForm] = useState({ uom_name: "", must_be_whole_number: 0 as 0 | 1, enabled: 1 as 0 | 1 });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -34,6 +34,7 @@ export default function UomForm() {
     setForm({
       uom_name: d.uom_name || d.name || "",
       must_be_whole_number: (d.must_be_whole_number || 0) as 0 | 1,
+      enabled: (d.enabled === 0 ? 0 : 1) as 0 | 1,
     });
   }, [existing.data]);
 
@@ -46,6 +47,7 @@ export default function UomForm() {
       const payload = {
         uom_name: form.uom_name,
         must_be_whole_number: form.must_be_whole_number,
+        enabled: form.enabled,
       };
       const doc = isNew
         ? await create.createDoc(DT.uom, payload)
@@ -82,6 +84,12 @@ export default function UomForm() {
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">
+          <CheckField
+            label={t("common.enabled")}
+            hint={t("doc.onHint")}
+            checked={!!form.enabled}
+            onChange={(on) => set("enabled", on ? 1 : 0)}
+          />
           <Field label={t("uom.name")} required>
             <input className="ctl" value={form.uom_name} onChange={(e) => set("uom_name", e.target.value)} />
           </Field>

@@ -12,7 +12,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
 const ROOT_TYPES = ["Asset", "Liability", "Income", "Expense", "Equity"];
@@ -41,6 +41,7 @@ type Doc = {
   root_type?: string;
   account_currency?: string;
   is_group?: number;
+  disabled?: 0 | 1;
 };
 
 export default function AccountForm() {
@@ -74,6 +75,7 @@ export default function AccountForm() {
     root_type: "Asset",
     account_currency: "AED",
     is_group: 0 as 0 | 1,
+    disabled: 0 as 0 | 1,
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -89,6 +91,7 @@ export default function AccountForm() {
       root_type: d.root_type || "Asset",
       account_currency: d.account_currency || "AED",
       is_group: (d.is_group || 0) as 0 | 1,
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     });
   }, [existing.data, company]);
 
@@ -134,6 +137,12 @@ export default function AccountForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("common.disabled")}
+              hint={t("doc.offHint")}
+              checked={!!form.disabled}
+              onChange={(on) => setForm((f) => ({ ...f, disabled: on ? 1 : 0 }))}
+            />
             <Field label={t("acct.col.name")} required>
               <input
                 className="ctl"
