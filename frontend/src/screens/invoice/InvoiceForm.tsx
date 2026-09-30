@@ -16,7 +16,7 @@ import { linePayload, stampItemDetails, useCreditBalance, usePaymentSchedule, us
 import { CreditLimitNotice, LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead, Pill, SumRow } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead, Pill, SumRow } from "../../components/ui";
 import { FormLayout, MissingSummary, ReadinessCard, type Check } from "../../components/form";
 import LinkField from "../../components/LinkField";
 import SourceDocPicker from "../../components/SourceDocPicker";
@@ -40,6 +40,8 @@ type InvoiceDoc = {
   contact_person?: string;
   debit_to?: string;
   additional_discount_percentage?: number;
+  update_stock?: number;
+  set_warehouse?: string;
   net_total?: number;
   total_taxes_and_charges?: number;
   grand_total?: number;
@@ -78,6 +80,8 @@ export default function InvoiceForm() {
   const [taxTemplate, setTaxTemplate] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
   const [discountPct, setDiscountPct] = useState(0);
+  const [updateStock, setUpdateStock] = useState<0 | 1>(0);
+  const [setWarehouse, setSetWarehouse] = useState("");
   const [currency, setCurrency] = useState("");
   const [conversionRate, setConversionRate] = useState(1);
   const [party, setParty] = useState<PartyDetails>({});
@@ -117,6 +121,8 @@ export default function InvoiceForm() {
     setTaxTemplate(d.taxes_and_charges || "");
     setPaymentTerms(d.payment_terms_template || "");
     setDiscountPct(Number(d.additional_discount_percentage || 0));
+    setUpdateStock(d.update_stock ? 1 : 0);
+    setSetWarehouse(d.set_warehouse || "");
     setCurrency(d.currency || "");
     setConversionRate(Number(d.conversion_rate) || 1);
     setReason(d.uae_credit_note_reason || "");
@@ -217,6 +223,8 @@ export default function InvoiceForm() {
       currency: currency || party.currency || companyDefaults.currency || session.currency,
       conversion_rate: (!currency || currency === companyCurrency) ? 1 : conversionRate,
       additional_discount_percentage: discountPct || undefined,
+      update_stock: updateStock,
+      set_warehouse: updateStock ? setWarehouse || undefined : undefined,
       items: lines.filter((l) => l.item_code).map((l) => linePayload(l)),
     };
   }, [
@@ -226,7 +234,7 @@ export default function InvoiceForm() {
 
   const { preview, previewing } = useTotalsPreview(
     buildPreviewDoc,
-    [customer, postingDate, taxTemplate, emirate, discountPct, lines, currency, conversionRate],
+    [customer, postingDate, taxTemplate, emirate, discountPct, updateStock, setWarehouse, lines, currency, conversionRate],
     txn.previewTotals,
   );
 
@@ -284,6 +292,8 @@ export default function InvoiceForm() {
       currency: currency || party.currency || companyDefaults.currency || session.currency,
       conversion_rate: (!currency || currency === companyCurrency) ? 1 : conversionRate,
       additional_discount_percentage: discountPct || undefined,
+      update_stock: updateStock,
+      set_warehouse: updateStock ? setWarehouse || undefined : undefined,
       uae_credit_note_reason: reason || undefined,
       payment_schedule: schedule.length
         ? schedule.map((r) => ({
@@ -477,6 +487,17 @@ export default function InvoiceForm() {
                 <input className="ctl" type="number" min={0} max={100} step={0.01} value={discountPct} disabled={locked}
                   onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
               </Field>
+              <CheckField
+                label={t("txn.updateStock")}
+                checked={!!updateStock}
+                onChange={(on) => setUpdateStock(on ? 1 : 0)}
+              />
+              {updateStock ? (
+                <Field label={t("dn.warehouse")}>
+                  <LinkField doctype={DT.warehouse} value={setWarehouse} onChange={setSetWarehouse}
+                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                </Field>
+              ) : null}
               {currency && currency !== companyCurrency ? (
                 <Field label={t("f.conversionRate")}>
                   <input className="ctl" type="number" min={0} step={0.000001} value={conversionRate} disabled={locked}

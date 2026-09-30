@@ -18,6 +18,7 @@ import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { printDocUrl } from "../../lib/printDoc";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; };
 type Doc = {
@@ -98,12 +99,17 @@ export default function QuotationDetail() {
               else mutate();
             }}
             extra={
-              submitted ? (
-                <button type="button" className="btn" disabled={mapBusy}
-                  onClick={() => void createSO()}>
-                  {mapBusy ? t("soc.saving") : t("quot.makeSO")}
+              <>
+                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.quotation, name), "_blank", "noopener")}>
+                  {t("inv.print")}
                 </button>
-              ) : null
+                {submitted ? (
+                  <button type="button" className="btn" disabled={mapBusy}
+                    onClick={() => void createSO()}>
+                    {mapBusy ? t("soc.saving") : t("quot.makeSO")}
+                  </button>
+                ) : null}
+              </>
             }
           />
         }

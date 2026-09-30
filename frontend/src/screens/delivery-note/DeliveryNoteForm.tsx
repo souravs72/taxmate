@@ -39,6 +39,9 @@ export default function DeliveryNoteForm() {
     posting_date?: string;
     set_warehouse?: string;
     taxes_and_charges?: string;
+    payment_terms_template?: string;
+    additional_discount_percentage?: number;
+    tc_name?: string;
     vat_emirate?: string;
     docstatus?: number;
     items?: Line[];
@@ -48,6 +51,9 @@ export default function DeliveryNoteForm() {
   const [postingDate, setPostingDate] = useState(today);
   const [warehouse, setWarehouse] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [discountPct, setDiscountPct] = useState(0);
+  const [tcName, setTcName] = useState("");
   const [emirate, setEmirate] = useState("");
   const [party, setParty] = useState<PartyDetails>({});
   const [conversionRate, setConversionRate] = useState(1);
@@ -57,6 +63,8 @@ export default function DeliveryNoteForm() {
   const [skipReprice, setSkipReprice] = useState(false);
 
   const templates = useDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
+  const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const termDocs = useDocList<{ name: string }>(DT.termsAndConditions, { fields: ["name"], filters: [["selling", "=", 1]], limit: 50 });
   const txn = useTransactionRpc({ doctype: DT.deliveryNote, side: "selling", company });
   const stock = useItemQtyCheck(company);
   const create = useInsert();
@@ -71,6 +79,9 @@ export default function DeliveryNoteForm() {
     setPostingDate(d.posting_date || today);
     setWarehouse(d.set_warehouse || "");
     setTaxTemplate(d.taxes_and_charges || "");
+    setPaymentTerms(d.payment_terms_template || "");
+    setDiscountPct(Number(d.additional_discount_percentage || 0));
+    setTcName(d.tc_name || "");
     setEmirate(d.vat_emirate || "");
     setLines(
       (d.items ?? []).length
@@ -156,6 +167,9 @@ export default function DeliveryNoteForm() {
       company,
       vat_emirate: emirate || undefined,
       taxes_and_charges: taxTemplate || undefined,
+      payment_terms_template: paymentTerms || undefined,
+      additional_discount_percentage: discountPct || undefined,
+      tc_name: tcName || undefined,
       customer_address: party.customer_address,
       selling_price_list: party.selling_price_list,
       currency: party.currency || session.currency,
@@ -169,7 +183,7 @@ export default function DeliveryNoteForm() {
 
   const { preview, previewing } = useTotalsPreview(
     buildPreviewDoc,
-    [customer, postingDate, taxTemplate, emirate, lines],
+    [customer, postingDate, taxTemplate, emirate, discountPct, paymentTerms, lines],
     txn.previewTotals,
   );
 
@@ -204,6 +218,9 @@ export default function DeliveryNoteForm() {
       set_posting_time: 1,
       set_warehouse: warehouse,
       taxes_and_charges: taxTemplate || undefined,
+      payment_terms_template: paymentTerms || undefined,
+      additional_discount_percentage: discountPct || undefined,
+      tc_name: tcName || undefined,
       vat_emirate: emirate || undefined,
       customer_address: party.customer_address,
       selling_price_list: party.selling_price_list,
@@ -314,6 +331,22 @@ export default function DeliveryNoteForm() {
               <select className="ctl" value={taxTemplate} onChange={(e) => setTaxTemplate(e.target.value)}>
                 <option value="" />
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+              </select>
+            </Field>
+            <Field label={t("f.paymentTerms")}>
+              <select className="ctl" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
+                <option value="" />
+                {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+              </select>
+            </Field>
+            <Field label={t("txn.discountPct")}>
+              <input className="ctl" type="number" min={0} max={100} step={0.01} value={discountPct}
+                onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
+            </Field>
+            <Field label={t("txn.terms")}>
+              <select className="ctl" value={tcName} onChange={(e) => setTcName(e.target.value)}>
+                <option value="" />
+                {(termDocs.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
               </select>
             </Field>
           </div>

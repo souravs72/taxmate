@@ -16,6 +16,7 @@ import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { printDocUrl } from "../../lib/printDoc";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string };
 type Doc = {
@@ -133,6 +134,9 @@ export default function DeliveryNoteDetail() {
             }}
             extra={
               <>
+                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.deliveryNote, name), "_blank", "noopener")}>
+                  {t("inv.print")}
+                </button>
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn" disabled={busySi} onClick={() => void createInvoice()}>
                     {busySi ? t("soc.saving") : t("dn.createSi")}

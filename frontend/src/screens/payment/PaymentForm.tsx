@@ -28,6 +28,8 @@ type Ref = {
   bill_no?: string;
 };
 
+type Deduction = { account: string; cost_center: string; amount: number; description: string };
+
 type PayDoc = {
   name?: string;
   payment_type?: PayType;
@@ -51,6 +53,7 @@ type PayDoc = {
   write_off_account?: string;
   docstatus?: number;
   references?: Ref[];
+  deductions?: Deduction[];
 };
 
 /** A row from erpnext get_outstanding_reference_documents. */
@@ -127,6 +130,7 @@ export default function PaymentForm() {
   const [targetExchangeRate, setTargetExchangeRate] = useState(1);
   const [writeOffAmount, setWriteOffAmount] = useState(0);
   const [writeOffAccount, setWriteOffAccount] = useState("");
+  const [deductions, setDeductions] = useState<Deduction[]>([]);
 
   const cur = session.currency || "";
   const type: PayType = doc.payment_type ?? "Receive";
@@ -138,6 +142,14 @@ export default function PaymentForm() {
     if (existing.data) {
       setDoc(existing.data);
       setManualAmount(true);
+      setDeductions(
+        (existing.data.deductions ?? []).map((d) => ({
+          account: d.account || "",
+          cost_center: d.cost_center || "",
+          amount: Number(d.amount) || 0,
+          description: d.description || "",
+        })),
+      );
     }
   }, [existing.data]);
 
@@ -244,7 +256,12 @@ export default function PaymentForm() {
   const allocated = sumAllocated(refs);
   const amount = round2(doc.paid_amount ?? 0);
   const receivedAmount = round2(isMcurr ? (doc.received_amount ?? 0) : amount);
-  const unallocated = round2(amount - allocated);
+  const deductionTotal = round2(deductions.reduce((s, d) => s + (Number(d.amount) || 0), 0));
+  const unallocated = round2(
+    type === "Pay"
+      ? receivedAmount - deductionTotal - allocated
+      : amount + deductionTotal - allocated,
+  );
   const overAllocated = allocated > amount + 0.005;
 
   const selected = useMemo(() => new Set(refs.map(refKey)), [refs]);
@@ -334,6 +351,7 @@ export default function PaymentForm() {
         paid_to_account_currency: resolved.paid_to_account_currency,
         ...(isMcurr ? { source_exchange_rate: sourceExchangeRate, target_exchange_rate: targetExchangeRate } : {}),
         references: refs.filter((r) => (Number(r.allocated_amount) || 0) !== 0),
+        deductions: deductions.filter((d) => d.account && d.amount),
         ...(writeOffAmount > 0.005 && writeOffAccount
           ? { write_off_amount: writeOffAmount, write_off_account: writeOffAccount }
           : {}),
@@ -575,6 +593,25 @@ export default function PaymentForm() {
                   </table>
                 </div>
               )}
+          </Card>
+
+          <Card title={t("pay.deductions")}>
+            {deductions.map((d, i) => (
+              <div className="grid2" key={i}>
+                <Field label={t("pay.writeOffAccount")}>
+                  <LinkField doctype={DT.account} value={d.account}
+                    onChange={(v) => setDeductions((rows) => rows.map((r, j) => j === i ? { ...r, account: v } : r))}
+                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                </Field>
+                <Field label={t("pay.writeOffAmount")}>
+                  <input className="ctl nn" value={d.amount}
+                    onChange={(e) => setDeductions((rows) => rows.map((r, j) => j === i ? { ...r, amount: parseNum(e.target.value) } : r))} />
+                </Field>
+              </div>
+            ))}
+            <button type="button" className="btn ghost sm" onClick={() => setDeductions((rows) => [...rows, { account: "", cost_center: "", amount: 0, description: "" }])}>
+              {t("pay.deductAdd")}
+            </button>
           </Card>
 
           {overAllocated && (

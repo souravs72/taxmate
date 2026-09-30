@@ -11,8 +11,8 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { linePayload, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
-import { ExchangeRateField, LineTrack, PartyFields } from "../../components/txnFields";
+import { linePayload, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { ExchangeRateField, LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
@@ -22,6 +22,7 @@ import LinkField from "../../components/LinkField";
 type Doc = {
   name: string; party_name?: string; transaction_date?: string; valid_till?: string;
   taxes_and_charges?: string; vat_emirate?: string; docstatus?: number;
+  payment_terms_template?: string; additional_discount_percentage?: number; tc_name?: string;
   items?: TxnLine[];
 };
 
@@ -41,12 +42,17 @@ export default function QuotationForm() {
   const update = useSave();
   const submitCall = useFrappePostCall(METHOD.submit);
   const templates = useDocList<{ name: string }>(DT.taxTemplate, { fields: ["name"], limit: 50 });
+  const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const termDocs = useDocList<{ name: string }>(DT.termsAndConditions, { fields: ["name"], filters: [["selling", "=", 1]], limit: 50 });
   const txn = useTransactionRpc({ doctype: DT.quotation, side: "selling", company });
 
   const [customer, setCustomer] = useState("");
   const [txDate, setTxDate] = useState(today);
   const [validTill, setValidTill] = useState(plus(30));
   const [taxTemplate, setTaxTemplate] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("");
+  const [discountPct, setDiscountPct] = useState(0);
+  const [tcName, setTcName] = useState("");
   const [emirate, setEmirate] = useState("");
   const [party, setParty] = useState<PartyDetails>({});
   const [conversionRate, setConversionRate] = useState(1);
@@ -62,6 +68,9 @@ export default function QuotationForm() {
     setTxDate(d.transaction_date || today);
     setValidTill(d.valid_till || plus(30));
     setTaxTemplate(d.taxes_and_charges || "");
+    setPaymentTerms(d.payment_terms_template || "");
+    setDiscountPct(Number(d.additional_discount_percentage || 0));
+    setTcName(d.tc_name || "");
     setEmirate(d.vat_emirate || "");
     setLines((d.items ?? []).map((it) => ({
       item_code: it.item_code || "",
@@ -114,6 +123,9 @@ export default function QuotationForm() {
       company,
       vat_emirate: emirate || undefined,
       taxes_and_charges: taxTemplate || undefined,
+      payment_terms_template: paymentTerms || undefined,
+      additional_discount_percentage: discountPct || undefined,
+      tc_name: tcName || undefined,
       selling_price_list: party.selling_price_list,
       currency: party.currency || session.currency,
       conversion_rate: conversionRate,
@@ -121,11 +133,11 @@ export default function QuotationForm() {
         item_code: l.item_code, qty: l.qty, rate: l.rate, uom: l.uom,
       })),
     };
-  }, [customer, txDate, validTill, company, emirate, taxTemplate, party, session.currency, lines]);
+  }, [customer, txDate, validTill, company, emirate, taxTemplate, paymentTerms, discountPct, tcName, party, session.currency, lines]);
 
   const { preview, previewing } = useTotalsPreview(
     buildPreviewDoc,
-    [customer, txDate, taxTemplate, emirate, lines],
+    [customer, txDate, taxTemplate, emirate, discountPct, paymentTerms, lines],
     txn.previewTotals,
   );
 
@@ -133,6 +145,7 @@ export default function QuotationForm() {
   const showNet = preview?.net_total ?? net;
   const showVat = preview?.total_taxes_and_charges ?? 0;
   const showGrand = preview?.grand_total ?? net;
+  const schedule = usePaymentSchedule(paymentTerms || undefined, txDate, showGrand, showGrand * (conversionRate || 1));
 
   const checks = useMemo(() => [
     { label: t("quot.customer"), ok: !!customer },
@@ -154,6 +167,19 @@ export default function QuotationForm() {
         company,
         vat_emirate: emirate || undefined,
         taxes_and_charges: taxTemplate || undefined,
+        payment_terms_template: paymentTerms || undefined,
+        additional_discount_percentage: discountPct || undefined,
+        tc_name: tcName || undefined,
+        payment_schedule: schedule.length
+          ? schedule.map((r) => ({
+              payment_term: r.payment_term,
+              description: r.description,
+              due_date: r.due_date,
+              invoice_portion: r.invoice_portion,
+              payment_amount: r.payment_amount,
+              mode_of_payment: r.mode_of_payment,
+            }))
+          : undefined,
         selling_price_list: party.selling_price_list || undefined,
         currency: party.currency || session.currency,
         conversion_rate: conversionRate,
@@ -234,7 +260,24 @@ export default function QuotationForm() {
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
               </select>
             </Field>
+            <Field label={t("f.paymentTerms")}>
+              <select className="ctl" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
+                <option value="" />
+                {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+              </select>
+            </Field>
+            <Field label={t("txn.discountPct")}>
+              <input className="ctl" type="number" min={0} max={100} step={0.01} value={discountPct}
+                onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
+            </Field>
+            <Field label={t("txn.terms")}>
+              <select className="ctl" value={tcName} onChange={(e) => setTcName(e.target.value)}>
+                <option value="" />
+                {(termDocs.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
+              </select>
+            </Field>
           </div>
+          <PaymentScheduleTable rows={schedule} />
           <PartyFields side="selling" partyName={customer} party={party} onChange={(patch) => setParty((p) => ({ ...p, ...patch }))} />
           <div className="grid3" style={{ marginBlockStart: 14 }}>
             <ExchangeRateField currency={party.currency || session.currency || undefined} companyCurrency={session.currency || undefined} value={conversionRate} onChange={setConversionRate} />
