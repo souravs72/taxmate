@@ -10,6 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { printDocUrl } from "../../lib/printDoc";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
@@ -113,6 +114,9 @@ export default function PurchaseReceiptDetail() {
             }}
             extra={
               <>
+                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseReceipt, name), "_blank", "noopener")}>
+                  {t("inv.print")}
+                </button>
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
                     {busyPi ? t("soc.saving") : t("pr.createPi")}

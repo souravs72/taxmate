@@ -38,6 +38,8 @@ export default function PurchaseOrderForm() {
   const [requiredBy, setRequiredBy] = useState(plus(14));
   const [taxTemplate, setTaxTemplate] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [discountPct, setDiscountPct] = useState(0);
+  const [warehouse, setWarehouse] = useState("");
   const [party, setParty] = useState<PartyDetails>({});
   const [conversionRate, setConversionRate] = useState(1);
   const [lines, setLines] = useState<TxnLine[]>([]);
@@ -45,7 +47,7 @@ export default function PurchaseOrderForm() {
 
   type PoDoc = {
     name: string; supplier?: string; transaction_date?: string; schedule_date?: string;
-    taxes_and_charges?: string; docstatus?: number; items?: TxnLine[];
+    taxes_and_charges?: string; payment_terms_template?: string; additional_discount_percentage?: number; set_warehouse?: string; docstatus?: number; items?: TxnLine[];
   };
   const existing = useDoc<PoDoc>(DT.purchaseOrder, isEdit ? editName : undefined, isEdit ? editName : null);
   const [loaded, setLoaded] = useState(false);
@@ -57,6 +59,9 @@ export default function PurchaseOrderForm() {
       setOrderDate(d.transaction_date ?? today);
       setRequiredBy(d.schedule_date ?? plus(14));
       setTaxTemplate(d.taxes_and_charges ?? "");
+      setPaymentTerms(d.payment_terms_template ?? "");
+      setDiscountPct(Number(d.additional_discount_percentage || 0));
+      setWarehouse(d.set_warehouse ?? "");
       setLines((d.items ?? []).map((l) => ({
         item_code: l.item_code ?? "", item_name: l.item_name, uom: l.uom,
         qty: l.qty ?? 1, rate: l.rate ?? 0,
@@ -172,6 +177,8 @@ export default function PurchaseOrderForm() {
       supplier_address: party.supplier_address,
       buying_price_list: party.buying_price_list,
       payment_terms_template: paymentTerms || undefined,
+      additional_discount_percentage: discountPct || undefined,
+      set_warehouse: warehouse || undefined,
       currency: party.currency || session.currency,
       conversion_rate: conversionRate,
       contact_person: party.contact_person,
@@ -266,6 +273,14 @@ export default function PurchaseOrderForm() {
                 <option value="" />
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
               </select>
+            </Field>
+            <Field label={t("txn.discountPct")}>
+              <input className="ctl" type="number" min={0} max={100} step={0.01} value={discountPct}
+                onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
+            </Field>
+            <Field label={t("dn.warehouse")}>
+              <LinkField doctype={DT.warehouse} value={warehouse} onChange={setWarehouse}
+                filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
             </Field>
             <Field label={t("f.paymentTerms")}>
               <select className="ctl" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>

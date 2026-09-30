@@ -26,6 +26,7 @@ type SupplierDoc = {
   supplier_primary_address?: string;
   supplier_primary_contact?: string;
   disabled?: 0 | 1;
+  on_hold?: 0 | 1;
 };
 
 type AddressDoc = {
@@ -78,6 +79,7 @@ export default function SupplierForm() {
     uae_fz_beneficiary_id: "",
     uae_in_designated_zone: 0 as 0 | 1,
     disabled: 0 as 0 | 1,
+    on_hold: 0 as 0 | 1,
     address_line1: "",
     city: "",
     state: "",
@@ -107,6 +109,7 @@ export default function SupplierForm() {
       uae_fz_beneficiary_id: d.uae_fz_beneficiary_id || "",
       uae_in_designated_zone: d.uae_in_designated_zone || 0,
       disabled: (d.disabled ? 1 : 0) as 0 | 1,
+      on_hold: (d.on_hold ? 1 : 0) as 0 | 1,
     }));
   }, [existing.data]);
 
@@ -151,6 +154,7 @@ export default function SupplierForm() {
         uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
         uae_in_designated_zone: form.uae_in_designated_zone,
         disabled: form.disabled,
+        on_hold: form.on_hold,
       };
       const supp = isNew
         ? await create.createDoc(DT.supplier, payload)
@@ -231,6 +235,11 @@ export default function SupplierForm() {
           <Field label={t("cust.col.name")} required>
             <input className="ctl" value={form.supplier_name} onChange={(e) => set("supplier_name", e.target.value)} />
           </Field>
+          <CheckField
+            label={t("supp.onHold")}
+            checked={!!form.on_hold}
+            onChange={(on) => set("on_hold", on ? 1 : 0)}
+          />
           <CheckField
             label={t("common.disabled")}
             hint={t("doc.offHint")}

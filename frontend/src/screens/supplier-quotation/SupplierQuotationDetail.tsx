@@ -8,6 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { printDocUrl } from "../../lib/printDoc";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
@@ -86,6 +87,9 @@ export default function SupplierQuotationDetail() {
         title={data.name}
       >
         <Pill cls={sqPill(data.status)}>{data.status || "Draft"}</Pill>
+        <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.supplierQuotation, name), "_blank", "noopener")}>
+          {t("inv.print")}
+        </button>
         {writable && data.docstatus === 0 && (
           <>
             <button className="btn ghost" onClick={() => nav(`/supplier-quotations/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>

@@ -14,7 +14,7 @@ import { linePayload, stampItemDetails, usePaymentSchedule, useTotalsPreview, us
 import { LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 import SourceDocPicker from "../../components/SourceDocPicker";
@@ -32,6 +32,8 @@ type InvoiceDoc = {
   taxes_and_charges?: string;
   tax_id?: string;
   payment_terms_template?: string;
+  additional_discount_percentage?: number;
+  on_hold?: number;
   net_total?: number;
   total_taxes_and_charges?: number;
   grand_total?: number;
@@ -66,6 +68,8 @@ export default function PurchaseInvoiceForm() {
   const [emirate, setEmirate] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [discountPct, setDiscountPct] = useState(0);
+  const [onHold, setOnHold] = useState<0 | 1>(0);
   const [currency, setCurrency] = useState("");
   const [conversionRate, setConversionRate] = useState(1);
   const [updateStock, setUpdateStock] = useState(false);
@@ -97,6 +101,8 @@ export default function PurchaseInvoiceForm() {
     setEmirate(d.vat_emirate || "");
     setTaxTemplate(d.taxes_and_charges || "");
     setPaymentTerms(d.payment_terms_template || "");
+    setDiscountPct(Number(d.additional_discount_percentage || 0));
+    setOnHold(d.on_hold ? 1 : 0);
     setCurrency(d.currency || "");
     setConversionRate(Number(d.conversion_rate) || 1);
     setUpdateStock(!!d.update_stock);
@@ -240,6 +246,8 @@ export default function PurchaseInvoiceForm() {
       vat_emirate: emirate,
       taxes_and_charges: taxTemplate || undefined,
       payment_terms_template: paymentTerms || undefined,
+      additional_discount_percentage: discountPct || undefined,
+      on_hold: onHold,
       supplier_address: party.supplier_address,
       buying_price_list: party.buying_price_list,
       credit_to: party.credit_to,
@@ -386,6 +394,11 @@ export default function PurchaseInvoiceForm() {
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
               </select>
             </Field>
+            <Field label={t("txn.discountPct")}>
+              <input className="ctl" type="number" min={0} max={100} step={0.01} value={discountPct}
+                onChange={(e) => setDiscountPct(parseNum(e.target.value))} />
+            </Field>
+            <CheckField label={t("supp.onHold")} checked={!!onHold} onChange={(on) => setOnHold(on ? 1 : 0)} />
             <Field label={t("f.paymentTerms")}>
               <select className="ctl" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)}>
                 <option value="" />

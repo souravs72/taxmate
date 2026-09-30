@@ -12,6 +12,7 @@ import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { printDocUrl } from "../../lib/printDoc";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; received_qty?: number;
@@ -112,6 +113,9 @@ export default function PurchaseOrderDetail() {
               }}
               extra={
                 <>
+                  <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseOrder, name), "_blank", "noopener")}>
+                    {t("inv.print")}
+                  </button>
                   <button type="button" className="btn ghost"
                     disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
                     onClick={() => void createDownstream("pr")}>

@@ -33,12 +33,14 @@ export default function PurchaseReceiptForm() {
 
   const existing = useDoc<{
     name: string; supplier?: string; posting_date?: string; set_warehouse?: string;
-    taxes_and_charges?: string; docstatus?: number; items?: Line[];
+    taxes_and_charges?: string; supplier_delivery_note?: string; rejected_warehouse?: string; docstatus?: number; items?: Line[];
   }>(DT.purchaseReceipt, isNew ? undefined : name, isNew ? null : name);
 
   const [supplier, setSupplier] = useState("");
   const [postingDate, setPostingDate] = useState(today);
   const [warehouse, setWarehouse] = useState("");
+  const [supplierDn, setSupplierDn] = useState("");
+  const [rejectedWh, setRejectedWh] = useState("");
   const [taxTemplate, setTaxTemplate] = useState("");
   const [party, setParty] = useState<PartyDetails>({});
   const [conversionRate, setConversionRate] = useState(1);
@@ -60,6 +62,8 @@ export default function PurchaseReceiptForm() {
     setSupplier(d.supplier || "");
     setPostingDate(d.posting_date || today);
     setWarehouse(d.set_warehouse || "");
+    setSupplierDn(d.supplier_delivery_note || "");
+    setRejectedWh(d.rejected_warehouse || "");
     setTaxTemplate(d.taxes_and_charges || "");
     setLines(
       (d.items ?? []).length
@@ -175,6 +179,8 @@ export default function PurchaseReceiptForm() {
       posting_date: postingDate,
       set_posting_time: 1,
       set_warehouse: warehouse,
+      supplier_delivery_note: supplierDn || undefined,
+      rejected_warehouse: rejectedWh || undefined,
       taxes_and_charges: taxTemplate || undefined,
       supplier_address: party.supplier_address,
       buying_price_list: party.buying_price_list,
@@ -269,6 +275,13 @@ export default function PurchaseReceiptForm() {
             <Field label={t("inv.date")} required htmlFor="pr-posting-date">
               <input id="pr-posting-date" name="posting_date" className="ctl" type="date"
                 value={postingDate} onChange={(e) => setPostingDate(e.target.value)} />
+            </Field>
+            <Field label={t("pi.supplierDn")}>
+              <input className="ctl" value={supplierDn} onChange={(e) => setSupplierDn(e.target.value)} />
+            </Field>
+            <Field label={t("pi.rejectedWh")}>
+              <LinkField doctype={DT.warehouse} value={rejectedWh} onChange={setRejectedWh}
+                filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
             </Field>
             <Field label={t("nav.warehouses")} required>
               <LinkField doctype={DT.warehouse} value={warehouse} onChange={setWarehouse}
