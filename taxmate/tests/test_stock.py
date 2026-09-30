@@ -321,6 +321,13 @@ class TestMaterialRequestPurchaseInsert(FrappeTestCase):
 		self.assertEqual(doc["material_request_type"], "Purchase")
 		submitted = submit({"doctype": "Material Request", "name": doc["name"]})
 		self.assertEqual(submitted["docstatus"], 1)
+		from taxmate.api.material_request import get_item_default_suppliers, make_purchase_order
+
+		pending = get_item_default_suppliers(doc["name"])
+		self.assertEqual([row["item_code"] for row in pending], [item])
+		mapped = make_purchase_order(doc["name"])
+		self.assertEqual(mapped["items"][0]["material_request"], doc["name"])
+		self.assertEqual(mapped["items"][0]["item_code"], item)
 		cancel("Material Request", doc["name"])
 
 
@@ -332,6 +339,8 @@ class TestQuotationMapper(FrappeTestCase):
 		methods = {row["method"] for row in catalog["actions"]}
 		self.assertIn("taxmate.api.quotation.make_sales_order", methods)
 		self.assertIn("taxmate.api.material_request.make_purchase_order", methods)
+		self.assertIn("taxmate.api.material_request.get_item_default_suppliers", methods)
+		self.assertIn("taxmate.api.material_request.make_purchase_orders_by_supplier", methods)
 		self.assertIn("taxmate.api.material_request.make_stock_entry", methods)
 
 	def test_stock_doctypes_in_catalog(self):

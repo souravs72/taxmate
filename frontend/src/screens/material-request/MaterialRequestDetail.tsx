@@ -6,6 +6,7 @@
  * User: "Implement the plan as specified… complete all the to-dos."
  */
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -16,14 +17,34 @@ import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import LinkField from "../../components/LinkField";
 
-type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; warehouse?: string; };
+type Line = {
+  item_code?: string; item_name?: string; qty?: number; uom?: string; warehouse?: string;
+  schedule_date?: string; ordered_qty?: number; received_qty?: number;
+};
 type Doc = {
   name: string; material_request_type?: string; transaction_date?: string; schedule_date?: string;
-  status?: string; docstatus?: number; items?: Line[];
+  status?: string; docstatus?: number; company?: string; customer?: string;
+  set_warehouse?: string; set_from_warehouse?: string; buying_price_list?: string;
+  per_ordered?: number; per_received?: number; tc_name?: string; terms?: string;
+  items?: Line[];
 };
+type PendingRow = {
+  material_request_item: string;
+  item_code: string;
+  item_name?: string;
+  pending_qty: number;
+  uom?: string;
+  supplier: string;
+  qty: number;
+};
+
+function termsHtml(raw?: string) {
+  return (raw || "").replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "");
+}
 
 function mrPill(status?: string): string {
   if (status === "Cancelled" || status === "Stopped") return "p-cxl";
@@ -41,10 +62,14 @@ export default function MaterialRequestDetail() {
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
   const makePO = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeMrPO);
+  const suppliersCall = useFrappePostCall<{ message: Omit<PendingRow, "qty">[] }>(METHOD.mrDefaultSuppliers);
+  const makeMany = useFrappePostCall<{ message: string[] }>(METHOD.makeMrPOs);
   const makeSE = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeMrSE);
   const create = useInsert();
   const [busy, setBusy] = useState<"" | "po" | "se">("");
   const [mapError, setMapError] = useState<unknown>(null);
+  const [poRows, setPoRows] = useState<PendingRow[] | null>(null);
+  const [tab, setTab] = useState<"details" | "terms" | "more">("details");
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
 
@@ -54,23 +79,88 @@ export default function MaterialRequestDetail() {
 
   const draft = data.docstatus === 0;
   const submitted = data.docstatus === 1;
-  const isPurchase = data.material_request_type === "Purchase";
-  const isTransferOrIssue = data.material_request_type === "Material Transfer" || data.material_request_type === "Material Issue";
+  const isPurchase = data.material_request_type === "Purchase" || data.material_request_type === "Subcontracting";
+  const isTransferOrIssue = data.material_request_type === "Material Transfer"
+    || data.material_request_type === "Material Issue"
+    || data.material_request_type === "Customer Provided";
 
-  async function createDownstream(kind: "po" | "se") {
-    setBusy(kind); setMapError(null);
+  async function openPurchaseOrder(supplier?: string) {
+    const res = await makePO.call({ source_name: name, supplier: supplier || undefined });
+    const mapped = res?.message;
+    if (!mapped) throw new Error(t("txn.mapEmpty"));
+    const body: Record<string, unknown> = { ...mapped };
+    delete body.name;
+    delete body.doctype;
+    delete body.__islocal;
+    delete body.__unsaved;
+    nav("/purchase-orders/new", { state: { mapped: body } });
+  }
+
+  async function startPurchaseOrder() {
+    setBusy("po");
+    setMapError(null);
     try {
-      const call = kind === "po" ? makePO.call : makeSE.call;
-      const doctype = kind === "po" ? DT.purchaseOrder : DT.stockEntry;
-      const res = await call({ source_name: name });
+      const res = await suppliersCall.call({ source_name: name });
+      const items = res?.message ?? [];
+      if (!items.length) {
+        setMapError(new Error(t("mr.nothingToOrder")));
+        return;
+      }
+      const suppliers = new Set(items.map((row) => row.supplier || ""));
+      if (suppliers.size > 1) {
+        setPoRows(items.map((row) => ({
+          ...row,
+          supplier: row.supplier || "",
+          qty: Number(row.pending_qty) || 0,
+        })));
+        return;
+      }
+      await openPurchaseOrder(items[0]?.supplier || undefined);
+    } catch (err) {
+      setMapError(err);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function createFromSuppliers() {
+    if (!poRows?.length) return;
+    setBusy("po");
+    setMapError(null);
+    try {
+      const res = await makeMany.call({
+        source_name: name,
+        item_suppliers: poRows.map((row) => ({
+          material_request_item: row.material_request_item,
+          item_code: row.item_code,
+          supplier: row.supplier,
+          qty: row.qty,
+        })),
+      });
+      const names = res?.message ?? [];
+      setPoRows(null);
+      if (names[0]) nav(`/purchase-orders/${encodeURIComponent(names[0])}`);
+    } catch (err) {
+      setMapError(err);
+    } finally {
+      setBusy("");
+    }
+  }
+
+  async function createStockEntry() {
+    setBusy("se");
+    setMapError(null);
+    try {
+      const res = await makeSE.call({ source_name: name });
       const mapped = res?.message;
-      if (!mapped) throw new Error("Mapper returned nothing");
-      const body: Record<string, unknown> = { ...(mapped as Record<string, unknown>) };
-      delete body.name; delete body.doctype; delete body.__islocal; delete body.__unsaved;
-      const created = await create.createDoc(doctype, body);
-      const newName = (created as { name: string }).name;
-      if (kind === "po") nav(`/purchase-orders/${encodeURIComponent(newName)}`);
-      else nav(`/stock-entries/${encodeURIComponent(newName)}`);
+      if (!mapped) throw new Error(t("txn.mapEmpty"));
+      const body: Record<string, unknown> = { ...mapped };
+      delete body.name;
+      delete body.doctype;
+      delete body.__islocal;
+      delete body.__unsaved;
+      const created = await create.createDoc(DT.stockEntry, body);
+      nav(`/stock-entries/${encodeURIComponent((created as { name: string }).name)}`);
     } catch (err) {
       setMapError(err);
     } finally {
@@ -103,13 +193,13 @@ export default function MaterialRequestDetail() {
             )}
             {submitted && isPurchase && (
               <button type="button" className="btn" disabled={!!busy}
-                onClick={() => void createDownstream("po")}>
+                onClick={() => void startPurchaseOrder()}>
                 {busy === "po" ? t("soc.saving") : t("mr.makePO")}
               </button>
             )}
             {submitted && isTransferOrIssue && (
               <button type="button" className="btn ghost" disabled={!!busy}
-                onClick={() => void createDownstream("se")}>
+                onClick={() => void createStockEntry()}>
                 {busy === "se" ? t("soc.saving") : t("mr.makeSE")}
               </button>
             )}
@@ -132,39 +222,170 @@ export default function MaterialRequestDetail() {
         <ErrorBox error={submitCall.error || cancelCall.error || mapError} />
       )}
 
+      <div className="ftabs" role="tablist">
+        {(["details", "terms", "more"] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={`ftab${tab === id ? " on" : ""}`}
+            onClick={() => setTab(id)}
+          >
+            {t(id === "details" ? "mr.tab.details" : id === "terms" ? "mr.tab.terms" : "mr.tab.more")}
+          </button>
+        ))}
+      </div>
+
       <FormLayout>
-        <Card>
-          <div className="fg">
-            <ReadRow k={t("mr.purpose")} v={data.material_request_type || "—"} />
-            <ReadRow k={t("quot.date")} v={date(data.transaction_date)} />
-            <ReadRow k={t("mr.requiredBy")} v={date(data.schedule_date)} />
-          </div>
-        </Card>
-        <Card title={t("mr.items")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th>{t("mr.warehouse")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></td>
-                    <td className="n">{qty(l.qty)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></td>
-                    <td>{l.warehouse || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
+        {tab === "details" && (
+          <>
+            <Card>
+              <div className="fg">
+                <ReadRow k={t("mr.purpose")} v={data.material_request_type || "—"} />
+                <ReadRow k={t("quot.date")} v={date(data.transaction_date)} />
+                <ReadRow k={t("mr.requiredBy")} v={date(data.schedule_date)} />
+                <ReadRow k={t("mr.company")} v={data.company || "—"} />
+                <ReadRow k={t("mr.targetWarehouse")} v={data.set_warehouse || "—"} />
+                {data.set_from_warehouse ? <ReadRow k={t("se.warehouse.from")} v={data.set_from_warehouse} /> : null}
+                {data.customer ? <ReadRow k={t("mr.customer")} v={data.customer} /> : null}
+              </div>
+            </Card>
+            <Card title={t("mr.items")}>
+              <div className="twrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th style={{ width: 26 }}>#</th>
+                      <th>{t("soc.pickItem")}</th>
+                      <th className="n">{t("sod.col.qty")}</th>
+                      <th>{t("mr.uom")}</th>
+                      <th>{t("mr.targetWarehouse")}</th>
+                      <th>{t("mr.requiredBy")}</th>
+                      <th className="n">{t("mr.completedQty")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(data.items ?? []).map((l, i) => (
+                      <tr key={i}>
+                        <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
+                        <td><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></td>
+                        <td className="n">{qty(l.qty)}</td>
+                        <td>{l.uom || "—"}</td>
+                        <td>{l.warehouse || "—"}</td>
+                        <td>{date(l.schedule_date || data.schedule_date)}</td>
+                        <td className="n">{qty(l.ordered_qty)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </>
+        )}
+        {tab === "terms" && (
+          <Card title={t("mr.tab.terms")}>
+            {data.tc_name ? <ReadRow k={t("mr.tab.terms")} v={data.tc_name} /> : null}
+            {data.terms
+              ? <div dangerouslySetInnerHTML={{ __html: termsHtml(data.terms) }} />
+              : <p className="sub">{t("mr.termsEmpty")}</p>}
+          </Card>
+        )}
+        {tab === "more" && (
+          <Card title={t("mr.tab.more")}>
+            <div className="fg">
+              <ReadRow k={t("mr.col.status")} v={data.status || "—"} />
+              <ReadRow k={t("mr.ordered")} v={`${Number(data.per_ordered || 0)}%`} />
+              <ReadRow k={t("mr.received")} v={`${Number(data.per_received || 0)}%`} />
+              <ReadRow k={t("mr.priceList")} v={data.buying_price_list || "—"} />
+              <ReadRow k={t("mr.company")} v={data.company || "—"} />
+            </div>
+          </Card>
+        )}
       </FormLayout>
+
+      {poRows && createPortal(
+        <div className="msgdlg-back" onMouseDown={() => setPoRows(null)}>
+          <div
+            className="msgdlg wide"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="mr-supplier-title"
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="msgdlg-head">
+              <h2 id="mr-supplier-title">{t("mr.supplierForItems")}</h2>
+              <button type="button" className="msgdlg-x" aria-label={t("m.close")} onClick={() => setPoRows(null)}>×</button>
+            </div>
+            <div className="msgdlg-body">
+              <Field label={t("mr.setSupplierAll")}>
+                <LinkField
+                  doctype={DT.supplier}
+                  value=""
+                  onChange={(supplier) => {
+                    if (!supplier) return;
+                    setPoRows((rows) => rows?.map((row) => ({ ...row, supplier })) ?? rows);
+                  }}
+                />
+              </Field>
+              <p className="sub">{t("mr.separatePO")}</p>
+              <div className="twrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>{t("soc.pickItem")}</th>
+                      <th className="n">{t("sod.col.qty")}</th>
+                      <th>{t("mr.uom")}</th>
+                      <th>{t("nav.suppliers")}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {poRows.map((row) => (
+                      <tr key={row.material_request_item}>
+                        <td>
+                          <div className="icode">{row.item_code}</div>
+                          <div className="iname">{row.item_name}</div>
+                        </td>
+                        <td className="n">
+                          <input
+                            className="ctl mini nn"
+                            style={{ width: 80 }}
+                            value={row.qty}
+                            onChange={(e) => {
+                              const next = Number(e.target.value);
+                              setPoRows((rows) => rows?.map((item) => (
+                                item.material_request_item === row.material_request_item
+                                  ? { ...item, qty: Number.isFinite(next) ? next : 0 }
+                                  : item
+                              )) ?? rows);
+                            }}
+                          />
+                        </td>
+                        <td>{row.uom || "—"}</td>
+                        <td style={{ minWidth: 180 }}>
+                          <LinkField
+                            doctype={DT.supplier}
+                            value={row.supplier}
+                            onChange={(supplier) => setPoRows((rows) => rows?.map((item) => (
+                              item.material_request_item === row.material_request_item ? { ...item, supplier } : item
+                            )) ?? rows)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="addrow">
+                <button type="button" className="btn" disabled={!!busy} onClick={() => void createFromSuppliers()}>
+                  {busy === "po" ? t("soc.saving") : t("mr.create")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

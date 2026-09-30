@@ -19,24 +19,28 @@ import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
-const MR_TYPES = ["Purchase", "Material Transfer", "Material Issue", "Manufacture"] as const;
+const MR_TYPES = ["Purchase", "Material Transfer", "Material Issue", "Manufacture", "Subcontracting", "Customer Provided"] as const;
 type MRType = (typeof MR_TYPES)[number];
 
-type Line = { item_code: string; qty: number; warehouse: string; from_warehouse?: string; uom?: string; };
+type Line = {
+  item_code: string; qty: number; warehouse: string; from_warehouse?: string; uom?: string; schedule_date?: string;
+};
 type Doc = {
   name: string; material_request_type?: string; transaction_date?: string; schedule_date?: string;
-  docstatus?: number; set_warehouse?: string; from_warehouse?: string;
-  items?: { item_code?: string; qty?: number; warehouse?: string; from_warehouse?: string; uom?: string; }[];
+  docstatus?: number; set_warehouse?: string; from_warehouse?: string; customer?: string;
+  items?: { item_code?: string; qty?: number; warehouse?: string; from_warehouse?: string; uom?: string; schedule_date?: string; }[];
 };
 
 const today = toIsoDate(new Date());
 const plus = (d: number) => { const dt = new Date(); dt.setDate(dt.getDate() + d); return toIsoDate(dt); };
-const blank = (): Line => ({ item_code: "", qty: 1, warehouse: "" });
+const blank = (scheduleDate = ""): Line => ({ item_code: "", qty: 1, warehouse: "", schedule_date: scheduleDate });
 
 function mrTypeLabel(p: MRType): string {
   if (p === "Purchase") return t("mr.purpose.purchase");
   if (p === "Material Transfer") return t("mr.purpose.transfer");
   if (p === "Material Issue") return t("mr.purpose.issue");
+  if (p === "Subcontracting") return t("mr.purpose.subcontract");
+  if (p === "Customer Provided") return t("mr.purpose.customer");
   return t("mr.purpose.manufacture");
 }
 
@@ -58,7 +62,8 @@ export default function MaterialRequestForm() {
   const [scheduleDate, setScheduleDate] = useState(plus(7));
   const [setWarehouse, setSetWarehouse] = useState("");
   const [fromWarehouse, setFromWarehouse] = useState("");
-  const [lines, setLines] = useState<Line[]>([blank()]);
+  const [customer, setCustomer] = useState("");
+  const [lines, setLines] = useState<Line[]>([blank(plus(7))]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -70,12 +75,14 @@ export default function MaterialRequestForm() {
     setScheduleDate(d.schedule_date || plus(7));
     setSetWarehouse(d.set_warehouse || "");
     setFromWarehouse(d.from_warehouse || "");
+    setCustomer(d.customer || "");
     const ls = (d.items ?? []).map((it) => ({
       item_code: it.item_code || "",
       qty: Number(it.qty) || 1,
       warehouse: it.warehouse || "",
       from_warehouse: it.from_warehouse || "",
       uom: it.uom,
+      schedule_date: it.schedule_date || d.schedule_date || plus(7),
     }));
     setLines(ls.length ? ls : [blank()]);
   }, [existing.data]);
@@ -83,8 +90,9 @@ export default function MaterialRequestForm() {
   const checks = useMemo(() => [
     { label: t("mr.purpose"), ok: !!mrType },
     { label: t("quot.date"), ok: !!txDate },
+    { label: t("mr.customer"), ok: mrType !== "Customer Provided" || !!customer },
     { label: t("inv.lines"), ok: lines.length > 0 && lines.every((l) => l.item_code) },
-  ], [mrType, txDate, lines]);
+  ], [mrType, txDate, customer, lines]);
 
   const ready = checks.every((c) => c.ok);
 
@@ -124,13 +132,14 @@ export default function MaterialRequestForm() {
         schedule_date: scheduleDate,
         set_warehouse: setWarehouse || undefined,
         from_warehouse: isTransfer ? fromWarehouse || undefined : undefined,
+        customer: mrType === "Customer Provided" ? customer || undefined : undefined,
         items: lines.map((l) => ({
           item_code: l.item_code,
           qty: l.qty,
           warehouse: l.warehouse || setWarehouse || undefined,
           from_warehouse: isTransfer ? l.from_warehouse || fromWarehouse || undefined : undefined,
           uom: l.uom || undefined,
-          schedule_date: scheduleDate,
+          schedule_date: l.schedule_date || scheduleDate,
         })),
       };
       const docname = isNew
@@ -180,8 +189,19 @@ export default function MaterialRequestForm() {
               <input id="mr-date" className="ctl" type="date" value={txDate} onChange={(e) => setTxDate(e.target.value)} />
             </Field>
             <Field label={t("mr.requiredBy")} htmlFor="mr-sched">
-              <input id="mr-sched" className="ctl" type="date" value={scheduleDate} onChange={(e) => setScheduleDate(e.target.value)} />
+              <input id="mr-sched" className="ctl" type="date" value={scheduleDate} onChange={(e) => {
+                const next = e.target.value;
+                setScheduleDate(next);
+                setLines((ls) => ls.map((l) => (
+                  !l.schedule_date || l.schedule_date === scheduleDate ? { ...l, schedule_date: next } : l
+                )));
+              }} />
             </Field>
+            {mrType === "Customer Provided" && (
+              <Field label={t("mr.customer")} required>
+                <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} />
+              </Field>
+            )}
             <Field label={t("mr.warehouse")}>
               <LinkField doctype={DT.warehouse} filters={whFilters as never}
                 value={setWarehouse} onChange={setSetWarehouse} />
@@ -202,7 +222,9 @@ export default function MaterialRequestForm() {
                   <th style={{ width: 26 }}>#</th>
                   <th>{t("soc.pickItem")}</th>
                   <th className="n">{t("sod.col.qty")}</th>
+                  <th>{t("mr.uom")}</th>
                   <th>{t("mr.warehouse")}</th>
+                  <th>{t("mr.requiredBy")}</th>
                   {mrType === "Material Transfer" && <th>{t("se.warehouse.from")}</th>}
                   <th />
                 </tr>
@@ -218,9 +240,14 @@ export default function MaterialRequestForm() {
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
                         onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
                     </td>
+                    <td>{l.uom || "—"}</td>
                     <td style={{ minWidth: 180 }}>
                       <LinkField doctype={DT.warehouse} filters={whFilters as never}
                         value={l.warehouse} onChange={(v) => setLine(i, { warehouse: v })} />
+                    </td>
+                    <td>
+                      <input className="ctl" type="date" value={l.schedule_date || scheduleDate}
+                        onChange={(e) => setLine(i, { schedule_date: e.target.value })} />
                     </td>
                     {mrType === "Material Transfer" && (
                       <td style={{ minWidth: 180 }}>
@@ -238,7 +265,7 @@ export default function MaterialRequestForm() {
             </table>
           </div>
           <div className="addrow">
-            <button type="button" className="btn ghost sm" onClick={() => setLines((ls) => [...ls, blank()])}>
+            <button type="button" className="btn ghost sm" onClick={() => setLines((ls) => [...ls, blank(scheduleDate)])}>
               {t("mr.addLine")}
             </button>
           </div>
