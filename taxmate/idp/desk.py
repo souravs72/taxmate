@@ -460,6 +460,7 @@ _REVIEW_NOISE: frozenset[str] = frozenset(
 		"place",
 		"place_of_supply",
 		"tax_invoice",
+		"payment_status",
 		"phone",
 		"email",
 		"email_id",
@@ -743,9 +744,20 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 	has_blockers = bool(blocked)
 	can_save = not has_blockers and bool(header) and not gaps and not _unexplained(validation)
 	error_key = None
+	detail = None
 	if has_blockers:
 		error_key = "idp.notice.masters"
 		can_save = False
+		# Name the record. A generic sentence does not tell the clerk what stopped the draft.
+		named = []
+		for row in blocked:
+			kind = str(row.get("doctype") or "").strip()
+			name = str(row.get("name") or "").strip()
+			if kind and name:
+				named.append(f"{kind}: {name}")
+			elif kind or name:
+				named.append(kind or name)
+		detail = "; ".join(named) or None
 	elif proposals:
 		error_key = "idp.notice.propose"
 	elif not can_save:
@@ -765,6 +777,7 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 		"can_save": can_save,
 		"can_submit": can_save and not proposals,
 		"error_key": error_key,
+		"detail": detail,
 	}
 
 

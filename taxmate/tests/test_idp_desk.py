@@ -604,6 +604,24 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertIn("idp.field.supplier", labels)
 		self.assertIn("idp.field.emirate", labels)
 
+	def test_a_blocked_master_is_named(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"supplier": "Acme", "posting_date": "2026-09-01"},
+				"items": [],
+			},
+			"validation": {
+				"errors": [],
+				"warnings": [],
+				"missing_masters": [{"doctype": "Cost Center", "name": "Main - X", "field": "cost_center"}],
+			},
+		}
+		review = review_from_extract(extracted, route="/purchase-invoices")
+		self.assertFalse(review["can_save"])
+		self.assertEqual(review["detail"], "Cost Center: Main - X")
+
 	def test_proposal_merge_and_consent(self):
 		from taxmate.idp.masters import merge_proposal_values, proposals_complete
 

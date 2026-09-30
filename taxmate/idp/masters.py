@@ -751,16 +751,18 @@ def release_currency_company(extracted: dict[str, Any]) -> None:
 
 
 def _release_currency_company(header: dict[str, Any]) -> None:
-	raw = str(header.get("company") or "").strip()
-	if not raw:
-		return
-	code = raw.upper()
-	currency = str(header.get("currency") or "").strip().upper()
-	if code not in _CURRENCY_CODES and code != currency:
-		return
-	header.pop("company", None)
-	if not currency and code in _CURRENCY_CODES:
-		header["currency"] = code
+	currency = str(header.get("currency") or header.get("Currency") or "").strip().upper()
+	for key in list(header):
+		if str(key).strip().lower().replace(" ", "_") != "company":
+			continue
+		raw = str(header.get(key) or "").strip()
+		code = raw.upper()
+		if code not in _CURRENCY_CODES and code != currency:
+			continue
+		header.pop(key, None)
+		if not currency and code in _CURRENCY_CODES:
+			header["currency"] = code
+			currency = code
 
 
 def _sanitize_header_values(header: dict[str, Any]) -> None:
