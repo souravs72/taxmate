@@ -451,6 +451,22 @@ _REVIEW_NOISE: frozenset[str] = frozenset(
 		"subtotal",
 		"sub_total",
 		"net_amount",
+		"seller_address",
+		"address_line1",
+		"address_line_1",
+		"address_line2",
+		"city",
+		"state",
+		"place",
+		"place_of_supply",
+		"tax_invoice",
+		"payment_status",
+		"phone",
+		"email",
+		"email_id",
+		"company_address",
+		"po_box",
+		"country",
 	}
 )
 
@@ -702,10 +718,11 @@ def submit_requested(flag: str | None) -> bool:
 
 def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict[str, Any]:
 	"""Turn an IDP extract payload into the panel review. Draft save stays off until the map is valid."""
-	from taxmate.idp.masters import build_proposals, split_missing
+	from taxmate.idp.masters import build_proposals, release_currency_company, split_missing
 
 	if not extracted.get("success"):
 		return {"ok": False, "step": "review", "error_key": "idp.readFailed", "can_save": False}
+	release_currency_company(extracted)
 	data = extracted.get("extracted_data") or {}
 	header = _header_rows(data.get("header") or {})
 	lines = [{"label_key": label_key_for(key), "value": str(value)} for key, value in header.items()]
@@ -727,9 +744,20 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 	has_blockers = bool(blocked)
 	can_save = not has_blockers and bool(header) and not gaps and not _unexplained(validation)
 	error_key = None
+	detail = None
 	if has_blockers:
 		error_key = "idp.notice.masters"
 		can_save = False
+		# Name the record. A generic sentence does not tell the clerk what stopped the draft.
+		named = []
+		for row in blocked:
+			kind = str(row.get("doctype") or "").strip()
+			name = str(row.get("name") or "").strip()
+			if kind and name:
+				named.append(f"{kind}: {name}")
+			elif kind or name:
+				named.append(kind or name)
+		detail = "; ".join(named) or None
 	elif proposals:
 		error_key = "idp.notice.propose"
 	elif not can_save:
@@ -749,6 +777,7 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 		"can_save": can_save,
 		"can_submit": can_save and not proposals,
 		"error_key": error_key,
+		"detail": detail,
 	}
 
 

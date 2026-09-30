@@ -251,7 +251,8 @@ export function stockFilters(_report: string, ctx: FilterCtx): Record<string, un
   const { company, fromDate, toDate } = ctx;
   const out: Record<string, unknown> = { company, from_date: fromDate, to_date: toDate };
   if (ctx.warehouse) out.warehouse = ctx.warehouse;
-  if (ctx.itemCode) out.item_code = ctx.itemCode;
+  // Stock Balance calls item_code.isin(...). A bare string is not a list.
+  if (ctx.itemCode) out.item_code = [ctx.itemCode];
   return out;
 }
 

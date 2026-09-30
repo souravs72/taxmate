@@ -1717,6 +1717,24 @@ class TestPosNextSeed(FrappeTestCase):
 		rows = get_items(POS_PROFILE_NAME, search_term=code, limit=5)
 		self.assertIn(code, [row["item_code"] for row in rows])
 
+	def test_assign_company_prefers_item_default(self):
+		from unittest.mock import patch
+
+		from taxmate.uae_vat.overrides.item import assign_company
+
+		if not frappe.get_meta("Item").has_field("custom_company"):
+			self.skipTest("POS Next Item.custom_company is not installed")
+		company = frappe.db.get_value("Company", {}, "name")
+		self.assertTrue(company)
+		doc = frappe._dict(
+			meta=frappe.get_meta("Item"),
+			custom_company=None,
+			item_defaults=[frappe._dict(company=company)],
+		)
+		with patch("frappe.defaults.get_user_default", return_value="Missing Company"):
+			assign_company(doc)
+		self.assertEqual(doc.custom_company, company)
+
 
 class TestCompanySettingsWrite(FrappeTestCase):
 	"""SPA Company Settings uses resource.save with a full Company doc."""

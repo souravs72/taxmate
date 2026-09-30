@@ -25,21 +25,26 @@ type Props = {
   disabled?: boolean;
 };
 
-export default function SourceDocPicker({ sources, onMapped, disabled }: Props) {
-  const id = useId();
-  const [kind, setKind] = useState(0);
-  const [name, setName] = useState("");
+function SourceFetch({
+  method, arg, name, disabled, onMapped, onDone,
+}: {
+  method: string;
+  arg: string;
+  name: string;
+  disabled?: boolean;
+  onMapped: (doc: Record<string, unknown>) => void;
+  onDone: (err: string[] | null) => void;
+}) {
   const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState<string[] | null>(null);
-  const src = sources[kind] || sources[0];
-  const call = useFrappePostCall<{ message: Record<string, unknown> }>(src?.method || "");
+  // The SDK freezes the method on the first render. This child is keyed by
+  // method, so a source change mounts a caller for that mapper only.
+  const call = useFrappePostCall<{ message: Record<string, unknown> }>(method);
 
   async function load() {
-    if (!src || !name) return;
+    if (!name) return;
     setBusy(true);
-    setErr(null);
+    onDone(null);
     try {
-      const arg = src.arg || "source_name";
       const r = await call.call({ [arg]: name });
       const mapped = r?.message;
       if (!mapped) throw new Error(t("txn.mapEmpty"));
@@ -48,13 +53,33 @@ export default function SourceDocPicker({ sources, onMapped, disabled }: Props) 
       delete body.__islocal;
       delete body.__unsaved;
       onMapped(body);
-      setName("");
+      onDone(null);
     } catch (e) {
-      setErr(readableError(e));
+      onDone(readableError(e));
     } finally {
       setBusy(false);
     }
   }
+
+  return (
+    <button
+      type="button"
+      className="btn ghost"
+      disabled={disabled || busy || !name}
+      aria-busy={busy || undefined}
+      onClick={() => void load()}
+    >
+      {busy ? t("txn.fetching") : t("txn.fetchItems")}
+    </button>
+  );
+}
+
+export default function SourceDocPicker({ sources, onMapped, disabled }: Props) {
+  const id = useId();
+  const [kind, setKind] = useState(0);
+  const [name, setName] = useState("");
+  const [err, setErr] = useState<string[] | null>(null);
+  const src = sources[kind] || sources[0];
 
   if (!sources.length) return null;
 
@@ -68,7 +93,7 @@ export default function SourceDocPicker({ sources, onMapped, disabled }: Props) 
           id={typeId}
           className="ctl"
           value={kind}
-          disabled={disabled || busy}
+          disabled={disabled}
           onChange={(e) => {
             setKind(Number(e.target.value));
             setName("");
@@ -90,19 +115,24 @@ export default function SourceDocPicker({ sources, onMapped, disabled }: Props) 
             setName(v);
             setErr(null);
           }}
-          disabled={disabled || busy}
+          disabled={disabled}
           filters={[["docstatus", "=", 1]]}
         />
       </Field>
-      <button
-        type="button"
-        className="btn ghost"
-        disabled={disabled || busy || !name}
-        aria-busy={busy || undefined}
-        onClick={() => void load()}
-      >
-        {busy ? t("txn.fetching") : t("txn.fetchItems")}
-      </button>
+      {src ? (
+        <SourceFetch
+          key={src.method}
+          method={src.method}
+          arg={src.arg || "source_name"}
+          name={name}
+          disabled={disabled}
+          onMapped={(doc) => {
+            onMapped(doc);
+            setName("");
+          }}
+          onDone={setErr}
+        />
+      ) : null}
       {err?.length ? (
         <div role="alert" className="err" style={{ gridColumn: "1 / -1" }}>
           {err.map((line) => (

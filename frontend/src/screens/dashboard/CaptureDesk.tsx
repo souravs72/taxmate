@@ -114,7 +114,6 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
   const [query, setQuery] = useState("");
   const [writes, setWrites] = useState<Write[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
-  const [paceStage, setPaceStage] = useState(0);
 
   const action = surface?.actions.find((row) => row.id === actionId) ?? null;
   const stages = surface?.read_stages ?? [];
@@ -137,18 +136,6 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
     };
   }, [onClose]);
 
-  useEffect(() => {
-    if (!busy || stages.length === 0) {
-      setPaceStage(0);
-      return;
-    }
-    setPaceStage(0);
-    const timers = stages.slice(0, -1).map((_, index) =>
-      window.setTimeout(() => setPaceStage(index + 1), (index + 1) * 700)
-    );
-    return () => timers.forEach((id) => window.clearTimeout(id));
-  }, [busy, stages]);
-
   async function readFile() {
     if (lock.current || !action || !target) return;
     if (action.needs_file && !file) return;
@@ -157,6 +144,13 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
     setBusy(true);
     setReview(null);
     setProposals([]);
+    let stopped = false;
+    const slow = window.setTimeout(() => {
+      stopped = true;
+      lock.current = false;
+      setBusy(false);
+      setReview({ ok: false, error_key: "idp.readSlow" });
+    }, 100_000);
     try {
       let url = "";
       if (action.needs_file && file) {
@@ -170,14 +164,19 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
         file_url: url,
         query: query.trim(),
       });
+      if (stopped) return;
       setReview(result);
       setWrites(Array.isArray(result.writes) ? result.writes : []);
       setProposals(Array.isArray(result.proposals) ? cloneProposals(result.proposals) : []);
     } catch (err) {
+      if (stopped) return;
       setReview({ ok: false, error_key: "idp.readFailed", detail: readableError(err).join(" ") });
     } finally {
-      lock.current = false;
-      setBusy(false);
+      window.clearTimeout(slow);
+      if (!stopped) {
+        lock.current = false;
+        setBusy(false);
+      }
     }
   }
 
@@ -211,7 +210,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
   const liveStages = busy
     ? stages.map((row, index) => ({
         ...row,
-        status: index < paceStage ? "done" : index === paceStage ? "active" : "pending",
+        status: index === 0 ? "done" : index === 1 ? "active" : "pending",
       }))
     : review?.stage_log ?? [];
 
@@ -390,6 +389,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
               )}
 
               {liveStages.length > 0 ? <StageList stages={liveStages} /> : null}
+              {busy ? <p className="idp-hint">{t("idp.readingWait")}</p> : null}
 
               {review ? (
                 <ReviewBlock
@@ -410,7 +410,8 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
         {review ? (
           <div className="idp-foot">
             {proposals.length > 0 ? <p className="idp-hint">{t("idp.propose.onSave")}</p> : null}
-            {blockHint && !canSave ? <p className="idp-hint">{t(blockHint)}</p> : null}
+            {!canSave && review?.detail ? <p className="idp-hint">{review.detail}</p> : null}
+            {blockHint && !canSave && !review?.detail ? <p className="idp-hint">{t(blockHint)}</p> : null}
             <div className="idp-jobs">
               <button type="button" className="btn" disabled={busy || !canSave} onClick={() => saveDraft(false)}>
                 {busy ? t("idp.saving") : t(review.save_key || "idp.save")}
