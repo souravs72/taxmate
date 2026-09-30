@@ -16,7 +16,8 @@ import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, PageHead, Pill } from "../../components/ui";
+import { Card, Pill } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -80,12 +81,14 @@ export default function SupplierQuotationList() {
   });
 
   return (
-    <>
-      <PageHead title={t("sq.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/supplier-quotations/new")}>{t("sq.new")}</button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("sq.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/supplier-quotations/new")}>{t("sq.new")}</button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("sq.search")} />
@@ -103,6 +106,6 @@ export default function SupplierQuotationList() {
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }

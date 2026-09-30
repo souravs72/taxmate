@@ -5,7 +5,7 @@
  * Schema: stock_entry_type, company, posting_date, items[{item_code,qty,s_warehouse,t_warehouse,basic_rate}].
  * User: "Implement the plan as specified… complete all the to-dos."
  */
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -30,6 +30,8 @@ type Line = {
   t_warehouse: string;
   batch_no?: string;
   serial_no?: string;
+  has_batch_no?: number;
+  has_serial_no?: number;
 };
 
 type CostLine = {
@@ -54,6 +56,8 @@ type Doc = {
     t_warehouse?: string;
     batch_no?: string;
     serial_no?: string;
+    has_batch_no?: number;
+    has_serial_no?: number;
   }[];
   additional_costs?: { expense_account?: string; description?: string; amount?: number }[];
 };
@@ -82,6 +86,8 @@ export default function StockEntryForm() {
   const create = useInsert();
   const update = useSave();
   const submitCall = useFrappePostCall(METHOD.submit);
+  const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.stockEntryItemDetails);
+  const lineTicket = useRef<number[]>([]);
 
   const [purpose, setPurpose] = useState<Purpose>("Material Receipt");
   const [postingDate, setPostingDate] = useState(today);
@@ -107,6 +113,8 @@ export default function StockEntryForm() {
       t_warehouse: it.t_warehouse || "",
       batch_no: it.batch_no || "",
       serial_no: it.serial_no || "",
+      has_batch_no: Number(it.has_batch_no) || (it.batch_no ? 1 : 0),
+      has_serial_no: Number(it.has_serial_no) || (it.serial_no ? 1 : 0),
     }));
     setLines(ls.length ? ls : [blankLine()]);
     const cs = (d.additional_costs ?? []).map((c: { expense_account?: string; description?: string; amount?: number }) => ({
@@ -136,6 +144,42 @@ export default function StockEntryForm() {
 
   function setLine(i: number, patch: Partial<Line>) {
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+  }
+
+  async function fillLine(i: number, code: string, warehouse?: string) {
+    if (!code || !session.company) {
+      setLine(i, { basic_rate: 0, has_batch_no: 0, has_serial_no: 0, batch_no: "", serial_no: "" });
+      return;
+    }
+    const ticket = (lineTicket.current[i] = (lineTicket.current[i] || 0) + 1);
+    const qty = lines[i]?.qty || 1;
+    try {
+      const res = await itemCall.call({
+        company: session.company,
+        purpose,
+        item_code: code,
+        qty,
+        warehouse: warehouse || undefined,
+        posting_date: postingDate,
+      });
+      if (lineTicket.current[i] !== ticket) return;
+      const m = (res?.message ?? {}) as Record<string, unknown>;
+      setLines((ls) => ls.map((l, idx) => (
+        idx === i && l.item_code === code
+          ? {
+              ...l,
+              basic_rate: Number(m.basic_rate) || 0,
+              has_batch_no: m.has_batch_no ? 1 : 0,
+              has_serial_no: m.has_serial_no ? 1 : 0,
+              batch_no: m.has_batch_no ? l.batch_no : "",
+              serial_no: m.has_serial_no ? l.serial_no : "",
+            }
+          : l
+      )));
+    } catch (err) {
+      if (lineTicket.current[i] !== ticket) return;
+      setSaveError(err);
+    }
   }
 
   function payload() {
@@ -256,6 +300,9 @@ export default function StockEntryForm() {
                   onChange={(v) => {
                     setFromWarehouse(v);
                     setLines((ls) => ls.map((l) => l.s_warehouse ? l : { ...l, s_warehouse: v }));
+                    lines.forEach((l, i) => {
+                      if (l.item_code && !l.s_warehouse) void fillLine(i, l.item_code, v);
+                    });
                   }}
                 />
               </Field>
@@ -267,6 +314,11 @@ export default function StockEntryForm() {
                   onChange={(v) => {
                     setToWarehouse(v);
                     setLines((ls) => ls.map((l) => l.t_warehouse ? l : { ...l, t_warehouse: v }));
+                    if (!needSrc) {
+                      lines.forEach((l, i) => {
+                        if (l.item_code && !l.t_warehouse) void fillLine(i, l.item_code, v);
+                      });
+                    }
                   }}
                 />
               </Field>
@@ -297,7 +349,13 @@ export default function StockEntryForm() {
                       <LinkField doctype={DT.item}
                         filters={[["is_stock_item", "=", 1]] as never}
                         value={l.item_code}
-                        onChange={(v) => setLine(i, { item_code: v })} />
+                        onChange={(v) => {
+                          const source = l.s_warehouse || fromWarehouse;
+                          const target = l.t_warehouse || toWarehouse;
+                          const wh = (needSrc && source) || (needTgt && target) || source || target;
+                          setLine(i, { item_code: v, batch_no: "", serial_no: "" });
+                          void fillLine(i, v, wh || undefined);
+                        }} />
                     </td>
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
@@ -312,22 +370,48 @@ export default function StockEntryForm() {
                     {needSrc && (
                       <td style={{ minWidth: 180 }}>
                         <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                          value={l.s_warehouse} onChange={(v) => setLine(i, { s_warehouse: v })} />
+                          value={l.s_warehouse}
+                          onChange={(v) => {
+                            setLine(i, { s_warehouse: v });
+                            if (l.item_code) void fillLine(i, l.item_code, v);
+                          }} />
                       </td>
                     )}
                     {needTgt && (
                       <td style={{ minWidth: 180 }}>
                         <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                          value={l.t_warehouse} onChange={(v) => setLine(i, { t_warehouse: v })} />
+                          value={l.t_warehouse}
+                          onChange={(v) => {
+                            setLine(i, { t_warehouse: v });
+                            if (l.item_code && !needSrc) void fillLine(i, l.item_code, v);
+                          }} />
                       </td>
                     )}
-                    <td style={{ minWidth: 120 }}>
-                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
-                        onChange={(e) => setLine(i, { batch_no: e.target.value })} />
+                    <td style={{ minWidth: 140 }}>
+                      {l.has_batch_no || l.batch_no ? (
+                        <LinkField
+                          doctype={DT.batch}
+                          value={l.batch_no ?? ""}
+                          placeholder={t("se.batchNo")}
+                          filters={l.item_code ? [["item", "=", l.item_code]] : undefined}
+                          onChange={(v) => setLine(i, { batch_no: v })}
+                        />
+                      ) : (
+                        <span style={{ color: "var(--faint)" }}>—</span>
+                      )}
                     </td>
-                    <td style={{ minWidth: 120 }}>
-                      <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
-                        onChange={(e) => setLine(i, { serial_no: e.target.value })} />
+                    <td style={{ minWidth: 140 }}>
+                      {l.has_serial_no || l.serial_no ? (
+                        <LinkField
+                          doctype={DT.serialNo}
+                          value={l.serial_no ?? ""}
+                          placeholder={t("se.serialNo")}
+                          filters={l.item_code ? [["item_code", "=", l.item_code]] : undefined}
+                          onChange={(v) => setLine(i, { serial_no: v })}
+                        />
+                      ) : (
+                        <span style={{ color: "var(--faint)" }}>—</span>
+                      )}
                     </td>
                     <td>
                       <button type="button" className="rm" aria-label={t("inv.remove")}

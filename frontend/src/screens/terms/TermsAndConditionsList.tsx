@@ -16,7 +16,8 @@ import type { Filter } from "frappe-react-sdk";
 import { useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, PageHead, Pill } from "../../components/ui";
+import { Card, Pill } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -75,14 +76,16 @@ export default function TermsAndConditionsList() {
   });
 
   return (
-    <>
-      <PageHead title={t("tc.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/terms-and-conditions/new")}>
-            {t("tc.new")}
-          </button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("tc.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/terms-and-conditions/new")}>
+              {t("tc.new")}
+            </button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("tc.search")} />
@@ -106,6 +109,6 @@ export default function TermsAndConditionsList() {
           onPage={setPage}
         />
       </Card>
-    </>
+    </ListScreen>
   );
 }

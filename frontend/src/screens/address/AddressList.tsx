@@ -17,7 +17,8 @@ import type { Filter } from "frappe-react-sdk";
 import { useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, PageHead } from "../../components/ui";
+import { Card } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -78,14 +79,16 @@ export default function AddressList() {
   });
 
   return (
-    <>
-      <PageHead title={t("addr.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/addresses/new")}>
-            {t("addr.new")}
-          </button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("addr.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/addresses/new")}>
+              {t("addr.new")}
+            </button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("addr.search")} />
@@ -109,6 +112,6 @@ export default function AddressList() {
           onPage={setPage}
         />
       </Card>
-    </>
+    </ListScreen>
   );
 }

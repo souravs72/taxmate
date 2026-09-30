@@ -242,6 +242,8 @@ def get_catalog() -> dict[str, Any]:
 			},
 			{"name": "make_pr_return", "method": "taxmate.api.purchase_receipt.make_return"},
 			{"name": "item_qty", "method": "taxmate.api.stock.item_qty"},
+			{"name": "stock_entry_item_details", "method": "taxmate.api.stock.stock_entry_item_details"},
+			{"name": "reconciliation_balance", "method": "taxmate.api.stock.reconciliation_balance"},
 			{"name": "make_quotation_so", "method": "taxmate.api.quotation.make_sales_order"},
 			{"name": "make_mr_purchase_order", "method": "taxmate.api.material_request.make_purchase_order"},
 			{"name": "make_mr_stock_entry", "method": "taxmate.api.material_request.make_stock_entry"},

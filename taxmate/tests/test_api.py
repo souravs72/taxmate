@@ -94,6 +94,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.delivery_note.make_sales_invoice", methods)
 		self.assertIn("taxmate.api.purchase_receipt.make_purchase_invoice", methods)
 		self.assertIn("taxmate.api.stock.item_qty", methods)
+		self.assertIn("taxmate.api.stock.stock_entry_item_details", methods)
+		self.assertIn("taxmate.api.stock.reconciliation_balance", methods)
 		self.assertIn("taxmate.api.resource.group_by_count", methods)
 		# Phase 0: role-specific dashboard actions catalogued.
 		self.assertIn("taxmate.api.owner_dashboard.get_owner_dashboard", methods)
@@ -185,6 +187,17 @@ class TestApiResource(FrappeTestCase):
 		blocked = bulk_delete("Purchase Invoice", [submitted["name"]])
 		self.assertEqual(blocked["deleted"], [])
 		self.assertEqual(len(blocked["failed"]), 1)
+		self.assertNotIn("Traceback", blocked["failed"][0]["error"])
+		self.assertTrue(blocked["failed"][0]["error"])
+
+	def test_bulk_delete_missing_name_uses_server_message(self):
+		result = bulk_delete("Supplier", ["TM-NO-SUCH-DOC"])
+		self.assertEqual(result["deleted"], [])
+		self.assertEqual(len(result["failed"]), 1)
+		text = result["failed"][0]["error"]
+		self.assertNotIn("Traceback", text)
+		self.assertNotIn("LinkExistsError", text)
+		self.assertTrue(text)
 
 	def test_denied_doctype_raises(self):
 		with self.assertRaises(frappe.PermissionError):
@@ -1671,6 +1684,36 @@ class TestPosNextSeed(FrappeTestCase):
 			pluck="mode_of_payment",
 		)
 		self.assertIn("Cash", payments)
+
+	def test_new_sales_item_is_listed_on_pos(self):
+		from taxmate.setup.seed_books import COMPANY_NAME, POS_PROFILE_NAME, _ensure_pos_next
+
+		company = COMPANY_NAME
+		if not frappe.db.exists("Company", company):
+			self.skipTest("Ascra Technology LLP not seeded on this site")
+		if not frappe.get_meta("Item").has_field("custom_company"):
+			self.skipTest("POS Next Item.custom_company is not installed")
+		abbr = frappe.db.get_value("Company", company, "abbr")
+		_ensure_pos_next({"company": company, "abbr": abbr})
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		code = f"TM-POS-{uuid.uuid4().hex[:8]}"
+		doc = frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": code,
+				"item_name": code,
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_sales_item": 1,
+				"is_stock_item": 0,
+			}
+		).insert(ignore_permissions=True)
+		self.addCleanup(lambda: frappe.delete_doc("Item", code, force=1, ignore_permissions=True))
+		self.assertEqual(doc.custom_company, company)
+		from pos_next.api.items import get_items
+
+		rows = get_items(POS_PROFILE_NAME, search_term=code, limit=5)
+		self.assertIn(code, [row["item_code"] for row in rows])
 
 
 class TestCompanySettingsWrite(FrappeTestCase):

@@ -49,7 +49,7 @@ function confirmDelete(names: string[], mode: DeleteMode): boolean {
 function failMessage(failed: { name: string; error: string }[]): string {
   if (!failed.length) return "";
   const first = failed[0];
-  if (failed.length === 1) return `${first.name}: ${first.error}`;
+  if (failed.length === 1) return first.error;
   return `${t("list.deletePartial")} ${failed.length}: ${first.name}`;
 }
 
@@ -69,6 +69,7 @@ export type DraftDeleteApi = {
   mode: DeleteMode;
   picked: Set<string>;
   clear: () => void;
+  dismissError: () => void;
   toggle: (id: string) => void;
   toggleAll: (ids: string[], checked: boolean) => void;
   deletePicked: () => Promise<void>;
@@ -92,6 +93,8 @@ export function useDraftDelete(opts: UseDraftDeleteOpts): DraftDeleteApi {
     setPicked(new Set());
     setFailNote(null);
   }, []);
+
+  const dismissError = useCallback(() => setFailNote(null), []);
 
   const depKey = clearDeps.map((d) => String(d ?? "")).join("|");
   useEffect(() => {
@@ -156,6 +159,7 @@ export function useDraftDelete(opts: UseDraftDeleteOpts): DraftDeleteApi {
     mode,
     picked,
     clear,
+    dismissError,
     toggle,
     toggleAll,
     deletePicked,

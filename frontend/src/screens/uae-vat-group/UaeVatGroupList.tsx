@@ -12,7 +12,8 @@ import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, Loading, PageHead } from "../../components/ui";
+import { Card, Loading } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -54,12 +55,14 @@ export default function UaeVatGroupList() {
   });
 
   return (
-    <>
-      <PageHead title={t("uvg.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/uae-vat-groups/new")}>{t("uvg.new")}</button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("uvg.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/uae-vat-groups/new")}>{t("uvg.new")}</button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("uvg.col.representative")} />
@@ -77,6 +80,6 @@ export default function UaeVatGroupList() {
         )}
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }

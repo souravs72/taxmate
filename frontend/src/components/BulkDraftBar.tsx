@@ -2,9 +2,9 @@
  * Bulk action strip for list multi-select delete.
  * Pair with useDraftDelete + DataTable selection.
  */
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { t } from "../i18n/strings";
-import { ErrorBox } from "./ui";
+import { MessageDialog } from "./ui";
 import type { DraftDeleteApi } from "../lib/useDraftDelete";
 
 type Props = {
@@ -16,11 +16,14 @@ type Props = {
 
 export default function BulkDraftBar({ drafts, extra, extraSelected = 0, onClear }: Props) {
   const count = drafts.picked.size + extraSelected;
-  if (!drafts.showBar && !extraSelected) return null;
+  const note = drafts.failNote || drafts.error;
+  const [closed, setClosed] = useState(false);
+  useEffect(() => { setClosed(false); }, [note]);
+  if (!drafts.showBar && !extraSelected && !(note && !closed)) return null;
 
   return (
     <>
-      <div className="bulkbar">
+      {(drafts.showBar || extraSelected > 0) && <div className="bulkbar">
         <span className="msg">{count} {t("inv.bulk.selected")}</span>
         <div className="grp">
           {drafts.showBar && (
@@ -38,9 +41,15 @@ export default function BulkDraftBar({ drafts, extra, extraSelected = 0, onClear
             {t("inv.bulk.clear")}
           </button>
         </div>
-      </div>
-      {(drafts.error || drafts.failNote) && (
-        <ErrorBox error={drafts.error ?? drafts.failNote} />
+      </div>}
+      {note && !closed && (
+        <MessageDialog
+          error={note}
+          onClose={() => {
+            drafts.dismissError();
+            setClosed(true);
+          }}
+        />
       )}
     </>
   );

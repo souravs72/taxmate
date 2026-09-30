@@ -239,12 +239,38 @@ def bulk_delete(doctype: str, names=None):
 			frappe.db.commit()
 			deleted.append(name)
 		except Exception as exc:
+			message = _caught_message(exc)
 			frappe.db.rollback()
-			failed.append({"name": name, "error": str(exc)})
+			failed.append({"name": name, "error": message})
 			frappe.clear_messages()
 			frappe.local.message_log = []
 
 	return {"deleted": deleted, "failed": failed}
+
+
+def _caught_message(exc: BaseException) -> str:
+	"""User-facing text from a caught throw, without a traceback."""
+	import re
+
+	from frappe.utils import strip_html
+
+	def _plain(text: str) -> str:
+		return re.sub(r"\s+", " ", strip_html(text)).strip()
+
+	parts: list[str] = []
+	for entry in list(getattr(frappe.local, "message_log", None) or []):
+		try:
+			row = frappe.parse_json(entry) if isinstance(entry, str) else entry
+			text = row.get("message") if isinstance(row, dict) else str(entry)
+		except Exception:
+			text = str(entry)
+		if text:
+			plain = _plain(str(text))
+			if plain:
+				parts.append(plain)
+	if parts:
+		return " ".join(parts)
+	return _plain(str(exc)) or type(exc).__name__
 
 
 @frappe.whitelist()

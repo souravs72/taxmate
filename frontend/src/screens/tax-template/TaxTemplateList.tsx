@@ -10,7 +10,8 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { BarRow, Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
+import { BarRow, Card, Donut, Legend, Loading, Pill, StatTile } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { IfCanWrite } from "../../components/RoleGate";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -87,14 +88,17 @@ export default function TaxTemplateList() {
   });
 
   return (
-    <>
-      <PageHead title={t("tx.title")}>
+    <ListScreen
+      title={t("tx.title")}
+      primary={(
         <IfCanWrite>
           <button className="btn" onClick={() => nav(`/tax-templates/${kind}/new`)}>
             {t("tx.newTitle")}
           </button>
         </IfCanWrite>
-      </PageHead>
+      )}
+      summary={(
+        <>
       <div className="tiles">
         <StatTile colour="var(--brand)" tint="rgba(72,127,255,.14)"
           icon='<path d="M3.5 2.5h8l3 3v10h-11z"/>'
@@ -117,6 +121,9 @@ export default function TaxTemplateList() {
           </Card>
         )}
       </div>
+        </>
+      )}
+    >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("tx.search")} />
@@ -137,6 +144,6 @@ export default function TaxTemplateList() {
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }

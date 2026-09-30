@@ -213,6 +213,46 @@ class TestItemQtyShape(FrappeTestCase):
 			self.assertIn("warehouse", row, "each row must have 'warehouse'")
 			self.assertIn("actual_qty", row, "each row must have 'actual_qty' (not qty)")
 
+	def test_stock_entry_item_details_shape(self):
+		try:
+			company, warehouse, item = _require_company_warehouse()
+		except unittest.SkipTest as exc:
+			self.skipTest(str(exc))
+
+		from taxmate.api.stock import stock_entry_item_details
+
+		result = stock_entry_item_details(
+			company=company,
+			purpose="Material Receipt",
+			item_code=item,
+			qty=1,
+			warehouse=warehouse,
+		)
+		self.assertEqual(result["item_code"], item)
+		for key in ("basic_rate", "has_batch_no", "has_serial_no", "stock_uom"):
+			self.assertIn(key, result)
+
+	def test_reconciliation_balance_shape(self):
+		try:
+			company, warehouse, item = _require_company_warehouse()
+		except unittest.SkipTest as exc:
+			self.skipTest(str(exc))
+
+		from taxmate.api.stock import reconciliation_balance
+
+		result = reconciliation_balance(
+			item_code=item,
+			warehouse=warehouse,
+			company=company,
+			posting_date="2026-09-30",
+		)
+		for key in ("qty", "rate", "has_batch_no", "has_serial_no", "item_name"):
+			self.assertIn(key, result)
+		bare = reconciliation_balance(item_code=item, company=company)
+		self.assertEqual(bare["item_code"], item)
+		self.assertIn("item_name", bare)
+		self.assertNotIn("qty", bare)
+
 	def test_item_qty_shape_ignores_unknown_item(self):
 		try:
 			from taxmate.api.stock import item_qty

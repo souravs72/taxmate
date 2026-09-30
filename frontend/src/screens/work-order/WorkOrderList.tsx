@@ -15,7 +15,8 @@ import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, PageHead, Pill } from "../../components/ui";
+import { Card, Pill } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -74,12 +75,14 @@ export default function WorkOrderList() {
   });
 
   return (
-    <>
-      <PageHead title={t("wo.title")}>
+    <ListScreen
+      title={t("wo.title")}
+      primary={(
         <IfCanWrite>
           <button className="btn" onClick={() => nav("/work-orders/new")}>{t("wo.new")}</button>
         </IfCanWrite>
-      </PageHead>
+      )}
+    >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("wo.search")} />
@@ -97,6 +100,6 @@ export default function WorkOrderList() {
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }

@@ -15,7 +15,8 @@ import { useDocList, useDocCount } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, PageHead, Pill } from "../../components/ui";
+import { Card, Pill } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -68,12 +69,14 @@ export default function BomList() {
   });
 
   return (
-    <>
-      <PageHead title={t("bom.title")}>
+    <ListScreen
+      title={t("bom.title")}
+      primary={(
         <IfCanWrite>
           <button className="btn" onClick={() => nav("/boms/new")}>{t("bom.new")}</button>
         </IfCanWrite>
-      </PageHead>
+      )}
+    >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("bom.search")} />
@@ -91,6 +94,6 @@ export default function BomList() {
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }

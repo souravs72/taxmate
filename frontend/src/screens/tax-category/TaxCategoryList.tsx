@@ -17,7 +17,8 @@ import type { Filter } from "frappe-react-sdk";
 import { useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, PageHead } from "../../components/ui";
+import { Card } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -71,14 +72,16 @@ export default function TaxCategoryList() {
   });
 
   return (
-    <>
-      <PageHead title={t("txc.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/tax-categories/new")}>
-            {t("txc.new")}
-          </button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("txc.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/tax-categories/new")}>
+              {t("txc.new")}
+            </button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter
@@ -106,6 +109,6 @@ export default function TaxCategoryList() {
           onPage={setPage}
         />
       </Card>
-    </>
+    </ListScreen>
   );
 }

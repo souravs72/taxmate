@@ -1,9 +1,15 @@
 /** Shared primitives. Every one maps to a class in styles/app.css. */
 
-import { createContext, useEffect, useRef } from "react";
+import { createContext, useEffect, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 import { money, pct } from "../lib/format";
 import { readableError } from "../lib/frappe";
+import {
+  getFormActionNode,
+  getFormActionVersion,
+  subscribeFormActions,
+} from "../lib/pageActions";
 import { t } from "../i18n/strings";
 import { useIsPhone } from "../lib/useMedia";
 
@@ -35,6 +41,9 @@ import "../styles/form-mobile.css";
  * no DOM probe, no post-paint jump.
  */
 export const InPageActionBar = createContext(false);
+
+/** True while rendering inside PageHead, including the phone action bar. */
+export const InPageHead = createContext(false);
 
 export function PageActionBar({ actions }: { actions: React.ReactNode }) {
   const ref = useRef<HTMLDivElement | null>(null);
@@ -88,20 +97,29 @@ export function PageHead({
   stickyActions?: boolean;
 }) {
   const phone = useIsPhone();
+  const hostedVersion = useSyncExternalStore(
+    subscribeFormActions,
+    getFormActionVersion,
+    getFormActionVersion,
+  );
+  const hosted = actions ? null : (hostedVersion ? getFormActionNode() : null);
+  const bar = actions ?? hosted;
   return (
-    <div className="phead">
-      <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1>{title}</h1>
-        {sub && <p className="sub">{sub}</p>}
-        {children}
-        {phone && viewControls && <div className="phead-views">{viewControls}</div>}
+    <InPageHead.Provider value={true}>
+      <div className="phead">
+        <div>
+          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+          <h1>{title}</h1>
+          {sub && <p className="sub">{sub}</p>}
+          {children}
+          {phone && viewControls && <div className="phead-views">{viewControls}</div>}
+        </div>
+        {phone && stickyActions && bar && <PageActionBar actions={bar} />}
+        {!(phone && stickyActions && bar) && (bar || (!phone && viewControls)) && (
+          <div className="acts">{!phone && viewControls}{bar}</div>
+        )}
       </div>
-      {phone && stickyActions && actions && <PageActionBar actions={actions} />}
-      {!(phone && stickyActions && actions) && (actions || (!phone && viewControls)) && (
-        <div className="acts">{!phone && viewControls}{actions}</div>
-      )}
-    </div>
+    </InPageHead.Provider>
   );
 }
 
@@ -141,16 +159,79 @@ export function Empty({ label }: { label: string }) {
  * Split them into a list — a wall of markup is the single most common way
  * a Frappe frontend makes a clear server message unreadable.
  */
-export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+export function ErrorBox({
+  error, onRetry, heading = true,
+}: {
+  error: unknown;
+  onRetry?: () => void;
+  /** False when the server message is the whole alert, as on a failed delete. */
+  heading?: boolean;
+}) {
   const lines = readableError(error);
   return (
     <div className="alert" role="alert" style={{ background: "var(--bad-bg)", flexDirection: "column", gap: 8 }}>
-      <b>{t("error.title")}</b>
-      <ul style={{ margin: 0, paddingInlineStart: 18, color: "var(--muted)" }}>
-        {lines.map((l, i) => <li key={i}>{l}</li>)}
-      </ul>
+      {heading && <b>{t("error.title")}</b>}
+      {lines.length === 1 ? (
+        <span>{lines[0]}</span>
+      ) : (
+        <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+          {lines.map((l, i) => <li key={i}>{l}</li>)}
+        </ul>
+      )}
       {onRetry && <button className="btn ghost sm" onClick={onRetry}>{t("error.retry")}</button>}
     </div>
+  );
+}
+
+/** Server throw, shown as a dialog seated at the top of the page. */
+export function MessageDialog({ error, onClose }: { error: unknown; onClose: () => void }) {
+  const lines = readableError(error);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return createPortal(
+    <div className="msgdlg-back" onMouseDown={onClose}>
+      <div
+        className="msgdlg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="msgdlg-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="msgdlg-head">
+          <span className="msgdlg-dot" aria-hidden="true" />
+          <h2 id="msgdlg-title">{t("error.dialog")}</h2>
+          <button
+            ref={closeRef}
+            type="button"
+            className="msgdlg-x"
+            aria-label={t("m.close")}
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        <div className="msgdlg-body">
+          {lines.map((line, i) => <p key={i}>{line}</p>)}
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 

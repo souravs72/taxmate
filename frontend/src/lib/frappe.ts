@@ -182,6 +182,8 @@ export const METHOD = {
   makePrPurchaseInvoice: "taxmate.api.purchase_receipt.make_purchase_invoice",
   makePrReturn: "taxmate.api.purchase_receipt.make_return",
   itemQty: "taxmate.api.stock.item_qty",
+  stockEntryItemDetails: "taxmate.api.stock.stock_entry_item_details",
+  reconciliationBalance: "taxmate.api.stock.reconciliation_balance",
   makeQuotationSO: "taxmate.api.quotation.make_sales_order",
   makeMrPO: "taxmate.api.material_request.make_purchase_order",
   makeMrSE: "taxmate.api.material_request.make_stock_entry",
@@ -212,8 +214,19 @@ export const METHOD = {
 } as const;
 
 
-/** Frappe error payloads are HTML and often several messages joined by <br>. */
+function splitErrorText(raw: string): string[] {
+  return raw
+    .split(/<br\s*\/?>/i)
+    .map((s) => s.replace(/<[^>]+>/g, "").replace(/^(?:[\w.]+\.)?(?:[\w]+Error|Exception):\s*/g, "").trim())
+    .filter(Boolean);
+}
+
+/** Server errors arrive as HTML, often several messages joined by <br>. */
 export function readableError(err: unknown): string[] {
+  if (typeof err === "string") {
+    const lines = splitErrorText(err);
+    return lines.length ? lines : ["Something went wrong."];
+  }
   const e = err as { message?: string; exception?: string; _server_messages?: string };
   let raw = "";
   if (e?._server_messages) {
@@ -232,8 +245,6 @@ export function readableError(err: unknown): string[] {
     }
   }
   raw = raw || e?.message || e?.exception || "Something went wrong.";
-  return raw
-    .split(/<br\s*\/?>/i)
-    .map((s) => s.replace(/<[^>]+>/g, "").trim())
-    .filter(Boolean);
+  const lines = splitErrorText(raw);
+  return lines.length ? lines : ["Something went wrong."];
 }

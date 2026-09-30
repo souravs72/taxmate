@@ -1,7 +1,7 @@
 // Importers: App.tsx. API: taxmate.api.resource.insert/save, taxmate.api.workflow.submit.
 // Schema: purpose, company, posting_date, items[{item_code,warehouse,qty,valuation_rate}].
 // User: "Implement the plan as specified… complete all the to-dos."
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -18,7 +18,17 @@ import LinkField from "../../components/LinkField";
 const PURPOSES = ["Opening Stock", "Stock Reconciliation"] as const;
 type Purpose = (typeof PURPOSES)[number];
 
-type Line = { item_code: string; warehouse: string; qty: number; valuation_rate: number; batch_no?: string; };
+type Line = {
+  item_code: string;
+  item_name?: string;
+  warehouse: string;
+  qty: number;
+  valuation_rate: number;
+  batch_no?: string;
+  serial_no?: string;
+  has_batch_no?: number;
+  has_serial_no?: number;
+};
 type Doc = {
   name: string; purpose?: string; posting_date?: string; docstatus?: number;
   difference_account?: string;
@@ -26,7 +36,10 @@ type Doc = {
 };
 
 const today = toIsoDate(new Date());
-const blank = (): Line => ({ item_code: "", warehouse: "", qty: 1, valuation_rate: 0, batch_no: "" });
+const blank = (): Line => ({
+  item_code: "", warehouse: "", qty: 1, valuation_rate: 0, batch_no: "", serial_no: "",
+  has_batch_no: 0, has_serial_no: 0,
+});
 
 export default function StockReconciliationForm() {
   const { name = "new" } = useParams();
@@ -41,6 +54,9 @@ export default function StockReconciliationForm() {
   const create = useInsert();
   const update = useSave();
   const submitCall = useFrappePostCall(METHOD.submit);
+  const balanceCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.reconciliationBalance);
+  const qtyCall = useFrappePostCall<{ message: { warehouses?: { warehouse?: string }[] } }>(METHOD.itemQty);
+  const lineTicket = useRef<number[]>([]);
 
   const [purpose, setPurpose] = useState<Purpose>("Opening Stock");
   const [postingDate, setPostingDate] = useState(today);
@@ -55,13 +71,20 @@ export default function StockReconciliationForm() {
     setPurpose((d.purpose as Purpose) || "Opening Stock");
     setPostingDate(d.posting_date || today);
     setDifferenceAccount(d.difference_account || "");
-    const ls = (d.items ?? []).map((it) => ({
-      item_code: it.item_code || "",
-      warehouse: it.warehouse || "",
-      qty: Number(it.qty) || 1,
-      valuation_rate: Number(it.valuation_rate) || 0,
-      batch_no: (it as unknown as { batch_no?: string }).batch_no || "",
-    }));
+    const ls = (d.items ?? []).map((it) => {
+      const row = it as Line;
+      return {
+        item_code: row.item_code || "",
+        item_name: row.item_name || "",
+        warehouse: row.warehouse || "",
+        qty: Number(row.qty) || 0,
+        valuation_rate: Number(row.valuation_rate) || 0,
+        batch_no: row.batch_no || "",
+        serial_no: row.serial_no || "",
+        has_batch_no: row.batch_no ? 1 : 0,
+        has_serial_no: row.serial_no ? 1 : 0,
+      };
+    });
     setLines(ls.length ? ls : [blank()]);
   }, [existing.data]);
 
@@ -79,6 +102,54 @@ export default function StockReconciliationForm() {
     setLines((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
   }
 
+  async function loadLine(i: number, code: string, warehouse: string, batchNo?: string, date?: string) {
+    if (!code || !session.company) return;
+    const ticket = (lineTicket.current[i] = (lineTicket.current[i] || 0) + 1);
+    const posting = date || postingDate;
+    try {
+      let wh = warehouse;
+      if (!wh) {
+        const bins = await qtyCall.call({ item_code: code, company: session.company });
+        if (lineTicket.current[i] !== ticket) return;
+        const names = (bins?.message?.warehouses ?? [])
+          .map((row) => row.warehouse)
+          .filter((name): name is string => !!name);
+        if (names.length === 1) wh = names[0];
+      }
+      const balRes = await balanceCall.call({
+        item_code: code,
+        warehouse: wh || undefined,
+        posting_date: posting,
+        company: session.company,
+        batch_no: batchNo || undefined,
+      });
+      if (lineTicket.current[i] !== ticket) return;
+      const bal = (balRes?.message ?? {}) as Record<string, unknown>;
+      const hasBatch = bal.has_batch_no ? 1 : 0;
+      const hasSerial = bal.has_serial_no ? 1 : 0;
+      const serials = String(bal.serial_nos || "");
+      const oneSerial = serials && !/[\n,]/.test(serials) ? serials : "";
+      const hasQty = bal.qty != null;
+      setLines((ls) => ls.map((l, idx) => {
+        if (idx !== i || l.item_code !== code) return l;
+        return {
+          ...l,
+          warehouse: wh || l.warehouse,
+          item_name: bal.item_name ? String(bal.item_name) : l.item_name,
+          qty: hasQty ? Number(bal.qty) || 0 : l.qty,
+          valuation_rate: hasQty ? Number(bal.rate) || 0 : l.valuation_rate,
+          has_batch_no: hasBatch,
+          has_serial_no: hasSerial,
+          batch_no: hasBatch ? (batchNo ?? l.batch_no ?? "") : "",
+          serial_no: hasSerial ? (l.serial_no || oneSerial) : "",
+        };
+      }));
+    } catch (err) {
+      if (lineTicket.current[i] !== ticket) return;
+      setSaveError(err);
+    }
+  }
+
   async function save(shouldSubmit: boolean) {
     setBusy(true); setSaveError(null);
     try {
@@ -94,6 +165,7 @@ export default function StockReconciliationForm() {
           qty: l.qty,
           valuation_rate: l.valuation_rate,
           batch_no: l.batch_no || undefined,
+          serial_no: l.serial_no || undefined,
         })),
       };
       const docname = isNew
@@ -160,7 +232,13 @@ export default function StockReconciliationForm() {
             </Field>
             <Field label={t("sr.check.date")} required htmlFor="sr-date">
               <input id="sr-date" className="ctl" type="date" value={postingDate}
-                onChange={(e) => setPostingDate(e.target.value)} />
+                onChange={(e) => {
+                  const next = e.target.value;
+                  setPostingDate(next);
+                  lines.forEach((l, i) => {
+                    if (l.item_code) void loadLine(i, l.item_code, l.warehouse, l.batch_no, next);
+                  });
+                }} />
             </Field>
             {needsDiffAccount && (
               <Field label={t("sr.differenceAccount")} required>
@@ -185,6 +263,7 @@ export default function StockReconciliationForm() {
                   <th className="n">{t("sr.qty")}</th>
                   <th className="n">{t("sr.rate")}</th>
                   <th>{t("sr.batchNo")}</th>
+                  <th>{t("se.serialNo")}</th>
                   <th />
                 </tr>
               </thead>
@@ -196,11 +275,21 @@ export default function StockReconciliationForm() {
                       <LinkField doctype={DT.item}
                         filters={[["is_stock_item", "=", 1]] as never}
                         value={l.item_code}
-                        onChange={(v) => setLine(i, { item_code: v })} />
+                        onChange={(v) => {
+                          setLine(i, { item_code: v, item_name: "", batch_no: "", serial_no: "" });
+                          void loadLine(i, v, l.warehouse);
+                        }} />
+                      {l.item_name && l.item_name !== l.item_code ? (
+                        <div className="iname">{l.item_name}</div>
+                      ) : null}
                     </td>
                     <td style={{ minWidth: 180 }}>
                       <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                        value={l.warehouse} onChange={(v) => setLine(i, { warehouse: v })} />
+                        value={l.warehouse}
+                        onChange={(v) => {
+                          setLine(i, { warehouse: v });
+                          if (l.item_code) void loadLine(i, l.item_code, v, l.batch_no);
+                        }} />
                     </td>
                     <td className="n">
                       <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
@@ -210,9 +299,34 @@ export default function StockReconciliationForm() {
                       <input className="ctl mini nn" style={{ width: 100 }} value={l.valuation_rate}
                         onChange={(e) => setLine(i, { valuation_rate: parseNum(e.target.value) })} />
                     </td>
-                    <td style={{ minWidth: 100 }}>
-                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
-                        onChange={(e) => setLine(i, { batch_no: e.target.value })} />
+                    <td style={{ minWidth: 140 }}>
+                      {l.has_batch_no || l.batch_no ? (
+                        <LinkField
+                          doctype={DT.batch}
+                          value={l.batch_no ?? ""}
+                          placeholder={t("sr.batchNo")}
+                          filters={l.item_code ? [["item", "=", l.item_code]] : undefined}
+                          onChange={(v) => {
+                            setLine(i, { batch_no: v });
+                            if (l.item_code && l.warehouse) void loadLine(i, l.item_code, l.warehouse, v);
+                          }}
+                        />
+                      ) : (
+                        <span style={{ color: "var(--faint)" }}>—</span>
+                      )}
+                    </td>
+                    <td style={{ minWidth: 140 }}>
+                      {l.has_serial_no || l.serial_no ? (
+                        <LinkField
+                          doctype={DT.serialNo}
+                          value={l.serial_no ?? ""}
+                          placeholder={t("se.serialNo")}
+                          filters={l.item_code ? [["item_code", "=", l.item_code]] : undefined}
+                          onChange={(v) => setLine(i, { serial_no: v })}
+                        />
+                      ) : (
+                        <span style={{ color: "var(--faint)" }}>—</span>
+                      )}
                     </td>
                     <td>
                       <button type="button" className="rm" aria-label={t("inv.remove")}

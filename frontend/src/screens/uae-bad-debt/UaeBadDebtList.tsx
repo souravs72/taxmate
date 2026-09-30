@@ -13,7 +13,8 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
 import { money } from "../../lib/format";
-import { Card, Loading, PageHead } from "../../components/ui";
+import { Card, Loading } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -55,12 +56,14 @@ export default function UaeBadDebtList() {
   });
 
   return (
-    <>
-      <PageHead title={t("ubd.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/uae-bad-debt-relief/new")}>{t("ubd.new")}</button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("ubd.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/uae-bad-debt-relief/new")}>{t("ubd.new")}</button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("ubd.col.invoice")} />
@@ -78,6 +81,6 @@ export default function UaeBadDebtList() {
         )}
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }

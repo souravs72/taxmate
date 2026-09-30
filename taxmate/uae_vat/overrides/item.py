@@ -15,6 +15,7 @@ from taxmate.uae_e_invoicing.constants import (
 
 def validate(doc, method=None):
 	"""Soft-validate HS/SAC by UAE Item Type; strict when e-invoicing is on."""
+	assign_company(doc)
 	item_type = doc.get("uae_item_type")
 	if not item_type:
 		return
@@ -37,6 +38,26 @@ def validate(doc, method=None):
 			frappe.throw(msg)
 		else:
 			frappe.msgprint(msg, indicator="orange", alert=True)
+
+
+def assign_company(doc) -> None:
+	"""POS Next lists an item only when Company matches the POS Profile.
+
+	A blank Company is hidden while "Include Global Items" is off. Fill it from
+	the user's company, then the site default, and leave an explicit value alone.
+	"""
+	if not getattr(doc, "meta", None) or not doc.meta.has_field("custom_company"):
+		return
+	if doc.get("custom_company"):
+		return
+	company = frappe.defaults.get_user_default("Company") or frappe.defaults.get_global_default("Company")
+	if not company:
+		for row in doc.get("item_defaults") or []:
+			if row.get("company"):
+				company = row.company
+				break
+	if company and frappe.db.exists("Company", company):
+		doc.custom_company = company
 
 
 def _any_uae_company_e_invoice_enabled() -> bool:

@@ -44,6 +44,7 @@ type ItemDoc = {
   uoms?: { uom?: string; conversion_factor?: number }[];
   item_defaults?: { company?: string; default_warehouse?: string }[];
   barcodes?: { barcode?: string }[];
+  disabled?: number;
   reorder_levels?: { warehouse?: string; warehouse_reorder_level?: number; warehouse_reorder_qty?: number; material_request_type?: string }[];
 };
 
@@ -128,6 +129,7 @@ export default function ItemForm() {
     serial_no_series: "",
     create_new_batch: 0 as 0 | 1,
     batch_number_series: "",
+    disabled: 0 as 0 | 1,
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -195,6 +197,7 @@ export default function ItemForm() {
       serial_no_series: d.serial_no_series || "",
       create_new_batch: (d.create_new_batch || 0) as 0 | 1,
       batch_number_series: d.batch_number_series || "",
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     });
     // Load UOM conversions (exclude the stock UOM row which ERPNext auto-adds with factor 1)
     setUomRows(
@@ -219,6 +222,7 @@ export default function ItemForm() {
     setSaveError(null);
     try {
       const payload = {
+        disabled: form.disabled,
         item_code: form.item_code,
         item_name: form.item_name,
         item_group: form.item_group,
@@ -329,6 +333,16 @@ export default function ItemForm() {
           </Field>
           <Field label={t("item.col.name")} required>
             <input className="ctl" value={form.item_name} onChange={(e) => set("item_name", e.target.value)} />
+          </Field>
+          <Field label={t("item.disabled")}>
+            <label style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <input
+                type="checkbox"
+                checked={!!form.disabled}
+                onChange={(e) => set("disabled", e.target.checked ? 1 : 0)}
+              />
+              {t("item.disabledHint")}
+            </label>
           </Field>
           <Field label={t("item.description")}>
             <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />

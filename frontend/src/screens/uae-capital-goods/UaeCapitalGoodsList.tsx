@@ -13,7 +13,8 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
 import { money } from "../../lib/format";
-import { Card, Loading, PageHead } from "../../components/ui";
+import { Card, Loading } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -51,12 +52,14 @@ export default function UaeCapitalGoodsList() {
   });
 
   return (
-    <>
-      <PageHead title={t("ucg.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/uae-capital-goods-adjustments/new")}>{t("ucg.new")}</button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("ucg.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/uae-capital-goods-adjustments/new")}>{t("ucg.new")}</button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>{null}</FilterBar>
         <BulkDraftBar drafts={draftDelete} />
@@ -72,6 +75,6 @@ export default function UaeCapitalGoodsList() {
         )}
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }
