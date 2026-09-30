@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales } from "../../lib/roles";
@@ -20,6 +21,7 @@ type Doc = { name: string; purpose?: string; posting_date?: string; docstatus?: 
 
 export default function StockReconciliationDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.stockReconciliation, name, listPath: "/stock-reconciliations" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.stockReconciliation, name);
@@ -52,6 +54,13 @@ export default function StockReconciliationDetail() {
               <button type="button" className="btn ghost"
                 onClick={() => nav(`/stock-reconciliations/${encodeURIComponent(name)}/edit`)}>
                 {t("inv.edit")}
+              </button>
+            )}
+
+            {draft && (
+              <button type="button" className="btn quiet" disabled={deleteAction.loading}
+                onClick={deleteAction.onDelete}>
+                {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
               </button>
             )}
             {draft && canSubmit && (

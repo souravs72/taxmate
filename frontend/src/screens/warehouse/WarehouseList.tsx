@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
@@ -92,6 +95,18 @@ export default function WarehouseList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.warehouse,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, kind, page],
+  });
+
   return (
     <>
       <PageHead title={t("wh.title")} />
@@ -127,13 +142,16 @@ export default function WarehouseList() {
           <SelectFilter value={kind} onChange={(v) => set("kind", v)} allLabel={t("wh.allKinds")}
             options={[{ value: "leaf", label: t("wh.leaf") }, { value: "group", label: t("wh.group") }]} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/warehouses/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("wh.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

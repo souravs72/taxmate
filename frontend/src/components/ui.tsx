@@ -1,17 +1,93 @@
 /** Shared primitives. Every one maps to a class in styles/app.css. */
 
+import { createContext, useEffect, useRef } from "react";
+
 import { money, pct } from "../lib/format";
 import { readableError } from "../lib/frappe";
 import { t } from "../i18n/strings";
+import { useIsPhone } from "../lib/useMedia";
+
+import "../styles/form-mobile.css";
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
 
+/**
+ * The page's actions as a fixed bar sitting directly above the phone tab bar.
+ *
+ * Deliberately a *wrapping* bar rather than a "first two + ⋮ overflow" bar:
+ * every caller passes `actions` as a single fragment (DetailActions and
+ * FormActions both return one), whose children are conditionally `false`, so
+ * the rendered action count cannot be established from outside without
+ * guessing. Wrapping needs no count, keeps every action reachable, and cannot
+ * silently hide one.
+ *
+ * The bar's own height is published as `--pact-h` on the document element so
+ * `.page.mnav-pad` can reserve exactly the right clearance whether the actions
+ * land on one row or two. See styles/form-mobile.css.
+ */
+/**
+ * True for anything rendered *inside* a `.pact-bar`.
+ *
+ * `FormActions` (components/form.tsx) is handed to `PageHead actions` by nine
+ * form screens and rendered inline at the foot of the main column by the
+ * other twenty-eight. It needs its own bar in the second case and must not
+ * build a second one in the first, and context answers that synchronously —
+ * no DOM probe, no post-paint jump.
+ */
+export const InPageActionBar = createContext(false);
+
+export function PageActionBar({ actions }: { actions: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof document === "undefined") return;
+    const root = document.documentElement;
+    const sync = () => {
+      root.style.setProperty("--pact-h", `${Math.round(el.getBoundingClientRect().height)}px`);
+    };
+    sync();
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver === "function") {
+      ro = new ResizeObserver(sync);
+      ro.observe(el);
+    }
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty("--pact-h");
+    };
+  }, []);
+
+  return (
+    <div className="pact-bar" role="group" aria-label={t("m.actions")} ref={ref}>
+      <InPageActionBar.Provider value={true}>{actions}</InPageActionBar.Provider>
+    </div>
+  );
+}
+
 export function PageHead({
-  title, sub, eyebrow, actions, children,
+  title, sub, eyebrow, actions, children, viewControls, stickyActions = true,
 }: {
   title: React.ReactNode; sub?: string; eyebrow?: React.ReactNode;
   actions?: React.ReactNode; children?: React.ReactNode;
+  /**
+   * Controls that change what you are *looking at* rather than what you are
+   * doing — the dashboards' Owner/Accountant switch, say. On a desktop they
+   * sit in the header row beside the actions, exactly where they always have;
+   * on a phone they stay under the title instead of taking a whole row of the
+   * fixed action bar, which is for things you tap once and move on.
+   */
+  viewControls?: React.ReactNode;
+  /**
+   * Phones only. `actions` normally becomes the fixed bar above the tab bar,
+   * which is right for things you *do* (Save, Submit, New sale). Pass false
+   * where `actions` is a control you *type into* — the Reports filter, say:
+   * pinning a text field over the list it filters hides the answer while you
+   * type, and the on-screen keyboard then covers the bar anyway.
+   */
+  stickyActions?: boolean;
 }) {
+  const phone = useIsPhone();
   return (
     <div className="phead">
       <div>
@@ -19,8 +95,12 @@ export function PageHead({
         <h1>{title}</h1>
         {sub && <p className="sub">{sub}</p>}
         {children}
+        {phone && viewControls && <div className="phead-views">{viewControls}</div>}
       </div>
-      {actions && <div className="acts">{actions}</div>}
+      {phone && stickyActions && actions && <PageActionBar actions={actions} />}
+      {!(phone && stickyActions && actions) && (actions || (!phone && viewControls)) && (
+        <div className="acts">{!phone && viewControls}{actions}</div>
+      )}
     </div>
   );
 }
@@ -94,17 +174,17 @@ export function StatTile({
                strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
                dangerouslySetInnerHTML={{ __html: icon }} />
         </span>
-        <div className="copy">
+        <span style={{ minWidth: 0 }}>
           <span className="k">{label}</span>
           <div className="v">{unit && <small>{unit}</small>} {value}</div>
-        </div>
+        </span>
         {spark && (
           <svg className="spark" width="66" height="26" viewBox="0 0 66 26" fill="none" aria-hidden="true">
             <polyline points={spark} stroke={colour} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         )}
       </div>
-      {foot && <div className="tnote">{foot}</div>}
+      {foot && <div className="foot">{foot}</div>}
     </div>
   );
 }

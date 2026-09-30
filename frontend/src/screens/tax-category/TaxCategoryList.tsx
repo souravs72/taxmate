@@ -1,3 +1,8 @@
+import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 /**
  * TaxCategoryList — list Tax Category masters (Phase 11).
  * Callers: App.tsx /tax-categories
@@ -5,7 +10,7 @@
  * Schema: {name, title, disabled}
  * User instruction: Phase 11 — Tax Category list/form
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
@@ -21,6 +26,7 @@ const PAGE = 30;
 type Row = { name: string; title?: string; disabled?: number };
 
 export default function TaxCategoryList() {
+  const session = useSession();
   const nav = useNavigate();
   const { get, set, page, setPage, start } = useListParams(PAGE);
   const q = get("q");
@@ -52,6 +58,18 @@ export default function TaxCategoryList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.taxCategory,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead title={t("txc.title")}>
@@ -69,13 +87,16 @@ export default function TaxCategoryList() {
             placeholder={t("txc.search")}
           />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/tax-categories/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("txc.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter
           shown={(list.data ?? []).length}

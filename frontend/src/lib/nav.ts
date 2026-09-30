@@ -199,3 +199,57 @@ export const NAV: NavEntry[] = buildNav({
   enable_pick_list: true,
   enable_pos_next: false,
 });
+
+/* ── Mobile bottom tabs ──────────────────────────────────────────────
+   Five tabs stand in for the rail below 900px. A tab lights up for a
+   whole route family, not just its own destination, so /orders and
+   /quotations both read as "Sales" even though the tab points at
+   /invoices. Callers: components/MobileNav.tsx.
+   ──────────────────────────────────────────────────────────────────── */
+
+export type MobileTabId = "home" | "sales" | "money" | "reports";
+
+/** Route families per tab. Order matters only in that families must not overlap. */
+export const MOBILE_TAB_PATHS: Record<Exclude<MobileTabId, "home">, string[]> = {
+  sales: [
+    "/customers",
+    "/orders",
+    "/quotations",
+    "/delivery-notes",
+    "/invoices",
+    "/leads",
+    "/pos-invoices",
+  ],
+  money: [
+    "/payments",
+    "/receivables",
+    "/payables",
+    "/suppliers",
+    "/supplier-quotations",
+    "/purchase-orders",
+    "/purchase-receipts",
+    "/incoming-invoices",
+    "/purchase-invoices",
+    "/journals",
+    "/bank-reconciliation",
+    "/bank-accounts",
+  ],
+  reports: ["/reports"],
+};
+
+function inFamily(paths: string[], path: string): boolean {
+  return paths.some((p) => path === p || path.startsWith(`${p}/`));
+}
+
+/**
+ * Which bottom tab owns a pathname, or null when none does (Stock, Masters,
+ * Compliance… — those live behind "More", which owns its own active state).
+ * Home is an exact match on "/" so every other screen does not light it up.
+ */
+export function mobileTabForPath(path: string): MobileTabId | null {
+  if (path === "/") return "home";
+  if (inFamily(MOBILE_TAB_PATHS.sales, path)) return "sales";
+  if (inFamily(MOBILE_TAB_PATHS.money, path)) return "money";
+  if (inFamily(MOBILE_TAB_PATHS.reports, path)) return "reports";
+  return null;
+}

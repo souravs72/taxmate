@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 import { useFrappePostCall } from "frappe-react-sdk";
@@ -21,6 +21,8 @@ import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
+import { isDraftRow, useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 
 const PAGE = 20;
 const E_FAILED = ["Failed", "Rejected"];
@@ -124,6 +126,15 @@ export default function InvoiceList() {
   );
 
   const bulk = useFrappePostCall<{ message: unknown }>(METHOD.bulkGenerateEInvoices);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const writable = canWrite(session);
+  const draftDelete = useDraftDelete({
+    doctype: DT.salesInvoice,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, status, customer, einvoice, emirate, page],
+  });
+
 
   const totals = useMemo(() => {
     const stages: Record<InvStage, number> = { draft: 0, unpaid: 0, paid: 0, closed: 0 };
@@ -288,17 +299,16 @@ export default function InvoiceList() {
             options={UAE_EMIRATES.map((x) => ({ value: x, label: x }))} />
         </FilterBar>
 
-        {picked.size > 0 && (
-          <div className="bulkbar">
-            <span className="msg">{picked.size} {t("inv.bulk.selected")}</span>
-            <div className="grp">
-              <button className="btn sm" disabled={bulk.loading} onClick={() => void submitPicked()}>
-                {bulk.loading ? t("soc.saving") : t("inv.bulk.submit")}
-              </button>
-              <button className="btn ghost sm" onClick={() => setPicked(new Set())}>{t("inv.bulk.clear")}</button>
-            </div>
-          </div>
-        )}
+        <BulkDraftBar
+          drafts={draftDelete}
+          extraSelected={picked.size}
+          onClear={() => { draftDelete.clear(); setPicked(new Set()); }}
+          extra={picked.size > 0 ? (
+            <button type="button" className="btn sm" disabled={bulk.loading} onClick={() => void submitPicked()}>
+              {bulk.loading ? t("soc.saving") : t("inv.bulk.submit")}
+            </button>
+          ) : null}
+        />
         {(bulk.error || agg.error || overdue.error) && (
           <ErrorBox error={bulk.error ?? agg.error ?? overdue.error} />
         )}
@@ -311,13 +321,24 @@ export default function InvoiceList() {
           emptyLabel={t("inv.empty")}
           columns={columns}
           selection={{
-            picked,
-            selectable: resendable,
-            label: t("inv.bulk.selectAll"),
-            onToggle: togglePick,
-            onToggleAll: (checked) => setPicked(
-              checked ? new Set(rows.filter(resendable).map((r) => r.name)) : new Set(),
-            ),
+            picked: new Set([...picked, ...draftDelete.picked]),
+            selectable: (r) => (writable && isDraftRow(r)) || resendable(r),
+            label: t("list.selectAll"),
+            onToggle: (id) => {
+              const row = rows.find((r) => r.name === id);
+              if (!row) return;
+              if (writable && isDraftRow(row)) draftDelete.toggle(id);
+              else if (resendable(row)) togglePick(id);
+            },
+            onToggleAll: (checked) => {
+              if (checked) {
+                draftDelete.toggleAll(rows.filter(isDraftRow).map((r) => r.name), true);
+                setPicked(new Set(rows.filter(resendable).map((r) => r.name)));
+              } else {
+                draftDelete.clear();
+                setPicked(new Set());
+              }
+            },
           }}
         />
 

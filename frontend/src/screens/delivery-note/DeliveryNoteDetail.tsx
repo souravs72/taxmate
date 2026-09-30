@@ -15,6 +15,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string };
 type Doc = {
@@ -34,6 +35,7 @@ function dnPill(status?: string): string {
 
 export default function DeliveryNoteDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.deliveryNote, name, listPath: "/delivery-notes" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.deliveryNote, name);
@@ -99,7 +101,7 @@ export default function DeliveryNoteDetail() {
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
   const writable = canWrite(session);
-  const busyError = submitCall.error || cancelCall.error || makeSi.error || makePickList.error || mapError;
+  const busyError = deleteAction.error || submitCall.error || cancelCall.error || makeSi.error || makePickList.error || mapError;
 
   return (
     <>
@@ -118,9 +120,10 @@ export default function DeliveryNoteDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={writable}
-            busy={submitCall.loading || cancelCall.loading || amendCall.loading || busySi || busyPick}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || busySi || busyPick || deleteAction.loading}
             onEdit={() => nav(`/delivery-notes/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.deliveryNote, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.deliveryNote, name }).then(() => mutate())}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.deliveryNote, name });

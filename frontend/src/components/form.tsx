@@ -7,8 +7,11 @@
  * appeared. Here the count comes from the list.
  */
 
+import { useContext } from "react";
+
 import { t } from "../i18n/strings";
-import { Card } from "./ui";
+import { useIsPhone } from "../lib/useMedia";
+import { Card, InPageActionBar, PageActionBar } from "./ui";
 
 /** Main column plus a sticky aside. The `stack` spaces the main column. */
 export function FormLayout({ children, aside }: {
@@ -114,7 +117,9 @@ export function FormActions({
   extra?: React.ReactNode;
 }) {
   const blocked = !!busy || ready === false;
-  return (
+  const phone = useIsPhone();
+  const inBar = useContext(InPageActionBar);
+  const buttons = (
     <>
       <button className="btn ghost" onClick={onDiscard}>{t("soc.discard")}</button>
       {extra}
@@ -130,4 +135,10 @@ export function FormActions({
       )}
     </>
   );
+  /* Twenty-eight form screens render this at the foot of the main column
+     rather than through `PageHead actions`, which on a phone put Save and
+     Submit a full form's scroll below the fold. Below 760px it takes the
+     same fixed bar PageHead builds — unless it is already inside one. */
+  if (phone && !inBar) return <PageActionBar actions={buttons} />;
+  return buttons;
 }

@@ -1,13 +1,16 @@
 /**
  * ESR filing list.
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -52,7 +55,7 @@ export default function EsrFilingList() {
   }, [baseFilters, status, q]);
 
   const list = useDocList<Row>(DT.esrFiling, {
-    fields: ["name", "financial_year_start", "financial_year_end", "status", "licence_authority", "notification_due_date", "report_due_date", "has_relevant_activity"],
+    fields: ["name", "financial_year_start", "financial_year_end", "status", "licence_authority", "notification_due_date", "report_due_date", "has_relevant_activity", "docstatus"],
     filters, orderBy: { field: "financial_year_end", order: "desc" }, limit: PAGE, limit_start: start,
   }, paused ? null : undefined);
   const count = useDocCount(DT.esrFiling, filters, undefined, paused ? null : undefined);
@@ -75,6 +78,17 @@ export default function EsrFilingList() {
     { key: "rdue", header: t("esr.col.report"), className: "dt", cell: (r) => date(r.report_due_date) },
     { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={esrPill(r.status)}>{r.status || "—"}</Pill> },
   ];
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.esrFiling,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, status, page],
+  });
+
   return (
     <>
       <PageHead title={t("esr.title")} />
@@ -94,10 +108,14 @@ export default function EsrFilingList() {
           <SelectFilter value={status} onChange={(v) => set("status", v)} allLabel={t("v201.allStatus")}
             options={STATUSES.map((s) => ({ value: s, label: s }))} />
         </FilterBar>
-        <DataTable<Row> rows={list.data ?? []} rowKey={(r) => r.name}
+        <BulkDraftBar drafts={draftDelete} />
+
+        <DataTable<Row> rows={rows} rowKey={(r) => r.name}
           onOpen={(r) => nav(`/esr/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-          emptyLabel={t("esr.empty")} columns={columns} />
+          emptyLabel={t("esr.empty")} columns={columns}
+          selection={draftDelete.selection(rows)}
+        />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
     </>

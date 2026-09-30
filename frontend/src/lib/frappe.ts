@@ -136,6 +136,7 @@ export const METHOD = {
   insert: "taxmate.api.resource.insert",
   save: "taxmate.api.resource.save",
   delete: "taxmate.api.resource.delete",
+  bulkDelete: "taxmate.api.resource.bulk_delete",
   getCount: "taxmate.api.resource.get_count",
   groupByCount: "taxmate.api.resource.group_by_count",
   getDefaults: "taxmate.api.accounts.get_defaults",

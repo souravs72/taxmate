@@ -1,10 +1,15 @@
+import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 /**
  * TermsAndConditionsList — Phase 15.
  * Callers: App.tsx /terms-and-conditions; nav.ts nav.termsAndConditions
  * API: taxmate.api.resource.get_list on "Terms and Conditions" (_CORE_MASTERS)
  * Schema: {name, title, buying:0|1, selling:0|1}
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
@@ -20,6 +25,7 @@ const PAGE = 25;
 type Row = { name: string; title?: string; buying?: number; selling?: number };
 
 export default function TermsAndConditionsList() {
+  const session = useSession();
   const nav = useNavigate();
   const { get, set, page, setPage, start } = useListParams(PAGE);
   const q = get("q");
@@ -56,6 +62,18 @@ export default function TermsAndConditionsList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.termsAndConditions,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead title={t("tc.title")}>
@@ -69,13 +87,16 @@ export default function TermsAndConditionsList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("tc.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/terms-and-conditions/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("tc.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter
           shown={(list.data ?? []).length}

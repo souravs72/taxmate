@@ -1,11 +1,14 @@
 /**
  * UBO register list.
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
@@ -70,6 +73,18 @@ export default function UboRegisterList() {
     { key: "reviewed", header: t("ubo.col.reviewed"), className: "dt", cell: (r) => date(r.last_reviewed_on) },
     { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={uboPill(r.status)}>{r.status || "—"}</Pill> },
   ];
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.uboRegister,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, status, page],
+  });
+
   return (
     <>
       <PageHead title={t("ubo.title")} />
@@ -89,10 +104,14 @@ export default function UboRegisterList() {
           <SelectFilter value={status} onChange={(v) => set("status", v)} allLabel={t("v201.allStatus")}
             options={STATUSES.map((s) => ({ value: s, label: s }))} />
         </FilterBar>
-        <DataTable<Row> rows={list.data ?? []} rowKey={(r) => r.name}
+        <BulkDraftBar drafts={draftDelete} />
+
+        <DataTable<Row> rows={rows} rowKey={(r) => r.name}
           onOpen={(r) => nav(`/ubo/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-          emptyLabel={t("ubo.empty")} columns={columns} />
+          emptyLabel={t("ubo.empty")} columns={columns}
+          selection={draftDelete.selection(rows)}
+        />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
     </>

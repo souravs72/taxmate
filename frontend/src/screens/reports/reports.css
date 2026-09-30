@@ -47,7 +47,7 @@
   gap: 8px;
 }
 @media (max-width: 900px) {
-  .rpt .rpt-grid { grid-template-columns: 1fr; }
+  .rpt .rpt-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .rpt .rpt-row {
@@ -173,4 +173,24 @@
 [dir="rtl"] .rpt .rpt-search .ctl {
   padding-inline-start: 28px;
   padding-inline-end: 33px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Phone pass (760px — lib/useMedia.ts PHONE_QUERY). The reports list is the
+   one screen in the app that is a grid of icon rows rather than a table or a
+   form, so the global pass in app.css does not reach it.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  /* The pin was 36px wide against a 44px floor — the only control on the
+     screen that missed it. Height already came from the row. */
+  .rpt .rpt-star { width: 44px; min-height: 44px; }
+  .rpt .rpt-open { min-height: 44px; padding-block: 12px; }
+  /* 200px of search plus the ⌘K hint left ~8ch of the field at 360px. */
+  .rpt .rpt-search { width: 100%; }
+  .rpt .rpt-search .ctl { min-height: 44px; }
+  .rpt .rpt-body { padding: 8px 10px 10px; }
+  .rpt .rpt-ic { width: 28px; height: 28px; }
+  /* A long UAE report name plus its one-liner needs the row's whole width. */
+  .rpt .rpt-name { font-size: 13px; }
+  .rpt .rpt-name > span:first-child { min-width: 0; }
 }

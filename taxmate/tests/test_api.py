@@ -14,7 +14,7 @@ from frappe.tests.utils import FrappeTestCase
 from taxmate.api import get_catalog, get_session
 from taxmate.api.dashboard import get_home
 from taxmate.api.reports import list_reports
-from taxmate.api.resource import delete, get, get_list, get_meta, insert, is_allowed_doctype, save
+from taxmate.api.resource import bulk_delete, delete, get, get_list, get_meta, insert, is_allowed_doctype, save
 
 
 class TestApiAllowlist(unittest.TestCase):
@@ -63,6 +63,7 @@ class TestApiCatalog(FrappeTestCase):
 
 		methods = {row["method"] for row in catalog["actions"]}
 		self.assertIn("taxmate.api.resource.get_list", methods)
+		self.assertIn("taxmate.api.resource.bulk_delete", methods)
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
 		self.assertIn("taxmate.api.accounts.apply_price_list", methods)
@@ -133,6 +134,57 @@ class TestApiResource(FrappeTestCase):
 
 		delete("ToDo", created["name"])
 		self.assertFalse(frappe.db.exists("ToDo", created["name"]))
+
+
+	def test_draft_purchase_invoice_delete_and_bulk(self):
+		from taxmate.api.workflow import submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1}) or SERVICE_ITEM
+
+		def make_draft(bill_no: str):
+			return insert(
+				{
+					"doctype": "Purchase Invoice",
+					"company": company,
+					"supplier": supplier,
+					"posting_date": "2026-11-20",
+					"due_date": "2026-11-20",
+					"set_posting_time": 1,
+					"currency": "AED",
+					"conversion_rate": 1,
+					"vat_emirate": "Dubai",
+					"update_stock": 0,
+					"bill_no": bill_no,
+					"bill_date": "2026-11-18",
+					"items": [{"item_code": item, "qty": 1, "rate": 10}],
+				}
+			)
+
+		a = make_draft(f"TM-DEL-{uuid.uuid4().hex[:6]}")
+		b = make_draft(f"TM-DEL-{uuid.uuid4().hex[:6]}")
+		self.assertEqual(a["docstatus"], 0)
+		delete("Purchase Invoice", a["name"])
+		self.assertFalse(frappe.db.exists("Purchase Invoice", a["name"]))
+
+		result = bulk_delete("Purchase Invoice", [b["name"]])
+		self.assertIn(b["name"], result["deleted"])
+		self.assertEqual(result["failed"], [])
+		self.assertFalse(frappe.db.exists("Purchase Invoice", b["name"]))
+
+		submitted = make_draft(f"TM-DEL-{uuid.uuid4().hex[:6]}")
+		submit({"doctype": "Purchase Invoice", "name": submitted["name"]})
+		with self.assertRaises(frappe.ValidationError):
+			delete("Purchase Invoice", submitted["name"])
+		blocked = bulk_delete("Purchase Invoice", [submitted["name"]])
+		self.assertEqual(blocked["deleted"], [])
+		self.assertEqual(len(blocked["failed"]), 1)
 
 	def test_denied_doctype_raises(self):
 		with self.assertRaises(frappe.PermissionError):

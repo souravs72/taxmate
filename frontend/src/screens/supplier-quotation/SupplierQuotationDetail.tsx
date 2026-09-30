@@ -8,6 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -31,6 +32,7 @@ function sqPill(status?: string): string {
 
 export default function SupplierQuotationDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.supplierQuotation, name, listPath: "/supplier-quotations" });
   const nav = useNavigate();
   const session = useSession();
   const writable = canWrite(session);
@@ -88,6 +90,10 @@ export default function SupplierQuotationDetail() {
           <>
             <button className="btn ghost" onClick={() => nav(`/supplier-quotations/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
             <button className="btn" onClick={() => void doSubmit()} disabled={busy}>{t("sq.submit")}</button>
+            <button type="button" className="btn quiet" disabled={deleteAction.loading || busy}
+              onClick={deleteAction.onDelete}>
+              {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
+            </button>
           </>
         )}
         {writable && data.docstatus === 1 && (

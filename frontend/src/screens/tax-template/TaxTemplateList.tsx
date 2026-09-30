@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
@@ -71,6 +74,18 @@ export default function TaxTemplateList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: dt,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, kind, page],
+  });
+
   return (
     <>
       <PageHead title={t("tx.title")}>
@@ -109,13 +124,16 @@ export default function TaxTemplateList() {
             allLabel={t("tx.sales")}
             options={[{ value: "sales", label: t("tx.sales") }, { value: "purchase", label: t("tx.purchase") }]} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/tax-templates/${kind}/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("tx.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

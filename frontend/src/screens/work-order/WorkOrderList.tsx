@@ -2,13 +2,16 @@
  * WorkOrderList — Phase 18.
  * Callers: App.tsx /work-orders; nav under Stock
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList, useDocCount } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -43,7 +46,7 @@ export default function WorkOrderList() {
   }, [company, q]);
 
   const list = useDocList<Row>(DT.workOrder, {
-    fields: ["name", "item_name", "qty", "produced_qty", "planned_start_date", "status"],
+    fields: ["name", "item_name", "qty", "produced_qty", "planned_start_date", "status", "docstatus"],
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
@@ -59,6 +62,17 @@ export default function WorkOrderList() {
     { key: "status", header: t("wo.col.status"), cell: (r) => <Pill cls={woPill(r.status)}>{r.status || "Draft"}</Pill> },
   ];
 
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.workOrder,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead title={t("wo.title")}>
@@ -70,13 +84,16 @@ export default function WorkOrderList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("wo.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/work-orders/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("wo.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

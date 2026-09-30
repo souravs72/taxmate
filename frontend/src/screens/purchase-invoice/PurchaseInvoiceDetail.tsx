@@ -10,6 +10,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = {
   name?: string; item_code?: string; item_name?: string; qty?: number; uom?: string;
@@ -49,6 +50,7 @@ function piPill(status?: string): string {
 
 export default function PurchaseInvoiceDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.purchaseInvoice, name, listPath: "/purchase-invoices" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.purchaseInvoice, name);
@@ -91,7 +93,7 @@ export default function PurchaseInvoiceDetail() {
   const paid = Math.max(grand - outstanding, 0);
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
-  const busyError = submitCall.error || cancelCall.error || payments.error;
+  const busyError = submitCall.error || cancelCall.error || deleteAction.error || payments.error;
 
   const allocations = Object.values(
     (payments.data?.message ?? [])
@@ -122,9 +124,10 @@ export default function PurchaseInvoiceDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={true}
-            busy={submitCall.loading || cancelCall.loading || amendCall.loading}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || deleteAction.loading}
             onEdit={() => nav(`/purchase-invoices/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseInvoice, name } }).then(refresh)}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.purchaseInvoice, name }).then(refresh)}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.purchaseInvoice, name });

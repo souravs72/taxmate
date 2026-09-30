@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -30,6 +31,7 @@ function woPill(status?: string): string {
 
 export default function WorkOrderDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.workOrder, name, listPath: "/work-orders" });
   const nav = useNavigate();
   const session = useSession();
   const writable = canWrite(session);
@@ -69,6 +71,13 @@ export default function WorkOrderDetail() {
         {writable && data.docstatus === 1 && (
           <button className="btn ghost" onClick={() => void doAction("cancel")} disabled={busy}>{t("wo.cancel")}</button>
         )}
+
+            {data.docstatus === 0 && (
+              <button type="button" className="btn quiet" disabled={deleteAction.loading}
+                onClick={deleteAction.onDelete}>
+                {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
+              </button>
+            )}
       </PageHead>
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>

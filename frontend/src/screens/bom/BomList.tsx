@@ -3,11 +3,14 @@
  * Callers: App.tsx /boms; nav under Stock
  * API: taxmate.api.resource.get_list on "BOM"
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList, useDocCount } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { useListParams } from "../../lib/list";
@@ -18,7 +21,7 @@ import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
 
 const PAGE = 25;
-type Row = { name: string; item?: string; item_name?: string; quantity?: number; is_active?: number; is_default?: number };
+type Row = { name: string; item?: string; item_name?: string; quantity?: number; is_active?: number; is_default?: number; docstatus?: number };
 
 export default function BomList() {
   const nav = useNavigate();
@@ -35,7 +38,7 @@ export default function BomList() {
   }, [company, q]);
 
   const list = useDocList<Row>(DT.bom, {
-    fields: ["name", "item", "item_name", "quantity", "is_active", "is_default"],
+    fields: ["name", "item", "item_name", "quantity", "is_active", "is_default", "docstatus"],
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
@@ -53,6 +56,17 @@ export default function BomList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.bom,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead title={t("bom.title")}>
@@ -64,13 +78,16 @@ export default function BomList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("bom.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/boms/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("bom.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

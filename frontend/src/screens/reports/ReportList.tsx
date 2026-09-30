@@ -163,6 +163,9 @@ export default function ReportList() {
       <PageHead
         title={t("rpt.title")}
         sub={t("rpt.sub")}
+        /* The filter is typed into, not tapped: it stays in the header on a
+           phone rather than sitting over the list it is filtering. */
+        stickyActions={false}
         actions={
           <label className="rpt-search">
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">

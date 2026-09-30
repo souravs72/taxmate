@@ -20,7 +20,7 @@ svg{display:block}
 /* ── Shell ──────────────────────────────────────────────────────────── */
 .app{display:grid; grid-template-columns:var(--railw) 1fr; min-height:100%; transition:grid-template-columns .2s}
 .app.collapsed{--railw:76px}
-@media (max-width:900px){.app,.app.collapsed{grid-template-columns:1fr}}
+@media (max-width:900px){.app,.app.collapsed{grid-template-columns:minmax(0,1fr)}}
 
 .rail{
   background:var(--surface); border-inline-end:1px solid var(--border);
@@ -30,10 +30,9 @@ svg{display:block}
 }
 .rbrand{padding:14px 12px 10px; flex:none}
 .rail-body{flex:1; overflow-y:auto; overflow-x:hidden; padding:0 12px 14px; display:flex; flex-direction:column; gap:2px; min-height:0}
-@media (max-width:900px){
-  .rail{flex-direction:row; overflow-x:auto; padding:10px 12px; gap:6px; align-items:center; border-inline-end:0; border-block-end:1px solid var(--border)}
-  .rail .rsec,.rail .rfoot{display:none}
-}
+/* No phone rail rules here: below 900px AppShell renders MobileNav instead of
+   .rail (`{!mobile && …}`), so the old horizontal-scroller block was dead code
+   that would have fought the fixed tab bar in styles/shell-mobile.css. */
 .rbrand{display:flex; align-items:center; gap:11px; padding:4px 8px 18px; font-weight:700; font-size:17px; letter-spacing:-.025em; white-space:nowrap; color:var(--text)}
 .rbrand .mark{width:32px; height:32px; border-radius:10px; background:var(--brand); color:#fff; display:grid; place-items:center; font-size:15px; font-weight:700; flex:none}
 .app.collapsed .rbrand span:last-child{display:none}
@@ -86,7 +85,7 @@ svg{display:block}
   color:var(--muted); display:grid; place-items:center; cursor:pointer; flex:none;
 }
 .iconbtn:hover{background:var(--hover); color:var(--text)}
-.iconbtn.bordered{width:40px; height:40px; border-radius:10px; border-color:var(--border-2); background:var(--surface); color:var(--text)}
+.iconbtn.bordered{border-color:var(--border-2); background:var(--surface)}
 .tsearch{position:relative; flex:1; min-width:150px; max-width:380px; z-index:40}
 .tsearch svg{position:absolute; inset-inline-start:11px; top:50%; transform:translateY(-50%); color:var(--faint); pointer-events:none}
 .tsearch input{width:100%; background:var(--sunk); border:1px solid transparent; border-radius:9px; padding:8px 52px 8px 34px; font-size:13px}
@@ -102,21 +101,19 @@ svg{display:block}
 .tsearch-desc{font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .tsearch-empty,.tsearch-hint{padding:10px; font-size:12px; color:var(--faint)}
 .tsearch-hint{border-block-start:1px solid var(--border); margin-block-start:4px}
-.tright{display:flex; align-items:center; gap:10px; margin-inline-start:auto}
-.tools{display:flex; align-items:center; gap:6px}
+.tright{display:flex; align-items:center; gap:8px; margin-inline-start:auto}
 .co{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; padding-inline-start:8px; border-inline-start:1px solid var(--border); white-space:nowrap}
 .co .av{width:26px; height:26px; border-radius:8px; background:var(--brand-soft); color:var(--brand); display:grid; place-items:center; font-size:10px; font-weight:700; flex:none}
-.langbtn{height:40px; min-width:40px; padding:0 12px; border-radius:10px; border:1px solid var(--border-2); background:var(--surface); color:var(--text); font-size:13px; font-weight:650; cursor:pointer; white-space:nowrap}
-.scanbtn{height:40px; padding:0 14px; border-radius:10px; gap:6px}
-.langbtn:hover,.iconbtn.bordered:hover{background:var(--hover)}
+.langbtn{font-size:12px; font-weight:600; padding:6px 11px; border-radius:9px; border:1px solid var(--border-2); background:var(--surface); color:var(--muted); cursor:pointer; white-space:nowrap}
+.langbtn:hover{color:var(--text); background:var(--hover)}
 
 .page{padding:18px; display:flex; flex-direction:column; gap:16px}
-@media (max-width:520px){.page{padding-inline:14px}}
+/* One phone step instead of the old inline-only 520px nudge — see the phone
+   block at the foot of this file. */
 
 /* ── Common ────────────────────────────────────────────────────────── */
 .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r)}
 .card + .card{margin-block-start:16px}
-.charts > .card{margin-block-start:0; height:100%}
 .chead{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; justify-content:space-between; padding:14px 16px; border-block-end:1px solid var(--border)}
 .chead.bare{border-block-end:0; padding-block-end:0}
 .chead h2{margin:0; font-size:13.5px; font-weight:600}
@@ -161,11 +158,11 @@ svg{display:block}
 .cur{font-size:11.5px; color:var(--muted); font-weight:500; margin-inline-end:3px}
 
 /* Stat tiles — the gradient-tint pattern */
-.tiles{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; align-items:stretch}
-@media (max-width:1100px){.tiles{grid-template-columns:repeat(2,1fr)}}
-@media (max-width:560px){.tiles{grid-template-columns:1fr}}
+.tiles{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+@media (max-width:1100px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.tiles{grid-template-columns:minmax(0,1fr)}}
 .dash-board{display:grid; grid-template-columns:1.15fr .85fr; gap:16px; align-items:start}
-@media (max-width:1100px){.dash-board{grid-template-columns:1fr}}
+@media (max-width:1100px){.dash-board{grid-template-columns:minmax(0,1fr)}}
 .qrow{
   display:flex; align-items:center; gap:12px; width:100%; padding:11px 0;
   border:0; background:transparent; text-align:start; cursor:pointer;
@@ -178,24 +175,23 @@ button.qrow:hover .qtitle{color:var(--brand)}
 .qrow .qsub{display:block; font-size:11.5px; color:var(--muted); margin-block-start:2px}
 .qrow .qmeta{margin-inline-start:auto; display:flex; align-items:center; gap:10px; flex:none}
 .qrow .qamt{font-variant-numeric:tabular-nums; font-weight:600; font-family:var(--mono); font-size:12.5px; white-space:nowrap}
-.tile{border:1px solid var(--border); border-radius:var(--r); padding:15px 16px; background:var(--surface); position:relative; overflow:hidden; display:flex; flex-direction:column; height:100%}
+.tile{border:1px solid var(--border); border-radius:var(--r); padding:15px 16px; background:var(--surface); position:relative; overflow:hidden}
 .tile::before{content:""; position:absolute; inset:0; background:linear-gradient(to left, var(--tint) 0%, transparent 62%); pointer-events:none}
 [dir="rtl"] .tile::before{background:linear-gradient(to right, var(--tint) 0%, transparent 62%)}
 .tile > *{position:relative}
 .tile .row{display:flex; align-items:center; gap:11px}
-.tile .copy{min-width:0; flex:1}
 .tile .bdg{width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:#fff; flex:none}
-.tile .k{display:block; font-size:12px; color:var(--muted); font-weight:500}
-.tile .v{font-size:21px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums; margin-block-start:1px; line-height:1.15}
+.tile .k{font-size:12px; color:var(--muted); font-weight:500}
+.tile .v{font-size:21px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums; margin-block-start:1px}
 .tile .v small{font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0}
-.tile .tnote{margin-block-start:auto; padding-block-start:10px; font-size:11.5px; color:var(--muted); line-height:1.35; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.tile .foot{margin-block-start:10px; font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap}
 .tile .delta{font-weight:600}
 .tile .delta.up{color:var(--ok)} .tile .delta.down{color:var(--bad)}
 .spark{margin-inline-start:auto; flex:none}
 
 /* Charts */
 .charts{display:grid; grid-template-columns:minmax(0,400px) minmax(0,1fr); gap:16px}
-@media (max-width:900px){.charts{grid-template-columns:1fr}}
+@media (max-width:900px){.charts{grid-template-columns:minmax(0,1fr)}}
 .donutwrap{display:flex; flex-wrap:wrap; gap:18px; align-items:center; padding:16px}
 .donutbox{position:relative; flex:none}
 .donutbox .mid{position:absolute; inset:0; display:grid; place-content:center; text-align:center; pointer-events:none}
@@ -204,10 +200,16 @@ button.qrow:hover .qtitle{color:var(--brand)}
 .donut circle{transition:opacity .14s}
 .donut.dim circle[data-k]:not(.act){opacity:.3}
 .legend{display:grid; gap:2px; min-width:0; flex:1}
-.lgi{display:grid; grid-template-columns:auto 1fr auto auto; gap:9px; align-items:center; padding:5px 7px; border-radius:7px; font-size:12.5px}
+/* The name track is minmax(0,1fr) and .nm carries min-width:0 because .nm is
+   nowrap: with a plain `1fr` the track's automatic minimum is the full string,
+   so one long account name makes the donut card unshrinkable and scrolls the
+   whole page sideways — ~15px at 360px, and 17px at 1024px where .charts is
+   still two columns. This is the overflow bug itself, not a phone tweak, so
+   it is not inside a media query; a name that fits is unaffected. */
+.lgi{display:grid; grid-template-columns:auto minmax(0,1fr) auto auto; gap:9px; align-items:center; padding:5px 7px; border-radius:7px; font-size:12.5px}
 .lgi:hover{background:var(--hover)}
 .lgi .sw{width:9px; height:9px; border-radius:3px; flex:none}
-.lgi .nm{font-weight:500; white-space:nowrap}
+.lgi .nm{font-weight:500; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis}
 .lgi .ct,.lgi .vl{color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px}
 .lgi .vl{font-family:var(--mono)}
 .bars{padding:16px; display:flex; flex-direction:column; gap:15px}
@@ -266,7 +268,7 @@ tbody tr:last-child td{border-block-end:0}
 
 /* Detail */
 .steps{display:grid; grid-template-columns:repeat(4,1fr); padding:16px}
-@media (max-width:760px){.steps{grid-template-columns:1fr 1fr; row-gap:18px}}
+@media (max-width:760px){.steps{grid-template-columns:repeat(2,minmax(0,1fr)); row-gap:18px}}
 .step{display:flex; flex-direction:column; gap:7px; padding-inline-end:16px}
 .step .top{display:flex; align-items:center; gap:8px}
 .step .dot{width:19px; height:19px; border-radius:50%; flex:none; display:grid; place-items:center; font-size:10px; font-weight:700; color:#fff}
@@ -275,24 +277,22 @@ tbody tr:last-child td{border-block-end:0}
 .step .sub{font-size:11.5px; color:var(--muted)}
 .sbar{height:5px; border-radius:3px; background:var(--track); overflow:hidden; margin-inline-end:16px}
 .sbar i{display:block; height:100%; border-radius:3px}
-.body2{display:grid; grid-template-columns:minmax(0,1fr) 320px; column-gap:16px; align-items:start}
-/* Pair each main card with the aside card in the same row. */
-.body2 > .stack,
-.body2 > .side{
-  display:grid; grid-template-rows:subgrid; grid-row:span 8; row-gap:16px;
-}
-.body2 > .stack > .card,
-.body2 > .side > .card{margin-block-start:0}
-@media (max-width:1100px){
-  .body2{grid-template-columns:1fr; row-gap:16px}
-  .body2 > .stack,
-  .body2 > .side{display:flex; flex-direction:column; grid-row:auto; gap:16px}
-}
-.side{position:sticky; top:14px}
+.body2{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start}
+/* `1fr` is `minmax(auto,1fr)`: the track can never shrink below the
+   min-content of what is in it, and `.stack` holds item tables and long
+   Arabic party names. One column with a plain `1fr` is why every detail and
+   form screen scrolled the page sideways below 1100px. */
+@media (max-width:1100px){.body2{grid-template-columns:minmax(0,1fr)}}
+/* Same reason, from the item side: a grid/flex item defaults to
+   min-width:auto and refuses to be squeezed. */
+.stack,.side{min-width:0}
+.side{display:flex; flex-direction:column; gap:16px; position:sticky; top:14px}
 @media (max-width:1100px){.side{position:static}}
 .fg{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 20px}
-@media (max-width:680px){.fg{grid-template-columns:1fr 1fr}}
-@media (max-width:420px){.fg{grid-template-columns:1fr}}
+/* 3 up on desktop, 2 on a tablet, 1 on a phone — the 760px step matches the
+   rest of the phone work instead of the old 680/420 pair. */
+@media (max-width:900px){.fg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.fg{grid-template-columns:minmax(0,1fr)}}
 .fi{display:flex; flex-direction:column; gap:3px; min-width:0}
 .fi .k{font-size:11.5px; color:var(--muted); font-weight:500}
 .fi .v{font-size:13.5px; font-weight:500; overflow-wrap:anywhere}
@@ -343,7 +343,9 @@ tfoot td{background:var(--sunk); font-weight:600; border-block-start:1px solid v
 /* Create form */
 .grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
 .grid3{display:grid; grid-template-columns:repeat(3,1fr); gap:14px}
-@media (max-width:680px){.grid2,.grid3{grid-template-columns:1fr}}
+/* Same 760px step as .fg, so a create form collapses in one go. */
+@media (max-width:900px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.grid2,.grid3{grid-template-columns:minmax(0,1fr)}}
 .f{display:flex; flex-direction:column; gap:5px; min-width:0}
 .f label{font-size:12px; font-weight:500; color:var(--muted)}
 .f label .req{color:var(--bad); font-weight:700}
@@ -404,9 +406,13 @@ tfoot td{background:var(--sunk); font-weight:600; border-block-start:1px solid v
 /* E-invoice pipeline */
 .pipe{display:flex; align-items:stretch; gap:0; padding:14px 16px; flex-wrap:wrap}
 .pstep{flex:1 1 130px; display:flex; flex-direction:column; gap:6px; padding-inline-end:14px; min-width:0}
-.pstep .ph{display:flex; align-items:center; gap:8px}
+/* Same nowrap-in-a-shrinkable-track bug as .lgi .nm: .pstep is flex:1 1 130px
+   and .pn never wraps, so one long stage name pushes the page sideways (17px
+   at 1024px, where the pipeline card is at its narrowest). Truncate instead.
+   Unconditional, because the overflow is not confined to a phone width. */
+.pstep .ph{display:flex; align-items:center; gap:8px; min-width:0}
 .pstep .pd{width:18px; height:18px; border-radius:50%; flex:none; display:grid; place-items:center; font-size:10px; font-weight:700}
-.pstep .pn{font-size:12.5px; font-weight:600; white-space:nowrap}
+.pstep .pn{font-size:12.5px; font-weight:600; white-space:nowrap; min-width:0; overflow:hidden; text-overflow:ellipsis}
 .pstep .pt{font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums}
 .pstep .pl{height:4px; border-radius:2px; background:var(--track)}
 .pstep.done .pd{background:var(--ok); color:#fff}
@@ -495,7 +501,7 @@ td.pick{width:38px; padding-inline-end:0}
 }
 .rpt-sec h2 span{font-variant-numeric:tabular-nums; letter-spacing:0; text-transform:none}
 .rpt-grid{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; padding:6px 10px 14px}
-@media (max-width:760px){.rpt-grid{grid-template-columns:1fr}}
+@media (max-width:760px){.rpt-grid{grid-template-columns:minmax(0,1fr)}}
 .rpt-item{
   display:grid; grid-template-columns:36px minmax(0,1fr); gap:12px; align-items:center;
   width:100%; min-height:72px; padding:12px 12px;
@@ -551,14 +557,14 @@ td.pick{width:38px; padding-inline-end:0}
 .rpt-sheet td:first-child{white-space:normal; max-width:360px}
 
 /* ── User menu (top-right avatar + dropdown) ─────────────────────────── */
-.umwrap{position:relative; display:flex; align-items:center; padding-inline-start:10px; border-inline-start:1px solid var(--border)}
+.umwrap{position:relative}
 .umavbtn{
-  width:40px; height:40px; border-radius:50%; border:0;
-  background:var(--brand); color:var(--brand-ink);
-  display:grid; place-items:center; font-size:13px; font-weight:700; letter-spacing:.02em; cursor:pointer;
+  width:34px; height:34px; border-radius:50%; border:2px solid var(--border-2);
+  background:var(--brand-soft); color:var(--brand);
+  display:grid; place-items:center; font-size:12px; font-weight:700; cursor:pointer;
+  transition:border-color .15s;
 }
-.umavbtn:hover,.umavbtn[aria-expanded="true"]{background:var(--brand-hover)}
-.umdrop-item:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+.umavbtn:hover,.umavbtn[aria-expanded="true"]{border-color:var(--brand)}
 .umdrop{
   position:absolute; inset-inline-end:0; top:calc(100% + 8px); min-width:200px;
   background:var(--surface); border:1px solid var(--border-2);
@@ -589,3 +595,181 @@ td.pick{width:38px; padding-inline-end:0}
 .team-pills{display:flex; flex-wrap:wrap; gap:4px}
 .team-check{display:flex; align-items:center; gap:8px; font-size:13px}
 .team-addon-label{font-size:11.5px; color:var(--muted); margin-top:6px}
+
+
+/* ─────────────────────────────────────────────────────────────────────
+   PHONE
+
+   Every rule below is inside a max-width query, so nothing here reaches a
+   desktop. 760px is the lists/forms step (lib/useMedia.ts PHONE_QUERY and
+   the blocks in styles/list-mobile.css); 900px is the shell step. No new
+   breakpoint is invented. Colours stay on tokens, offsets stay logical,
+   and the z-index ladder is untouched: action bar 55, tab bar 60, filter
+   sheet 62/63, .linkhits 70.
+
+   The two width-independent truncation fixes (`.lgi .nm`, `.pstep .pn`)
+   are NOT here — they sit with their own components above, because the
+   overflow they fix is not phone-only: it scrolled the page sideways at
+   901px and 1024px too.
+   ───────────────────────────────────────────────────────────────────── */
+
+@media (max-width:900px){
+  /* Shell is one column here (see the .app rule up top); the three-up field
+     grids stepped down alongside it. */
+  .topbar{padding-inline:14px}
+}
+
+@media (max-width:760px){
+  /* ── Page chrome ──────────────────────────────────────────────────── */
+  /* 18px all round is a desktop gutter. One value replaces the old
+     inline-only 520px rule. */
+  .page{padding:14px; gap:14px}
+  .topbar{padding:8px 12px; gap:8px}
+  /* Stack instead of relying on wrap, and let the actions fill the width. */
+  .phead{flex-direction:column; align-items:stretch; gap:12px}
+  .phead h1{font-size:19px}
+  /* 23px wraps mid-word on a 360px screen. */
+  .acts{width:100%}
+  .acts > .btn{flex:1 1 auto; justify-content:center}
+  /* A notch off the card padding so content is not squeezed at 360px.
+     Border and radius are deliberately left alone. */
+  .cbody{padding:13px}
+  .chead{padding:12px 13px}
+  .card + .card{margin-block-start:14px}
+  .filters{padding:12px}
+  .foot{padding:12px}
+  .addrow,.advtoggle{padding:12px 13px}
+  .advbody{padding:13px 13px 14px}
+  .rpt-bar{padding:14px 13px}
+  .rpt-find{padding:13px 13px 4px}
+  .rpt-sec h2{padding:14px 13px 6px}
+  .pipe{padding:13px}
+  .donutwrap{padding:13px; gap:14px}
+  .bars,.steps{padding:13px}
+  .empty{padding:28px 13px}
+
+  /* ── iOS zoom-on-focus ────────────────────────────────────────────── */
+  /* Safari zooms the page whenever a focused control is under 16px, which
+     then leaves the viewport scrolled sideways. 16px everywhere, with the
+     block padding re-cut so the control still lands at ~44px, not bloated. */
+  input,select,textarea,.ctl,.ctl.mini,.tsearch input{font-size:16px}
+  /* padding-block only: the inline padding belongs to `select.ctl` (caret)
+     and `.fsearch .ctl` (icon), and a shorthand here would wipe both. */
+  .ctl,.ctl.mini,.tsearch input{padding-block:9px; min-height:44px}
+  textarea.ctl{min-height:88px}
+  /* A checkbox is sized, not typed — keep it off the 44px min-height. */
+  input[type=checkbox],input[type=radio]{min-height:0; width:18px; height:18px}
+
+  /* ── Tap targets (44px floor) ─────────────────────────────────────── */
+  /* min-width too, not only min-height: every item-table row carries an
+     icon-only remove button (`×` / `✕`) that was 34px wide. A width floor
+     can only grow a button that is already narrower than a fingertip, so
+     nothing with a label moves. */
+  .btn,.btn.sm{min-height:44px; min-width:44px}
+  .seg button,.ftab,.rpt-links button,.langbtn,.advtoggle,.rsec{min-height:44px}
+  .pager button{min-width:44px; min-height:44px; height:44px}
+  /* Icon-only controls need the width too. */
+  .iconbtn,.umavbtn,.rm{min-width:44px; min-height:44px}
+  .iconbtn{width:44px; height:44px}
+  .umavbtn{width:44px; height:44px}
+  .rm{width:44px; height:44px}
+  /* Checkbox rows: the label is the target, not the 18px box. */
+  .rpt-check,.team-check{min-height:44px}
+  .rpt-checks{min-height:44px}
+  .umdrop-item,.tsearch-item,.linkhit,.qrow,.doc{min-height:44px}
+
+  /* ── Donut legend / charts ────────────────────────────────────────── */
+  /* The truncation itself is unconditional (see .lgi up in Charts); down
+     here the legend just takes the whole row under a centred donut. */
+  .legend{flex:1 1 100%}
+  .lgi{gap:8px; padding-inline:4px}
+  .donutwrap{flex-wrap:wrap}
+  .donutbox{margin-inline:auto}
+  /* Same failure mode, same fix, for the other label-plus-number rows. */
+  .bar .lab{min-width:0}
+  .bar .lab .l{min-width:0; overflow:hidden}
+  .doc .t{min-width:0}
+  .qrow .qtitle{min-width:0; overflow:hidden; text-overflow:ellipsis}
+
+  /* ── Tables that stay tables ──────────────────────────────────────── */
+  /* .twrap is the escape hatch for report sheets and ledgers that
+     list-mobile.css does not turn into cards. It scrolls itself; the page
+     never does. The symmetric inset shadow is the "there is more" hint and
+     needs no direction-aware rule. */
+  .twrap{
+    -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain; max-width:100%;
+    box-shadow:inset 11px 0 8px -11px var(--border-2), inset -11px 0 8px -11px var(--border-2);
+  }
+  .rpt-sheet td:first-child{max-width:210px}
+
+  /* A hand-rolled `<table class="data-table">` with no `.twrap` around it
+     (PriceListList, PaymentTermsTemplateList, and the Detail/Form screens
+     that reuse the class) has nothing to scroll inside, so `th{white-space:
+     nowrap}` scrolled the PAGE instead. Fixed layout plus wrapping cells
+     keeps it a table and keeps it inside the screen; above 760px the class
+     is still unstyled, so desktop is untouched. */
+  .data-table{table-layout:fixed; width:100%}
+  /* `anywhere` on the header would hyphenless-break "Currency" mid-word; the
+     header is short enough to wrap on its own once it may wrap at all. */
+  .data-table th{white-space:normal; font-size:11px; padding:9px 8px}
+  .data-table td{padding-inline:8px; overflow-wrap:anywhere}
+
+  /* ── Anchored overlays: clamp to the viewport ─────────────────────── */
+  /* None of these is a centred dialog — they are all pinned to a trigger —
+     so they stay anchored and are only stopped from scrolling the page.
+     Each keeps its own z-index (.linkhits 70, .umdrop 50, #tip 60). */
+  .linkhits{max-width:calc(100vw - 24px)}
+  .umdrop{max-width:calc(100vw - 24px); min-width:min(200px, calc(100vw - 24px))}
+  .tsearch-menu{max-width:calc(100vw - 24px)}
+  #tip{max-width:min(230px, calc(100vw - 24px))}
+  /* Global search takes the topbar row to itself rather than fighting for it. */
+  .tsearch{flex:1 1 100%; max-width:none; min-width:0; order:3}
+
+  /* ── Remaining grids and rows ─────────────────────────────────────── */
+  /* .pstep is flex:1 1 130px with a nowrap name — two per row at 360px
+     clips the label. One per row reads, and cannot overflow. */
+  .pstep{flex:1 1 100%; padding-inline-end:0}
+  /* .steps keeps the 2-up grid it already had at this width. */
+  .step{padding-inline-end:12px}
+  .step .val{font-size:17px}
+  .sbar{margin-inline-end:12px}
+  /* A fixed 168px field width plus gaps does not fit a 360px report bar. */
+  .rpt-fields .f{width:100%; flex:1 1 100%}
+  .rpt-fields .fsearch{flex:1 1 100%; min-width:0}
+  .rpt-grain{margin-inline-start:0; width:100%}
+  .rpt-grain .ctl{flex:1; min-width:0; width:auto}
+  .rpt-top{gap:10px}
+  .fsearch{flex:1 1 100%; min-width:0}
+  .rlist{gap:9px}
+  .ri{min-width:0}
+  .bulkbar{padding:11px 13px}
+  .bulkbar .grp{width:100%}
+  .bulkbar .grp .btn{flex:1 1 auto; justify-content:center}
+  .numblk{gap:8px}
+  .daterange{width:100%}
+  .cust{max-width:none}
+  .side{gap:14px}
+  .stack{gap:14px}
+
+  /* ── Safe areas ───────────────────────────────────────────────────── */
+  /* Nothing in this file is fixed to the bottom — the tab bar
+     (shell-mobile.css) and the action bar (form-mobile.css) own that edge
+     and pad themselves. .page's bottom clearance comes from `.mnav-pad`.
+     The two sticky-top surfaces here already carry the top inset. */
+  .topbar{top:env(safe-area-inset-top, 0px)}
+}
+
+/* ── Top-bar targets on the tablet band ─────────────────────────────── */
+/* Between 761 and 900px the phone shell is showing (no rail, tab bar at the
+   foot), so the top bar is being tapped, not clicked — but the 44px floors
+   above stop at 760px. These three are the only controls up there. */
+@media (min-width:761px) and (max-width:900px){
+  .langbtn{min-height:44px}
+  .iconbtn,.umavbtn{width:44px; height:44px; min-width:44px; min-height:44px}
+  .scanbtn{min-height:44px; height:auto}
+}
+
+/* Topbar tools (CaptureDesk) — kept from live */
+.tools{display:flex; align-items:center; gap:6px}
+.scanbtn{min-height:44px; height:auto; padding:0 14px; border-radius:10px; gap:6px}
+.langbtn:hover,.iconbtn.bordered:hover{background:var(--hover)}

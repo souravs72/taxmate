@@ -129,7 +129,12 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
       if (event.key === "Tab" && panelRef.current) trapTab(event, panelRef.current);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [onClose]);
 
   useEffect(() => {

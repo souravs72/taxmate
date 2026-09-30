@@ -5,12 +5,15 @@
  * Schema: name, asset_name, asset_category, company, purchase_date, purchase_amount, docstatus.
  * User: "Implement the plan… complete all the to-dos."
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -57,9 +60,20 @@ export default function AssetList() {
     { key: "name", header: t("ast.col.name"), cell: (r) => <span className="ordno">{r.asset_name || r.name}</span> },
     { key: "category", header: t("ast.col.category"), cell: (r) => r.asset_category || "—" },
     { key: "date", header: t("ast.col.purchaseDate"), cell: (r) => date(r.purchase_date) },
-    { key: "amount", header: t("ast.col.purchaseAmount"), cell: (r) => money(r.purchase_amount) },
+    { key: "amount", header: t("ast.col.purchaseAmount"), role: "amount", cell: (r) => money(r.purchase_amount) },
     { key: "status", header: t("ast.col.status"), cell: (r) => <Pill cls={r.docstatus === 1 ? "p-done" : r.docstatus === 2 ? "p-cxl" : "p-draft"}>{r.docstatus === 1 ? t("ast.statusActive") : r.docstatus === 2 ? t("inv.status.Cancelled") : t("inv.status.Draft")}</Pill> },
   ];
+
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.asset,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, page],
+  });
 
   return (
     <>
@@ -71,13 +85,16 @@ export default function AssetList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("ast.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/assets/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("ast.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

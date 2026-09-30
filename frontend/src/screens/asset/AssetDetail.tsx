@@ -19,6 +19,7 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type FinanceBook = {
   finance_book?: string;
@@ -45,6 +46,7 @@ type Doc = {
 
 export default function AssetDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.asset, name, listPath: "/assets" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.asset, name);
@@ -93,8 +95,9 @@ export default function AssetDetail() {
             canWrite={canSubmit}
             onEdit={draft ? () => nav(`/assets/${encodeURIComponent(name)}/edit`) : undefined}
             onSubmit={handleSubmit}
+            onDelete={deleteAction.onDelete}
             onCancel={handleCancel}
-            busy={busy}
+            busy={busy || deleteAction.loading}
           />
         }
       />

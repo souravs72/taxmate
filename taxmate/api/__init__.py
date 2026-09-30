@@ -189,6 +189,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "insert", "method": "taxmate.api.resource.insert"},
 			{"name": "save", "method": "taxmate.api.resource.save"},
 			{"name": "delete", "method": "taxmate.api.resource.delete"},
+			{"name": "bulk_delete", "method": "taxmate.api.resource.bulk_delete"},
 			{"name": "get_count", "method": "taxmate.api.resource.get_count"},
 			{"name": "group_by_count", "method": "taxmate.api.resource.group_by_count"},
 			{"name": "get_meta", "method": "taxmate.api.resource.get_meta"},

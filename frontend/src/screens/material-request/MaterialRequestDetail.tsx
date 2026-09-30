@@ -10,6 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales } from "../../lib/roles";
@@ -33,6 +34,7 @@ function mrPill(status?: string): string {
 
 export default function MaterialRequestDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.materialRequest, name, listPath: "/material-requests" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.materialRequest, name);
@@ -84,8 +86,14 @@ export default function MaterialRequestDetail() {
         actions={
           <>
             {draft && (
-              <button type="button" className="btn ghost"
-                onClick={() => nav(`/material-requests/${encodeURIComponent(name)}/edit`)}>{t("inv.edit")}</button>
+              <>
+                <button type="button" className="btn ghost"
+                  onClick={() => nav(`/material-requests/${encodeURIComponent(name)}/edit`)}>{t("inv.edit")}</button>
+                <button type="button" className="btn quiet" disabled={deleteAction.loading}
+                  onClick={deleteAction.onDelete}>
+                  {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
+                </button>
+              </>
             )}
             {draft && canSubmit && (
               <button type="button" className="btn" disabled={submitCall.loading}

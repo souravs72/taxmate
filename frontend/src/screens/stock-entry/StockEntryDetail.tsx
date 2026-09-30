@@ -17,6 +17,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; uom?: string;
@@ -48,6 +49,7 @@ function seLabel(ds?: number): string {
 
 export default function StockEntryDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.stockEntry, name, listPath: "/stock-entries" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.stockEntry, name);
@@ -85,9 +87,10 @@ export default function StockEntryDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={writable}
-            busy={busy}
+            busy={busy || deleteAction.loading}
             onEdit={() => nav(`/stock-entries/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.stockEntry, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.stockEntry, name }).then(() => mutate())}
           />
         }

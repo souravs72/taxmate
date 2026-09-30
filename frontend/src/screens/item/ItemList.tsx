@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -19,6 +23,7 @@ type Row = {
 };
 
 export default function ItemList() {
+  const session = useSession();
   const nav = useNavigate();
   const { get, set, page, setPage, start } = useListParams(PAGE);
   const q = get("q");
@@ -38,6 +43,16 @@ export default function ItemList() {
   });
   const { total } = useFilteredCount(DT.item, filters as unknown as FilterTuple[]);
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.item,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
 
   const columns: Column<Row>[] = [
     { key: "code", header: t("item.col.code"), cell: (it) => <span className="ordno">{it.name}</span> },
@@ -66,6 +81,8 @@ export default function ItemList() {
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("item.search")} />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(it) => it.name}
@@ -73,6 +90,7 @@ export default function ItemList() {
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("item.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
 
         <ListFooter shown={rows.length} total={total} page={page} pageSize={PAGE} onPage={setPage} />

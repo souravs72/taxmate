@@ -162,9 +162,12 @@ function OwnerDashboard() {
       <PageHead
         title={firstName ? `${t("dash.hello")}, ${firstName}` : t("nav.dashboard")}
         sub={session.company ? `${session.company} · ${date(session.today)}` : date(session.today)}
+        /* The role switch changes what you are looking at, not what you are
+           doing: on a phone it stays under the title instead of taking a whole
+           row of the action bar. Unchanged on a desktop. */
+        viewControls={<DashSwitch />}
         actions={
           <>
-            <DashSwitch />
             <button type="button" className="btn ghost" onClick={() => nav("/payments/new")}>{t("hub.receive")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices/new")}>{t("od.newBill")}</button>
             <button type="button" className="btn" onClick={() => nav("/invoices/new")}>{t("hub.newSale")}</button>
@@ -454,13 +457,13 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"
                     strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: tl.icon }} />
                 </span>
-                <div className="copy">
+                <span style={{ minWidth: 0 }}>
                   <span className="k">{t(`od.${tl.key}`)}</span>
                   <div className="v"><small>{cur}</small> {flow ? whole(flow.value) : "—"}</div>
-                </div>
+                </span>
                 {view === "growth" && flow && <Spark values={flow.by_month} colour={tl.colour} />}
               </div>
-              <div className="tnote">
+              <div className="foot">
                 {!flow ? t("od.noAccess")
                   : view === "growth" ? (
                     <>

@@ -181,9 +181,12 @@ export default function AccountantDashboard() {
       <PageHead
         title={firstName ? `${t("dash.hello")}, ${firstName}` : t("nav.dashboard")}
         sub={[session.company, date(session.today), d ? (openQueues ? fill(t("ad.queuesOpen"), { n: openQueues }) : t("ad.queuesClear")) : ""].filter(Boolean).join(" · ")}
+        /* The role switch changes what you are looking at, not what you are
+           doing: on a phone it stays under the title instead of taking a whole
+           row of the action bar. Unchanged on a desktop. */
+        viewControls={<DashSwitch />}
         actions={
           <>
-            <DashSwitch />
             <button type="button" className="btn ghost" onClick={openBankRec}>{t("ad.reconcileBank")}</button>
             <button type="button" className="btn ghost" onClick={() => nav("/journals/new")}>{t("ad.journal")}</button>
             <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>

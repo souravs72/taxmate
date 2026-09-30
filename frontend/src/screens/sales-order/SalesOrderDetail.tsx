@@ -15,11 +15,13 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, MiniBar, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Doc = SalesOrder & { items: SalesOrderItem[] };
 
 export default function SalesOrderDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.salesOrder, name, listPath: "/orders" });
   const nav = useNavigate();
 
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.salesOrder, name);
@@ -112,9 +114,10 @@ export default function SalesOrderDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={true}
-            busy={submitCall.loading || cancelCall.loading || amendCall.loading || !!busy}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || !!busy || deleteAction.loading}
             onEdit={() => nav(`/orders/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.salesOrder, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.salesOrder, name }).then(() => mutate())}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.salesOrder, name });

@@ -3,13 +3,16 @@
  * Callers: App.tsx /supplier-quotations
  * API: taxmate.api.resource.get_list on "Supplier Quotation"
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList, useDocCount } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -46,7 +49,7 @@ export default function SupplierQuotationList() {
   }, [company, q]);
 
   const list = useDocList<Row>(DT.supplierQuotation, {
-    fields: ["name", "supplier", "supplier_name", "transaction_date", "status", "grand_total", "currency"],
+    fields: ["name", "supplier", "supplier_name", "transaction_date", "status", "grand_total", "currency", "docstatus"],
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
@@ -62,8 +65,19 @@ export default function SupplierQuotationList() {
       key: "status", header: t("sq.col.status"),
       cell: (r) => <Pill cls={sqPill(r.status)}>{r.status || "Draft"}</Pill>,
     },
-    { key: "total", header: t("sq.col.total"), cell: (r) => `${r.currency || ""} ${money(r.grand_total)}`.trim() },
+    { key: "total", header: t("sq.col.total"), role: "amount", cell: (r) => `${r.currency || ""} ${money(r.grand_total)}`.trim() },
   ];
+
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.supplierQuotation,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, page],
+  });
 
   return (
     <>
@@ -76,13 +90,16 @@ export default function SupplierQuotationList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("sq.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/supplier-quotations/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("sq.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

@@ -1,9 +1,13 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSession } from "../../lib/session";
 import type { Filter } from "frappe-react-sdk";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
+import { canWrite } from "../../lib/roles";
 import { useDocList } from "../../lib/resource";
 import type { SalesOrder } from "../../types/erpnext";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
@@ -34,6 +38,7 @@ type GroupCount = { name: string; count: number };
 
 export default function SalesOrderList() {
   const nav = useNavigate();
+  const session = useSession();
   const { get, set, page, setPage, start } = useListParams(PAGE);
 
   const q = get("q");
@@ -83,6 +88,15 @@ export default function SalesOrderList() {
   const s = summary.data?.message;
   const cur = s?.currency || "";
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.salesOrder,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, customer, uiStatus, page],
+  });
 
   const stages = useMemo(() => {
     const counts: Record<Stage, number> = { draft: 0, confirmed: 0, delivered: 0, billed: 0 };
@@ -227,6 +241,8 @@ export default function SalesOrderList() {
               .map((x) => ({ value: x, label: t(`status.${x}`) }))} />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(o) => o.name}
@@ -234,6 +250,7 @@ export default function SalesOrderList() {
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("list.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
 
         <ListFooter shown={rows.length} total={total} page={page} pageSize={PAGE}

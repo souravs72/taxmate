@@ -1,9 +1,12 @@
+import { useCallback } from "react";
 /**
  * Pricing Rule list. Route: /pricing-rules.
  * API: get_list on "Pricing Rule". Callers: App.tsx. Phase 9.
  */
 import { useNavigate } from "react-router-dom";
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { useSession } from "../../lib/session";
@@ -60,6 +63,18 @@ export default function PricingRuleList() {
     { key: "disable", header: t("prule.col.active"), cell: (r) => r.disable ? t("prule.disabled") : t("prule.enabled") },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.pricingRule,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead
@@ -76,16 +91,18 @@ export default function PricingRuleList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("prule.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
         {list.isLoading ? (
           <Loading />
         ) : (
-          <DataTable<Row>
-            rows={list.data ?? []}
+        <DataTable<Row>
+            rows={rows}
             rowKey={(r) => r.name}
             onOpen={(r) => nav(`/pricing-rules/${encodeURIComponent(r.name)}`)}
             state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
             emptyLabel={t("prule.empty")}
             columns={columns}
+            selection={draftDelete.selection(rows)}
           />
         )}
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />

@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 /**
  * Mode of Payment list.
  * Callers: App.tsx /modes-of-payment.
@@ -6,6 +7,8 @@
  */
 import { useNavigate } from "react-router-dom";
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -49,6 +52,17 @@ export default function ModeOfPaymentList() {
     { key: "enabled", header: t("mop.col.enabled"), cell: (r) => r.enabled ? t("yes") : t("no") },
   ];
 
+  const rows = list.data ?? [];
+
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.modeOfPayment,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead
@@ -66,16 +80,18 @@ export default function ModeOfPaymentList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("mop.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
         {list.isLoading ? (
           <Loading />
         ) : (
-          <DataTable<Row>
-            rows={list.data ?? []}
+        <DataTable<Row>
+            rows={rows}
             rowKey={(r) => r.name}
             onOpen={(r) => nav(`/modes-of-payment/${encodeURIComponent(r.name)}`)}
             state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
             emptyLabel={t("mop.empty")}
             columns={columns}
+            selection={draftDelete.selection(rows)}
           />
         )}
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />

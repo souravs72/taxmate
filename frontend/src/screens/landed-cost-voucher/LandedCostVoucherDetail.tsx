@@ -13,10 +13,12 @@ import { t } from "../../i18n/strings";
 import { Card, Loading, ErrorBox, PageHead, Pill } from "../../components/ui";
 import { money } from "../../lib/format";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useState } from "react";
 
 export default function LandedCostVoucherDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.landedCostVoucher, name, listPath: "/landed-cost-vouchers" });
   const nav = useNavigate();
   const session = useSession();
   const doc = useDoc<Record<string, unknown>>(DT.landedCostVoucher, name, name);
@@ -66,8 +68,9 @@ export default function LandedCostVoucherDetail() {
               canCancel={canSubmitDoc}
               onEdit={isDraft ? () => nav(`/landed-cost-vouchers/${encodeURIComponent(name)}/edit`) : undefined}
               onSubmit={isDraft ? () => doAction("submit") : undefined}
+            onDelete={deleteAction.onDelete}
               onCancel={isSubmitted ? () => doAction("cancel") : undefined}
-              busy={busy}
+              busy={busy || deleteAction.loading}
             />
           </>
         }

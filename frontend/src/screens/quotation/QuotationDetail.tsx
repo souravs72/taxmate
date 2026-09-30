@@ -17,6 +17,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; };
 type Doc = {
@@ -34,6 +35,7 @@ function quotPill(status?: string): string {
 
 export default function QuotationDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.quotation, name, listPath: "/quotations" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.quotation, name);
@@ -84,9 +86,10 @@ export default function QuotationDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={true}
-            busy={submitCall.loading || cancelCall.loading || amendCall.loading || mapBusy}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || mapBusy || deleteAction.loading}
             onEdit={() => nav(`/quotations/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.quotation, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.quotation, name }).then(() => mutate())}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.quotation, name });

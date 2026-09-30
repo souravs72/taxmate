@@ -1,13 +1,16 @@
 /**
  * Corporate tax filing list.
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -59,7 +62,7 @@ export default function CtFilingList() {
   }, [baseFilters, deadline, q]);
 
   const list = useDocList<Row>(DT.ctFiling, {
-    fields: ["name", "period_start", "period_end", "filing_due_date", "deadline_status", "tax_payable", "taxable_profit"],
+    fields: ["name", "period_start", "period_end", "filing_due_date", "deadline_status", "tax_payable", "taxable_profit", "docstatus"],
     filters, orderBy: { field: "filing_due_date", order: "asc" }, limit: PAGE, limit_start: start,
   }, paused ? null : undefined);
   const count = useDocCount(DT.ctFiling, filters, undefined, paused ? null : undefined);
@@ -87,6 +90,17 @@ export default function CtFilingList() {
     { key: "tax", header: t("ct.col.tax"), className: "n tot", cell: (r) => money(r.tax_payable) },
     { key: "deadline", header: t("v201.col.deadline"), cell: (r) => <Pill cls={deadlinePill(r.deadline_status)}>{r.deadline_status || "—"}</Pill> },
   ];
+
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.ctFiling,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, deadline, page],
+  });
 
   return (
     <>
@@ -118,10 +132,14 @@ export default function CtFilingList() {
           <SelectFilter value={deadline} onChange={(v) => set("deadline", v)} allLabel={t("v201.allDeadline")}
             options={DEADLINES.map((d) => ({ value: d, label: d }))} />
         </FilterBar>
-        <DataTable<Row> rows={list.data ?? []} rowKey={(r) => r.name}
+        <BulkDraftBar drafts={draftDelete} />
+
+        <DataTable<Row> rows={rows} rowKey={(r) => r.name}
           onOpen={(r) => nav(`/ct-filings/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-          emptyLabel={t("ct.empty")} columns={columns} />
+          emptyLabel={t("ct.empty")} columns={columns}
+          selection={draftDelete.selection(rows)}
+        />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
     </>

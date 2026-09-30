@@ -11,6 +11,7 @@ import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 /** The pipeline the e-invoice walks, in order. */
 const PIPE = ["Generated", "Queued", "Submitted", "Accepted"] as const;
@@ -41,6 +42,7 @@ type EInvoiceLog = {
 
 export default function InvoiceDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.salesInvoice, name, listPath: "/invoices" });
   const nav = useNavigate();
   const session = useSession();
 
@@ -125,7 +127,7 @@ export default function InvoiceDetail() {
      The log in particular is readable by System Manager, Accounts Manager
      and Accounts User only, so a UAE-Tax-Manager-only user sees why the
      e-invoice actions are missing rather than nothing at all.            */
-  const busyError = submitCall.error || cancelCall.error || einvoiceCall.error
+  const busyError = submitCall.error || cancelCall.error || deleteAction.error || einvoiceCall.error
     || syncCall.error || fetchCall.error
     || payments.error || creditNotes.error || logs.error;
 
@@ -162,9 +164,10 @@ export default function InvoiceDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={true}
-            busy={submitCall.loading || cancelCall.loading || amendCall.loading}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || deleteAction.loading}
             onEdit={() => nav(`/invoices/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.salesInvoice, name } }).then(refresh)}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.salesInvoice, name }).then(refresh)}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.salesInvoice, name });

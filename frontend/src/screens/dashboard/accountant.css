@@ -17,7 +17,10 @@
 /* ── Queue tiles ── */
 .ad-queues{display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:14px}
 @media (max-width:1280px){.ad-queues{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media (max-width:640px){.ad-queues{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* 760px, not 640px, so the queue tiles step with the rest of the phone pass
+   (lib/useMedia.ts PHONE_QUERY). The 1280px step above is a desktop choice
+   and is deliberately left alone. */
+@media (max-width:760px){.ad-queues{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .ad-q{
   --q:var(--warn); --q-bg:var(--warn-bg);
   display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding:14px 16px;
@@ -47,7 +50,7 @@
 .ad-dot-locked{background:var(--ok)}
 .ad-dot-unlocked{background:var(--warn)}
 /* Phones: the month picker takes the full row and its buttons share it (Arabic month names are long). */
-@media (max-width:560px){
+@media (max-width:760px){
   .ad-month .seg{display:flex; width:100%}
   .ad-month .seg button{flex:1 1 0; min-width:0; justify-content:center; padding-inline:6px; white-space:normal; text-align:center}
 }
@@ -99,7 +102,6 @@
 .ad-rowlink{border:0; background:transparent; padding:0; color:inherit; font:inherit; text-align:start; cursor:pointer; max-width:100%}
 .ad-rowlink:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
 .ad-tbl-vat{--cols:minmax(0,2.1fr) minmax(0,1fr) minmax(0,.9fr)}
-.ad-tbl-bank{--cols:minmax(180px,2fr) repeat(5,minmax(96px,1fr)) 132px; min-width:820px}
 .ad-tbl-age{--cols:minmax(120px,1fr) repeat(5,68px) 86px; min-width:560px}
 .ad-tbl-age .th,.ad-tbl-age .td{padding-inline:5px}
 
@@ -150,7 +152,7 @@
 /* ── Compliance calendar: five across ── */
 .ad-cal{grid-template-columns:repeat(5,minmax(0,1fr))}
 @media (max-width:1100px){.ad-cal{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:560px){.ad-cal{grid-template-columns:1fr}}
+@media (max-width:760px){.ad-cal{grid-template-columns:minmax(0,1fr)}}
 
 @media (prefers-reduced-motion:reduce){.adash *{scroll-behavior:auto}}
 
@@ -167,3 +169,31 @@
 .ad-bank-sum > div{display:flex; justify-content:space-between; gap:12px; font-size:13px}
 .ad-bank-sum .num{font-variant-numeric:tabular-nums; font-weight:600}
 .ad-tbl-bank-lite{--cols:minmax(140px,2.2fr) minmax(88px,1fr) minmax(64px,.7fr) minmax(96px,1fr) minmax(88px,.8fr)}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Phone pass (760px — the same step as lib/useMedia.ts and the rest of the
+   mobile work). Everything above this line is width-independent or steps at
+   900/1100, so nothing here is painted on a desktop dashboard.
+   ───────────────────────────────────────────────────────────────────── */
+@media (max-width:760px){
+  /* The grid tables are `nowrap` tabular numerals in fr tracks. At 390px a
+     six-figure VAT box (`2,810,400.25`) was 16px wider than its cell and bled
+     over the column beside it. Tighter padding, one step down in size, and a
+     re-weighted first column give the figures the room; anything still long
+     ellipsises inside its own cell instead of over its neighbour. */
+  .ad-tbl .th,.ad-tbl .td{padding-inline:6px; font-size:12px; overflow:hidden; text-overflow:ellipsis}
+  .ad-tbl .th:first-child,.ad-tbl .td:first-child{padding-inline-start:12px}
+  .ad-tbl .th:last-child,.ad-tbl .td:last-child{padding-inline-end:12px}
+  .ad-tbl-vat{--cols:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr)}
+
+  /* 44px tap targets. These are inline-styled buttons (a document number in a
+     sentence, a party name in a table row, an activity row), so the floor goes
+     on the target, not on the type. */
+  .ad-link{min-height:44px; display:inline-flex; align-items:center}
+  .ad-rowlink{min-height:44px; display:flex; align-items:center}
+  .ad-tbl .tr{min-height:44px}
+  .ad-q{min-height:44px}
+  .ad-act{min-height:44px}
+  .ad-einv-counts{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ad-einv-counts > div:nth-child(2n){border-inline-end:0}
+}
