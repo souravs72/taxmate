@@ -12,7 +12,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import LinkField from "../../components/LinkField";
 
 type PaymentRow = { mode_of_payment?: string; default?: 0 | 1 };
@@ -33,12 +33,20 @@ export default function PosProfileDetail() {
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.posProfile, name);
   const save = useSave();
   const [warehouse, setWarehouse] = useState("");
+  const [priceList, setPriceList] = useState("");
+  const [taxes, setTaxes] = useState("");
+  const [disabled, setDisabled] = useState<0 | 1>(0);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
   useEffect(() => {
-    if (data) setWarehouse(data.warehouse ?? "");
+    if (data) {
+      setWarehouse(data.warehouse ?? "");
+      setPriceList(data.selling_price_list ?? "");
+      setTaxes(data.taxes_and_charges ?? "");
+      setDisabled(data.disabled ? 1 : 0);
+    }
   }, [data]);
 
   if (isLoading) return <Loading />;
@@ -48,7 +56,7 @@ export default function PosProfileDetail() {
   async function handleSave() {
     setSaving(true); setSaveError(null);
     try {
-      await save.updateDoc(DT.posProfile, name, { warehouse });
+      await save.updateDoc(DT.posProfile, name, { warehouse, disabled, selling_price_list: priceList, taxes_and_charges: taxes });
       setEditing(false);
       mutate();
     } catch (e) { setSaveError(e); } finally { setSaving(false); }
@@ -74,8 +82,29 @@ export default function PosProfileDetail() {
       <Card title={t("posp.title")}>
         <ReadRow k={t("posp.col.company")} v={data.company || "—"} />
         <ReadRow k={t("posp.col.status")} v={<Pill cls={data.disabled ? "p-cxl" : "p-done"}>{data.disabled ? t("common.disabled") : t("common.active")}</Pill>} />
-        <ReadRow k={t("posp.col.priceList")} v={data.selling_price_list || "—"} />
-        <ReadRow k={t("posp.col.taxes")} v={data.taxes_and_charges || "—"} />
+        {editing ? (
+          <>
+            <Field label={t("posp.col.priceList")}>
+              <LinkField doctype={DT.priceList} value={priceList} onChange={setPriceList} />
+            </Field>
+            <Field label={t("posp.col.taxes")}>
+              <LinkField doctype={DT.taxTemplate} value={taxes} onChange={setTaxes} />
+            </Field>
+          </>
+        ) : (
+          <>
+            <ReadRow k={t("posp.col.priceList")} v={data.selling_price_list || "—"} />
+            <ReadRow k={t("posp.col.taxes")} v={data.taxes_and_charges || "—"} />
+          </>
+        )}
+        {editing ? (
+          <CheckField
+            label={t("common.disabled")}
+            hint={t("doc.offHint")}
+            checked={!!disabled}
+            onChange={(on) => setDisabled(on ? 1 : 0)}
+          />
+        ) : null}
         {editing ? (
           <Field label={t("posp.col.warehouse")}>
             <LinkField doctype={DT.warehouse} value={warehouse} onChange={setWarehouse} placeholder="Warehouse" />

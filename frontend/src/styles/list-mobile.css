@@ -1,0 +1,421 @@
+/* ─────────────────────────────────────────────────────────────────────
+   List screens on a phone.
+
+   Two swaps, both below 760px and both driven from JS (lib/useMedia.ts),
+   so nothing here is ever painted on a desktop list:
+     · DataTable renders `.lm-card`s instead of a sideways-scrolling table
+     · FilterBar renders `.lm-fbar` + a bottom sheet instead of a filter row
+
+   Rules: every colour is a token from styles/tokens.css (so light and dark
+   both work with no extra block), every offset is logical (so RTL mirrors
+   itself), and every tap target is at least 44px.
+
+   Naming: `lm-` on every class. `.filters`, `.foot` and `.pager` belong to
+   app.css — the two overrides below are deliberately more specific than
+   their originals, because CSS import order here is not guaranteed.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ── Cards ──────────────────────────────────────────────────────────── */
+
+.lm-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  min-width: 0;
+}
+
+.lm-all {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding-inline: 4px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.lm-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 13px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  text-align: start;
+}
+
+.lm-card[role="button"] {
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.lm-card[role="button"]:hover,
+.lm-card[role="button"]:active {
+  background: var(--hover);
+  border-color: var(--border-2);
+}
+
+.lm-card:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.lm-card.lm-picked {
+  background: var(--brand-soft);
+  border-color: var(--brand-line);
+}
+
+/* The checkbox keeps its own 44px target inside the card's click area. */
+.lm-pick {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  margin: -10px -8px -10px -10px;
+  margin-inline: -10px -8px;
+  cursor: pointer;
+}
+
+.lm-pick input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+.lm-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.lm-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+}
+
+.lm-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A title cell is often `.ordno` / `.cust`, which carry their own clamps. */
+.lm-title > * {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.lm-amt {
+  flex: none;
+  text-align: end;
+  font-size: 13.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.lm-sub {
+  font-size: 12px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Up to three meta bits, one wrapped line, separated by a middot. */
+.lm-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+  min-width: 0;
+}
+
+.lm-bit {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.lm-bit:empty {
+  display: none;
+}
+
+.lm-bit + .lm-bit::before {
+  content: "·";
+  color: var(--faint);
+  margin-inline-end: 8px;
+}
+
+.lm-bit small {
+  color: var(--faint);
+  margin-inline-start: 4px;
+}
+
+.lm-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lm-tag {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* A status chip is `white-space:nowrap` by definition, and `min-width:0` on
+   the wrapper does not reach the chip inside it. A long label — an Arabic
+   workflow state, a payment direction with the party's name in it — pushed
+   the whole page sideways. The chip keeps its shape and ellipsises instead. */
+.lm-tag > * {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Filter bar + sheet ─────────────────────────────────────────────── */
+
+.lm-fbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-block-end: 1px solid var(--border);
+  min-width: 0;
+}
+
+.lm-fbar .fsearch {
+  flex: 1;
+  min-width: 0;
+}
+
+.lm-fbar .fsearch .ctl {
+  min-height: 44px;
+}
+
+.lm-fbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  min-height: 44px;
+  padding: 8px 13px;
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.lm-fbtn:hover {
+  background: var(--hover);
+}
+
+.lm-fbtn[aria-expanded="true"],
+.lm-fbtn.lm-on {
+  border-color: var(--brand-line);
+  color: var(--brand);
+  background: var(--brand-soft);
+}
+
+.lm-fbtn .lm-ic {
+  width: 15px;
+  height: 15px;
+  flex: none;
+  color: currentColor;
+}
+
+.lm-fcount {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  min-width: 18px;
+  height: 18px;
+  padding-inline: 5px;
+  border-radius: 20px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Above the topbar (20), the global-search menu (40) and the user menu (50),
+   but below `.linkhits` (70) — a LinkFilter's own dropdown opens in a portal
+   on <body>, and it has to land on top of the sheet that holds the field. */
+.lm-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 62;
+  background: rgba(2, 6, 23, .45);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.lm-sheet {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 63;
+  display: flex;
+  flex-direction: column;
+  max-height: min(86dvh, 640px);
+  background: var(--surface);
+  border-block-start: 1px solid var(--border);
+  border-start-start-radius: 16px;
+  border-start-end-radius: 16px;
+  box-shadow: 0 -12px 40px rgba(0, 0, 0, .22);
+  padding-block-end: env(safe-area-inset-bottom, 0px);
+}
+
+.lm-sheet:focus {
+  outline: none;
+}
+
+.lm-shead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-block-end: 1px solid var(--border);
+  flex: none;
+}
+
+.lm-shead b {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.lm-sapplied {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.lm-x {
+  margin-inline-start: auto;
+  width: 44px;
+  height: 44px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lm-x:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.lm-sbody {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px 14px;
+}
+
+/* Each relocated control gets the full width and a 44px target. */
+.lm-frow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.lm-frow > * {
+  min-width: 0;
+}
+
+.lm-frow .ctl,
+.lm-frow select.ctl,
+.lm-frow input.ctl {
+  width: 100%;
+  min-height: 44px;
+}
+
+.lm-frow .daterange {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 10px;
+}
+
+.lm-sfoot {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-block-start: 1px solid var(--border);
+  background: var(--surface);
+  flex: none;
+}
+
+.lm-sfoot .btn {
+  flex: 1;
+  justify-content: center;
+  min-height: 44px;
+}
+
+/* ── Overrides on app.css (kept more specific than the originals) ───── */
+
+@media (max-width: 760px) {
+  /* A pager button on a phone is a real target, not a 30px chip. */
+  .foot .pager {
+    gap: 6px;
+  }
+
+  .foot .pager button {
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    font-size: 13.5px;
+  }
+
+  .foot {
+    padding: 12px;
+  }
+}
+
+/* Nothing in a card may push the page sideways. */
+.lm-cards,
+.lm-card,
+.lm-fbar {
+  max-width: 100%;
+}

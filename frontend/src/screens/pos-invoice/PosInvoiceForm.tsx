@@ -33,6 +33,7 @@ type Doc = {
   docstatus?: number;
   items?: { item_code?: string; qty?: number; rate?: number }[];
   payments?: { mode_of_payment?: string; amount?: number }[];
+  selling_price_list?: string;
 };
 
 export default function PosInvoiceForm() {
@@ -51,6 +52,7 @@ export default function PosInvoiceForm() {
   const [vatEmirate, setVatEmirate] = useState("");
   const [lines, setLines] = useState<Line[]>([{ item_code: "", qty: 1, rate: 0 }]);
   const [payments, setPayments] = useState<Payment[]>([{ mode_of_payment: "Cash", amount: 0 }]);
+  const [priceList, setPriceList] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -66,6 +68,7 @@ export default function PosInvoiceForm() {
       setVatEmirate(d.vat_emirate ?? "");
       setLines((d.items ?? []).map((l) => ({ item_code: l.item_code ?? "", qty: l.qty ?? 1, rate: l.rate ?? 0 })));
       setPayments((d.payments ?? []).map((p) => ({ mode_of_payment: p.mode_of_payment ?? "Cash", amount: p.amount ?? 0 })));
+      setPriceList(d.selling_price_list ?? "");
     }
   }, [isNew, existing.data]);
 
@@ -93,6 +96,7 @@ export default function PosInvoiceForm() {
         vat_emirate: vatEmirate,
         ...(customer ? { customer } : {}),
         ...(posProfile ? { pos_profile: posProfile } : {}),
+        ...(priceList ? { selling_price_list: priceList } : {}),
         items: lines.filter((l) => l.item_code).map((l) => ({
           doctype: "POS Invoice Item",
           item_code: l.item_code,
@@ -120,6 +124,9 @@ export default function PosInvoiceForm() {
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("pos.title")}>
+          <Field label={t("posp.col.priceList")}>
+            <LinkField doctype={DT.priceList} value={priceList} onChange={setPriceList} placeholder={t("posp.col.priceList")} />
+          </Field>
           <Field label={t("pos.col.profile")}>
             <LinkField doctype={DT.posProfile} value={posProfile} onChange={setPosProfile} placeholder={t("pos.col.profile")} />
           </Field>

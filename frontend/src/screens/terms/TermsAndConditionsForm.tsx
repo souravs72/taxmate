@@ -9,7 +9,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = {
@@ -18,6 +18,7 @@ type Doc = {
   buying?: 0 | 1;
   selling?: 0 | 1;
   terms?: string;
+  disabled?: 0 | 1;
 };
 
 export default function TermsAndConditionsForm() {
@@ -38,6 +39,7 @@ export default function TermsAndConditionsForm() {
   const [selling, setSelling] = useState<0 | 1>(1);
   const [buying, setBuying] = useState<0 | 1>(0);
   const [terms, setTerms] = useState("");
+  const [disabled, setDisabled] = useState<0 | 1>(0);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -48,6 +50,7 @@ export default function TermsAndConditionsForm() {
     setSelling(d.selling ? 1 : 0);
     setBuying(d.buying ? 1 : 0);
     setTerms(d.terms || "");
+    setDisabled(d.disabled ? 1 : 0);
   }, [existing.data]);
 
   const ready = !!termsTitle.trim();
@@ -57,7 +60,7 @@ export default function TermsAndConditionsForm() {
     setBusy(true);
     setSaveError(null);
     try {
-      const payload = { title: termsTitle, buying, selling, terms };
+      const payload = { title: termsTitle, buying, selling, terms, disabled };
       if (isNew) {
         const doc = (await create.createDoc("Terms and Conditions", payload)) as { name: string };
         nav(`/terms-and-conditions/${encodeURIComponent(doc.name)}`);
@@ -94,6 +97,12 @@ export default function TermsAndConditionsForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("common.disabled")}
+              hint={t("doc.offHint")}
+              checked={!!disabled}
+              onChange={(on) => setDisabled(on ? 1 : 0)}
+            />
             <Field label={t("tc.col.name")} required>
               <input
                 className="ctl"

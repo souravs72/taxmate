@@ -1,3 +1,8 @@
+import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 /**
  * AddressList — Phase 12. Standalone address directory.
  * Callers: App.tsx /addresses
@@ -5,14 +10,15 @@
  * Schema: {name, address_title, address_type, city, country, emirate}
  * Instruction: Phase 12 — Standalone Address list/form/detail
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { t } from "../../i18n/strings";
-import { Card, PageHead } from "../../components/ui";
+import { Card } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -27,6 +33,7 @@ type Row = {
 };
 
 export default function AddressList() {
+  const session = useSession();
   const nav = useNavigate();
   const { get, set, page, setPage, start } = useListParams(PAGE);
   const q = get("q");
@@ -59,26 +66,43 @@ export default function AddressList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.address,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
-    <>
-      <PageHead title={t("addr.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/addresses/new")}>
-            {t("addr.new")}
-          </button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("addr.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/addresses/new")}>
+              {t("addr.new")}
+            </button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("addr.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/addresses/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("addr.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter
           shown={(list.data ?? []).length}
@@ -88,6 +112,6 @@ export default function AddressList() {
           onPage={setPage}
         />
       </Card>
-    </>
+    </ListScreen>
   );
 }

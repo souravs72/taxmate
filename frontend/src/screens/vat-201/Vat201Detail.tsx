@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
@@ -57,6 +58,7 @@ function deadlinePill(status?: string): string {
 
 export default function Vat201Detail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.vat201, name, listPath: "/vat-201" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.vat201, name);
@@ -93,6 +95,13 @@ export default function Vat201Detail() {
               <button type="button" className="btn ghost" disabled={generate.loading}
                 onClick={() => void regenerate()}>
                 {generate.loading ? t("soc.saving") : t("v201.generate")}
+              </button>
+            )}
+
+            {draft && (
+              <button type="button" className="btn quiet" disabled={deleteAction.loading}
+                onClick={deleteAction.onDelete}>
+                {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
               </button>
             )}
             {draft && canSubmit && (

@@ -1,0 +1,96 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Page actions on a phone.
+
+   Below 760px (the same breakpoint as lib/useMedia.ts `PHONE_QUERY` and the
+   `max-width:760px` blocks in list-mobile.css) `PageHead` stops rendering its
+   `.acts` cluster inline in the header and renders a `.pact-bar` instead: a
+   fixed bar pinned directly above the phone tab bar. ~73 screens route their
+   buttons through that one prop, so this is the whole app's action bar.
+
+   Why a wrapping bar and not "two buttons + a ⋮ overflow": every caller hands
+   `PageHead` a single fragment (DetailActions, FormActions), and the children
+   inside it are conditionally `false`, so the *rendered* action count is not
+   knowable from outside. Wrapping needs no count. The bar grows to a second
+   row instead of hiding anything, and `--pact-h` (published by PageHead from a
+   ResizeObserver) keeps the page's bottom clearance honest at either height.
+
+   Z-index ladder, bottom to top — keep these in step:
+       55  .pact-bar          this file
+       60  .mnav              tab bar            (shell-mobile.css)
+       62  .lm-scrim          list filter sheet  (list-mobile.css)
+       63  .lm-sheet          list filter sheet  (list-mobile.css)
+       70  .linkhits          LinkField dropdown (app.css, portalled to body)
+       70  .msheet-scrim      nav "More" sheet   (shell-mobile.css)
+       71  .msheet            nav "More" sheet   (shell-mobile.css)
+   The bar is the lowest fixed layer on purpose: every sheet must cover it.
+
+   Colours are tokens from styles/tokens.css only, so light and dark both work
+   with no extra block. Offsets are logical properties (inset-inline,
+   padding-inline, border-block-start), so RTL mirrors itself with no
+   direction-aware rule anywhere in this file.
+
+   Above 760px nothing here applies and PageHead's markup is unchanged.
+   ───────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 760px) {
+
+  /* ── The bar ──────────────────────────────────────────────────────── */
+  .pact-bar {
+    position: fixed;
+    inset-inline: 0;
+    bottom: calc(var(--mnav-h, 58px) + env(safe-area-inset-bottom, 0px));
+    z-index: 55;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 8px;
+    padding: 10px;
+    background: var(--surface);
+    border-block-start: 1px solid var(--border);
+  }
+
+  /* Children are whatever the screen passed — usually `.btn`s, but the rule
+     is written for any element so an `extra` slot behaves too. `min-width` is
+     what makes the bar wrap: with a zero flex-basis everything would always
+     squeeze onto one line, however many actions there are. */
+  .pact-bar > * {
+    flex: 1 1 auto;
+    min-width: 100px;
+    max-width: 100%;
+    min-height: 44px;
+    justify-content: center;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  /* app.css gives :focus-visible a 2px outline with a 2px offset; inside a
+     bar with 10px padding the offset ring would be clipped by the edge, so
+     pull it inward instead of losing it. */
+  .pact-bar > *:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: -2px;
+  }
+
+  /* ── Content clearance ────────────────────────────────────────────── */
+  /* shell-mobile.css already reserves the tab bar's height on `.page.mnav-pad`.
+     When an action bar is on screen the page owes it that height too. `:has()`
+     is the only hook available: the `.page` element is owned by AppShell and
+     the bar cannot be a normal-flow spacer in the header — extra height at the
+     *top* of the document does not move the *bottom* of it out from under a
+     fixed bar. `:has()` is supported in every current browser; where it is
+     not, the page simply keeps today's tab-bar-only padding. */
+  .app:has(.pact-bar) .page.mnav-pad {
+    padding-block-end: calc(
+      var(--mnav-h, 58px) + var(--pact-h, 56px) + env(safe-area-inset-bottom, 0px) + 16px
+    );
+  }
+}
+
+/* ── View controls under the title ──────────────────────────────────── */
+/* PageHead `viewControls` (the dashboards' Owner/Accountant switch) drop out
+   of the header row on a phone so they do not eat a row of the action bar. */
+@media (max-width: 760px) {
+  .phead-views { margin-block-start: 10px; display: flex; flex-wrap: wrap; gap: 8px; }
+  .phead-views .seg { width: 100%; }
+  .phead-views .seg button { flex: 1 1 0; justify-content: center; }
+}

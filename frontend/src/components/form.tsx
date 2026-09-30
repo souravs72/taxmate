@@ -7,8 +7,12 @@
  * appeared. Here the count comes from the list.
  */
 
+import { useContext, useLayoutEffect, useRef } from "react";
+
 import { t } from "../i18n/strings";
-import { Card } from "./ui";
+import { useLang } from "../lib/i18n";
+import { clearFormActions, publishFormActions } from "../lib/pageActions";
+import { Card, InPageHead } from "./ui";
 
 /** Main column plus a sticky aside. The `stack` spaces the main column. */
 export function FormLayout({ children, aside }: {
@@ -95,15 +99,7 @@ export function MissingSummary({
   );
 }
 
-/**
- * Discard / Save draft / Submit.
- *
- * `busy` disables everything and renames the save, so a double-click cannot
- * post twice — which on a payment means posting twice to the ledger.
- */
-export function FormActions({
-  onDiscard, onSave, onSubmit, busy, ready, submitLabel, saveLabel, extra,
-}: {
+type ActionApi = {
   onDiscard: () => void;
   onSave?: () => void;
   onSubmit?: () => void;
@@ -112,22 +108,58 @@ export function FormActions({
   submitLabel?: string;
   saveLabel?: string;
   extra?: React.ReactNode;
-}) {
-  const blocked = !!busy || ready === false;
+};
+
+/**
+ * Reads handlers from a ref so a click always runs the latest save, even
+ * when the header has not re-rendered since the last keystroke.
+ */
+function ActionButtons({ api }: { api: React.RefObject<ActionApi | null> }) {
+  const a = api.current;
+  if (!a) return null;
+  const blocked = !!a.busy || a.ready === false;
   return (
     <>
-      <button className="btn ghost" onClick={onDiscard}>{t("soc.discard")}</button>
-      {extra}
-      {onSave && (
-        <button className="btn ghost" disabled={blocked} onClick={onSave}>
-          {busy ? t("soc.saving") : (saveLabel ?? t("soc.save"))}
+      <button type="button" className="btn ghost" onClick={() => api.current?.onDiscard()}>{t("soc.discard")}</button>
+      {a.extra}
+      {a.onSave && (
+        <button type="button" className="btn ghost" disabled={blocked} onClick={() => api.current?.onSave?.()}>
+          {a.busy ? t("soc.saving") : (a.saveLabel ?? t("soc.save"))}
         </button>
       )}
-      {onSubmit && (
-        <button className="btn" disabled={blocked} onClick={onSubmit}>
-          {submitLabel ?? t("inv.submit")}
+      {a.onSubmit && (
+        <button type="button" className="btn" disabled={blocked} onClick={() => api.current?.onSubmit?.()}>
+          {a.submitLabel ?? t("inv.submit")}
         </button>
       )}
     </>
   );
+}
+
+/**
+ * Discard / Save draft / Submit.
+ *
+ * `busy` disables everything and renames the save, so a double-click cannot
+ * post twice — which on a payment means posting twice to the ledger.
+ *
+ * Screens that pass this as PageHead `actions` render the buttons here.
+ * Screens that leave it in the form body publish the same cluster so PageHead
+ * can put it in that header slot, including the phone bar.
+ */
+export function FormActions({
+  onDiscard, onSave, onSubmit, busy, ready, submitLabel, saveLabel, extra,
+}: ActionApi) {
+  const inHead = useContext(InPageHead);
+  const { lang } = useLang();
+  const api = useRef<ActionApi | null>(null);
+  api.current = { onDiscard, onSave, onSubmit, busy, ready, submitLabel, saveLabel, extra };
+  const hasSave = !!onSave;
+  const hasSubmit = !!onSubmit;
+  useLayoutEffect(() => {
+    if (inHead) return;
+    const id = publishFormActions(<ActionButtons api={api} />);
+    return () => clearFormActions(id);
+  }, [inHead, busy, ready, submitLabel, saveLabel, hasSave, hasSubmit, lang]);
+  if (!inHead) return null;
+  return <ActionButtons api={api} />;
 }

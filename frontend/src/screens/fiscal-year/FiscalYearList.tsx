@@ -1,3 +1,9 @@
+import { DT } from "../../lib/frappe";
+import { useCallback } from "react";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 /**
  * FiscalYearList — Phase 13.
  * Callers: App.tsx /fiscal-years; nav.ts nav.fiscalYears
@@ -22,6 +28,7 @@ type Row = {
 };
 
 export default function FiscalYearList() {
+  const session = useSession();
   const nav = useNavigate();
   const { page, setPage, start } = useListParams(PAGE);
 
@@ -47,17 +54,32 @@ export default function FiscalYearList() {
     },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.fiscalYear,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [page],
+  });
+
   return (
     <>
       <PageHead title={t("fy.title")} />
       <Card bodyClass={null as unknown as string}>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/fiscal-years/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("fy.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter
           shown={(list.data ?? []).length}

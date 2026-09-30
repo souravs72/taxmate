@@ -1,9 +1,12 @@
+import { useCallback } from "react";
 /**
  * Territory list. Route: /territories. Callers: App.tsx. Phase 10.
  * API: get_list on "Territory". User instruction: Phase 10 territory list.
  */
 import { useNavigate } from "react-router-dom";
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { useSession } from "../../lib/session";
@@ -41,6 +44,18 @@ export default function TerritoryList() {
   ];
 
   void session;
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.territory,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead
@@ -57,16 +72,18 @@ export default function TerritoryList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("ter.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
         {list.isLoading ? (
           <Loading />
         ) : (
-          <DataTable<Row>
-            rows={list.data ?? []}
+        <DataTable<Row>
+            rows={rows}
             rowKey={(r) => r.name}
             onOpen={(r) => nav(`/territories/${encodeURIComponent(r.name)}`)}
             state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
             emptyLabel={t("ter.empty")}
             columns={columns}
+            selection={draftDelete.selection(rows)}
           />
         )}
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />

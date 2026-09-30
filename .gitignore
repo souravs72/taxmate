@@ -71,3 +71,8 @@ taxmate/www/taxmate.html
 .cursor/
 skills-lock.json
 tasks/
+
+# Local merge scratch — never ship in the app package
+.mobile-merge-backup-*/
+.mobile-backup-*/
+_imports/

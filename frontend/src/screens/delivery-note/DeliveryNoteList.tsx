@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -68,7 +70,7 @@ export default function DeliveryNoteList() {
   }, [customer, status, q]);
 
   const list = useDocList<Row>(DT.deliveryNote, {
-    fields: ["name", "customer", "customer_name", "posting_date", "grand_total", "currency", "status", "per_billed"],
+    fields: ["name", "customer", "customer_name", "posting_date", "grand_total", "currency", "status", "per_billed", "docstatus"],
     filters,
     orderBy: { field: "modified", order: "desc" },
     limit: PAGE,
@@ -76,6 +78,15 @@ export default function DeliveryNoteList() {
   });
   const { total } = useFilteredCount(DT.deliveryNote, filters as unknown as FilterTuple[]);
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.deliveryNote,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, customer, status, page],
+  });
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("dn.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
@@ -138,6 +149,8 @@ export default function DeliveryNoteList() {
           />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(r) => r.name}
@@ -145,6 +158,7 @@ export default function DeliveryNoteList() {
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("dn.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
 
         <ListFooter shown={rows.length} total={total} page={page} pageSize={PAGE} onPage={setPage} />

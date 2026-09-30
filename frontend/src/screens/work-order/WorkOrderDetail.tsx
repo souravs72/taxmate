@@ -7,6 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -30,6 +31,7 @@ function woPill(status?: string): string {
 
 export default function WorkOrderDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.workOrder, name, listPath: "/work-orders" });
   const nav = useNavigate();
   const session = useSession();
   const writable = canWrite(session);
@@ -58,17 +60,29 @@ export default function WorkOrderDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/work-orders")}>{t("wo.title")}</button>}
         title={data.name}
-      >
-        <Pill cls={woPill(data.status)}>{data.status || "Draft"}</Pill>
-        {writable && data.docstatus === 0 && (
+        actions={
           <>
-            <button className="btn ghost" onClick={() => nav(`/work-orders/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
-            <button className="btn" onClick={() => void doAction("submit")} disabled={busy}>{t("wo.submit")}</button>
+            {writable && data.docstatus === 0 && (
+              <button type="button" className="btn ghost" onClick={() => nav(`/work-orders/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
+            )}
+            {writable && data.docstatus === 0 && (
+              <button type="button" className="btn" onClick={() => void doAction("submit")} disabled={busy}>{t("wo.submit")}</button>
+            )}
+            {data.docstatus === 0 && (
+              <button type="button" className="btn quiet" disabled={deleteAction.loading}
+                onClick={deleteAction.onDelete}>
+                {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
+              </button>
+            )}
+            {writable && data.docstatus === 1 && (
+              <button type="button" className="btn ghost" onClick={() => void doAction("cancel")} disabled={busy}>{t("wo.cancel")}</button>
+            )}
           </>
-        )}
-        {writable && data.docstatus === 1 && (
-          <button className="btn ghost" onClick={() => void doAction("cancel")} disabled={busy}>{t("wo.cancel")}</button>
-        )}
+        }
+      >
+        <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
+          <Pill cls={woPill(data.status)}>{data.status || "Draft"}</Pill>
+        </p>
       </PageHead>
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>

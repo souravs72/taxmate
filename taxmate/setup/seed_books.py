@@ -557,8 +557,13 @@ def _ensure_brands() -> None:
 
 
 def _ensure_items(ctx: dict) -> None:
+	has_company_field = frappe.get_meta("Item").has_field("custom_company")
 	for row in ITEMS:
 		if frappe.db.exists("Item", row["code"]):
+			if has_company_field and ctx.get("company") and not frappe.db.get_value(
+				"Item", row["code"], "custom_company"
+			):
+				frappe.db.set_value("Item", row["code"], "custom_company", ctx["company"])
 			continue
 		group = row["group"] if frappe.db.exists("Item Group", row["group"]) else "All Item Groups"
 		tax_template = (
@@ -589,6 +594,8 @@ def _ensure_items(ctx: dict) -> None:
 				],
 			}
 		)
+		if doc.meta.has_field("custom_company") and ctx.get("company"):
+			doc.custom_company = ctx["company"]
 		if doc.meta.has_field("uae_item_type"):
 			doc.uae_item_type = "Goods" if row["stock"] else "Service"
 		if row.get("sac") and doc.meta.has_field("sac_code"):

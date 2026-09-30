@@ -10,6 +10,7 @@ import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
 import UserMenu from "./UserMenu";
+import MobileNav, { useIsMobileShell } from "./MobileNav";
 import { navIcon } from "./navIcons";
 import { CaptureDesk } from "../screens/dashboard/CaptureDesk";
 
@@ -46,6 +47,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
   }, []);
+  /**
+   * Below 900px the rail is replaced by MobileNav's bottom tab bar. Decided in
+   * JS rather than CSS so only one of the two is ever in the DOM — a hidden
+   * rail full of links is still a tab stop and still read by screen readers.
+   */
+  const mobile = useIsMobileShell();
   const [open, setOpen] = useState(loadOpen);
   const location = useLocation();
   const session = useSession();
@@ -84,8 +91,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [open]);
 
   return (
-    <div className={`app${collapsed ? " collapsed" : ""}`}>
+    <div className={`app${collapsed && !mobile ? " collapsed" : ""}`}>
       <a className="skip" href="#taxmate-main">{t("a11y.skip")}</a>
+      {!mobile && (
       <nav className="rail">
         <div className="rbrand">
           <span className="mark">T</span>
@@ -151,14 +159,23 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
         </div>{/* rail-body */}
       </nav>
+      )}
 
       <div className="main">
         <div className="topbar">
+          {!mobile && (
           <button type="button" className="iconbtn" onClick={toggleCollapsed} aria-label={t("a11y.toggleMenu")}>
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8">
               <path d="M2.5 4.5h13M2.5 9h13M2.5 13.5h13" />
             </svg>
           </button>
+          )}
+          {mobile && (
+          <div className="mnav-brand">
+            <span className="mark" aria-hidden="true">T</span>
+            <span>TaxMate</span>
+          </div>
+          )}
 
           <GlobalSearch />
 
@@ -198,8 +215,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <div className="page" id="taxmate-main" tabIndex={-1} key={lang}>{children}</div>
+        <div className={`page${mobile ? " mnav-pad" : ""}`} id="taxmate-main" tabIndex={-1} key={lang}>{children}</div>
       </div>
+
+      {mobile && <MobileNav top={top} groups={groups} />}
     </div>
   );
 }

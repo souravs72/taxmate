@@ -1,28 +1,48 @@
 /**
  * Price List list screen.
  * Callers: App.tsx /price-lists
- * API: taxmate.api.resource.get_list on "Price List"
+ * API: taxmate.api.resource.get_list / bulk_delete on "Price List"
  */
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useDocList } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Empty, ErrorBox, Loading, PageHead } from "../../components/ui";
+import { Card, PageHead } from "../../components/ui";
+import { DataTable, type Column } from "../../components/DataTable";
 import { IfCanWrite } from "../../components/RoleGate";
 
 type Row = { name: string; currency?: string; selling?: number; buying?: number; enabled?: number };
 
 export default function PriceListList() {
   const nav = useNavigate();
+  const session = useSession();
   const list = useDocList<Row>(DT.priceList, {
     fields: ["name", "currency", "selling", "buying", "enabled"],
     orderBy: { field: "modified", order: "desc" },
     limit: 100,
   });
-
-  if (list.isLoading) return <Loading />;
-  if (list.error) return <ErrorBox error={list.error} onRetry={() => list.mutate()} />;
   const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.priceList,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+  });
+
+  const columns: Column<Row>[] = [
+    { key: "name", header: t("pl.col.name"), cell: (r) => r.name },
+    { key: "currency", header: t("pl.col.currency"), cell: (r) => r.currency || "—" },
+    { key: "selling", header: t("pl.col.selling"), cell: (r) => (r.selling ? t("yes") : t("no")) },
+    { key: "buying", header: t("pl.col.buying"), cell: (r) => (r.buying ? t("yes") : t("no")) },
+    { key: "enabled", header: t("pl.col.enabled"), cell: (r) => (r.enabled ? t("yes") : t("no")) },
+  ];
 
   return (
     <>
@@ -30,38 +50,24 @@ export default function PriceListList() {
         title={t("pl.title")}
         actions={
           <IfCanWrite>
-            <button className="btn" onClick={() => nav("/price-lists/new")}>
+            <button type="button" className="btn" onClick={() => nav("/price-lists/new")}>
               {t("pl.new")}
             </button>
           </IfCanWrite>
         }
       />
-      {rows.length === 0 ? (
-        <Empty label={t("pl.empty")} />
-      ) : (
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>{t("pl.col.name")}</th>
-              <th>{t("pl.col.currency")}</th>
-              <th>{t("pl.col.selling")}</th>
-              <th>{t("pl.col.buying")}</th>
-              <th>{t("pl.col.enabled")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.name} onClick={() => nav(`/price-lists/${encodeURIComponent(r.name)}`)}>
-                <td>{r.name}</td>
-                <td>{r.currency || "—"}</td>
-                <td>{r.selling ? t("yes") : t("no")}</td>
-                <td>{r.buying ? t("yes") : t("no")}</td>
-                <td>{r.enabled ? t("yes") : t("no")}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <Card bodyClass={null as unknown as string}>
+        <BulkDraftBar drafts={draftDelete} />
+        <DataTable<Row>
+          rows={rows}
+          rowKey={(r) => r.name}
+          onOpen={(r) => nav(`/price-lists/${encodeURIComponent(r.name)}`)}
+          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
+          emptyLabel={t("pl.empty")}
+          columns={columns}
+          selection={draftDelete.selection(rows)}
+        />
+      </Card>
     </>
   );
 }

@@ -1,13 +1,14 @@
 /**
  * ESR filing detail.
  */
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
-import { useDoc } from "../../lib/resource";
+import { useDoc, useSave } from "../../lib/resource";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 
 type Act = {
   name?: string;
@@ -22,6 +23,7 @@ type Doc = {
   financial_year_start?: string;
   financial_year_end?: string;
   licence_authority?: string;
+  regulatory_authority?: string;
   status?: string;
   has_relevant_activity?: number;
   is_exempt?: number;
@@ -47,6 +49,10 @@ export default function EsrFilingDetail() {
   const { name = "" } = useParams();
   const nav = useNavigate();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.esrFiling, name);
+  const update = useSave();
+  const [authority, setAuthority] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<unknown>(null);
+  const shown = authority ?? data?.regulatory_authority ?? "";
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
@@ -56,16 +62,26 @@ export default function EsrFilingDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/esr")}>{t("nav.esr")}</button>}
         title={data.name}
+        actions={
+          <button type="button" className="btn" disabled={update.loading} onClick={() => {
+            setSaveError(null);
+            void update.updateDoc(DT.esrFiling, name, { regulatory_authority: shown }).then(() => mutate()).catch(setSaveError);
+          }}>{t("common.save")}</button>
+        }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <Pill cls={esrPill(data.status)}>{data.status || "—"}</Pill>
         </p>
       </PageHead>
+      {saveError ? <ErrorBox error={saveError} /> : null}
       <Card>
         <div className="fg">
           <ReadRow k={t("coa.company")} v={data.company || "—"} />
           <ReadRow k={t("esr.col.year")} v={`${date(data.financial_year_start)} – ${date(data.financial_year_end)}`} />
           <ReadRow k={t("esr.col.auth")} v={data.licence_authority || "—"} />
+          <Field label={t("esr.regulator")}>
+            <input className="ctl" value={shown} onChange={(e) => setAuthority(e.target.value)} />
+          </Field>
           <ReadRow k={t("esr.relevant")} v={data.has_relevant_activity ? t("yes") : t("no")} />
           <ReadRow k={t("esr.exempt")} v={data.is_exempt ? (data.exemption_reason || t("yes")) : t("no")} />
           <ReadRow k={t("esr.col.notify")} v={date(data.notification_due_date)} />

@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -92,8 +94,7 @@ export default function PurchaseReceiptList() {
     {
       fields: [
         "name", "supplier", "supplier_name", "posting_date",
-        "grand_total", "currency", "status", "per_billed",
-      ],
+        "grand_total", "currency", "status", "per_billed", "docstatus"],
       filters,
       orderBy: { field: "modified", order: "desc" },
       limit: PAGE,
@@ -113,6 +114,15 @@ export default function PurchaseReceiptList() {
     enabled: !paused,
   });
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.purchaseReceipt,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, supplier, status, page],
+  });
 
   const totals = useMemo(() => {
     const stages: Record<PrStage, number> = { draft: 0, open: 0, done: 0, closed: 0 };
@@ -243,6 +253,8 @@ export default function PurchaseReceiptList() {
           />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(r) => r.name}
@@ -250,6 +262,7 @@ export default function PurchaseReceiptList() {
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("pr.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={rows.length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

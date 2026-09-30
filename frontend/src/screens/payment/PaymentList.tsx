@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 import { useDocList } from "../../lib/resource";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import {
@@ -82,7 +84,7 @@ export default function PaymentList() {
      Select whose options are exactly Draft / Submitted / Cancelled, so the
      donut needs no mapping.                                              */
   const byStatus = useGroupedAggregate<Agg>(DT.paymentEntry, {
-    fields: [{ COUNT: "*", as: "count" }, { SUM: "base_paid_amount", as: "paid" }, "status as name"],
+    fields: [{ COUNT: "*", as: "count" }, { SUM: "base_paid_amount", as: "paid" }, "status as name", "docstatus"],
     filters: periodFilters,
     groupBy: "status",
   });
@@ -121,12 +123,23 @@ export default function PaymentList() {
   const donutTotal = donut.reduce((a, b) => a + b.n, 0);
 
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.paymentEntry,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, type, party, status, from, to, page],
+  });
   const ready = byStatus.ready && byType.ready;
   const anyError = list.error || byStatus.error || byType.error;
 
   const columns: Column<Row>[] = [
     { key: "no", header: t("pay.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "type", header: t("pay.col.type"), cell: (r) => <DirChip type={r.payment_type ?? "Receive"} /> },
+    /* DirChip is a component, so its name is mangled in a production bundle and
+       the card inference read it as plain meta text. Say so explicitly. */
+    { key: "type", header: t("pay.col.type"), role: "status", cell: (r) => <DirChip type={r.payment_type ?? "Receive"} /> },
     {
       key: "party", header: t("pay.col.party"), className: "cust",
       cell: (r) => (
@@ -237,6 +250,8 @@ export default function PaymentList() {
             onFrom={(v) => set("from", v)} onTo={(v) => set("to", v)} />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(r) => r.name}
@@ -244,6 +259,7 @@ export default function PaymentList() {
           state={{ isLoading: list.isLoading, error: anyError, onRetry: () => list.mutate() }}
           emptyLabel={t("pay.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
 
         <ListFooter shown={rows.length} total={total} page={page} pageSize={PAGE}

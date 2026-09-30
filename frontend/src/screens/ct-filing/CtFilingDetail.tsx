@@ -1,14 +1,15 @@
 /**
  * Corporate tax filing detail.
  */
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
-import { useDoc } from "../../lib/resource";
+import { useDoc, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 
 type Adj = { name?: string; adjustment_type?: string; category?: string; amount?: number; notes?: string };
@@ -17,6 +18,7 @@ type Doc = {
   filing_due_date?: string; deadline_status?: string; company_trn?: string;
   revenue?: number; expenses?: number; accounting_profit?: number; taxable_profit?: number;
   tax_payable?: number; generated_on?: string; docstatus?: number; adjustments?: Adj[];
+  elect_small_business_relief?: number; elect_qfzp?: number;
 };
 
 function deadlinePill(status?: string): string {
@@ -31,6 +33,10 @@ export default function CtFilingDetail() {
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.ctFiling, name);
+  const update = useSave();
+  const [sbr, setSbr] = useState<0 | 1 | null>(null);
+  const [qfzp, setQfzp] = useState<0 | 1 | null>(null);
+  const [saveError, setSaveError] = useState<unknown>(null);
   if (isLoading) return <Loading />;
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
@@ -41,11 +47,21 @@ export default function CtFilingDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/ct-filings")}>{t("nav.ct")}</button>}
         title={data.name}
+        actions={
+          <button type="button" className="btn" disabled={update.loading} onClick={() => {
+            setSaveError(null);
+            void update.updateDoc(DT.ctFiling, name, {
+              elect_small_business_relief: sbr ?? (data.elect_small_business_relief ? 1 : 0),
+              elect_qfzp: qfzp ?? (data.elect_qfzp ? 1 : 0),
+            }).then(() => mutate()).catch(setSaveError);
+          }}>{t("common.save")}</button>
+        }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <Pill cls={deadlinePill(data.deadline_status)}>{data.deadline_status || "—"}</Pill>
         </p>
       </PageHead>
+      {saveError ? <ErrorBox error={saveError} /> : null}
       <FormLayout aside={
         <Card title={t("ct.summary")}>
           <SumRow k={t("ct.col.tax")} v={`${cur} ${money(data.tax_payable)}`} />
@@ -62,6 +78,8 @@ export default function CtFilingDetail() {
             <ReadRow k={t("ct.revenue")} v={money(data.revenue)} />
             <ReadRow k={t("ct.expenses")} v={money(data.expenses)} />
             <ReadRow k={t("ct.accounting")} v={money(data.accounting_profit)} />
+            <CheckField label={t("ct.sbr")} checked={!!(sbr ?? data.elect_small_business_relief)} onChange={(on) => setSbr(on ? 1 : 0)} />
+            <CheckField label={t("ct.qfzp")} checked={!!(qfzp ?? data.elect_qfzp)} onChange={(on) => setQfzp(on ? 1 : 0)} />
           </div>
         </Card>
         {rows.length > 0 ? (

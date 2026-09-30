@@ -5,11 +5,14 @@
  * Schema: name, customer, loyalty_program, loyalty_points, expiry_date, creation.
  * User: "Implement the plan… complete all the to-dos."
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useSession } from "../../lib/session";
 import { useListParams } from "../../lib/list";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, PageHead } from "../../components/ui";
@@ -58,6 +61,18 @@ export default function LoyaltyPointEntryList() {
     { key: "date", header: t("lpe.col.date"), cell: (r) => date(r.creation) },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.loyaltyPointEntry,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
     <>
       <PageHead title={t("lpe.title")} />
@@ -65,12 +80,15 @@ export default function LoyaltyPointEntryList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("lpe.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("lpe.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

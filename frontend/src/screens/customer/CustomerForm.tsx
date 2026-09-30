@@ -4,7 +4,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
 
 type CreditLimitRow = {
@@ -33,6 +33,7 @@ type CustomerDoc = {
   customer_primary_address?: string;
   customer_primary_contact?: string;
   credit_limits?: { company?: string; credit_limit?: number; bypass_credit_limit_check?: 0 | 1 }[];
+  disabled?: 0 | 1;
 };
 
 type AddressDoc = {
@@ -89,6 +90,7 @@ export default function CustomerForm() {
     uae_peppol_id: "",
     uae_fz_beneficiary_id: "",
     uae_in_designated_zone: 0 as 0 | 1,
+    disabled: 0 as 0 | 1,
     address_line1: "",
     city: "",
     state: "",
@@ -121,6 +123,7 @@ export default function CustomerForm() {
       uae_peppol_id: d.uae_peppol_id || "",
       uae_fz_beneficiary_id: d.uae_fz_beneficiary_id || "",
       uae_in_designated_zone: d.uae_in_designated_zone || 0,
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     }));
     setCreditLimits(
       (d.credit_limits ?? []).map((r) => ({
@@ -173,6 +176,7 @@ export default function CustomerForm() {
         uae_peppol_id: form.uae_peppol_id || undefined,
         uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
         uae_in_designated_zone: form.uae_in_designated_zone,
+        disabled: form.disabled,
         credit_limits: creditLimits.length > 0
           ? creditLimits.map(({ _key: _k, ...r }) => r)
           : undefined,
@@ -254,6 +258,12 @@ export default function CustomerForm() {
           <Field label={t("cust.col.name")} required>
             <input className="ctl" value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} />
           </Field>
+          <CheckField
+            label={t("common.disabled")}
+            hint={t("doc.offHint")}
+            checked={!!form.disabled}
+            onChange={(on) => set("disabled", on ? 1 : 0)}
+          />
           <Field label={t("cust.type")} required>
             <select className="ctl" value={form.customer_type} onChange={(e) => set("customer_type", e.target.value)}>
               <option value="Company">{t("cust.type.company")}</option>

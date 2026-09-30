@@ -3,15 +3,18 @@
  * API: taxmate.api.resource.get_list on "Landed Cost Voucher".
  * Callers: App.tsx. Phase 8.
  */
+import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { money } from "../../lib/format";
-import { Card, Loading, PageHead, Pill } from "../../components/ui";
+import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 
@@ -49,6 +52,7 @@ export default function LandedCostVoucherList() {
     {
       key: "total",
       header: t("lcv.col.total"),
+      role: "amount",
       cell: (r) => money(r.total_taxes_and_charges),
     },
     { key: "docstatus", header: t("lcv.col.status"), cell: (r) => {
@@ -57,6 +61,17 @@ export default function LandedCostVoucherList() {
       return <Pill cls={cls}>{lbl}</Pill>;
     }},
   ];
+
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.landedCostVoucher,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, page],
+  });
 
   return (
     <>
@@ -74,18 +89,16 @@ export default function LandedCostVoucherList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("lcv.search")} />
         </FilterBar>
-        {list.isLoading ? (
-          <Loading />
-        ) : (
-          <DataTable<Row>
-            rows={list.data ?? []}
-            rowKey={(r) => r.name}
-            onOpen={(r) => nav(`/landed-cost-vouchers/${encodeURIComponent(r.name)}`)}
-            state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-            emptyLabel={t("lcv.empty")}
-            columns={columns}
-          />
-        )}
+        <BulkDraftBar drafts={draftDelete} />
+        <DataTable<Row>
+          rows={rows}
+          rowKey={(r) => r.name}
+          onOpen={(r) => nav(`/landed-cost-vouchers/${encodeURIComponent(r.name)}`)}
+          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
+          emptyLabel={t("lcv.empty")}
+          columns={columns}
+          selection={draftDelete.selection(rows)}
+        />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
     </>

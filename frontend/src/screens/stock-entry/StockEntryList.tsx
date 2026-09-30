@@ -4,12 +4,15 @@
  * Schema: Stock Entry fields name, stock_entry_type, posting_date, company, docstatus.
  * User: "Implement the plan as specified… complete all the to-dos."
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -81,6 +84,17 @@ export default function StockEntryList() {
     { value: "Material Transfer", label: t("se.type.transfer") },
   ];
 
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.stockEntry,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, kind, page],
+  });
+
   return (
     <>
       <PageHead
@@ -98,13 +112,16 @@ export default function StockEntryList() {
             allLabel={t("se.purpose")}
             options={purposes} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/stock-entries/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("se.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

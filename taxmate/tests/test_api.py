@@ -14,7 +14,7 @@ from frappe.tests.utils import FrappeTestCase
 from taxmate.api import get_catalog, get_session
 from taxmate.api.dashboard import get_home
 from taxmate.api.reports import list_reports
-from taxmate.api.resource import delete, get, get_list, get_meta, insert, is_allowed_doctype, save
+from taxmate.api.resource import bulk_delete, delete, get, get_list, get_meta, insert, is_allowed_doctype, save
 
 
 class TestApiAllowlist(unittest.TestCase):
@@ -63,6 +63,7 @@ class TestApiCatalog(FrappeTestCase):
 
 		methods = {row["method"] for row in catalog["actions"]}
 		self.assertIn("taxmate.api.resource.get_list", methods)
+		self.assertIn("taxmate.api.resource.bulk_delete", methods)
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
 		self.assertIn("taxmate.api.accounts.apply_price_list", methods)
@@ -93,6 +94,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.delivery_note.make_sales_invoice", methods)
 		self.assertIn("taxmate.api.purchase_receipt.make_purchase_invoice", methods)
 		self.assertIn("taxmate.api.stock.item_qty", methods)
+		self.assertIn("taxmate.api.stock.stock_entry_item_details", methods)
+		self.assertIn("taxmate.api.stock.reconciliation_balance", methods)
 		self.assertIn("taxmate.api.resource.group_by_count", methods)
 		# Phase 0: role-specific dashboard actions catalogued.
 		self.assertIn("taxmate.api.owner_dashboard.get_owner_dashboard", methods)
@@ -133,6 +136,68 @@ class TestApiResource(FrappeTestCase):
 
 		delete("ToDo", created["name"])
 		self.assertFalse(frappe.db.exists("ToDo", created["name"]))
+
+
+	def test_draft_purchase_invoice_delete_and_bulk(self):
+		from taxmate.api.workflow import submit
+		from taxmate.tests.uae_prove_fixtures import SERVICE_ITEM, require_prove_site
+
+		try:
+			company = require_prove_site()
+		except frappe.DoesNotExistError as exc:
+			self.skipTest(str(exc))
+
+		supplier = "Desert Supplies LLC"
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1}) or SERVICE_ITEM
+
+		def make_draft(bill_no: str):
+			return insert(
+				{
+					"doctype": "Purchase Invoice",
+					"company": company,
+					"supplier": supplier,
+					"posting_date": "2026-11-20",
+					"due_date": "2026-11-20",
+					"set_posting_time": 1,
+					"currency": "AED",
+					"conversion_rate": 1,
+					"vat_emirate": "Dubai",
+					"update_stock": 0,
+					"bill_no": bill_no,
+					"bill_date": "2026-11-18",
+					"items": [{"item_code": item, "qty": 1, "rate": 10}],
+				}
+			)
+
+		a = make_draft(f"TM-DEL-{uuid.uuid4().hex[:6]}")
+		b = make_draft(f"TM-DEL-{uuid.uuid4().hex[:6]}")
+		self.assertEqual(a["docstatus"], 0)
+		delete("Purchase Invoice", a["name"])
+		self.assertFalse(frappe.db.exists("Purchase Invoice", a["name"]))
+
+		result = bulk_delete("Purchase Invoice", [b["name"]])
+		self.assertIn(b["name"], result["deleted"])
+		self.assertEqual(result["failed"], [])
+		self.assertFalse(frappe.db.exists("Purchase Invoice", b["name"]))
+
+		submitted = make_draft(f"TM-DEL-{uuid.uuid4().hex[:6]}")
+		submit({"doctype": "Purchase Invoice", "name": submitted["name"]})
+		with self.assertRaises(frappe.ValidationError):
+			delete("Purchase Invoice", submitted["name"])
+		blocked = bulk_delete("Purchase Invoice", [submitted["name"]])
+		self.assertEqual(blocked["deleted"], [])
+		self.assertEqual(len(blocked["failed"]), 1)
+		self.assertNotIn("Traceback", blocked["failed"][0]["error"])
+		self.assertTrue(blocked["failed"][0]["error"])
+
+	def test_bulk_delete_missing_name_uses_server_message(self):
+		result = bulk_delete("Supplier", ["TM-NO-SUCH-DOC"])
+		self.assertEqual(result["deleted"], [])
+		self.assertEqual(len(result["failed"]), 1)
+		text = result["failed"][0]["error"]
+		self.assertNotIn("Traceback", text)
+		self.assertNotIn("LinkExistsError", text)
+		self.assertTrue(text)
 
 	def test_denied_doctype_raises(self):
 		with self.assertRaises(frappe.PermissionError):
@@ -1463,6 +1528,8 @@ class TestPhase11BankReconciliation(FrappeTestCase):
 		from taxmate.api.resource import is_allowed_doctype
 
 		self.assertTrue(is_allowed_doctype("Item Tax Template"))
+		self.assertTrue(is_allowed_doctype("Item Attribute"))
+		self.assertTrue(is_allowed_doctype("Location"))
 
 	def test_fiscal_year_allowed(self):
 		from taxmate.api.resource import is_allowed_doctype
@@ -1619,6 +1686,36 @@ class TestPosNextSeed(FrappeTestCase):
 			pluck="mode_of_payment",
 		)
 		self.assertIn("Cash", payments)
+
+	def test_new_sales_item_is_listed_on_pos(self):
+		from taxmate.setup.seed_books import COMPANY_NAME, POS_PROFILE_NAME, _ensure_pos_next
+
+		company = COMPANY_NAME
+		if not frappe.db.exists("Company", company):
+			self.skipTest("Ascra Technology LLP not seeded on this site")
+		if not frappe.get_meta("Item").has_field("custom_company"):
+			self.skipTest("POS Next Item.custom_company is not installed")
+		abbr = frappe.db.get_value("Company", company, "abbr")
+		_ensure_pos_next({"company": company, "abbr": abbr})
+		group = frappe.db.get_value("Item Group", {"is_group": 0}, "name") or "All Item Groups"
+		code = f"TM-POS-{uuid.uuid4().hex[:8]}"
+		doc = frappe.get_doc(
+			{
+				"doctype": "Item",
+				"item_code": code,
+				"item_name": code,
+				"item_group": group,
+				"stock_uom": "Nos",
+				"is_sales_item": 1,
+				"is_stock_item": 0,
+			}
+		).insert(ignore_permissions=True)
+		self.addCleanup(lambda: frappe.delete_doc("Item", code, force=1, ignore_permissions=True))
+		self.assertEqual(doc.custom_company, company)
+		from pos_next.api.items import get_items
+
+		rows = get_items(POS_PROFILE_NAME, search_term=code, limit=5)
+		self.assertIn(code, [row["item_code"] for row in rows])
 
 
 class TestCompanySettingsWrite(FrappeTestCase):

@@ -30,11 +30,13 @@ export default function BomDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/boms")}>{t("bom.title")}</button>}
         title={data.name}
+        actions={writable ? (
+          <button type="button" className="btn ghost" onClick={() => nav(`/boms/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
+        ) : null}
       >
-        {data.is_active ? <Pill cls="p-done">{t("bom.activeLabel")}</Pill> : <Pill cls="p-flat">{t("no")}</Pill>}
-        {writable && (
-          <button className="btn ghost" onClick={() => nav(`/boms/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
-        )}
+        <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
+          {data.is_active ? <Pill cls="p-done">{t("bom.activeLabel")}</Pill> : <Pill cls="p-flat">{t("no")}</Pill>}
+        </p>
       </PageHead>
       <Card>
         <div className="fg">

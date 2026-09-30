@@ -1,8 +1,11 @@
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
@@ -104,6 +107,16 @@ export default function IncomingInvoiceList() {
   });
 
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.incomingInvoice,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, status, page],
+  });
   const pick = groupRow<Agg>;
   const received = pick(agg.rows, "Received");
   const drafted = pick(agg.rows, "Drafted");
@@ -202,6 +215,8 @@ export default function IncomingInvoiceList() {
           />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(r) => r.name}
@@ -209,6 +224,7 @@ export default function IncomingInvoiceList() {
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("in.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
 
         <ListFooter shown={rows.length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />

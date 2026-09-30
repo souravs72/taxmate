@@ -10,6 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
+import { printDocUrl } from "../../lib/printDoc";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
@@ -18,6 +19,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string };
 type Doc = {
@@ -37,6 +39,7 @@ function prPill(status?: string): string {
 
 export default function PurchaseReceiptDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.purchaseReceipt, name, listPath: "/purchase-receipts" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.purchaseReceipt, name);
@@ -79,7 +82,7 @@ export default function PurchaseReceiptDetail() {
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
   const writable = canWrite(session);
-  const busyError = submitCall.error || cancelCall.error || makePi.error || mapError;
+  const busyError = deleteAction.error || submitCall.error || cancelCall.error || makePi.error || mapError;
 
   return (
     <>
@@ -98,9 +101,10 @@ export default function PurchaseReceiptDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={writable}
-            busy={submitCall.loading || cancelCall.loading || amendCall.loading || busyPi}
+            busy={submitCall.loading || cancelCall.loading || amendCall.loading || busyPi || deleteAction.loading}
             onEdit={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseReceipt, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.purchaseReceipt, name }).then(() => mutate())}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.purchaseReceipt, name });
@@ -110,6 +114,9 @@ export default function PurchaseReceiptDetail() {
             }}
             extra={
               <>
+                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseReceipt, name), "_blank", "noopener")}>
+                  {t("inv.print")}
+                </button>
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
                     {busyPi ? t("soc.saving") : t("pr.createPi")}

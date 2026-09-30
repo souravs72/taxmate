@@ -11,6 +11,8 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { printDocUrl } from "../../lib/printDoc";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; received_qty?: number;
@@ -33,6 +35,7 @@ function poPill(status?: string): string {
 
 export default function PurchaseOrderDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.purchaseOrder, name, listPath: "/purchase-orders" });
   const nav = useNavigate();
   const session = useSession();
   const writable = canWrite(session);
@@ -97,9 +100,10 @@ export default function PurchaseOrderDetail() {
               canSubmit={canSubmit}
               canCancel={canCancel}
               canWrite={writable}
-              busy={submitCall.loading || cancelCall.loading || amendCall.loading || !!busy}
+              busy={submitCall.loading || cancelCall.loading || amendCall.loading || !!busy || deleteAction.loading}
               onEdit={() => nav(`/purchase-orders/${encodeURIComponent(name)}/edit`)}
               onSubmit={() => void submitCall.call({ doc: { doctype: DT.purchaseOrder, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
               onCancel={() => void cancelCall.call({ doctype: DT.purchaseOrder, name }).then(() => mutate())}
               onAmend={async () => {
                 const res = await amendCall.call({ doctype: DT.purchaseOrder, name });
@@ -109,6 +113,9 @@ export default function PurchaseOrderDetail() {
               }}
               extra={
                 <>
+                  <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseOrder, name), "_blank", "noopener")}>
+                    {t("inv.print")}
+                  </button>
                   <button type="button" className="btn ghost"
                     disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
                     onClick={() => void createDownstream("pr")}>

@@ -20,6 +20,7 @@ import { useSession } from "../../lib/session";
 import { canManageCompany } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { ErrorBox, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type CompanyDoc = {
   name: string;
@@ -33,6 +34,10 @@ type CompanyDoc = {
   website?: string | null;
   date_of_establishment?: string | null;
   accounts_frozen_till?: string | null;
+  default_receivable_account?: string | null;
+  default_payable_account?: string | null;
+  default_income_account?: string | null;
+  default_expense_account?: string | null;
 };
 
 export default function CompanySettings() {
@@ -56,6 +61,12 @@ export default function CompanySettings() {
   // Merge server doc with local edits
   const val = (field: keyof CompanyDoc): string =>
     String((field in form ? form[field] : doc?.[field]) ?? "");
+
+  const setLink = (field: keyof CompanyDoc, value: string) => {
+    setSaved(false);
+    setSaveErr(null);
+    setForm((f) => ({ ...f, [field]: value }));
+  };
 
   const set = (field: keyof CompanyDoc) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setSaved(false);
@@ -115,6 +126,31 @@ export default function CompanySettings() {
                 <label>{t("cs.currency")}</label>
                 <input className="ctl" value={val("default_currency")} onChange={set("default_currency")} disabled={!canSave} />
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="card">
+          <div className="chead"><h2>{t("cs.accounts")}</h2></div>
+          <div className="cbody">
+            <div className="grid2">
+              {([
+                ["default_receivable_account", "cs.receivable", "Receivable"],
+                ["default_payable_account", "cs.payable", "Payable"],
+                ["default_income_account", "cs.income", "Income Account"],
+                ["default_expense_account", "cs.expense", "Expense Account"],
+              ] as const).map(([field, label, accountType]) => (
+                <div className="f" key={field}>
+                  <label>{t(label)}</label>
+                  <LinkField
+                    doctype={DT.account}
+                    value={val(field)}
+                    disabled={!canSave}
+                    onChange={(v) => setLink(field, v)}
+                    filters={[["company", "=", company], ["is_group", "=", 0], ["account_type", "=", accountType]]}
+                  />
+                </div>
+              ))}
             </div>
           </div>
         </section>

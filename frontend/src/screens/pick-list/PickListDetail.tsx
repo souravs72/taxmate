@@ -19,6 +19,7 @@ import { qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type LocationLine = {
   item_code?: string;
@@ -48,6 +49,7 @@ function pillCls(status?: string): string {
 
 export default function PickListDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.pickList, name, listPath: "/pick-lists" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.pickList, name);
@@ -104,8 +106,9 @@ export default function PickListDetail() {
             canWrite={canSubmit}
             onEdit={() => nav(`/pick-lists/${encodeURIComponent(name)}/edit`)}
             onSubmit={handleSubmit}
+            onDelete={deleteAction.onDelete}
             onCancel={handleCancel}
-            busy={busy}
+            busy={busy || deleteAction.loading}
           />
         }
       />

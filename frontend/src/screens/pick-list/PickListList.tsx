@@ -5,12 +5,15 @@
  * Schema: name, purpose (Select: Delivery/Material Transfer/Manufacture), customer, status, docstatus.
  * User: "Implement the plan… complete all the to-dos."
  */
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
@@ -80,6 +83,17 @@ export default function PickListList() {
     { key: "creation", header: t("picklist.col.date"), cell: (r) => date(r.creation) },
   ];
 
+
+  const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.pickList,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, purpose, page],
+  });
+
   return (
     <>
       <PageHead
@@ -91,13 +105,16 @@ export default function PickListList() {
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("picklist.search")} />
           <SelectFilter value={purpose} onChange={(v) => set("purpose", v)} allLabel={t("picklist.purpose")} options={purposes} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/pick-lists/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("picklist.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

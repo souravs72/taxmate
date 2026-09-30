@@ -6,7 +6,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
 
 const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
@@ -42,8 +42,16 @@ type ItemDoc = {
   create_new_batch?: number;
   batch_number_series?: string;
   uoms?: { uom?: string; conversion_factor?: number }[];
-  item_defaults?: { company?: string; default_warehouse?: string }[];
+  item_defaults?: { company?: string; default_warehouse?: string; income_account?: string; expense_account?: string }[];
+  weight_per_unit?: number;
+  weight_uom?: string;
+  has_expiry_date?: number;
+  shelf_life_in_days?: number;
+  taxes?: { item_tax_template?: string }[];
+  has_variants?: number;
+  attributes?: { attribute?: string }[];
   barcodes?: { barcode?: string }[];
+  disabled?: number;
   reorder_levels?: { warehouse?: string; warehouse_reorder_level?: number; warehouse_reorder_qty?: number; material_request_type?: string }[];
 };
 
@@ -110,6 +118,15 @@ export default function ItemForm() {
     is_sales_item: 1 as 0 | 1,
     is_purchase_item: 1 as 0 | 1,
     default_warehouse: "",
+    income_account: "",
+    expense_account: "",
+    weight_per_unit: 0,
+    weight_uom: "",
+    has_expiry_date: 0 as 0 | 1,
+    shelf_life_in_days: 0,
+    item_tax_template: "",
+    has_variants: 0 as 0 | 1,
+    variant_attributes: [] as string[],
     description: "",
     valuation_method: "",
     uae_item_type: "Service",
@@ -128,6 +145,7 @@ export default function ItemForm() {
     serial_no_series: "",
     create_new_batch: 0 as 0 | 1,
     batch_number_series: "",
+    disabled: 0 as 0 | 1,
   });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
@@ -164,9 +182,9 @@ export default function ItemForm() {
     if (!d) return;
     // Prefer company-matched Item Default (ERPNext child). Callers: App /catalogue/items/:name.
     // User: Complete everything and make frontend completely comprehensive and complete
-    const companyWh = (d.item_defaults ?? []).find((r) => r.company === session.company)?.default_warehouse
-      || (d.item_defaults ?? [])[0]?.default_warehouse
-      || "";
+    const companyRow = (d.item_defaults ?? []).find((r) => r.company === session.company)
+      || (d.item_defaults ?? [])[0];
+    const companyWh = companyRow?.default_warehouse || "";
     setForm({
       item_code: d.item_code || d.name,
       item_name: d.item_name || "",
@@ -177,6 +195,15 @@ export default function ItemForm() {
       is_sales_item: ((d.is_sales_item ?? 1) || 0) as 0 | 1,
       is_purchase_item: ((d.is_purchase_item ?? 1) || 0) as 0 | 1,
       default_warehouse: companyWh,
+      income_account: companyRow?.income_account || "",
+      expense_account: companyRow?.expense_account || "",
+      weight_per_unit: d.weight_per_unit || 0,
+      weight_uom: d.weight_uom || "",
+      has_expiry_date: (d.has_expiry_date ? 1 : 0) as 0 | 1,
+      shelf_life_in_days: d.shelf_life_in_days || 0,
+      item_tax_template: d.taxes?.[0]?.item_tax_template || "",
+      has_variants: (d.has_variants ? 1 : 0) as 0 | 1,
+      variant_attributes: (d.attributes ?? []).map((a) => a.attribute || "").filter(Boolean),
       description: d.description || "",
       valuation_method: d.valuation_method || "",
       uae_item_type: d.uae_item_type || "Service",
@@ -195,6 +222,7 @@ export default function ItemForm() {
       serial_no_series: d.serial_no_series || "",
       create_new_batch: (d.create_new_batch || 0) as 0 | 1,
       batch_number_series: d.batch_number_series || "",
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
     });
     // Load UOM conversions (exclude the stock UOM row which ERPNext auto-adds with factor 1)
     setUomRows(
@@ -219,6 +247,7 @@ export default function ItemForm() {
     setSaveError(null);
     try {
       const payload = {
+        disabled: form.disabled,
         item_code: form.item_code,
         item_name: form.item_name,
         item_group: form.item_group,
@@ -241,6 +270,15 @@ export default function ItemForm() {
         serial_no_series: form.is_stock_item && form.has_serial_no ? form.serial_no_series || undefined : undefined,
         create_new_batch: form.is_stock_item && form.has_batch_no ? form.create_new_batch : 0,
         batch_number_series: form.is_stock_item && form.has_batch_no ? form.batch_number_series || undefined : undefined,
+        weight_per_unit: form.weight_per_unit || 0,
+        weight_uom: form.weight_uom || undefined,
+        has_expiry_date: form.has_expiry_date,
+        shelf_life_in_days: form.shelf_life_in_days || 0,
+        taxes: form.item_tax_template ? [{ item_tax_template: form.item_tax_template }] : [],
+        has_variants: form.has_variants,
+        attributes: form.has_variants
+          ? form.variant_attributes.filter(Boolean).map((attribute) => ({ attribute }))
+          : undefined,
         barcodes: form.barcode ? [{ barcode: form.barcode }] : undefined,
         reorder_levels: form.reorder_warehouse
           ? [{
@@ -261,6 +299,8 @@ export default function ItemForm() {
           ? [{
               company: session.company,
               default_warehouse: form.default_warehouse || undefined,
+              income_account: form.income_account || undefined,
+              expense_account: form.expense_account || undefined,
             }]
           : undefined,
       };
@@ -330,6 +370,12 @@ export default function ItemForm() {
           <Field label={t("item.col.name")} required>
             <input className="ctl" value={form.item_name} onChange={(e) => set("item_name", e.target.value)} />
           </Field>
+          <CheckField
+            label={t("common.disabled")}
+            hint={t("doc.offHint")}
+            checked={!!form.disabled}
+            onChange={(on) => set("disabled", on ? 1 : 0)}
+          />
           <Field label={t("item.description")}>
             <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />
           </Field>
@@ -400,6 +446,53 @@ export default function ItemForm() {
                 onChange={(v) => set("default_warehouse", v)}
                 filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
               />
+            </Field>
+          )}
+          <Field label={t("item.taxTpl")}>
+            <LinkField doctype={DT.itemTaxTemplate} value={form.item_tax_template} onChange={(v) => set("item_tax_template", v)} />
+          </Field>
+          <Field label={t("item.income")}>
+            <LinkField doctype={DT.account} value={form.income_account} onChange={(v) => set("income_account", v)} />
+          </Field>
+          <Field label={t("item.expense")}>
+            <LinkField doctype={DT.account} value={form.expense_account} onChange={(v) => set("expense_account", v)} />
+          </Field>
+          <div className="grid2">
+            <Field label={t("item.weight")}>
+              <input className="ctl" type="number" min={0} step="any" value={form.weight_per_unit || ""} onChange={(e) => set("weight_per_unit", Number(e.target.value))} />
+            </Field>
+            <Field label={t("uom.title")}>
+              <LinkField doctype={DT.uom} value={form.weight_uom} onChange={(v) => set("weight_uom", v)} />
+            </Field>
+          </div>
+          <CheckField label={t("item.variants")} hint={t("doc.onHint")} checked={!!form.has_variants} onChange={(v) => set("has_variants", v ? 1 : 0)} />
+          {!!form.has_variants && (
+            <>
+              {form.variant_attributes.map((attr, i) => (
+                <Field key={i} label={t("item.attribute")}>
+                  <LinkField
+                    doctype="Item Attribute"
+                    value={attr}
+                    onChange={(v) => setForm((f) => ({
+                      ...f,
+                      variant_attributes: f.variant_attributes.map((a, j) => (j === i ? v : a)),
+                    }))}
+                  />
+                </Field>
+              ))}
+              <button
+                type="button"
+                className="btn quiet"
+                onClick={() => setForm((f) => ({ ...f, variant_attributes: [...f.variant_attributes, ""] }))}
+              >
+                {t("tx.addRow")}
+              </button>
+            </>
+          )}
+          <CheckField label={t("item.expiry")} hint={t("doc.onHint")} checked={!!form.has_expiry_date} onChange={(v) => set("has_expiry_date", v ? 1 : 0)} />
+          {!!form.has_expiry_date && (
+            <Field label={t("item.shelf")}>
+              <input className="ctl" type="number" min={0} value={form.shelf_life_in_days || ""} onChange={(e) => set("shelf_life_in_days", Number(e.target.value))} />
             </Field>
           )}
           {!isNew && !!form.is_stock_item && onHand.data?.message && (

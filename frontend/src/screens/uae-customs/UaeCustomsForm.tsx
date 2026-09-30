@@ -7,7 +7,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 import { FormActions, FormLayout } from "../../components/form";
 
 export default function UaeCustomsForm() {
@@ -17,7 +18,7 @@ export default function UaeCustomsForm() {
   const existing = useDoc(DT.uaeCustoms, isNew ? undefined : name, isNew ? null : name, { isPaused: () => isNew });
   const create = useInsert();
   const update = useSave();
-  const [form, setForm] = useState({ company: "", posting_date: "", declaration_number: "", supplier: "", purchase_invoice: "", taxable_amount: "", vat_amount: "", notes: "" });
+  const [form, setForm] = useState({ company: "", posting_date: "", declaration_number: "", supplier: "", purchase_invoice: "", taxable_amount: "", vat_amount: "", notes: "", is_adjustment: 0 as 0 | 1, landed_cost_voucher: "" });
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
   const [loaded, setLoaded] = useState(false);
@@ -25,7 +26,7 @@ export default function UaeCustomsForm() {
   useEffect(() => {
     const d = existing.data as Record<string, unknown> | undefined;
     if (!d || loaded) return;
-    setForm({ company: String(d.company || ""), posting_date: String(d.posting_date || ""), declaration_number: String(d.declaration_number || ""), supplier: String(d.supplier || ""), purchase_invoice: String(d.purchase_invoice || ""), taxable_amount: String(d.taxable_amount || ""), vat_amount: String(d.vat_amount || ""), notes: String(d.notes || "") });
+    setForm({ company: String(d.company || ""), posting_date: String(d.posting_date || ""), declaration_number: String(d.declaration_number || ""), supplier: String(d.supplier || ""), purchase_invoice: String(d.purchase_invoice || ""), taxable_amount: String(d.taxable_amount || ""), vat_amount: String(d.vat_amount || ""), notes: String(d.notes || ""), is_adjustment: d.is_adjustment ? 1 : 0, landed_cost_voucher: String(d.landed_cost_voucher || "") });
     setLoaded(true);
   }, [existing.data, loaded]);
 
@@ -65,6 +66,10 @@ export default function UaeCustomsForm() {
             <Field label={t("ucd.col.taxable")}><input className="ctl" type="number" value={form.taxable_amount} onChange={(e) => set("taxable_amount", e.target.value)} /></Field>
             <Field label={t("ucd.col.vat")}><input className="ctl" type="number" value={form.vat_amount} onChange={(e) => set("vat_amount", e.target.value)} /></Field>
             <Field label={t("ucd.col.notes")}><textarea className="ctl" value={form.notes} onChange={(e) => set("notes", e.target.value)} rows={3} /></Field>
+            <CheckField label={t("ucd.adjustment")} checked={!!form.is_adjustment} onChange={(on) => setForm((f) => ({ ...f, is_adjustment: on ? 1 : 0 }))} />
+            <Field label={t("ucd.landed")}>
+              <LinkField doctype={DT.landedCostVoucher} value={form.landed_cost_voucher} onChange={(v) => setForm((f) => ({ ...f, landed_cost_voucher: v }))} />
+            </Field>
           </div>
         </Card>
         <FormActions onSave={() => void saveFn()} onDiscard={() => nav(isNew ? "/uae-customs-declarations" : `/uae-customs-declarations/${encodeURIComponent(name)}`)} busy={busy} ready={ready} />

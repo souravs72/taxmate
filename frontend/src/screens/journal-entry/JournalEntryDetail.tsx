@@ -10,6 +10,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = {
   account?: string;
@@ -42,6 +43,7 @@ function jePill(ds?: number): string {
 
 export default function JournalEntryDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.journalEntry, name, listPath: "/journals" });
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.journalEntry, name);
@@ -61,7 +63,7 @@ export default function JournalEntryDetail() {
   const canCancel = canCancelSales(session.roles);
   const writable = canWrite(session);
   const busy = submitCall.loading || cancelCall.loading || amendCall.loading;
-  const busyError = submitCall.error || cancelCall.error;
+  const busyError = deleteAction.error || submitCall.error || cancelCall.error;
 
   return (
     <>
@@ -80,9 +82,10 @@ export default function JournalEntryDetail() {
             canSubmit={canSubmit}
             canCancel={canCancel}
             canWrite={writable}
-            busy={busy}
+            busy={busy || deleteAction.loading}
             onEdit={() => nav(`/journals/${encodeURIComponent(name)}/edit`)}
             onSubmit={() => void submitCall.call({ doc: { doctype: DT.journalEntry, name } }).then(() => mutate())}
+            onDelete={deleteAction.onDelete}
             onCancel={() => void cancelCall.call({ doctype: DT.journalEntry, name }).then(() => mutate())}
             onAmend={async () => {
               const res = await amendCall.call({ doctype: DT.journalEntry, name });

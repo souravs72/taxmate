@@ -157,11 +157,120 @@ def save(doc):
 	return client_save(_require_doc(doc))
 
 
+# Desk list bulk delete runs sync for ≤10 names; TaxMate SPA stays sync with a
+# hard cap so a mis-click cannot queue hundreds of deletes in one request.
+_BULK_DELETE_LIMIT = 50
+
+
+def _assert_deletable(doctype: str, name: str) -> None:
+	"""Submittable vouchers may only be deleted while draft (docstatus 0).
+
+	Mirrors ERPNext / Frappe Desk: submitted docs must be cancelled first.
+	"""
+	if not frappe.db.exists(doctype, name):
+		frappe.throw(_("Document {0} {1} not found").format(doctype, name), frappe.DoesNotExistError)
+	if not frappe.has_permission(doctype, "delete", doc=name):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	meta = frappe.get_meta(doctype)
+	if not meta.is_submittable:
+		return
+	docstatus = cint(frappe.db.get_value(doctype, name, "docstatus"))
+	if docstatus != 0:
+		frappe.throw(
+			_("Only draft {0} can be deleted. Cancel submitted documents instead.").format(doctype),
+			frappe.ValidationError,
+		)
+
+
+def _delete_one(doctype: str, name: str) -> None:
+	assert_allowed_doctype(doctype)
+	if not name:
+		frappe.throw(_("name is required"))
+	_assert_deletable(doctype, name)
+	client_delete(doctype, name)
+
+
 @frappe.whitelist(methods=["DELETE", "POST"])
 def delete(doctype, name):
 	require_login()
+	_delete_one(doctype, name)
+	return {"ok": True, "name": name}
+
+
+@frappe.whitelist(methods=["POST"])
+def bulk_delete(doctype: str, names=None):
+	"""Delete many draft documents.
+
+	Each name is committed independently (same idea as ``frappe.desk.reportview.delete_bulk``):
+	one failure rolls back that row only and is reported in ``failed``.
+	"""
+	require_login()
 	assert_allowed_doctype(doctype)
-	return client_delete(doctype, name)
+	names = _parse(names) or []
+	if isinstance(names, str):
+		names = [names]
+	if not isinstance(names, (list, tuple)):
+		frappe.throw(_("names must be a list"))
+
+	clean = [str(raw or "").strip() for raw in names if str(raw or "").strip()]
+	# Preserve order, drop duplicates.
+	seen: set[str] = set()
+	unique: list[str] = []
+	for name in clean:
+		if name in seen:
+			continue
+		seen.add(name)
+		unique.append(name)
+
+	if not unique:
+		return {"deleted": [], "failed": []}
+
+	if len(unique) > _BULK_DELETE_LIMIT:
+		frappe.throw(
+			_("Select at most {0} documents to delete at once").format(_BULK_DELETE_LIMIT),
+			frappe.ValidationError,
+		)
+
+	deleted: list[str] = []
+	failed: list[dict[str, str]] = []
+	for name in unique:
+		try:
+			_delete_one(doctype, name)
+			frappe.db.commit()
+			deleted.append(name)
+		except Exception as exc:
+			message = _caught_message(exc)
+			frappe.db.rollback()
+			failed.append({"name": name, "error": message})
+			frappe.clear_messages()
+			frappe.local.message_log = []
+
+	return {"deleted": deleted, "failed": failed}
+
+
+def _caught_message(exc: BaseException) -> str:
+	"""User-facing text from a caught throw, without a traceback."""
+	import re
+
+	from frappe.utils import strip_html
+
+	def _plain(text: str) -> str:
+		return re.sub(r"\s+", " ", strip_html(text)).strip()
+
+	parts: list[str] = []
+	for entry in list(getattr(frappe.local, "message_log", None) or []):
+		try:
+			row = frappe.parse_json(entry) if isinstance(entry, str) else entry
+			text = row.get("message") if isinstance(row, dict) else str(entry)
+		except Exception:
+			text = str(entry)
+		if text:
+			plain = _plain(str(text))
+			if plain:
+				parts.append(plain)
+	if parts:
+		return " ".join(parts)
+	return _plain(str(exc)) or type(exc).__name__
 
 
 @frappe.whitelist()

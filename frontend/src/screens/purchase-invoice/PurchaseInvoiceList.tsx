@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -47,6 +49,7 @@ type Row = {
   currency?: string;
   status?: string;
   bill_no?: string;
+  docstatus?: number;
 };
 
 type Agg = { name?: string; count?: number; billed?: number; outstanding?: number };
@@ -100,7 +103,7 @@ export default function PurchaseInvoiceList() {
     {
       fields: [
         "name", "supplier", "supplier_name", "posting_date", "grand_total",
-        "outstanding_amount", "currency", "status", "bill_no",
+        "outstanding_amount", "currency", "status", "bill_no", "docstatus",
       ],
       filters,
       orderBy: { field: "modified", order: "desc" },
@@ -122,6 +125,14 @@ export default function PurchaseInvoiceList() {
     enabled: !paused,
   });
   const rows = list.data ?? [];
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); void count.mutate(); }, [list, count]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.purchaseInvoice,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, supplier, status, page],
+  });
 
   const totals = useMemo(() => {
     const stages: Record<PiStage, number> = { draft: 0, unpaid: 0, paid: 0, closed: 0 };
@@ -259,6 +270,8 @@ export default function PurchaseInvoiceList() {
           />
         </FilterBar>
 
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(r) => r.name}
@@ -266,6 +279,7 @@ export default function PurchaseInvoiceList() {
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("pi.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
 
         <ListFooter shown={rows.length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />

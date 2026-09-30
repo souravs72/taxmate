@@ -1,27 +1,125 @@
 /** Shared primitives. Every one maps to a class in styles/app.css. */
 
+import { createContext, useEffect, useId, useRef, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
+
 import { money, pct } from "../lib/format";
 import { readableError } from "../lib/frappe";
+import {
+  getFormActionNode,
+  getFormActionVersion,
+  subscribeFormActions,
+} from "../lib/pageActions";
 import { t } from "../i18n/strings";
+import { useIsPhone } from "../lib/useMedia";
+
+import "../styles/form-mobile.css";
 
 /* ── Layout ───────────────────────────────────────────────────────────── */
 
+/**
+ * The page's actions as a fixed bar sitting directly above the phone tab bar.
+ *
+ * Deliberately a *wrapping* bar rather than a "first two + ⋮ overflow" bar:
+ * every caller passes `actions` as a single fragment (DetailActions and
+ * FormActions both return one), whose children are conditionally `false`, so
+ * the rendered action count cannot be established from outside without
+ * guessing. Wrapping needs no count, keeps every action reachable, and cannot
+ * silently hide one.
+ *
+ * The bar's own height is published as `--pact-h` on the document element so
+ * `.page.mnav-pad` can reserve exactly the right clearance whether the actions
+ * land on one row or two. See styles/form-mobile.css.
+ */
+/**
+ * True for anything rendered *inside* a `.pact-bar`.
+ *
+ * `FormActions` (components/form.tsx) is handed to `PageHead actions` by nine
+ * form screens and rendered inline at the foot of the main column by the
+ * other twenty-eight. It needs its own bar in the second case and must not
+ * build a second one in the first, and context answers that synchronously —
+ * no DOM probe, no post-paint jump.
+ */
+export const InPageActionBar = createContext(false);
+
+/** True while rendering inside PageHead, including the phone action bar. */
+export const InPageHead = createContext(false);
+
+export function PageActionBar({ actions }: { actions: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof document === "undefined") return;
+    const root = document.documentElement;
+    const sync = () => {
+      root.style.setProperty("--pact-h", `${Math.round(el.getBoundingClientRect().height)}px`);
+    };
+    sync();
+    let ro: ResizeObserver | undefined;
+    if (typeof ResizeObserver === "function") {
+      ro = new ResizeObserver(sync);
+      ro.observe(el);
+    }
+    return () => {
+      ro?.disconnect();
+      root.style.removeProperty("--pact-h");
+    };
+  }, []);
+
+  return (
+    <div className="pact-bar" role="group" aria-label={t("m.actions")} ref={ref}>
+      <InPageActionBar.Provider value={true}>{actions}</InPageActionBar.Provider>
+    </div>
+  );
+}
+
 export function PageHead({
-  title, sub, eyebrow, actions, children,
+  title, sub, eyebrow, actions, children, viewControls, stickyActions = true,
 }: {
   title: React.ReactNode; sub?: string; eyebrow?: React.ReactNode;
   actions?: React.ReactNode; children?: React.ReactNode;
+  /**
+   * Controls that change what you are *looking at* rather than what you are
+   * doing — the dashboards' Owner/Accountant switch, say. On a desktop they
+   * sit in the header row beside the actions, exactly where they always have;
+   * on a phone they stay under the title instead of taking a whole row of the
+   * fixed action bar, which is for things you tap once and move on.
+   */
+  viewControls?: React.ReactNode;
+  /**
+   * Phones only. `actions` normally becomes the fixed bar above the tab bar,
+   * which is right for things you *do* (Save, Submit, New sale). Pass false
+   * where `actions` is a control you *type into* — the Reports filter, say:
+   * pinning a text field over the list it filters hides the answer while you
+   * type, and the on-screen keyboard then covers the bar anyway.
+   */
+  stickyActions?: boolean;
 }) {
+  const phone = useIsPhone();
+  const hostedVersion = useSyncExternalStore(
+    subscribeFormActions,
+    getFormActionVersion,
+    getFormActionVersion,
+  );
+  const hosted = actions ? null : (hostedVersion ? getFormActionNode() : null);
+  const bar = actions ?? hosted;
   return (
-    <div className="phead">
-      <div>
-        {eyebrow && <p className="eyebrow">{eyebrow}</p>}
-        <h1>{title}</h1>
-        {sub && <p className="sub">{sub}</p>}
-        {children}
+    <InPageHead.Provider value={true}>
+      <div className="phead">
+        <div>
+          {eyebrow && <p className="eyebrow">{eyebrow}</p>}
+          <h1>{title}</h1>
+          {sub && <p className="sub">{sub}</p>}
+          {children}
+          {phone && viewControls && <div className="phead-views">{viewControls}</div>}
+        </div>
+        {phone && stickyActions && bar && <PageActionBar actions={bar} />}
+        {!(phone && stickyActions && bar) && (bar || (!phone && viewControls)) && (
+          <div className="acts">{!phone && viewControls}{bar}</div>
+        )}
       </div>
-      {actions && <div className="acts">{actions}</div>}
-    </div>
+    </InPageHead.Provider>
   );
 }
 
@@ -61,16 +159,79 @@ export function Empty({ label }: { label: string }) {
  * Split them into a list — a wall of markup is the single most common way
  * a Frappe frontend makes a clear server message unreadable.
  */
-export function ErrorBox({ error, onRetry }: { error: unknown; onRetry?: () => void }) {
+export function ErrorBox({
+  error, onRetry, heading = true,
+}: {
+  error: unknown;
+  onRetry?: () => void;
+  /** False when the server message is the whole alert, as on a failed delete. */
+  heading?: boolean;
+}) {
   const lines = readableError(error);
   return (
     <div className="alert" role="alert" style={{ background: "var(--bad-bg)", flexDirection: "column", gap: 8 }}>
-      <b>{t("error.title")}</b>
-      <ul style={{ margin: 0, paddingInlineStart: 18, color: "var(--muted)" }}>
-        {lines.map((l, i) => <li key={i}>{l}</li>)}
-      </ul>
+      {heading && <b>{t("error.title")}</b>}
+      {lines.length === 1 ? (
+        <span>{lines[0]}</span>
+      ) : (
+        <ul style={{ margin: 0, paddingInlineStart: 18 }}>
+          {lines.map((l, i) => <li key={i}>{l}</li>)}
+        </ul>
+      )}
       {onRetry && <button className="btn ghost sm" onClick={onRetry}>{t("error.retry")}</button>}
     </div>
+  );
+}
+
+/** Server throw, shown as a dialog seated at the top of the page. */
+export function MessageDialog({ error, onClose }: { error: unknown; onClose: () => void }) {
+  const lines = readableError(error);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCloseRef.current();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  return createPortal(
+    <div className="msgdlg-back" onMouseDown={onClose}>
+      <div
+        className="msgdlg"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="msgdlg-title"
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <div className="msgdlg-head">
+          <span className="msgdlg-dot" aria-hidden="true" />
+          <h2 id="msgdlg-title">{t("error.dialog")}</h2>
+          <button
+            ref={closeRef}
+            type="button"
+            className="msgdlg-x"
+            aria-label={t("m.close")}
+            onClick={onClose}
+          >
+            ×
+          </button>
+        </div>
+        <div className="msgdlg-body">
+          {lines.map((line, i) => <p key={i}>{line}</p>)}
+        </div>
+      </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -94,17 +255,17 @@ export function StatTile({
                strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"
                dangerouslySetInnerHTML={{ __html: icon }} />
         </span>
-        <div className="copy">
+        <span style={{ minWidth: 0 }}>
           <span className="k">{label}</span>
           <div className="v">{unit && <small>{unit}</small>} {value}</div>
-        </div>
+        </span>
         {spark && (
           <svg className="spark" width="66" height="26" viewBox="0 0 66 26" fill="none" aria-hidden="true">
             <polyline points={spark} stroke={colour} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
           </svg>
         )}
       </div>
-      {foot && <div className="tnote">{foot}</div>}
+      {foot && <div className="foot">{foot}</div>}
     </div>
   );
 }
@@ -195,6 +356,18 @@ export function Field({ label, required, hint, htmlFor, children }: {
       {children}
       {hint && <span className="help">{hint}</span>}
     </div>
+  );
+}
+
+/** Checkbox for a doctype flag such as Disabled or Enabled. */
+export function CheckField({ label, hint, checked, onChange }: {
+  label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void;
+}) {
+  const id = useId();
+  return (
+    <Field label={label} hint={hint} htmlFor={id}>
+      <input id={id} className="check" type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </Field>
   );
 }
 

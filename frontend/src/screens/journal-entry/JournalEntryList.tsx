@@ -1,8 +1,10 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
@@ -96,13 +98,22 @@ export default function JournalEntryList() {
     enabled: !paused,
   });
   const byType = useGroupedAggregate<Agg>(DT.journalEntry, {
-    fields: [{ COUNT: "*", as: "count" }, { SUM: "total_debit", as: "debit" }, "voucher_type as name"],
+    fields: [{ COUNT: "*", as: "count" }, { SUM: "total_debit", as: "debit" }, "voucher_type as name", "docstatus"],
     filters: [...baseFilters, ["docstatus", "=", 1]],
     groupBy: "voucher_type",
     enabled: !paused,
   });
 
   const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.journalEntry,
+    onDone: refreshList,
+    enabled: writable,
+    clearDeps: [q, type, status, page],
+  });
   const pick = groupRow<Agg>;
   const drafts = Number(pick(byStatus.rows, "0")?.count) || 0;
   const submitted = Number(pick(byStatus.rows, "1")?.count) || 0;
@@ -212,6 +223,8 @@ export default function JournalEntryList() {
             options={["Draft", "Submitted", "Cancelled"].map((s) => ({ value: s, label: t(`pay.status.${s}`) }))}
           />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
           rows={rows}
           rowKey={(r) => r.name}
@@ -221,6 +234,7 @@ export default function JournalEntryList() {
           state={{ isLoading: paused || list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("je.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={rows.length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>

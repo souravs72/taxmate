@@ -373,6 +373,7 @@ export default function App() {
           <Route path="/tax-categories/:name/edit" element={<TaxCategoryForm />} />
           <Route path="/tax-categories/:name" element={<TaxCategoryForm />} />
           <Route path="/item-tax-templates" element={<ItemTaxTemplateList />} />
+          <Route path="/item-tax-templates/new" element={<ItemTaxTemplateDetail />} />
           <Route path="/item-tax-templates/:name" element={<ItemTaxTemplateDetail />} />
           <Route path="/addresses" element={<AddressList />} />
           <Route path="/addresses/new" element={<AddressForm />} />

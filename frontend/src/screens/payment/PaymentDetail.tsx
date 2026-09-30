@@ -12,6 +12,7 @@ import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import { DirChip } from "./PaymentList";
+import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Ref = {
   name?: string;
@@ -50,6 +51,7 @@ function AmendButton({ name, nav }: { name: string; nav: (to: string) => void })
 
 export default function PaymentDetail() {
   const { name = "" } = useParams();
+  const deleteAction = useDeleteDraftAction({ doctype: DT.paymentEntry, name, listPath: "/payments" });
   const nav = useNavigate();
   const session = useSession();
 
@@ -97,6 +99,12 @@ export default function PaymentDetail() {
                 {t("inv.edit")}
               </button>
             )}
+            {data.docstatus === 0 && (
+              <button type="button" className="btn quiet" disabled={deleteAction.loading}
+                onClick={deleteAction.onDelete}>
+                {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
+              </button>
+            )}
             {canCancel && (
               <button className="btn quiet" disabled={cancelCall.loading}
                 onClick={() => void cancelCall.call({ doctype: DT.paymentEntry, name }).then(() => mutate())}>
@@ -117,7 +125,7 @@ export default function PaymentDetail() {
         </p>
       </PageHead>
 
-      {cancelCall.error && <ErrorBox error={cancelCall.error} />}
+      {(cancelCall.error || deleteAction.error) && <ErrorBox error={cancelCall.error ?? deleteAction.error} />}
 
       <Card bodyClass="cbody">
         <div className="srow" style={{ paddingBlock: 0 }}>

@@ -4,7 +4,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
 
 type SupplierDoc = {
@@ -25,6 +25,8 @@ type SupplierDoc = {
   tax_category?: string;
   supplier_primary_address?: string;
   supplier_primary_contact?: string;
+  disabled?: 0 | 1;
+  on_hold?: 0 | 1;
 };
 
 type AddressDoc = {
@@ -76,6 +78,8 @@ export default function SupplierForm() {
     uae_peppol_id: "",
     uae_fz_beneficiary_id: "",
     uae_in_designated_zone: 0 as 0 | 1,
+    disabled: 0 as 0 | 1,
+    on_hold: 0 as 0 | 1,
     address_line1: "",
     city: "",
     state: "",
@@ -104,6 +108,8 @@ export default function SupplierForm() {
       uae_peppol_id: d.uae_peppol_id || "",
       uae_fz_beneficiary_id: d.uae_fz_beneficiary_id || "",
       uae_in_designated_zone: d.uae_in_designated_zone || 0,
+      disabled: (d.disabled ? 1 : 0) as 0 | 1,
+      on_hold: (d.on_hold ? 1 : 0) as 0 | 1,
     }));
   }, [existing.data]);
 
@@ -147,6 +153,8 @@ export default function SupplierForm() {
         uae_peppol_id: form.uae_peppol_id || undefined,
         uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
         uae_in_designated_zone: form.uae_in_designated_zone,
+        disabled: form.disabled,
+        on_hold: form.on_hold,
       };
       const supp = isNew
         ? await create.createDoc(DT.supplier, payload)
@@ -227,6 +235,17 @@ export default function SupplierForm() {
           <Field label={t("cust.col.name")} required>
             <input className="ctl" value={form.supplier_name} onChange={(e) => set("supplier_name", e.target.value)} />
           </Field>
+          <CheckField
+            label={t("supp.onHold")}
+            checked={!!form.on_hold}
+            onChange={(on) => set("on_hold", on ? 1 : 0)}
+          />
+          <CheckField
+            label={t("common.disabled")}
+            hint={t("doc.offHint")}
+            checked={!!form.disabled}
+            onChange={(on) => set("disabled", on ? 1 : 0)}
+          />
           <Field label={t("cust.type")} required>
             <select className="ctl" value={form.supplier_type} onChange={(e) => set("supplier_type", e.target.value)}>
               <option value="Company">{t("cust.type.company")}</option>

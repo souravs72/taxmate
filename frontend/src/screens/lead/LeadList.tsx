@@ -3,16 +3,21 @@
  * Callers: App.tsx /leads; nav under Sales
  * API: taxmate.api.resource.get_list on "Lead"
  */
-import { useMemo } from "react";
+import {useMemo, useCallback} from "react";
 import { useNavigate } from "react-router-dom";
 import type { Filter } from "frappe-react-sdk";
 
 import { DT } from "../../lib/frappe";
+import { useDraftDelete } from "../../lib/useDraftDelete";
+import { useSession } from "../../lib/session";
+import { canWrite } from "../../lib/roles";
+import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList, useDocCount } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, PageHead, Pill } from "../../components/ui";
+import { Card, Pill } from "../../components/ui";
+import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -28,6 +33,7 @@ function leadPill(status?: string): string {
 }
 
 export default function LeadList() {
+  const session = useSession();
   const nav = useNavigate();
   const { get, set, page, setPage, start } = useListParams(PAGE);
   const q = get("q");
@@ -54,27 +60,44 @@ export default function LeadList() {
     { key: "status", header: t("lead.col.status"), cell: (r) => <Pill cls={leadPill(r.status)}>{r.status || "Open"}</Pill> },
   ];
 
+  const rows = list.data ?? [];
+
+  const writable = canWrite(session);
+  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
+  const draftDelete = useDraftDelete({
+    doctype: DT.lead,
+    onDone: refreshList,
+    enabled: writable,
+    mode: "all",
+    clearDeps: [q, page],
+  });
+
   return (
-    <>
-      <PageHead title={t("lead.title")}>
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/leads/new")}>{t("lead.new")}</button>
-        </IfCanWrite>
-      </PageHead>
+    <ListScreen
+        title={t("lead.title")}
+        primary={(
+          <IfCanWrite>
+            <button className="btn" onClick={() => nav("/leads/new")}>{t("lead.new")}</button>
+          </IfCanWrite>
+        )}
+      >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("lead.search")} />
         </FilterBar>
+        <BulkDraftBar drafts={draftDelete} />
+
         <DataTable<Row>
-          rows={list.data ?? []}
+          rows={rows}
           rowKey={(r) => r.name}
           onOpen={(r) => nav(`/leads/${encodeURIComponent(r.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
           emptyLabel={t("lead.empty")}
           columns={columns}
+          selection={draftDelete.selection(rows)}
         />
         <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
       </Card>
-    </>
+    </ListScreen>
   );
 }
