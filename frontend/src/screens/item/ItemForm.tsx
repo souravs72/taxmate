@@ -270,10 +270,10 @@ export default function ItemForm() {
         serial_no_series: form.is_stock_item && form.has_serial_no ? form.serial_no_series || undefined : undefined,
         create_new_batch: form.is_stock_item && form.has_batch_no ? form.create_new_batch : 0,
         batch_number_series: form.is_stock_item && form.has_batch_no ? form.batch_number_series || undefined : undefined,
-        weight_per_unit: form.weight_per_unit || undefined,
+        weight_per_unit: form.weight_per_unit || 0,
         weight_uom: form.weight_uom || undefined,
         has_expiry_date: form.has_expiry_date,
-        shelf_life_in_days: form.shelf_life_in_days || undefined,
+        shelf_life_in_days: form.shelf_life_in_days || 0,
         taxes: form.item_tax_template ? [{ item_tax_template: form.item_tax_template }] : [],
         has_variants: form.has_variants,
         attributes: form.has_variants
