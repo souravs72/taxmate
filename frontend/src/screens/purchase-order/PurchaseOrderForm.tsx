@@ -1,8 +1,8 @@
 /**
  * Purchase Order create/edit. Catalog txn helpers + get-items-from.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
@@ -27,6 +27,7 @@ const plus = (days: number) => {
 
 export default function PurchaseOrderForm() {
   const nav = useNavigate();
+  const location = useLocation();
   const session = useSession();
   const canSubmit = canSubmitSales(session.roles);
   const { name: editName } = useParams<{ name?: string }>();
@@ -83,7 +84,8 @@ export default function PurchaseOrderForm() {
     if (!supplier) return;
     void txn.fetchParty(supplier, orderDate).then(async (m) => {
       if (!m) return;
-      if (skipReprice) { setSkipReprice(false); return; }
+      if (skipReprice && isEdit) { setSkipReprice(false); return; }
+      if (skipReprice) setSkipReprice(false);
       setParty(m);
       if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
       if (m.payment_terms_template) setPaymentTerms(m.payment_terms_template);
@@ -114,14 +116,37 @@ export default function PurchaseOrderForm() {
     setSkipReprice(true);
     if (mapped.supplier) setSupplier(String(mapped.supplier));
     if (mapped.transaction_date) setOrderDate(String(mapped.transaction_date));
-    if (mapped.schedule_date) setRequiredBy(String(mapped.schedule_date));
+    const items = (mapped.items as Record<string, unknown>[] | undefined) ?? [];
+    const lineDate = items.find((l) => l.schedule_date)?.schedule_date;
+    if (mapped.schedule_date) setRequiredBy(String(mapped.schedule_date).slice(0, 10));
+    else if (lineDate) setRequiredBy(String(lineDate).slice(0, 10));
     if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
-    const items = (mapped.items as TxnLine[] | undefined) ?? [];
+    if (mapped.set_warehouse) setWarehouse(String(mapped.set_warehouse));
     setLines(items.map((l) => ({
-      item_code: l.item_code || "", item_name: l.item_name,
-      qty: Number(l.qty) || 1, rate: Number(l.rate) || 0, uom: l.uom,
+      item_code: String(l.item_code || ""),
+      item_name: l.item_name ? String(l.item_name) : undefined,
+      description: l.description ? String(l.description) : undefined,
+      qty: Number(l.qty) || 1,
+      rate: Number(l.rate) || 0,
+      uom: l.uom ? String(l.uom) : undefined,
+      warehouse: l.warehouse ? String(l.warehouse) : undefined,
+      expense_account: l.expense_account ? String(l.expense_account) : undefined,
+      cost_center: l.cost_center ? String(l.cost_center) : undefined,
+      material_request: l.material_request ? String(l.material_request) : undefined,
+      material_request_item: l.material_request_item ? String(l.material_request_item) : undefined,
+      schedule_date: l.schedule_date ? String(l.schedule_date).slice(0, 10) : undefined,
     })));
   }
+
+  const mappedOnce = useRef(false);
+  useEffect(() => {
+    if (isEdit || mappedOnce.current) return;
+    const mapped = (location.state as { mapped?: Record<string, unknown> } | null)?.mapped;
+    if (!mapped) return;
+    mappedOnce.current = true;
+    applyMapped(mapped);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, location.state]);
 
   const buildPreviewDoc = useCallback(() => {
     if (!lines.some((l) => l.item_code)) return null;
@@ -192,7 +217,7 @@ export default function PurchaseOrderForm() {
             mode_of_payment: r.mode_of_payment,
           }))
         : undefined,
-      items: lines.map((l) => ({ ...linePayload(l), schedule_date: requiredBy })),
+      items: lines.map((l) => ({ ...linePayload(l), schedule_date: l.schedule_date || requiredBy })),
     };
     let finalName: string;
     if (isEdit && editName) {

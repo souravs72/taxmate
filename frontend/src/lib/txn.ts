@@ -108,6 +108,9 @@ export type TxnLine = {
   has_serial_no?: 0 | 1;
   uae_is_margin_scheme?: 0 | 1;
   uae_purchase_price?: number;
+  material_request?: string;
+  material_request_item?: string;
+  schedule_date?: string;
 };
 
 export type PartyDetails = {
@@ -274,6 +277,9 @@ export function linePayload(l: TxnLine): Record<string, unknown> {
     is_free_item: l.is_free_item ? 1 : 0,
     batch_no: l.batch_no,
     serial_no: l.serial_no,
+    material_request: l.material_request,
+    material_request_item: l.material_request_item,
+    schedule_date: l.schedule_date,
     uae_item_type: l.uae_item_type,
     hs_code: l.hs_code,
     sac_code: l.sac_code,

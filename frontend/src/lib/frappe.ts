@@ -186,6 +186,8 @@ export const METHOD = {
   reconciliationBalance: "taxmate.api.stock.reconciliation_balance",
   makeQuotationSO: "taxmate.api.quotation.make_sales_order",
   makeMrPO: "taxmate.api.material_request.make_purchase_order",
+  mrDefaultSuppliers: "taxmate.api.material_request.get_item_default_suppliers",
+  makeMrPOs: "taxmate.api.material_request.make_purchase_orders_by_supplier",
   makeMrSE: "taxmate.api.material_request.make_stock_entry",
   awesomeSearch: "taxmate.api.search.awesome",
   generateEInvoice: "taxmate.uae_e_invoicing.utils.e_invoice.generate_e_invoice",
