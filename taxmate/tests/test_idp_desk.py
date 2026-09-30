@@ -563,6 +563,47 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertTrue(review["can_save"])
 		self.assertEqual(review["gaps"], [])
 
+	def test_currency_code_is_not_the_company(self):
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {
+					"company": "AED",
+					"supplier": "Eprotect360 Cyber Security FZCO",
+					"posting_date": "2026-08-18",
+					"bill_no": "SOC_0001/2026",
+					"net_total": 271000,
+					"grand_total": 271000,
+					"vat_emirate": "Dubai",
+					"tax_invoice": True,
+					"seller_address": "IFZA Business Park, Dubai",
+					"address_line1": "IFZA Business Park",
+					"city": "Dubai",
+					"state": "Dubai",
+				},
+				"items": [{"item_name": "Cyber security", "qty": 1}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [],
+				"warnings": [],
+				"missing_masters": [{"doctype": "Company", "name": "AED", "field": "company"}],
+			},
+		}
+		review = review_from_extract(extracted, route="/purchase-invoices")
+		header = extracted["extracted_data"]["header"]
+		self.assertNotIn("company", header)
+		self.assertEqual(header["currency"], "AED")
+		self.assertTrue(review["can_save"])
+		self.assertNotEqual(review["error_key"], "idp.notice.masters")
+		labels = [row["label_key"] for row in review["lines"]]
+		self.assertNotIn("idp.field.company", labels)
+		self.assertNotIn("idp.field.seller_address", labels)
+		self.assertNotIn("idp.field.address_line1", labels)
+		self.assertIn("idp.field.supplier", labels)
+		self.assertIn("idp.field.emirate", labels)
+
 	def test_proposal_merge_and_consent(self):
 		from taxmate.idp.masters import merge_proposal_values, proposals_complete
 

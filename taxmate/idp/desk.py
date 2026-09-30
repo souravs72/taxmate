@@ -451,6 +451,21 @@ _REVIEW_NOISE: frozenset[str] = frozenset(
 		"subtotal",
 		"sub_total",
 		"net_amount",
+		"seller_address",
+		"address_line1",
+		"address_line_1",
+		"address_line2",
+		"city",
+		"state",
+		"place",
+		"place_of_supply",
+		"tax_invoice",
+		"phone",
+		"email",
+		"email_id",
+		"company_address",
+		"po_box",
+		"country",
 	}
 )
 
@@ -702,10 +717,11 @@ def submit_requested(flag: str | None) -> bool:
 
 def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict[str, Any]:
 	"""Turn an IDP extract payload into the panel review. Draft save stays off until the map is valid."""
-	from taxmate.idp.masters import build_proposals, split_missing
+	from taxmate.idp.masters import build_proposals, release_currency_company, split_missing
 
 	if not extracted.get("success"):
 		return {"ok": False, "step": "review", "error_key": "idp.readFailed", "can_save": False}
+	release_currency_company(extracted)
 	data = extracted.get("extracted_data") or {}
 	header = _header_rows(data.get("header") or {})
 	lines = [{"label_key": label_key_for(key), "value": str(value)} for key, value in header.items()]

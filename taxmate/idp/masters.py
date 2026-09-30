@@ -705,8 +705,67 @@ def _scrub_address_links(header: dict[str, Any]) -> None:
 			header.pop(key, None)
 
 
+# A currency code is not a Company. The model often parks "AED" there.
+_CURRENCY_CODES: frozenset[str] = frozenset(
+	{
+		"AED",
+		"USD",
+		"EUR",
+		"GBP",
+		"SAR",
+		"INR",
+		"QAR",
+		"OMR",
+		"BHD",
+		"KWD",
+		"CNY",
+		"JPY",
+		"CHF",
+		"AUD",
+		"CAD",
+	}
+)
+
+
+def release_currency_company(extracted: dict[str, Any]) -> None:
+	"""Move a currency code off company so it cannot block the draft as a missing Company."""
+	data = extracted.get("extracted_data")
+	header = data.get("header") if isinstance(data, dict) else None
+	if isinstance(header, dict):
+		_release_currency_company(header)
+	validation = extracted.get("validation")
+	if not isinstance(validation, dict):
+		return
+	rows = validation.get("missing_masters")
+	if not isinstance(rows, list):
+		return
+	validation["missing_masters"] = [
+		row
+		for row in rows
+		if not (
+			isinstance(row, dict)
+			and row.get("doctype") == "Company"
+			and str(row.get("name") or "").strip().upper() in _CURRENCY_CODES
+		)
+	]
+
+
+def _release_currency_company(header: dict[str, Any]) -> None:
+	raw = str(header.get("company") or "").strip()
+	if not raw:
+		return
+	code = raw.upper()
+	currency = str(header.get("currency") or "").strip().upper()
+	if code not in _CURRENCY_CODES and code != currency:
+		return
+	header.pop("company", None)
+	if not currency and code in _CURRENCY_CODES:
+		header["currency"] = code
+
+
 def _sanitize_header_values(header: dict[str, Any]) -> None:
 	"""Normalize OCR dates and amounts so schema validation stops blocking save."""
+	_release_currency_company(header)
 	for key in ("posting_date", "transaction_date", "due_date", "bill_date", "date"):
 		if key not in header and key != "date":
 			continue
