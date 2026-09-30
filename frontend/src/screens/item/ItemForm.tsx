@@ -22,6 +22,7 @@ type ItemDoc = {
   item_code?: string;
   item_name?: string;
   item_group?: string;
+  custom_company?: string;
   stock_uom?: string;
   brand?: string;
   is_stock_item?: number;
@@ -66,6 +67,7 @@ export default function ItemForm() {
   const groups = useDocList<{ name: string }>(DT.itemGroup, {
     fields: ["name"], filters: [["is_group", "=", 0]], limit: 80,
   });
+  const companies = useDocList<{ name: string }>(DT.company, { fields: ["name"], limit: 20 });
   const uoms = useDocList<{ name: string }>(DT.uom, { fields: ["name"], limit: 80 });
   const settings = useDoc<{ selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
   const create = useInsert();
@@ -112,6 +114,7 @@ export default function ItemForm() {
     item_code: "",
     item_name: "",
     item_group: "",
+    custom_company: "",
     stock_uom: "Nos",
     brand: "",
     is_stock_item: 0 as 0 | 1,
@@ -151,6 +154,11 @@ export default function ItemForm() {
   const [saveError, setSaveError] = useState<unknown>(null);
   const [uomRows, setUomRows] = useState<UomConvRow[]>([]);
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
+  useEffect(() => {
+    const company = session.company || "";
+    if (!isNew || !company) return;
+    setForm((f) => (f.custom_company ? f : { ...f, custom_company: company }));
+  }, [isNew, session.company]);
   let _uomKey = 0;
   const newUomKey = () => `u${++_uomKey}`;
   const onHand = useFrappeGetCall<{ message: { total: number; warehouses: { warehouse: string; actual_qty: number }[] } }>(
@@ -189,6 +197,7 @@ export default function ItemForm() {
       item_code: d.item_code || d.name,
       item_name: d.item_name || "",
       item_group: d.item_group || "",
+      custom_company: d.custom_company || companyRow?.company || session.company || "",
       stock_uom: d.stock_uom || "Nos",
       brand: d.brand || "",
       is_stock_item: (d.is_stock_item || 0) as 0 | 1,
@@ -239,6 +248,7 @@ export default function ItemForm() {
   const ready =
     !!form.item_code && !!form.item_name && !!form.item_group && !!form.stock_uom &&
     !!form.uae_item_type &&
+    (!form.is_sales_item || !!form.custom_company) &&
     // On edit, hold Save until the Item Price lookup has answered.
     (isNew || priceResolved);
 
@@ -251,6 +261,7 @@ export default function ItemForm() {
         item_code: form.item_code,
         item_name: form.item_name,
         item_group: form.item_group,
+        custom_company: form.custom_company || undefined,
         stock_uom: form.stock_uom,
         brand: form.brand || undefined,
         is_stock_item: form.is_stock_item,
@@ -378,6 +389,12 @@ export default function ItemForm() {
           />
           <Field label={t("item.description")}>
             <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />
+          </Field>
+          <Field label={t("item.company")} required={!!form.is_sales_item} hint={t("item.companyHint")}>
+            <select className="ctl" value={form.custom_company} onChange={(e) => set("custom_company", e.target.value)}>
+              <option value="" />
+              {(companies.data ?? []).map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
+            </select>
           </Field>
           <Field label={t("item.col.group")} required>
             <select className="ctl" value={form.item_group} onChange={(e) => set("item_group", e.target.value)}>

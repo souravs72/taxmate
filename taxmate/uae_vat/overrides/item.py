@@ -44,18 +44,22 @@ def assign_company(doc) -> None:
 	"""POS Next lists an item only when Company matches the POS Profile.
 
 	A blank Company is hidden while "Include Global Items" is off. Fill it from
-	the user's company, then the site default, and leave an explicit value alone.
+	the item's company default, then the user's company, and leave an explicit value alone.
 	"""
 	if not getattr(doc, "meta", None) or not doc.meta.has_field("custom_company"):
 		return
 	if doc.get("custom_company"):
 		return
-	company = frappe.defaults.get_user_default("Company") or frappe.defaults.get_global_default("Company")
+	# Item Default is the company this SKU already posts to. Prefer that over
+	# the logged-in user's company so a multi-company site does not stamp every
+	# item onto whoever happens to save it.
+	company = None
+	for row in doc.get("item_defaults") or []:
+		if row.get("company"):
+			company = row.company
+			break
 	if not company:
-		for row in doc.get("item_defaults") or []:
-			if row.get("company"):
-				company = row.company
-				break
+		company = frappe.defaults.get_user_default("Company") or frappe.defaults.get_global_default("Company")
 	if company and frappe.db.exists("Company", company):
 		doc.custom_company = company
 
