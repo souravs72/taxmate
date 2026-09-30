@@ -31,6 +31,7 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Purchase Taxes and Charges Template",
 	"Item Tax Template",
 	"Item Attribute",
+	"Location",
 	"Tax Category",
 	"Payment Terms Template",
 	"Price List",

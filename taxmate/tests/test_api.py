@@ -1529,6 +1529,7 @@ class TestPhase11BankReconciliation(FrappeTestCase):
 
 		self.assertTrue(is_allowed_doctype("Item Tax Template"))
 		self.assertTrue(is_allowed_doctype("Item Attribute"))
+		self.assertTrue(is_allowed_doctype("Location"))
 
 	def test_fiscal_year_allowed(self):
 		from taxmate.api.resource import is_allowed_doctype

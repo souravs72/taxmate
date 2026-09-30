@@ -29,6 +29,8 @@ type Doc = {
   available_for_use_date?: string;
   purchase_amount?: number;
   calculate_depreciation?: 0 | 1;
+  location?: string;
+  finance_books?: { depreciation_method?: string; total_number_of_depreciations?: number; frequency_of_depreciation?: number }[];
   docstatus?: number;
 };
 
@@ -49,6 +51,10 @@ export default function AssetForm() {
   const [availDate, setAvailDate] = useState(toIsoDate(new Date()));
   const [purchaseAmount, setPurchaseAmount] = useState(0);
   const [calcDepr, setCalcDepr] = useState(false);
+  const [location, setLocation] = useState("");
+  const [method, setMethod] = useState("Straight Line");
+  const [life, setLife] = useState(0);
+  const [frequency, setFrequency] = useState(12);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
 
@@ -66,6 +72,11 @@ export default function AssetForm() {
       setAvailDate(d.available_for_use_date ?? toIsoDate(new Date()));
       setPurchaseAmount(d.purchase_amount ?? 0);
       setCalcDepr(!!d.calculate_depreciation);
+      setLocation(d.location ?? "");
+      const book = d.finance_books?.[0];
+      setMethod(book?.depreciation_method || "Straight Line");
+      setLife(book?.total_number_of_depreciations || 0);
+      setFrequency(book?.frequency_of_depreciation || 12);
     }
   }, [isNew, existing.data]);
 
@@ -87,6 +98,12 @@ export default function AssetForm() {
         available_for_use_date: availDate,
         purchase_amount: purchaseAmount,
         calculate_depreciation: calcDepr ? 1 : 0,
+        location: location || undefined,
+        finance_books: calcDepr ? [{
+          depreciation_method: method,
+          total_number_of_depreciations: life,
+          frequency_of_depreciation: frequency,
+        }] : undefined,
       };
       if (isNew) {
         const created = await insert.createDoc(DT.asset, body);
@@ -113,6 +130,9 @@ export default function AssetForm() {
           <Field label={t("ast.col.category")}>
             <LinkField doctype={DT.assetCategory} value={assetCategory} onChange={setAssetCategory} placeholder="Asset Category" />
           </Field>
+          <Field label={t("ast.location")} required>
+            <LinkField doctype="Location" value={location} onChange={setLocation} />
+          </Field>
           <Field label={t("ast.col.company")}>
             <LinkField doctype="Company" value={company} onChange={setCompany} placeholder="Company" />
           </Field>
@@ -132,6 +152,24 @@ export default function AssetForm() {
               {t("ast.calcDepr")}
             </label>
           </Field>
+          {calcDepr && (
+            <>
+              <Field label={t("ast.method")}>
+                <select className="inp" value={method} onChange={(e) => setMethod(e.target.value)}>
+                  <option value="Straight Line">Straight Line</option>
+                  <option value="Double Declining Balance">Double Declining Balance</option>
+                  <option value="Written Down Value">Written Down Value</option>
+                  <option value="Manual">Manual</option>
+                </select>
+              </Field>
+              <Field label={t("ast.life")}>
+                <input className="inp" type="number" min={0} value={life} onChange={(e) => setLife(parseNum(e.target.value))} />
+              </Field>
+              <Field label={t("ast.frequency")}>
+                <input className="inp" type="number" min={1} value={frequency} onChange={(e) => setFrequency(parseNum(e.target.value))} />
+              </Field>
+            </>
+          )}
         </Card>
         <FormActions
           onDiscard={() => nav(isNew ? "/assets" : `/assets/${encodeURIComponent(name)}`)}
