@@ -65,7 +65,10 @@ export default function ItemTaxTemplateList() {
 
   return (
     <>
-      <PageHead title={t("itt.title")} />
+      <PageHead
+        title={t("itt.title")}
+        actions={writable ? <button className="btn" onClick={() => nav("/item-tax-templates/new")}>{t("itt.new")}</button> : null}
+      />
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("itt.search")} />

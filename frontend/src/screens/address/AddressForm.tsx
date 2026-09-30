@@ -33,6 +33,8 @@ type Doc = {
   email_id?: string;
   phone?: string;
   disabled?: 0 | 1;
+  is_primary_address?: 0 | 1;
+  is_shipping_address?: 0 | 1;
   links?: { link_doctype?: string; link_name?: string }[];
 };
 
@@ -64,6 +66,8 @@ export default function AddressForm() {
     email_id: "",
     phone: "",
     disabled: 0 as 0 | 1,
+    is_primary_address: 0 as 0 | 1,
+    is_shipping_address: 0 as 0 | 1,
   });
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [busy, setBusy] = useState(false);
@@ -85,6 +89,8 @@ export default function AddressForm() {
       email_id: d.email_id || "",
       phone: d.phone || "",
       disabled: (d.disabled ? 1 : 0) as 0 | 1,
+      is_primary_address: (d.is_primary_address ? 1 : 0) as 0 | 1,
+      is_shipping_address: (d.is_shipping_address ? 1 : 0) as 0 | 1,
     });
     setLinks(
       (d.links ?? []).map((l) => ({
@@ -143,6 +149,18 @@ export default function AddressForm() {
       <FormLayout>
         <Card>
           <div className="fg">
+            <CheckField
+              label={t("addr.primary")}
+              hint={t("doc.onHint")}
+              checked={!!form.is_primary_address}
+              onChange={(on) => setForm((f) => ({ ...f, is_primary_address: on ? 1 : 0 }))}
+            />
+            <CheckField
+              label={t("addr.shipping")}
+              hint={t("doc.onHint")}
+              checked={!!form.is_shipping_address}
+              onChange={(on) => setForm((f) => ({ ...f, is_shipping_address: on ? 1 : 0 }))}
+            />
             <CheckField
               label={t("common.disabled")}
               hint={t("doc.offHint")}
