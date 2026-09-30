@@ -114,6 +114,8 @@ svg{display:block}
 /* ── Common ────────────────────────────────────────────────────────── */
 .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--r)}
 .card + .card{margin-block-start:16px}
+/* A chart row is a grid, so the sibling margin would drop the second card. */
+.charts > .card{margin-block-start:0; height:100%}
 .chead{display:flex; flex-wrap:wrap; gap:10px; align-items:baseline; justify-content:space-between; padding:14px 16px; border-block-end:1px solid var(--border)}
 .chead.bare{border-block-end:0; padding-block-end:0}
 .chead h2{margin:0; font-size:13.5px; font-weight:600}
@@ -158,7 +160,7 @@ svg{display:block}
 .cur{font-size:11.5px; color:var(--muted); font-weight:500; margin-inline-end:3px}
 
 /* Stat tiles — the gradient-tint pattern */
-.tiles{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px}
+.tiles{display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; align-items:stretch}
 @media (max-width:1100px){.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:560px){.tiles{grid-template-columns:minmax(0,1fr)}}
 .dash-board{display:grid; grid-template-columns:1.15fr .85fr; gap:16px; align-items:start}
@@ -175,16 +177,17 @@ button.qrow:hover .qtitle{color:var(--brand)}
 .qrow .qsub{display:block; font-size:11.5px; color:var(--muted); margin-block-start:2px}
 .qrow .qmeta{margin-inline-start:auto; display:flex; align-items:center; gap:10px; flex:none}
 .qrow .qamt{font-variant-numeric:tabular-nums; font-weight:600; font-family:var(--mono); font-size:12.5px; white-space:nowrap}
-.tile{border:1px solid var(--border); border-radius:var(--r); padding:15px 16px; background:var(--surface); position:relative; overflow:hidden}
+.tile{border:1px solid var(--border); border-radius:var(--r); padding:15px 16px; background:var(--surface); position:relative; overflow:hidden; display:flex; flex-direction:column; height:100%; min-width:0}
 .tile::before{content:""; position:absolute; inset:0; background:linear-gradient(to left, var(--tint) 0%, transparent 62%); pointer-events:none}
 [dir="rtl"] .tile::before{background:linear-gradient(to right, var(--tint) 0%, transparent 62%)}
 .tile > *{position:relative}
 .tile .row{display:flex; align-items:center; gap:11px}
+.tile .copy{min-width:0; flex:1}
 .tile .bdg{width:40px; height:40px; border-radius:50%; display:grid; place-items:center; color:#fff; flex:none}
-.tile .k{font-size:12px; color:var(--muted); font-weight:500}
-.tile .v{font-size:21px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums; margin-block-start:1px}
+.tile .k{display:block; font-size:12px; color:var(--muted); font-weight:500}
+.tile .v{font-size:21px; font-weight:700; letter-spacing:-.025em; font-variant-numeric:tabular-nums; margin-block-start:1px; line-height:1.2}
 .tile .v small{font-size:12px; font-weight:500; color:var(--muted); letter-spacing:0}
-.tile .foot{margin-block-start:10px; font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px; flex-wrap:wrap}
+.tile .tnote{margin-block-start:auto; padding-block-start:10px; font-size:11.5px; color:var(--muted); line-height:1.35; display:flex; align-items:center; gap:6px; flex-wrap:wrap}
 .tile .delta{font-weight:600}
 .tile .delta.up{color:var(--ok)} .tile .delta.down{color:var(--bad)}
 .spark{margin-inline-start:auto; flex:none}
@@ -277,16 +280,22 @@ tbody tr:last-child td{border-block-end:0}
 .step .sub{font-size:11.5px; color:var(--muted)}
 .sbar{height:5px; border-radius:3px; background:var(--track); overflow:hidden; margin-inline-end:16px}
 .sbar i{display:block; height:100%; border-radius:3px}
-.body2{display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:16px; align-items:start}
-/* `1fr` is `minmax(auto,1fr)`: the track can never shrink below the
-   min-content of what is in it, and `.stack` holds item tables and long
-   Arabic party names. One column with a plain `1fr` is why every detail and
-   form screen scrolled the page sideways below 1100px. */
-@media (max-width:1100px){.body2{grid-template-columns:minmax(0,1fr)}}
-/* Same reason, from the item side: a grid/flex item defaults to
-   min-width:auto and refuses to be squeezed. */
+.body2{display:grid; grid-template-columns:minmax(0,1fr) 320px; column-gap:16px; align-items:start}
+/* Pair each main card with the aside card on the same row. minmax(0,1fr)
+   stays: a plain 1fr will not shrink below a wide item table. */
+.body2 > .stack,
+.body2 > .side{
+  display:grid; grid-template-rows:subgrid; grid-row:span 8; row-gap:16px; min-width:0;
+}
+.body2 > .stack > .card,
+.body2 > .side > .card{margin-block-start:0; min-width:0}
+@media (max-width:1100px){
+  .body2{grid-template-columns:minmax(0,1fr); row-gap:16px}
+  .body2 > .stack,
+  .body2 > .side{display:flex; flex-direction:column; grid-row:auto; gap:16px}
+}
 .stack,.side{min-width:0}
-.side{display:flex; flex-direction:column; gap:16px; position:sticky; top:14px}
+.side{position:sticky; top:14px}
 @media (max-width:1100px){.side{position:static}}
 .fg{display:grid; grid-template-columns:repeat(3,1fr); gap:16px 20px}
 /* 3 up on desktop, 2 on a tablet, 1 on a phone — the 760px step matches the

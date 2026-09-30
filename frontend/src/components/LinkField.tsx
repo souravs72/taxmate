@@ -43,24 +43,33 @@ export default function LinkField({
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [hits, setHits] = useState<Hit[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [box, setBox] = useState<MenuBox | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const search = useFrappePostCall<{ message: Hit[] }>(METHOD.searchLink);
+  const filterKey = JSON.stringify(filters ?? null);
 
   useEffect(() => {
     if (!open) return;
+    setStatus("loading");
     const handle = window.setTimeout(() => {
       search
         .call({ doctype, txt: q, page_length: 12, filters: filters ?? undefined })
-        .then((r) => setHits(r?.message ?? []))
-        .catch(() => setHits([]));
+        .then((r) => {
+          setHits(r?.message ?? []);
+          setStatus("ready");
+        })
+        .catch(() => {
+          setHits([]);
+          setStatus("error");
+        });
     }, 220);
     return () => window.clearTimeout(handle);
-    // search.call identity is unstable; q/open/doctype are the real inputs.
+    // search.call identity is unstable; filterKey stands in for filters.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, open, doctype]);
+  }, [q, open, doctype, filterKey]);
 
-  const showMenu = open && hits.length > 0;
+  const showMenu = open && status !== "idle";
 
   useLayoutEffect(() => {
     if (!showMenu || !inputRef.current) return;
@@ -97,6 +106,9 @@ export default function LinkField({
           role="listbox"
           style={{ top: box.top, bottom: box.bottom, left: box.left, width: box.width, maxHeight: box.maxHeight }}
         >
+          {status === "loading" && <li className="linkhit"><span>{t("search.loading")}</span></li>}
+          {status === "error" && <li className="linkhit"><span>{t("search.error")}</span></li>}
+          {status === "ready" && hits.length === 0 && <li className="linkhit"><span>{t("search.empty")}</span></li>}
           {hits.map((h) => (
             <li key={h.value}>
               <button

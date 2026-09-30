@@ -67,7 +67,6 @@ export default function ItemForm() {
   const groups = useDocList<{ name: string }>(DT.itemGroup, {
     fields: ["name"], filters: [["is_group", "=", 0]], limit: 80,
   });
-  const companies = useDocList<{ name: string }>(DT.company, { fields: ["name"], limit: 20 });
   const uoms = useDocList<{ name: string }>(DT.uom, { fields: ["name"], limit: 80 });
   const settings = useDoc<{ selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
   const create = useInsert();
@@ -306,9 +305,9 @@ export default function ItemForm() {
               ...uomRows.filter((r) => r.uom && r.conversion_factor > 0).map(({ _key: _k, ...r }) => r),
             ]
           : undefined,
-        item_defaults: session.company
+        item_defaults: (form.custom_company || session.company)
           ? [{
-              company: session.company,
+              company: form.custom_company || session.company,
               default_warehouse: form.default_warehouse || undefined,
               income_account: form.income_account || undefined,
               expense_account: form.expense_account || undefined,
@@ -391,10 +390,12 @@ export default function ItemForm() {
             <input className="ctl" value={form.description} onChange={(e) => set("description", e.target.value)} aria-label={t("item.description")} />
           </Field>
           <Field label={t("item.company")} required={!!form.is_sales_item} hint={t("item.companyHint")}>
-            <select className="ctl" value={form.custom_company} onChange={(e) => set("custom_company", e.target.value)}>
-              <option value="" />
-              {(companies.data ?? []).map((c) => <option key={c.name} value={c.name}>{c.name}</option>)}
-            </select>
+            <LinkField
+              doctype={DT.company}
+              value={form.custom_company}
+              onChange={(v) => set("custom_company", v)}
+              placeholder={t("item.company")}
+            />
           </Field>
           <Field label={t("item.col.group")} required>
             <select className="ctl" value={form.item_group} onChange={(e) => set("item_group", e.target.value)}>
@@ -461,7 +462,7 @@ export default function ItemForm() {
                 doctype={DT.warehouse}
                 value={form.default_warehouse}
                 onChange={(v) => set("default_warehouse", v)}
-                filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
+                filters={(form.custom_company || session.company) ? [["company", "=", form.custom_company || session.company], ["is_group", "=", 0]] : undefined}
               />
             </Field>
           )}
@@ -573,7 +574,7 @@ export default function ItemForm() {
                 doctype={DT.warehouse}
                 value={form.reorder_warehouse}
                 onChange={(v) => set("reorder_warehouse", v)}
-                filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] : undefined}
+                filters={(form.custom_company || session.company) ? [["company", "=", form.custom_company || session.company], ["is_group", "=", 0]] : undefined}
               />
             </Field>
             <Field label={t("item.reorderLevel")}>
