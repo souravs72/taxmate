@@ -287,6 +287,10 @@ tbody tr:last-child td{border-block-end:0}
 .body2 > .side{
   display:grid; grid-template-rows:subgrid; grid-row:span 8; row-gap:16px; min-width:0;
 }
+/* A short aside (payments, totals) stays as tall as its content. The lines
+   table must not stretch that card down the page. */
+.body2 > .side{align-items:start}
+.body2 > .side > .card{align-self:start; height:auto}
 .body2 > .stack > .card,
 .body2 > .side > .card{margin-block-start:0; min-width:0}
 @media (max-width:1100px){
