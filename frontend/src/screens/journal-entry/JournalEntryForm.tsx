@@ -90,6 +90,8 @@ type Doc = {
   user_remark?: string;
   cheque_no?: string;
   cheque_date?: string;
+  bill_no?: string;
+  bill_date?: string;
   multi_currency?: number;
   docstatus?: number;
   accounts?: DocAccount[];
@@ -125,6 +127,8 @@ export default function JournalEntryForm() {
   const [remark, setRemark] = useState("");
   const [chequeNo, setChequeNo] = useState("");
   const [chequeDate, setChequeDate] = useState("");
+  const [billNo, setBillNo] = useState("");
+  const [billDate, setBillDate] = useState("");
   const [multiCurrency, setMultiCurrency] = useState(false);
   const [defaultCc, setDefaultCc] = useState("");
   const [frozenTill, setFrozenTill] = useState<string | null>(null);
@@ -159,6 +163,8 @@ export default function JournalEntryForm() {
     setRemark(d.user_remark || "");
     setChequeNo(d.cheque_no || "");
     setChequeDate(d.cheque_date || "");
+    setBillNo(d.bill_no || "");
+    setBillDate(d.bill_date || "");
     setMultiCurrency(!!(d.multi_currency));
     const acc: Line[] = (d.accounts ?? []).map((r) => ({
       account: r.account || "",
@@ -249,6 +255,8 @@ export default function JournalEntryForm() {
       multi_currency: multiCurrency ? 1 : 0,
       cheque_no: voucherType === "Bank Entry" ? chequeNo || undefined : undefined,
       cheque_date: voucherType === "Bank Entry" ? chequeDate || undefined : undefined,
+      bill_no: billNo || undefined,
+      bill_date: billDate || undefined,
       accounts: filled.map((l) => ({
         account: l.account,
         party_type: l.party_type || undefined,
@@ -363,6 +371,14 @@ export default function JournalEntryForm() {
               <select className="ctl" value={voucherType} onChange={(e) => setVoucherType(e.target.value)}>
                 {TYPES.map((x) => <option key={x} value={x}>{x}</option>)}
               </select>
+            </Field>
+          </div>
+          <div className="grid2">
+            <Field label={t("je.billNo")}>
+              <input className="ctl" value={billNo} onChange={(e) => setBillNo(e.target.value)} />
+            </Field>
+            <Field label={t("je.billDate")}>
+              <input className="ctl" type="date" value={billDate} onChange={(e) => setBillDate(e.target.value)} />
             </Field>
           </div>
           <Field label={t("je.col.remark")}>
