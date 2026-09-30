@@ -120,6 +120,7 @@ export default function BomForm() {
       const payload = {
         item, quantity, is_active: isActive, is_default: isDefault,
         company: session.company,
+        currency: session.currency,
         items: rows.map(({ _key: _k2, ...r }) => r),
       };
       let n: string;
