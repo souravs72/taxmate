@@ -14,6 +14,7 @@ import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 const CHARGE_TYPES = [
   "Actual",
@@ -197,88 +198,76 @@ export default function TaxTemplateForm() {
         </Card>
 
         <Card title={t("tx.charges")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("tx.col.charge")}</th>
-                  <th>{t("tx.col.account")}</th>
-                  <th className="n">{t("tx.col.rate")}</th>
-                  <th>{t("tx.col.desc")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r._key}>
-                    <td>
-                      <select
-                        className="ctl"
-                        value={r.charge_type}
-                        onChange={(e) => setRow(r._key, "charge_type", e.target.value)}
-                      >
-                        {CHARGE_TYPES.map((ct) => (
-                          <option key={ct} value={ct}>
-                            {ct}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="ctl"
-                        value={r.account_head}
-                        onChange={(e) => setRow(r._key, "account_head", e.target.value)}
-                      >
-                        <option value="">{t("tx.acctPh")}</option>
-                        {acctOptions.map((a) => (
-                          <option key={a.name} value={a.name}>
-                            {a.account_name || a.name}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        className="ctl"
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={r.rate}
-                        onChange={(e) => setRow(r._key, "rate", Number(e.target.value))}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="ctl"
-                        type="text"
-                        value={r.description}
-                        onChange={(e) => setRow(r._key, "description", e.target.value)}
-                        placeholder={t("tx.descPh")}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn ghost"
-                        onClick={() => removeRow(r._key)}
-                      >
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button
-            type="button"
-            className="btn ghost"
-            style={{ marginTop: 8 }}
-            onClick={addRow}
-          >
-            {t("tx.addRow")}
-          </button>
+          {/* The account names the charge, and the rate is the one figure you
+              type. Charge type and the free-text description sit behind
+              "More". */}
+          <LineItems<TaxRow>
+            rows={rows}
+            onRemove={(i) => removeRow(rows[i]._key)}
+            addWrap="inline"
+            addLabel={t("tx.addRow")}
+            onAdd={addRow}
+            fields={[
+              {
+                key: "charge_type", label: t("tx.col.charge"),
+                render: (r) => (
+                  <select
+                    className="ctl"
+                    value={r.charge_type}
+                    onChange={(e) => setRow(r._key, "charge_type", e.target.value)}
+                  >
+                    {CHARGE_TYPES.map((ct) => (
+                      <option key={ct} value={ct}>
+                        {ct}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+              {
+                key: "account_head", label: t("tx.col.account"), slot: "title",
+                render: (r) => (
+                  <select
+                    className="ctl"
+                    value={r.account_head}
+                    onChange={(e) => setRow(r._key, "account_head", e.target.value)}
+                  >
+                    <option value="">{t("tx.acctPh")}</option>
+                    {acctOptions.map((a) => (
+                      <option key={a.name} value={a.name}>
+                        {a.account_name || a.name}
+                      </option>
+                    ))}
+                  </select>
+                ),
+              },
+              {
+                key: "rate", label: t("tx.col.rate"), slot: "primary", numeric: true,
+                render: (r) => (
+                  <input
+                    className="ctl"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={r.rate}
+                    onChange={(e) => setRow(r._key, "rate", Number(e.target.value))}
+                  />
+                ),
+              },
+              {
+                key: "description", label: t("tx.col.desc"),
+                render: (r) => (
+                  <input
+                    className="ctl"
+                    type="text"
+                    value={r.description}
+                    onChange={(e) => setRow(r._key, "description", e.target.value)}
+                    placeholder={t("tx.descPh")}
+                  />
+                ),
+              },
+            ] as LineField<TaxRow>[]}
+          />
         </Card>
 
         <FormActions

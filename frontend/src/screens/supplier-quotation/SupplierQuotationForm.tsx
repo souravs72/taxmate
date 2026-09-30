@@ -17,6 +17,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 const today = toIsoDate(new Date());
 const plus = (days: number) => {
@@ -259,76 +260,70 @@ export default function SupplierQuotationForm() {
           </div>
         </Card>
         <Card title={t("sq.items")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("sq.col.item")}</th>
-                  <th className="n">{t("sq.col.qty")}</th>
-                  <th className="n">{t("sq.col.rate")}</th>
-                  <th className="n">{t("sq.col.amount")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td>
-                      <LinkField
-                        doctype={DT.item}
-                        value={l.item_code}
-                        onChange={(v) => void pickItem(i, v)}
-                        placeholder={t("sq.itemPh")}
-                      />
-                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
-                    </td>
-                    <td>
-                      <input
-                        className="ctl"
-                        type="number"
-                        min={0.001}
-                        step={0.001}
-                        value={l.qty}
-                        onChange={(e) =>
-                          setLines((ls) =>
-                            ls.map((row, idx) => (idx === i ? { ...row, qty: parseNum(e.target.value) } : row)),
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="ctl"
-                        type="number"
-                        min={0}
-                        step={0.01}
-                        value={l.rate}
-                        onChange={(e) =>
-                          setLines((ls) =>
-                            ls.map((row, idx) => (idx === i ? { ...row, rate: parseNum(e.target.value) } : row)),
-                          )
-                        }
-                      />
-                    </td>
-                    <td className="n tot">{money(l.qty * l.rate)}</td>
-                    <td>
-                      <button type="button" className="btn ghost" onClick={() => setLines((ls) => ls.filter((_, idx) => idx !== i))}>
-                        ×
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button
-            type="button"
-            className="btn ghost"
-            style={{ marginTop: 8 }}
-            onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}
-          >
-            {t("sq.addLine")}
-          </button>
+          {/* Item, Quantity and Amount on the face of a phone card; the rate
+              sits behind "More", as on the sales invoice. */}
+          <LineItems<TxnLine>
+            rows={lines}
+            onRemove={(i) => setLines((ls) => ls.filter((_, idx) => idx !== i))}
+            addWrap="inline"
+            addLabel={t("sq.addLine")}
+            onAdd={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}
+            fields={[
+              {
+                key: "item", label: t("sq.col.item"), slot: "title",
+                render: (l, i) => (
+                  <>
+                    <LinkField
+                      doctype={DT.item}
+                      value={l.item_code}
+                      onChange={(v) => void pickItem(i, v)}
+                      placeholder={t("sq.itemPh")}
+                    />
+                    <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
+                  </>
+                ),
+              },
+              {
+                key: "qty", label: t("sq.col.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input
+                    className="ctl"
+                    type="number"
+                    min={0.001}
+                    step={0.001}
+                    value={l.qty}
+                    onChange={(e) =>
+                      setLines((ls) =>
+                        ls.map((row, idx) => (idx === i ? { ...row, qty: parseNum(e.target.value) } : row)),
+                      )
+                    }
+                  />
+                ),
+              },
+              {
+                key: "rate", label: t("sq.col.rate"), numeric: true,
+                render: (l, i) => (
+                  <input
+                    className="ctl"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={l.rate}
+                    onChange={(e) =>
+                      setLines((ls) =>
+                        ls.map((row, idx) => (idx === i ? { ...row, rate: parseNum(e.target.value) } : row)),
+                      )
+                    }
+                  />
+                ),
+              },
+              {
+                key: "amount", label: t("sq.col.amount"), slot: "primary", numeric: true,
+                td: { fontWeight: 600 },
+                render: (l) => money(l.qty * l.rate),
+              },
+            ] as LineField<TxnLine>[]}
+          />
         </Card>
         <FormActions
           onSave={() => void saveFn(false)}

@@ -307,7 +307,54 @@
   font-weight: 700;
   flex: none;
 }
+/* The mark alone, below 900px. With the wordmark in, the top bar needs three
+   rows at 393px (brand / tools / search) instead of two (mark + search /
+   tools) — 113px of an 851px screen spent on a logo. The page title sits
+   directly beneath it anyway. The desktop rail keeps the full wordmark.
+
+   Scoped under `has-mnav` like everything below it: unscoped, this one rule
+   fired even when the AppShell change was missing, which is exactly the
+   half-applied state this file is written to survive. The 380px rule this
+   replaces stays below it for the same reason — without it, a file landing
+   on its own would start *showing* a wordmark at 360px that the app has
+   always hidden there. */
+.app.has-mnav .mnav-brand span:last-child { display: none; }
 /* At 360px the word competes with the language toggle; the mark still names it. */
 @media (max-width: 380px) {
   .mnav-brand span:last-child { display: none; }
+}
+
+/* ── Belt and braces: the rail must not survive on a phone ──────────── */
+/* AppShell already stops rendering .rail below 900px. This guard is keyed to
+   `has-mnav`, a class AppShell sets only when MobileNav is mounted, so the
+   CSS can never get ahead of the component: if this file lands without the
+   AppShell change, nothing here fires and the app keeps its old rail.
+   app.css is deliberately NOT touched — its own @media (max-width:900px)
+   rail rules stay exactly where they are. */
+.app.has-mnav > .rail { display: none; }
+/* .rail is position:sticky;height:100dvh. In a one-column grid that makes it
+   a full-screen band the page then scrolls over, and .page has no background
+   of its own — which is how nav links showed through the cards. */
+.app.has-mnav > .main > .page { background: var(--bg); position: relative; z-index: 1; }
+
+/* ── Top bar on a phone ─────────────────────────────────────────────── */
+/* Scoped under .app.has-mnav, so it exists only while MobileNav is mounted
+   and can never reach the desktop shell.
+
+   The width must be the SAME 900px as MOBILE_SHELL_QUERY in MobileNav.tsx.
+   At 760px it left 761–900px half-dressed: rail already gone and tab bar
+   already up, but the top bar still had the desktop's 40px controls and
+   13px search — under the 44px touch floor on exactly the widths a small
+   tablet reports. Moving one breakpoint means moving the other. */
+@media (max-width: 900px) {
+  /* Row 1: the mark, then Scan / language / theme / avatar.
+     Row 2: the search box, which needs the full width to be usable. */
+  .app.has-mnav .topbar { padding: 8px 12px; gap: 8px 10px; }
+  .app.has-mnav .tsearch { flex: 1 1 auto; max-width: none; min-width: 0; }
+  /* A finger, not a mouse. */
+  .app.has-mnav .topbar .iconbtn,
+  .app.has-mnav .topbar .umavbtn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
+  .app.has-mnav .topbar .langbtn,
+  .app.has-mnav .tools > button { min-height: 44px; }
+  .app.has-mnav .tsearch input { min-height: 44px; font-size: 16px; }
 }

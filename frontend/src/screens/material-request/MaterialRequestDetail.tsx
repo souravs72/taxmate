@@ -20,6 +20,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; uom?: string; warehouse?: string;
@@ -252,34 +253,43 @@ export default function MaterialRequestDetail() {
               </div>
             </Card>
             <Card title={t("mr.items")}>
-              <div className="twrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th style={{ width: 26 }}>#</th>
-                      <th>{t("soc.pickItem")}</th>
-                      <th className="n">{t("sod.col.qty")}</th>
-                      <th>{t("mr.uom")}</th>
-                      <th>{t("mr.targetWarehouse")}</th>
-                      <th>{t("mr.requiredBy")}</th>
-                      <th className="n">{t("mr.completedQty")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(data.items ?? []).map((l, i) => (
-                      <tr key={i}>
-                        <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                        <td><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></td>
-                        <td className="n">{qty(l.qty)}</td>
-                        <td>{l.uom || "—"}</td>
-                        <td>{l.warehouse || "—"}</td>
-                        <td>{date(l.schedule_date || data.schedule_date)}</td>
-                        <td className="n">{qty(l.ordered_qty)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* Read-only: the request's lines cannot be added or removed here.
+                  The requested and the completed quantity are the pair a reader
+                  compares, so both take the card face; UOM, warehouse and the
+                  required-by date sit below, still visible with collapse off. */}
+              <LineItems<Line>
+                rows={data.items ?? []}
+                showIndex
+                collapse={false}
+                fields={[
+                  {
+                    key: "item", label: t("soc.pickItem"), slot: "title",
+                    render: (l) => (
+                      <><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></>
+                    ),
+                  },
+                  {
+                    key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                    render: (l) => <>{qty(l.qty)}</>,
+                  },
+                  {
+                    key: "uom", label: t("mr.uom"),
+                    render: (l) => <>{l.uom || "—"}</>,
+                  },
+                  {
+                    key: "warehouse", label: t("mr.targetWarehouse"),
+                    render: (l) => <>{l.warehouse || "—"}</>,
+                  },
+                  {
+                    key: "requiredBy", label: t("mr.requiredBy"),
+                    render: (l) => <>{date(l.schedule_date || data.schedule_date)}</>,
+                  },
+                  {
+                    key: "completedQty", label: t("mr.completedQty"), slot: "primary", numeric: true,
+                    render: (l) => <>{qty(l.ordered_qty)}</>,
+                  },
+                ] as LineField<Line>[]}
+              />
             </Card>
           </>
         )}
@@ -329,53 +339,60 @@ export default function MaterialRequestDetail() {
                 />
               </Field>
               <p className="sub">{t("mr.separatePO")}</p>
-              <div className="twrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t("soc.pickItem")}</th>
-                      <th className="n">{t("sod.col.qty")}</th>
-                      <th>{t("mr.uom")}</th>
-                      <th>{t("nav.suppliers")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {poRows.map((row) => (
-                      <tr key={row.material_request_item}>
-                        <td>
-                          <div className="icode">{row.item_code}</div>
-                          <div className="iname">{row.item_name}</div>
-                        </td>
-                        <td className="n">
-                          <input
-                            className="ctl mini nn"
-                            style={{ width: 80 }}
-                            value={row.qty}
-                            onChange={(e) => {
-                              const next = Number(e.target.value);
-                              setPoRows((rows) => rows?.map((item) => (
-                                item.material_request_item === row.material_request_item
-                                  ? { ...item, qty: Number.isFinite(next) ? next : 0 }
-                                  : item
-                              )) ?? rows);
-                            }}
-                          />
-                        </td>
-                        <td>{row.uom || "—"}</td>
-                        <td style={{ minWidth: 180 }}>
-                          <LinkField
-                            doctype={DT.supplier}
-                            value={row.supplier}
-                            onChange={(supplier) => setPoRows((rows) => rows?.map((item) => (
-                              item.material_request_item === row.material_request_item ? { ...item, supplier } : item
-                            )) ?? rows)}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              {/* Not a line table but a per-item supplier split: the rows come
+                  back from mrDefaultSuppliers, so none can be added or removed
+                  here — only the quantity and the supplier are editable. With
+                  collapse off, the supplier picker stays on the phone card
+                  rather than behind a "More" toggle it would be useless behind. */}
+              <LineItems<PendingRow>
+                rows={poRows}
+                collapse={false}
+                fields={[
+                  {
+                    key: "item", label: t("soc.pickItem"), slot: "title",
+                    render: (row) => (
+                      <>
+                        <div className="icode">{row.item_code}</div>
+                        <div className="iname">{row.item_name}</div>
+                      </>
+                    ),
+                  },
+                  {
+                    key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                    render: (row) => (
+                      <input
+                        className="ctl mini nn"
+                        style={{ width: 80 }}
+                        value={row.qty}
+                        onChange={(e) => {
+                          const next = Number(e.target.value);
+                          setPoRows((rows) => rows?.map((item) => (
+                            item.material_request_item === row.material_request_item
+                              ? { ...item, qty: Number.isFinite(next) ? next : 0 }
+                              : item
+                          )) ?? rows);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: "uom", label: t("mr.uom"),
+                    render: (row) => <>{row.uom || "—"}</>,
+                  },
+                  {
+                    key: "supplier", label: t("nav.suppliers"), td: { minWidth: 180 },
+                    render: (row) => (
+                      <LinkField
+                        doctype={DT.supplier}
+                        value={row.supplier}
+                        onChange={(supplier) => setPoRows((rows) => rows?.map((item) => (
+                          item.material_request_item === row.material_request_item ? { ...item, supplier } : item
+                        )) ?? rows)}
+                      />
+                    ),
+                  },
+                ] as LineField<PendingRow>[]}
+              />
               <div className="addrow">
                 <button type="button" className="btn" disabled={!!busy} onClick={() => void createFromSuppliers()}>
                   {busy === "po" ? t("soc.saving") : t("mr.create")}

@@ -16,6 +16,7 @@ import { canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; rate?: number; amount?: number; uom?: string };
 type Doc = {
@@ -116,26 +117,31 @@ export default function SupplierQuotationDetail() {
         </div>
       </Card>
       <Card title={t("sq.items")}>
-        <div className="twrap">
-          <table>
-            <thead><tr>
-              <th>{t("sq.col.item")}</th>
-              <th className="n">{t("sq.col.qty")}</th>
-              <th className="n">{t("sq.col.rate")}</th>
-              <th className="n">{t("sq.col.amount")}</th>
-            </tr></thead>
-            <tbody>
-              {(data.items ?? []).map((l, i) => (
-                <tr key={i}>
-                  <td>{l.item_name || l.item_code || "—"}</td>
-                  <td className="n">{l.qty}</td>
-                  <td className="n">{cur} {money(l.rate)}</td>
-                  <td className="n tot">{cur} {money(l.amount)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Read-only quotation lines: no add, no remove, collapse off. The
+            SumRows below were never a <tfoot> — they stay card siblings. */}
+        <LineItems<Line>
+          rows={data.items ?? []}
+          collapse={false}
+          fields={[
+            {
+              key: "item", label: t("sq.col.item"), slot: "title",
+              render: (l) => <>{l.item_name || l.item_code || "—"}</>,
+            },
+            {
+              key: "qty", label: t("sq.col.qty"), slot: "primary", numeric: true,
+              render: (l) => <>{l.qty}</>,
+            },
+            {
+              key: "rate", label: t("sq.col.rate"), numeric: true,
+              render: (l) => <>{cur} {money(l.rate)}</>,
+            },
+            {
+              key: "amount", label: t("sq.col.amount"), slot: "primary", numeric: true,
+              tdClass: "tot",
+              render: (l) => <>{cur} {money(l.amount)}</>,
+            },
+          ] as LineField<Line>[]}
+        />
         <SumRow k={t("sq.subtotal")} v={`${cur} ${money(data.net_total)}`} />
         {data.total_taxes_and_charges ? <SumRow k={t("sq.taxes")} v={`${cur} ${money(data.total_taxes_and_charges)}`} /> : null}
         <SumRow k={t("sq.total")} v={`${cur} ${money(data.grand_total)}`} />

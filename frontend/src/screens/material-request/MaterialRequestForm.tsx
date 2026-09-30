@@ -18,6 +18,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 const MR_TYPES = ["Purchase", "Material Transfer", "Material Issue", "Manufacture", "Subcontracting", "Customer Provided"] as const;
 type MRType = (typeof MR_TYPES)[number];
@@ -215,60 +216,55 @@ export default function MaterialRequestForm() {
           </div>
         </Card>
         <Card num={2} title={t("mr.items")} bodyClass={null as unknown as string}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th>{t("mr.uom")}</th>
-                  <th>{t("mr.warehouse")}</th>
-                  <th>{t("mr.requiredBy")}</th>
-                  {mrType === "Material Transfer" && <th>{t("se.warehouse.from")}</th>}
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 200 }}>
-                      <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
-                        onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
-                    </td>
-                    <td>{l.uom || "—"}</td>
-                    <td style={{ minWidth: 180 }}>
-                      <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                        value={l.warehouse} onChange={(v) => setLine(i, { warehouse: v })} />
-                    </td>
-                    <td>
-                      <input className="ctl" type="date" value={l.schedule_date || scheduleDate}
-                        onChange={(e) => setLine(i, { schedule_date: e.target.value })} />
-                    </td>
-                    {mrType === "Material Transfer" && (
-                      <td style={{ minWidth: 180 }}>
-                        <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                          value={l.from_warehouse || ""} onChange={(v) => setLine(i, { from_warehouse: v })} />
-                      </td>
-                    )}
-                    <td>
-                      <button type="button" className="rm" aria-label={t("inv.remove")}
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm" onClick={() => setLines((ls) => [...ls, blank(scheduleDate)])}>
-              {t("mr.addLine")}
-            </button>
-          </div>
+          <LineItems<Line>
+            rows={lines}
+            showIndex
+            onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+            addLabel={t("mr.addLine")}
+            onAdd={() => setLines((ls) => [...ls, blank(scheduleDate)])}
+            fields={([
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 200 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                ),
+              },
+              {
+                key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
+                    onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
+                ),
+              },
+              {
+                key: "uom", label: t("mr.uom"),
+                render: (l) => <>{l.uom || "—"}</>,
+              },
+              {
+                key: "warehouse", label: t("mr.warehouse"), td: { minWidth: 180 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.warehouse} filters={whFilters as never}
+                    value={l.warehouse} onChange={(v) => setLine(i, { warehouse: v })} />
+                ),
+              },
+              {
+                /* Per-line required-by date — the reason a line exists on a
+                   material request, so it stays on the card face. */
+                key: "sched", label: t("mr.requiredBy"), slot: "primary",
+                render: (l, i) => (
+                  <input className="ctl" type="date" value={l.schedule_date || scheduleDate}
+                    onChange={(e) => setLine(i, { schedule_date: e.target.value })} />
+                ),
+              },
+              ...(mrType === "Material Transfer" ? [{
+                key: "from", label: t("se.warehouse.from"), td: { minWidth: 180 },
+                render: (l: Line, i: number) => (
+                  <LinkField doctype={DT.warehouse} filters={whFilters as never}
+                    value={l.from_warehouse || ""} onChange={(v) => setLine(i, { from_warehouse: v })} />
+                ),
+              }] : []),
+            ]) as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

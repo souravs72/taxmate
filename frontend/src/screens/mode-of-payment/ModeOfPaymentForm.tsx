@@ -13,6 +13,7 @@ import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { FormActions, FormLayout } from "../../components/form";
 
 type MoPAccount = { company: string; default_account: string };
@@ -161,72 +162,60 @@ export default function ModeOfPaymentForm() {
           <p className="sub" style={{ marginTop: 0 }}>
             {t("mop.accountsHint")}
           </p>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("mop.col.company")}</th>
-                  <th>{t("mop.col.defaultAccount")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map((row, idx) => (
-                  <tr key={idx}>
-                    <td>
-                      <LinkField
-                        doctype="Company"
-                        value={row.company}
-                        onChange={(v) =>
-                          setAccounts((rows) =>
-                            rows.map((r, i) => (i === idx ? { ...r, company: v } : r)),
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <LinkField
-                        doctype="Account"
-                        value={row.default_account}
-                        filters={
-                          row.company
-                            ? [
-                                ["company", "=", row.company],
-                                ["is_group", "=", 0],
-                                ["account_type", "in", ["Bank", "Cash"]],
-                              ]
-                            : [["is_group", "=", 0]]
-                        }
-                        onChange={(v) =>
-                          setAccounts((rows) =>
-                            rows.map((r, i) => (i === idx ? { ...r, default_account: v } : r)),
-                          )
-                        }
-                      />
-                    </td>
-                    <td>
-                      <button
-                        type="button"
-                        className="btn quiet sm"
-                        disabled={accounts.length <= 1}
-                        onClick={() => setAccounts((rows) => rows.filter((_, i) => i !== idx))}
-                      >
-                        {t("mop.removeRow")}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button
-            type="button"
-            className="btn ghost sm"
-            style={{ marginTop: 8 }}
-            onClick={() => setAccounts((rows) => [...rows, { company, default_account: "" }])}
-          >
-            {t("mop.addRow")}
-          </button>
+          {/* Two fields, both on the face of a phone card: the company names
+              the row and the account is what you are here to set. */}
+          <LineItems<MoPAccount>
+            rows={accounts}
+            onRemove={
+              accounts.length > 1
+                ? (idx) => setAccounts((rows) => rows.filter((_, i) => i !== idx))
+                : undefined
+            }
+            /* This card keeps its body padding, so the add control is the
+               plain button it was, not the sunk `.addrow` strip. */
+            addWrap="inline"
+            addLabel={t("mop.addRow")}
+            onAdd={() => setAccounts((rows) => [...rows, { company, default_account: "" }])}
+            fields={[
+              {
+                key: "company", label: t("mop.col.company"), slot: "title",
+                render: (row, idx) => (
+                  <LinkField
+                    doctype="Company"
+                    value={row.company}
+                    onChange={(v) =>
+                      setAccounts((rows) =>
+                        rows.map((r, i) => (i === idx ? { ...r, company: v } : r)),
+                      )
+                    }
+                  />
+                ),
+              },
+              {
+                key: "account", label: t("mop.col.defaultAccount"), slot: "primary",
+                render: (row, idx) => (
+                  <LinkField
+                    doctype="Account"
+                    value={row.default_account}
+                    filters={
+                      row.company
+                        ? [
+                            ["company", "=", row.company],
+                            ["is_group", "=", 0],
+                            ["account_type", "in", ["Bank", "Cash"]],
+                          ]
+                        : [["is_group", "=", 0]]
+                    }
+                    onChange={(v) =>
+                      setAccounts((rows) =>
+                        rows.map((r, i) => (i === idx ? { ...r, default_account: v } : r)),
+                      )
+                    }
+                  />
+                ),
+              },
+            ] as LineField<MoPAccount>[]}
+          />
         </Card>
         <FormActions
           onSave={() => void saveFn()}

@@ -30,6 +30,8 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import { useIsPhone } from "../../lib/useMedia";
+import "./journal-mobile.css";
 
 type AccountDetails = {
   account_type?: string;
@@ -60,6 +62,20 @@ type Line = {
   account_type: string;
   dims: LineDimensions;
 };
+
+/**
+ * A Receivable/Payable line whose party has not been chosen yet.
+ *
+ * `partyOk` in the readiness checklist blocks the save on exactly this, so on
+ * a phone — where the party sits behind the "More" toggle — this is what the
+ * card has to un-hide. Checking only party_type is not enough: picking a
+ * Receivable account stamps party_type = "Customer" (impliedPartyType) while
+ * the party itself is still empty, which would leave a mandatory, empty field
+ * collapsed out of sight with the checklist refusing to go green. The desktop
+ * table shows its Party column at every width and keeps its own narrower
+ * test, so its markup is unchanged.
+ */
+const partyIncomplete = (row: Line) => requiresParty(row.account_type) && !row.party;
 
 const TYPES = [
   "Journal Entry",
@@ -130,6 +146,11 @@ export default function JournalEntryForm() {
   const [billNo, setBillNo] = useState("");
   const [billDate, setBillDate] = useState("");
   const [multiCurrency, setMultiCurrency] = useState(false);
+  /* Below 760px the account table is rendered as one card per line: at
+     393px the table itself is 1,840px wide. Same data, same handlers —
+     only the arrangement differs, and the table above 760px is untouched. */
+  const phone = useIsPhone();
+  const [openLines, setOpenLines] = useState<Record<number, boolean>>({});
   const [defaultCc, setDefaultCc] = useState("");
   const [frozenTill, setFrozenTill] = useState<string | null>(null);
 
@@ -154,6 +175,24 @@ export default function JournalEntryForm() {
     if (!defaultCc) return;
     setLines((rows) => rows.map((r) => (r.account || r.cost_center ? r : { ...r, cost_center: defaultCc })));
   }, [defaultCc]);
+
+  /* A card that opened itself because its party was missing stays open once
+     the party is filled in — otherwise it snaps shut under the finger that
+     just filled it, hiding the value that was typed. Only ever adds `true`,
+     so it cannot fight the toggle, and it is inert on the desktop table. */
+  useEffect(() => {
+    if (!phone) return;
+    setOpenLines((o) => {
+      let next = o;
+      lines.forEach((row, i) => {
+        if (partyIncomplete(row) && !o[i]) {
+          if (next === o) next = { ...o };
+          next[i] = true;
+        }
+      });
+      return next;
+    });
+  }, [lines, phone]);
 
   useEffect(() => {
     const d = existing.data;
@@ -183,6 +222,35 @@ export default function JournalEntryForm() {
     }));
     setLines(acc.length >= 2 ? acc : [...acc, blank(defaultCc)]);
   }, [existing.data]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* If the document arrives before the dimension list, the effect above
+     stores an empty dims map. Fill only keys the line does not already
+     have, matched by account, so a later save does not drop them and a
+     value typed in the meantime is kept. */
+  useEffect(() => {
+    const accounts = existing.data?.accounts;
+    if (!accounts || dimensions.length === 0) return;
+    setLines((rows) => {
+      let changed = false;
+      const next = rows.map((line, i) => {
+        const src = accounts[i];
+        if (!src || line.account !== (src.account || "")) return line;
+        const dims = { ...line.dims };
+        let rowChanged = false;
+        for (const dim of dimensions) {
+          if (dims[dim.fieldname] != null) continue;
+          const v = src[dim.fieldname];
+          if (v == null || v === "") continue;
+          dims[dim.fieldname] = String(v);
+          rowChanged = true;
+        }
+        if (!rowChanged) return line;
+        changed = true;
+        return { ...line, dims };
+      });
+      return changed ? next : rows;
+    });
+  }, [dimensions, existing.data]);
 
   const company = session.company;
   const companyCurrency = session.currency || "";
@@ -258,6 +326,7 @@ export default function JournalEntryForm() {
       bill_no: billNo || undefined,
       bill_date: billDate || undefined,
       accounts: filled.map((l) => ({
+        ...l.dims,
         account: l.account,
         party_type: l.party_type || undefined,
         party: l.party || undefined,
@@ -266,7 +335,6 @@ export default function JournalEntryForm() {
         account_currency: l.account_currency || companyCurrency || undefined,
         exchange_rate: Number(l.exchange_rate) || 1,
         cost_center: l.cost_center || defaultCc || undefined,
-        ...l.dims,
       })),
     };
   }
@@ -307,6 +375,93 @@ export default function JournalEntryForm() {
   }
 
   const acctFilters = company ? leafAccountFilters(company) : undefined;
+
+  /* ── One editor per field ────────────────────────────────────────────
+     The table and the phone cards both call these, so a line behaves
+     identically either way and there is only one place to change a field.
+     ──────────────────────────────────────────────────────────────────── */
+  const fAccount = (i: number, row: Line) => (
+    <LinkField
+      doctype={DT.account}
+      value={row.account}
+      onChange={(v) => void onAccountChange(i, v)}
+      placeholder={t("je.pickAccount")}
+      filters={acctFilters}
+    />
+  );
+  const fCostCenter = (i: number, row: Line) => (
+    <LinkField
+      doctype={DT.costCenter}
+      value={row.cost_center}
+      onChange={(v) => setLine(i, { cost_center: v })}
+      placeholder={t("je.costCenter")}
+      filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined}
+    />
+  );
+  const fPartyType = (i: number, row: Line) => (
+    <select className="ctl" value={row.party_type}
+      onChange={(e) => setLine(i, { party_type: e.target.value, party: "" })}>
+      <option value="">{t("je.noParty")}</option>
+      <option value="Customer">{t("nav.customers")}</option>
+      <option value="Supplier">{t("nav.suppliers")}</option>
+    </select>
+  );
+  const fPartyLink = (i: number, row: Line) => (
+    <LinkField
+      doctype={row.party_type === "Supplier" ? DT.supplier : DT.customer}
+      value={row.party}
+      onChange={(v) => setLine(i, { party: v })}
+      placeholder={t("je.party")}
+    />
+  );
+  /* Receivable and Payable accounts cannot post without a party. */
+  const partyMissing = (row: Line) => requiresParty(row.account_type) && !row.party_type;
+  const fRate = (i: number, row: Line, style?: React.CSSProperties) => (
+    <input className="ctl n" style={style} value={row.exchange_rate || 1} inputMode="decimal"
+      onChange={(e) => setLine(i, { exchange_rate: parseNum(e.target.value) || 1 })} />
+  );
+  const fDebit = (i: number, row: Line) => (
+    <input className="ctl n" value={row.debit || ""} inputMode="decimal"
+      onChange={(e) => setLine(i, { debit: parseNum(e.target.value), credit: 0 })} />
+  );
+  const fCredit = (i: number, row: Line) => (
+    <input className="ctl n" value={row.credit || ""} inputMode="decimal"
+      onChange={(e) => setLine(i, { credit: parseNum(e.target.value), debit: 0 })} />
+  );
+  const fDim = (i: number, row: Line, dim: Dimension) => (
+    dim.document_type ? (
+      <LinkField
+        doctype={dim.document_type}
+        value={row.dims[dim.fieldname] || ""}
+        onChange={(v) => setLineDim(i, dim.fieldname, v)}
+        placeholder={dim.label}
+      />
+    ) : (
+      <input className="ctl" value={row.dims[dim.fieldname] || ""}
+        onChange={(e) => setLineDim(i, dim.fieldname, e.target.value)}
+        placeholder={dim.label} />
+    )
+  );
+  /* openLines is keyed by line index, so removing a line has to shift the
+     keys above it down with the lines themselves. Without this, the card that
+     moves up into index i inherits the toggle state of the line that was
+     removed, and a freshly added line can come up already expanded because a
+     stale `true` is still sitting at its index. The table ignores openLines,
+     so this is inert above 760px. */
+  const removeLine = (i: number) => {
+    setLines((r) => r.filter((_, idx) => idx !== i));
+    setOpenLines((o) => {
+      const next: Record<number, boolean> = {};
+      for (const key of Object.keys(o)) {
+        const idx = Number(key);
+        if (idx === i) continue;
+        next[idx > i ? idx - 1 : idx] = o[idx];
+      }
+      return next;
+    });
+  };
+  const fill = (str: string, n: number | string) => str.split("{n}").join(String(n));
+
 
   return (
     <>
@@ -402,6 +557,108 @@ export default function JournalEntryForm() {
         </Card>
 
         <Card title={t("je.accounts")}>
+          {phone ? (
+            /* One card per line. Account and the amounts are on the face;
+               cost centre, party and the dimensions collapse, because they
+               are usually left as they come. A party the account requires
+               never hides — its warning stays on the face and the card
+               opens itself. */
+            <div className="jel-list">
+              {lines.map((row, i) => {
+                const mustOpen = partyIncomplete(row);
+                const open = !!openLines[i] || mustOpen;
+                return (
+                  <div className="jel-card" key={i}>
+                    <div className="jel-head">
+                      <span className="jel-n">{fill(t("je.lineN"), i + 1)}</span>
+                      <button type="button" className="jel-rm"
+                        aria-label={fill(t("je.removeLine"), i + 1)}
+                        onClick={() => removeLine(i)}>×</button>
+                    </div>
+
+                    <div className="jel-f">
+                      <label>{t("je.account")}</label>
+                      {fAccount(i, row)}
+                    </div>
+
+                    {mustOpen && (
+                      <p className="jel-warn" role="status">
+                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor"
+                             strokeWidth="1.6" strokeLinecap="round" aria-hidden="true">
+                          <circle cx="8" cy="8" r="6.4" /><path d="M8 5v3.6M8 11h.01" />
+                        </svg>
+                        {t("je.partyRequired")}
+                      </p>
+                    )}
+
+                    <div className="jel-money">
+                      <div className="jel-f">
+                        <label>{t("je.col.debit")}</label>
+                        {fDebit(i, row)}
+                      </div>
+                      <div className="jel-f">
+                        <label>{t("je.col.credit")}</label>
+                        {fCredit(i, row)}
+                      </div>
+                    </div>
+
+                    {!mustOpen && (
+                      <button type="button" className="jel-more" aria-expanded={open}
+                        onClick={() => setOpenLines((o) => ({ ...o, [i]: !o[i] }))}>
+                        {open ? t("je.fewerFields") : t("je.moreFields")}
+                        <svg className="jel-chev" width="12" height="12" viewBox="0 0 16 16" fill="none"
+                             stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+                          <path d="m4 6 4 4 4-4" />
+                        </svg>
+                      </button>
+                    )}
+
+                    {open && (
+                      <div className="jel-extra">
+                        <div className="jel-f">
+                          <label>{t("je.costCenter")}</label>
+                          {fCostCenter(i, row)}
+                        </div>
+                        <div className="jel-f">
+                          <label>{t("je.party")}</label>
+                          {fPartyType(i, row)}
+                        </div>
+                        {row.party_type && (
+                          <div className="jel-f">
+                            <label>{row.party_type === "Supplier" ? t("nav.suppliers") : t("nav.customers")}</label>
+                            {fPartyLink(i, row)}
+                          </div>
+                        )}
+                        {multiCurrency && (
+                          <div className="jel-money">
+                            <div className="jel-f">
+                              <label>{t("je.currency")}</label>
+                              <input className="ctl readonly" readOnly
+                                value={row.account_currency || companyCurrency} />
+                            </div>
+                            <div className="jel-f">
+                              <label>{t("je.exchangeRate")}</label>
+                              {fRate(i, row)}
+                            </div>
+                          </div>
+                        )}
+                        {dimensions.length > 0 && (
+                          <div className="jel-dims">
+                            {dimensions.map((dim) => (
+                              <div className="jel-f" key={dim.fieldname}>
+                                <label>{dim.label}</label>
+                                {fDim(i, row, dim)}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
           <div className="twrap">
             <table>
               <thead>
@@ -420,44 +677,17 @@ export default function JournalEntryForm() {
               <tbody>
                 {lines.map((row, i) => (
                   <tr key={i}>
-                    <td style={{ minWidth: 180 }}>
-                      <LinkField
-                        doctype={DT.account}
-                        value={row.account}
-                        onChange={(v) => void onAccountChange(i, v)}
-                        placeholder={t("je.pickAccount")}
-                        filters={acctFilters}
-                      />
-                    </td>
-                    <td style={{ minWidth: 140 }}>
-                      <LinkField
-                        doctype={DT.costCenter}
-                        value={row.cost_center}
-                        onChange={(v) => setLine(i, { cost_center: v })}
-                        placeholder={t("je.costCenter")}
-                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined}
-                      />
-                    </td>
+                    <td style={{ minWidth: 180 }}>{fAccount(i, row)}</td>
+                    <td style={{ minWidth: 140 }}>{fCostCenter(i, row)}</td>
                     <td>
                       <div className="grid2" style={{ minWidth: 200 }}>
-                        <select className="ctl" value={row.party_type}
-                          onChange={(e) => setLine(i, { party_type: e.target.value, party: "" })}>
-                          <option value="">{t("je.noParty")}</option>
-                          <option value="Customer">{t("nav.customers")}</option>
-                          <option value="Supplier">{t("nav.suppliers")}</option>
-                        </select>
-                        {row.party_type ? (
-                          <LinkField
-                            doctype={row.party_type === "Supplier" ? DT.supplier : DT.customer}
-                            value={row.party}
-                            onChange={(v) => setLine(i, { party: v })}
-                            placeholder={t("je.party")}
-                          />
-                        ) : requiresParty(row.account_type) && !row.party_type ? (
-                          <span style={{ color: "var(--warn)", fontSize: 12, alignSelf: "center" }}>
-                            {t("je.partyRequired")}
-                          </span>
-                        ) : null}
+                        {fPartyType(i, row)}
+                        {row.party_type ? fPartyLink(i, row)
+                          : partyMissing(row) ? (
+                            <span style={{ color: "var(--warn)", fontSize: 12, alignSelf: "center" }}>
+                              {t("je.partyRequired")}
+                            </span>
+                          ) : null}
                       </div>
                     </td>
                     {multiCurrency && (
@@ -465,39 +695,14 @@ export default function JournalEntryForm() {
                         {row.account_currency || companyCurrency}
                       </td>
                     )}
-                    {multiCurrency && (
-                      <td>
-                        <input className="ctl n" style={{ width: 80 }} value={row.exchange_rate || 1} inputMode="decimal"
-                          onChange={(e) => setLine(i, { exchange_rate: parseNum(e.target.value) || 1 })} />
-                      </td>
-                    )}
-                    <td>
-                      <input className="ctl n" value={row.debit || ""} inputMode="decimal"
-                        onChange={(e) => setLine(i, { debit: parseNum(e.target.value), credit: 0 })} />
-                    </td>
-                    <td>
-                      <input className="ctl n" value={row.credit || ""} inputMode="decimal"
-                        onChange={(e) => setLine(i, { credit: parseNum(e.target.value), debit: 0 })} />
-                    </td>
+                    {multiCurrency && <td>{fRate(i, row, { width: 80 })}</td>}
+                    <td>{fDebit(i, row)}</td>
+                    <td>{fCredit(i, row)}</td>
                     {dimensions.map((dim) => (
-                      <td key={dim.fieldname} style={{ minWidth: 120 }}>
-                        {dim.document_type ? (
-                          <LinkField
-                            doctype={dim.document_type}
-                            value={row.dims[dim.fieldname] || ""}
-                            onChange={(v) => setLineDim(i, dim.fieldname, v)}
-                            placeholder={dim.label}
-                          />
-                        ) : (
-                          <input className="ctl" value={row.dims[dim.fieldname] || ""}
-                            onChange={(e) => setLineDim(i, dim.fieldname, e.target.value)}
-                            placeholder={dim.label} />
-                        )}
-                      </td>
+                      <td key={dim.fieldname} style={{ minWidth: 120 }}>{fDim(i, row, dim)}</td>
                     ))}
                     <td>
-                      <button type="button" className="btn quiet sm"
-                        onClick={() => setLines((r) => r.filter((_, idx) => idx !== i))}>
+                      <button type="button" className="btn quiet sm" onClick={() => removeLine(i)}>
                         ×
                       </button>
                     </td>
@@ -506,7 +711,9 @@ export default function JournalEntryForm() {
               </tbody>
             </table>
           </div>
-          <button type="button" className="btn ghost sm" onClick={() => setLines((r) => [...r, blank(defaultCc)])}>
+          )}
+          <button type="button" className={`btn ghost sm${phone ? " jel-add" : ""}`}
+            onClick={() => setLines((r) => [...r, blank(defaultCc)])}>
             {t("soc.addLine")}
           </button>
         </Card>

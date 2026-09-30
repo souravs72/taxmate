@@ -11,6 +11,7 @@ import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 /** The pipeline the e-invoice walks, in order. */
@@ -327,22 +328,21 @@ export default function InvoiceDetail() {
             </div>
           </Card>
 
-          <Card title={t("inv.lines")} bodyClass="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th className="n">{t("sod.col.rate")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((l, i) => (
-                  <tr key={l.name ?? i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td>
+          {/* bodyClass off: LineItems renders the `.twrap` wrapper itself, so
+              the card body must not add a second one. */}
+          <Card title={t("inv.lines")} bodyClass={null}>
+            {/* A saved invoice's lines are read-only here — no add, no remove.
+                Item, quantity and amount on the face of a phone card; the rate
+                sits below, still visible with collapse off. */}
+            <LineItems<Line>
+              rows={data.items ?? []}
+              showIndex
+              collapse={false}
+              fields={[
+                {
+                  key: "item", label: t("soc.pickItem"), slot: "title",
+                  render: (l) => (
+                    <>
                       <div className="icode">{l.item_code}</div>
                       <div className="iname">{l.item_name}</div>
                       <div className="itags">
@@ -350,23 +350,37 @@ export default function InvoiceDetail() {
                         {l.hs_code && <span className="tag code">HS {l.hs_code}</span>}
                         {l.sac_code && <span className="tag code">SAC {l.sac_code}</span>}
                       </div>
-                    </td>
-                    <td className="n">
+                    </>
+                  ),
+                },
+                {
+                  key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                  render: (l) => (
+                    <>
                       {qty(l.qty)}
                       <div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div>
-                    </td>
-                    <td className="n">{money(l.rate)}</td>
-                    <td className="n" style={{ fontWeight: 600 }}>{money(l.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
+                    </>
+                  ),
+                },
+                {
+                  key: "rate", label: t("sod.col.rate"), numeric: true,
+                  render: (l) => <>{money(l.rate)}</>,
+                },
+                {
+                  key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                  td: { fontWeight: 600 },
+                  render: (l) => <>{money(l.amount)}</>,
+                },
+              ] as LineField<Line>[]}
+              /* The net total the table carried in its own <tfoot>. */
+              footer={
                 <tr>
                   <td colSpan={4} className="n">{t("sod.net")}</td>
                   <td className="n">{money(data.net_total)}</td>
                 </tr>
-              </tfoot>
-            </table>
+              }
+              footerCard={<><span>{t("sod.net")}</span><span>{money(data.net_total)}</span></>}
+            />
           </Card>
       </FormLayout>
     </>

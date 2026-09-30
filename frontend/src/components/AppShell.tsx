@@ -11,6 +11,7 @@ import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
 import UserMenu from "./UserMenu";
 import MobileNav, { useIsMobileShell } from "./MobileNav";
+import "../styles/phone-fixes.css";
 import { navIcon } from "./navIcons";
 import { CaptureDesk } from "../screens/dashboard/CaptureDesk";
 
@@ -91,7 +92,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [open]);
 
   return (
-    <div className={`app${collapsed && !mobile ? " collapsed" : ""}`}>
+    <div className={`app${collapsed && !mobile ? " collapsed" : ""}${mobile ? " has-mnav" : ""}`}>
       <a className="skip" href="#taxmate-main">{t("a11y.skip")}</a>
       {!mobile && (
       <nav className="rail">

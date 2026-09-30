@@ -12,6 +12,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type MoPAccount = { company?: string; default_account?: string };
 
@@ -74,24 +75,23 @@ export default function ModeOfPaymentDetail() {
         {(data.accounts ?? []).length === 0 ? (
           <p className="sub">{t("mop.accountsHint")}</p>
         ) : (
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("mop.col.company")}</th>
-                  <th>{t("mop.col.defaultAccount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.accounts ?? []).map((row, i) => (
-                  <tr key={`${row.company}-${i}`}>
-                    <td>{row.company || "—"}</td>
-                    <td className="ordno">{row.default_account || "—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          /* Read-only: the company's default account, nothing to add or
+             remove here. collapse={false} so both fields show on the card —
+             a two-field row has nothing worth hiding behind "More". */
+          <LineItems<MoPAccount>
+            rows={data.accounts ?? []}
+            collapse={false}
+            fields={[
+              {
+                key: "company", label: t("mop.col.company"), slot: "title",
+                render: (row) => row.company || "—",
+              },
+              {
+                key: "account", label: t("mop.col.defaultAccount"), tdClass: "ordno",
+                render: (row) => row.default_account || "—",
+              },
+            ] as LineField<MoPAccount>[]}
+          />
         )}
       </Card>
     </>

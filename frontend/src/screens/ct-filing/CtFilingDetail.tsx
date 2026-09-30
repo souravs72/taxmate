@@ -11,6 +11,7 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Adj = { name?: string; adjustment_type?: string; category?: string; amount?: number; notes?: string };
 type Doc = {
@@ -84,12 +85,26 @@ export default function CtFilingDetail() {
         </Card>
         {rows.length > 0 ? (
           <Card title={t("ct.adjustments")}>
-            <div className="twrap"><table>
-              <thead><tr><th>{t("ct.adjType")}</th><th>{t("ct.adjCat")}</th><th className="n">{t("v201.amount")}</th></tr></thead>
-              <tbody>{rows.map((r) => (
-                <tr key={r.name}><td>{r.adjustment_type || "—"}</td><td>{r.category || r.notes || "—"}</td><td className="n">{money(r.amount)}</td></tr>
-              ))}</tbody>
-            </table></div>
+            {/* Read-only adjustments: nothing to add or remove, and on a phone
+                every column stays visible rather than hiding behind "More". */}
+            <LineItems<Adj>
+              rows={rows}
+              collapse={false}
+              fields={[
+                {
+                  key: "type", label: t("ct.adjType"), slot: "title",
+                  render: (r) => <>{r.adjustment_type || "—"}</>,
+                },
+                {
+                  key: "category", label: t("ct.adjCat"),
+                  render: (r) => <>{r.category || r.notes || "—"}</>,
+                },
+                {
+                  key: "amount", label: t("v201.amount"), slot: "primary", numeric: true,
+                  render: (r) => <>{money(r.amount)}</>,
+                },
+              ] as LineField<Adj>[]}
+            />
           </Card>
         ) : null}
       </FormLayout>

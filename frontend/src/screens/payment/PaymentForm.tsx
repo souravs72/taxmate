@@ -16,6 +16,7 @@ import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard, type Check } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Ref = {
   reference_doctype?: string;
@@ -88,7 +89,11 @@ const sumAllocated = (refs: Ref[] | undefined) =>
 const refKey = (r: { reference_doctype?: string; reference_name?: string; payment_term?: string }) =>
   `${r.reference_doctype ?? ""}|${r.reference_name ?? ""}|${r.payment_term ?? ""}`;
 const rowKey = (r: Outstanding) =>
-  `${r.voucher_type}|${r.voucher_no}|${r.payment_term ?? ""}`;
+  refKey({
+    reference_doctype: r.voucher_type,
+    reference_name: r.voucher_no,
+    payment_term: r.payment_term,
+  });
 
 export default function PaymentForm() {
   const { name = "new" } = useParams();
@@ -538,60 +543,79 @@ export default function PaymentForm() {
                   {type === "Pay" && <div style={{ marginTop: 6 }}>{t("pay.holdHint")}</div>}
                 </div>
               ) : (
-                <div className="twrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th className="pick" />
-                        <th>{t("pay.aInv")}</th>
-                        <th>{t("pay.aDue")}</th>
-                        <th className="n">{t("pay.aOut")}</th>
-                        <th className="n" style={{ width: 150 }}>{t("pay.aAlloc")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((r) => {
-                        const key = rowKey(r);
-                        const on = selected.has(key);
-                        const ref = byKey.get(key);
-                        const balance = r.payment_term
+                /* An allocation table, not a list of item lines: the rows are
+                   the party's outstanding invoices, so none can be added or
+                   removed here — only ticked and allocated against. The
+                   invoice names the row; the outstanding balance and the
+                   allocation are on the face of a phone card. */
+                <LineItems<Outstanding>
+                  rows={rows}
+                  rowClass={(r) => (selected.has(rowKey(r)) ? "picked" : undefined)}
+                  fields={[
+                    {
+                      /* On the card face, not behind "More": this tick is what
+                         enables the allocation input beside it, so hiding it
+                         leaves a disabled field with no visible way to enable
+                         it — the same trap the journal's required party hit. */
+                      key: "pick", label: t("list.selectAll"), slot: "primary",
+                      /* The column heading was blank before and stays blank:
+                         "Select all" is the card's label for the tick, not a
+                         new desktop column heading. */
+                      thLabel: "", thClass: "pick", tdClass: "pick",
+                      render: (r) => (
+                        <input type="checkbox" checked={selected.has(rowKey(r))} aria-label={r.voucher_no}
+                          onChange={() => toggleInvoice(r)} />
+                      ),
+                    },
+                    {
+                      key: "inv", label: t("pay.aInv"), slot: "title", tdClass: "inv",
+                      render: (r) => (
+                        <div className="inv">
+                          <b>{r.voucher_no}</b>
+                          <span>
+                            {date(r.posting_date)}
+                            {/* The supplier's own invoice number — the
+                                thing an AP clerk matches against. */}
+                            {r.bill_no ? ` · ${r.bill_no}` : ""}
+                            {r.payment_term ? ` · ${r.payment_term}` : ""}
+                          </span>
+                        </div>
+                      ),
+                    },
+                    {
+                      key: "due", label: t("pay.aDue"), tdClass: "dt",
+                      render: (r) => <span className="dt">{date(r.due_date)}</span>,
+                    },
+                    {
+                      key: "out", label: t("pay.aOut"), numeric: true,
+                      render: (r) => (
+                        <span>{money(r.payment_term
                           ? Number(r.payment_term_outstanding ?? r.outstanding_amount)
-                          : Number(r.outstanding_amount);
+                          : Number(r.outstanding_amount))}</span>
+                      ),
+                    },
+                    {
+                      key: "alloc", label: t("pay.aAlloc"), slot: "primary", numeric: true,
+                      th: { width: 150 },
+                      render: (r) => {
+                        const key = rowKey(r);
                         return (
-                          <tr key={key} className={on ? "picked" : undefined}>
-                            <td className="pick">
-                              <input type="checkbox" checked={on} aria-label={r.voucher_no}
-                                onChange={() => toggleInvoice(r)} />
-                            </td>
-                            <td className="inv">
-                              <b>{r.voucher_no}</b>
-                              <span>
-                                {date(r.posting_date)}
-                                {/* The supplier's own invoice number — the
-                                    thing an AP clerk matches against. */}
-                                {r.bill_no ? ` · ${r.bill_no}` : ""}
-                                {r.payment_term ? ` · ${r.payment_term}` : ""}
-                              </span>
-                            </td>
-                            <td className="dt">{date(r.due_date)}</td>
-                            <td className="n">{money(balance)}</td>
-                            <td className="n">
-                              <input className="ctl mini nn" style={{ width: 130 }} disabled={!on}
-                                value={ref?.allocated_amount ?? 0}
-                                onChange={(e) => setAllocation(key, parseNum(e.target.value))} />
-                            </td>
-                          </tr>
+                          <input className="ctl mini nn" style={{ width: 130 }} disabled={!selected.has(key)}
+                            value={byKey.get(key)?.allocated_amount ?? 0}
+                            onChange={(e) => setAllocation(key, parseNum(e.target.value))} />
                         );
-                      })}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan={4} className="n">{t("pay.allocated")}</td>
-                        <td className="n">{money(allocated)}</td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
+                      },
+                    },
+                  ] as LineField<Outstanding>[]}
+                  /* The allocated total the table carried in its <tfoot>. */
+                  footer={
+                    <tr>
+                      <td colSpan={4} className="n">{t("pay.allocated")}</td>
+                      <td className="n">{money(allocated)}</td>
+                    </tr>
+                  }
+                  footerCard={<><span>{t("pay.allocated")}</span><span>{money(allocated)}</span></>}
+                />
               )}
           </Card>
 

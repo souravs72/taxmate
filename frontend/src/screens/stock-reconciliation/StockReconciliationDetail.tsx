@@ -15,6 +15,7 @@ import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Line = { item_code?: string; item_name?: string; warehouse?: string; qty?: number; valuation_rate?: number; };
 type Doc = { name: string; purpose?: string; posting_date?: string; docstatus?: number; difference_account?: string; items?: Line[]; };
@@ -99,33 +100,36 @@ export default function StockReconciliationDetail() {
           </div>
         </Card>
         <Card title={t("sr.items")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th>{t("sr.warehouse")}</th>
-                  <th className="n">{t("sr.qty")}</th>
-                  <th className="n">{t("sr.rate")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td>
-                      <div className="icode">{l.item_code}</div>
-                      <div className="iname">{l.item_name}</div>
-                    </td>
-                    <td>{l.warehouse || "—"}</td>
-                    <td className="n">{qty(l.qty)}</td>
-                    <td className="n">{money(l.valuation_rate)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Read-only: no add or remove, and collapse off so the warehouse
+              and the valuation rate are both on the card. */}
+          <LineItems<Line>
+            rows={data.items ?? []}
+            showIndex
+            collapse={false}
+            fields={[
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title",
+                render: (l) => (
+                  <>
+                    <div className="icode">{l.item_code}</div>
+                    <div className="iname">{l.item_name}</div>
+                  </>
+                ),
+              },
+              {
+                key: "warehouse", label: t("sr.warehouse"),
+                render: (l) => <>{l.warehouse || "—"}</>,
+              },
+              {
+                key: "qty", label: t("sr.qty"), slot: "primary", numeric: true,
+                render: (l) => <>{qty(l.qty)}</>,
+              },
+              {
+                key: "rate", label: t("sr.rate"), slot: "primary", numeric: true,
+                render: (l) => <>{money(l.valuation_rate)}</>,
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

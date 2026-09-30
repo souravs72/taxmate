@@ -19,6 +19,7 @@ import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead, Pill, SumRow } from "../../components/ui";
 import { FormLayout, MissingSummary, ReadinessCard, type Check } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 import SourceDocPicker from "../../components/SourceDocPicker";
 
 type InvoiceDoc = {
@@ -515,78 +516,74 @@ export default function InvoiceForm() {
           </Card>
 
           <Card num={3} title={t("inv.lines")} bodyClass={null}>
-            <div className="twrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th style={{ width: 26 }}>#</th>
-                    <th>{t("soc.pickItem")}</th>
-                    <th>{t("pi.hsSac")}</th>
-                    <th className="n">{t("sod.col.qty")}</th>
-                    <th className="n">{t("sod.col.rate")}</th>
-                    <th className="n">{t("sod.col.amount")}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((l, i) => (
-                    <tr key={i}>
-                      <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                      <td style={{ minWidth: 220 }}>
-                        {locked ? (l.item_name || l.item_code) : (
-                          <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
-                        )}
-                        <LineTrack
-                          line={l}
+            {/* Slots chosen with Priti: Item, Quantity and Amount on the face
+                of a phone card; rate and the HS/SAC codes behind "More". */}
+            <LineItems<TxnLine>
+              rows={lines}
+              showIndex
+              onRemove={locked ? undefined : (i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+              addLabel={locked ? undefined : t("soc.addLine")}
+              onAdd={locked ? undefined : () => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}
+              fields={[
+                {
+                  key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 220 },
+                  render: (l, i) => (
+                    <>
+                      {locked ? (l.item_name || l.item_code) : (
+                        <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                      )}
+                      <LineTrack
+                        line={l}
+                        disabled={locked}
+                        onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))}
+                      />
+                    </>
+                  ),
+                },
+                {
+                  key: "hssac", label: t("pi.hsSac"),
+                  render: (l, i) => (
+                    <>
+                      {l.uae_item_type !== "Service" && (
+                        <input className="ctl mini" style={{ width: 88 }}
+                          aria-label={t("item.hs")}
+                          placeholder={t("item.hs")}
+                          value={l.hs_code || ""}
                           disabled={locked}
-                          onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))}
-                        />
-                      </td>
-                      <td>
-                        {l.uae_item_type !== "Service" && (
-                          <input className="ctl mini" style={{ width: 88 }}
-                            aria-label={t("item.hs")}
-                            placeholder={t("item.hs")}
-                            value={l.hs_code || ""}
-                            disabled={locked}
-                            onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
-                        )}
-                        {l.uae_item_type !== "Goods" && (
-                          <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
-                            aria-label={t("item.sac")}
-                            placeholder={t("item.sac")}
-                            value={l.sac_code || ""}
-                            disabled={locked}
-                            onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
-                        )}
-                      </td>
-                      <td className="n">
-                        <input className="ctl mini nn" style={{ width: 80 }} value={l.qty} disabled={locked}
-                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, qty: parseNum(e.target.value) } : x))} />
-                      </td>
-                      <td className="n">
-                        <input className="ctl mini nn" style={{ width: 104 }} value={l.rate} disabled={locked}
-                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, rate: parseNum(e.target.value) } : x))} />
-                      </td>
-                      <td className="n" style={{ fontWeight: 600 }}>{money(l.qty * l.rate)}</td>
-                      <td>
-                        {!locked && (
-                          <button className="rm" aria-label={t("inv.remove")}
-                            onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            {!locked && (
-              <div className="addrow">
-                <button className="btn ghost sm" onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-                  {t("soc.addLine")}
-                </button>
-              </div>
-            )}
+                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
+                      )}
+                      {l.uae_item_type !== "Goods" && (
+                        <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
+                          aria-label={t("item.sac")}
+                          placeholder={t("item.sac")}
+                          value={l.sac_code || ""}
+                          disabled={locked}
+                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                  render: (l, i) => (
+                    <input className="ctl mini nn" style={{ width: 80 }} value={l.qty} disabled={locked}
+                      onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, qty: parseNum(e.target.value) } : x))} />
+                  ),
+                },
+                {
+                  key: "rate", label: t("sod.col.rate"), numeric: true,
+                  render: (l, i) => (
+                    <input className="ctl mini nn" style={{ width: 104 }} value={l.rate} disabled={locked}
+                      onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, rate: parseNum(e.target.value) } : x))} />
+                  ),
+                },
+                {
+                  key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                  td: { fontWeight: 600 },
+                  render: (l) => <span>{money(l.qty * l.rate)}</span>,
+                },
+              ] as LineField<TxnLine>[]}
+            />
           </Card>
       </FormLayout>
     </>

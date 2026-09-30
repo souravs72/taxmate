@@ -16,6 +16,7 @@ import { ExchangeRateField, LineTrack, PartyFields } from "../../components/txnF
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 import SourceDocPicker from "../../components/SourceDocPicker";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
@@ -356,82 +357,84 @@ export default function DeliveryNoteForm() {
           </div>
         </Card>
         <Card num={2} title={t("dn.items")} bodyClass={null as unknown as string}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("dn.item")}</th>
-                  <th>{t("dn.warehouse")}</th>
-                  <th className="n">{t("dn.qty")}</th>
-                  <th className="n">{t("dn.rate")}</th>
-                  <th className="n">{t("dn.amount")}</th>
-                  <th>{t("dn.batchNo")}</th>
-                  <th>{t("dn.serialNo")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 220 }}>
-                      <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
-                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
-                      {stock.hints[i] ? (
-                        <div style={{ fontSize: 11, color: "var(--warn, #b45309)", marginTop: 4 }}>
-                          {t("txn.stockLow")
-                            .replace("{avail}", String(stock.hints[i].avail))
-                            .replace("{qty}", String(stock.hints[i].qty))}
-                        </div>
-                      ) : null}
-                    </td>
-                    <td style={{ minWidth: 160 }}>
-                      <LinkField doctype={DT.warehouse} value={l.warehouse ?? warehouse}
-                        onChange={(v) => {
-                          setLines((ls) => ls.map((x, j) => (j === i ? { ...x, warehouse: v } : x)));
-                          if (l.item_code) void stock.checkLine(i, l.item_code, l.qty, v || warehouse);
-                        }}
-                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
-                        onChange={(e) => {
-                          const qty = parseNum(e.target.value);
-                          setLines((ls) => ls.map((x, j) => (j === i ? { ...x, qty } : x)));
-                          if (l.item_code) void stock.checkLine(i, l.item_code, qty, l.warehouse || warehouse);
-                        }}
-                        aria-label={t("dn.qty")} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, rate: parseNum(e.target.value) } : x)))}
-                        aria-label={t("dn.rate")} />
-                    </td>
-                    <td className="n" style={{ fontWeight: 600 }}>{money(l.qty * l.rate)}</td>
-                    <td style={{ minWidth: 100 }}>
-                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, batch_no: e.target.value } : x))} />
-                    </td>
-                    <td style={{ minWidth: 100 }}>
-                      <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, serial_no: e.target.value } : x))} />
-                    </td>
-                    <td>
-                      <button type="button" className="rm" aria-label={t("dn.removeLine")}
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm"
-              onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0, warehouse }])}>
-              {t("dn.addLine")}
-            </button>
-          </div>
+          {/* Item, Quantity and Amount on the face of a phone card; the
+              warehouse, rate, batch and serial behind "More" — a delivery
+              usually ships from the one warehouse set above. */}
+          <LineItems<Line>
+            rows={lines}
+            showIndex
+            onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+            addLabel={t("dn.addLine")}
+            onAdd={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0, warehouse }])}
+            fields={[
+              {
+                key: "item", label: t("dn.item"), slot: "title", td: { minWidth: 220 },
+                render: (l, i) => (
+                  <>
+                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
+                    {stock.hints[i] ? (
+                      <div style={{ fontSize: 11, color: "var(--warn, #b45309)", marginTop: 4 }}>
+                        {t("txn.stockLow")
+                          .replace("{avail}", String(stock.hints[i].avail))
+                          .replace("{qty}", String(stock.hints[i].qty))}
+                      </div>
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                key: "warehouse", label: t("dn.warehouse"), td: { minWidth: 160 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.warehouse} value={l.warehouse ?? warehouse}
+                    onChange={(v) => {
+                      setLines((ls) => ls.map((x, j) => (j === i ? { ...x, warehouse: v } : x)));
+                      if (l.item_code) void stock.checkLine(i, l.item_code, l.qty, v || warehouse);
+                    }}
+                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                ),
+              },
+              {
+                key: "qty", label: t("dn.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
+                    onChange={(e) => {
+                      const qty = parseNum(e.target.value);
+                      setLines((ls) => ls.map((x, j) => (j === i ? { ...x, qty } : x)));
+                      if (l.item_code) void stock.checkLine(i, l.item_code, qty, l.warehouse || warehouse);
+                    }}
+                    aria-label={t("dn.qty")} />
+                ),
+              },
+              {
+                key: "rate", label: t("dn.rate"), numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, rate: parseNum(e.target.value) } : x)))}
+                    aria-label={t("dn.rate")} />
+                ),
+              },
+              {
+                key: "amount", label: t("dn.amount"), slot: "primary", numeric: true,
+                td: { fontWeight: 600 },
+                render: (l) => <span>{money(l.qty * l.rate)}</span>,
+              },
+              {
+                key: "batch", label: t("dn.batchNo"), td: { minWidth: 100 },
+                render: (l, i) => (
+                  <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, batch_no: e.target.value } : x))} />
+                ),
+              },
+              {
+                key: "serial", label: t("dn.serialNo"), td: { minWidth: 100 },
+                render: (l, i) => (
+                  <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, serial_no: e.target.value } : x))} />
+                ),
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

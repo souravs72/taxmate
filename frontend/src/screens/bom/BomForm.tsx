@@ -17,6 +17,7 @@ import { Card, ErrorBox, Field, Loading } from "../../components/ui";
 import { FormActions } from "../../components/form";
 import { DocForm } from "../../components/screen";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type BomItem = { item_code: string; item_name?: string; qty: number; uom?: string; rate?: number };
 type Doc = {
@@ -181,34 +182,39 @@ export default function BomForm() {
         </div>
       </Card>
       <Card num={2} title={t("bom.materials")} bodyClass={null as unknown as string}>
-        <div className="twrap">
-          <table>
-            <thead><tr>
-              <th style={{ width: 26 }}>#</th>
-              <th>{t("bom.col.material")}</th>
-              <th className="n">{t("bom.col.matQty")}</th>
-              <th>{t("bom.col.uom")}</th>
-              <th />
-            </tr></thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={r._key}>
-                  <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                  <td style={{ minWidth: 200 }}>
-                    <LinkField doctype={DT.item} value={r.item_code} onChange={(v) => { setRow(r._key, "item_code", v); void fetchItem(r._key, v); }} placeholder={t("bom.matPh")} />
-                    {r.item_name && r.item_name !== r.item_code ? <div className="iname">{r.item_name}</div> : null}
-                  </td>
-                  <td className="n"><input className="ctl mini nn" style={{ width: 90 }} type="number" min={0.001} step={0.001} value={r.qty} onChange={(e) => setRow(r._key, "qty", parseNum(e.target.value))} /></td>
-                  <td><input className="ctl mini" style={{ width: 80 }} type="text" value={r.uom || ""} onChange={(e) => setRow(r._key, "uom", e.target.value)} /></td>
-                  <td><button type="button" className="rm" aria-label={t("inv.remove")} onClick={() => removeRow(r._key)}>✕</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div className="addrow">
-          <button type="button" className="btn ghost sm" onClick={addRow}>{t("bom.addMaterial")}</button>
-        </div>
+        {/* Material names the line; its quantity is the one figure typed every
+            time. The UOM arrives filled in from the item, so it sits behind
+            "More". */}
+        <LineItems<BomItem & { _key: string }>
+          rows={rows}
+          showIndex
+          onRemove={(i) => removeRow(rows[i]._key)}
+          addLabel={t("bom.addMaterial")}
+          onAdd={addRow}
+          fields={[
+            {
+              key: "material", label: t("bom.col.material"), slot: "title", td: { minWidth: 200 },
+              render: (r) => (
+                <>
+                  <LinkField doctype={DT.item} value={r.item_code} onChange={(v) => { setRow(r._key, "item_code", v); void fetchItem(r._key, v); }} placeholder={t("bom.matPh")} />
+                  {r.item_name && r.item_name !== r.item_code ? <div className="iname">{r.item_name}</div> : null}
+                </>
+              ),
+            },
+            {
+              key: "qty", label: t("bom.col.matQty"), slot: "primary", numeric: true,
+              render: (r) => (
+                <input className="ctl mini nn" style={{ width: 90 }} type="number" min={0.001} step={0.001} value={r.qty} onChange={(e) => setRow(r._key, "qty", parseNum(e.target.value))} />
+              ),
+            },
+            {
+              key: "uom", label: t("bom.col.uom"),
+              render: (r) => (
+                <input className="ctl mini" style={{ width: 80 }} type="text" value={r.uom || ""} onChange={(e) => setRow(r._key, "uom", e.target.value)} />
+              ),
+            },
+          ] as LineField<BomItem & { _key: string }>[]}
+        />
       </Card>
     </DocForm>
   );

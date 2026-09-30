@@ -10,6 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type BomItem = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number };
 type Doc = { name: string; item?: string; item_name?: string; quantity?: number; is_active?: number; is_default?: number; items?: BomItem[] };
@@ -46,24 +47,26 @@ export default function BomDetail() {
         </div>
       </Card>
       <Card title={t("bom.materials")}>
-        <div className="twrap">
-          <table>
-            <thead><tr>
-              <th>{t("bom.col.material")}</th>
-              <th className="n">{t("bom.col.matQty")}</th>
-              <th>{t("bom.col.uom")}</th>
-            </tr></thead>
-            <tbody>
-              {(data.items ?? []).map((r, i) => (
-                <tr key={i}>
-                  <td>{r.item_name || r.item_code || "—"}</td>
-                  <td className="n">{r.qty}</td>
-                  <td>{r.uom || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Read-only: the BOM's materials cannot be added or removed here, so
+            no add or remove, and nothing hides behind "More" on a phone. */}
+        <LineItems<BomItem>
+          rows={data.items ?? []}
+          collapse={false}
+          fields={[
+            {
+              key: "material", label: t("bom.col.material"), slot: "title",
+              render: (r) => <>{r.item_name || r.item_code || "—"}</>,
+            },
+            {
+              key: "qty", label: t("bom.col.matQty"), slot: "primary", numeric: true,
+              render: (r) => <>{r.qty}</>,
+            },
+            {
+              key: "uom", label: t("bom.col.uom"),
+              render: (r) => <>{r.uom || "—"}</>,
+            },
+          ] as LineField<BomItem>[]}
+        />
       </Card>
     </>
   );

@@ -1,0 +1,98 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Small phone-only corrections, gathered in one place.
+
+   Every rule is scoped under `.app.has-mnav` — a class AppShell sets only
+   below 900px and only while MobileNav is mounted. So none of this can
+   reach the desktop, and if this file ever lands without the component,
+   nothing in it fires. styles/app.css is not touched.
+
+   Each block says which screen it was measured on and by how much.
+   ───────────────────────────────────────────────────────────────────── */
+
+/* ── A `nowrap` badge in the page head pushes the whole page ─────────── */
+/* `.eyebrow` carries the document reference above the title, and holds a
+   `.ordno` or a `.pill` — both `white-space: nowrap` in app.css, both
+   sized by their text. A long account name or order reference then makes
+   the header wider than the screen and the page scrolls sideways.
+   Measured: /accounts/1310 - Trade Receivables - Local Customers - TXM
+   15px over at 360px; /orders/new 8px.
+
+   Wrapping rather than truncating: a reference you cannot read in full is
+   no use, and the header has the room to run to a second line. */
+.app.has-mnav .phead,
+.app.has-mnav .phead > * { min-width: 0; }
+.app.has-mnav .eyebrow,
+.app.has-mnav .phead .sub { min-width: 0; overflow-wrap: anywhere; }
+/* The reference sits in `.sub` on some screens and `.eyebrow` on others, so
+   this matches anywhere in the head rather than under one of them. */
+.app.has-mnav .phead .ordno,
+.app.has-mnav .phead .pill { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+
+/* ── Segmented controls that do not fit on one line ─────────────────── */
+/* `.seg button` is `white-space: nowrap`; two long labels ("Internal
+   transfer") come to 334px plus padding, so /payments/new scrolled 16px
+   at 360px. Let the group wrap instead of overflowing. */
+.app.has-mnav .seg { flex-wrap: wrap; max-width: 100%; }
+.app.has-mnav .seg button { flex: 1 1 auto; justify-content: center; }
+
+/* ── A list card's amount must never widen the page ─────────────────── */
+/* `.lm-amt` is `flex: none; white-space: nowrap`, which is right for a
+   figure and wrong for anything else. On /late-filings the card layout had
+   inferred a free-text column as the amount and a full Arabic company name
+   landed there, pushing the page 61px at 360px.
+
+   That screen now declares its roles explicitly, so this is the guard
+   rather than the fix: wherever inference misreads a column, the card
+   truncates instead of breaking the page. */
+.app.has-mnav .lm-amt {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Report sheets: pin the first column ────────────────────────────── */
+/* A report is the one thing in the app that stays a table on a phone — a
+   trial balance or a general ledger is read by comparing rows, which cards
+   destroy. `.twrap` already scrolls it sideways, so the page never moves.
+   The problem was what happens while you scroll: the account name slides
+   away with everything else and you are left reading a column of figures
+   with no idea which row is which.
+   Measured at 393px: the sheet is 992px wide, 599px of it off-screen.
+
+   `.rpt-sheet thead th` is already `position: sticky; top: 0` in app.css, so
+   the header row stays put vertically. This does the same horizontally for
+   the first column, and the corner cell needs to win both. */
+@media (max-width: 760px) {
+  .app.has-mnav .rpt-sheet td:first-child,
+  .app.has-mnav .rpt-sheet th:first-child {
+    position: sticky;
+    /* Logical, so Arabic pins the right-hand edge without another rule. */
+    inset-inline-start: 0;
+    background: var(--surface);
+    /* A visible seam, so the column reads as pinned rather than as a
+       rendering glitch. A border rather than a shadow because box-shadow
+       offsets are physical and would fall on the wrong side in Arabic. */
+    border-inline-end: 1px solid var(--border-2);
+  }
+  /* Above the scrolling cells; the corner cell above the header row too. */
+  .app.has-mnav .rpt-sheet td:first-child { z-index: 1; }
+  .app.has-mnav .rpt-sheet th:first-child { z-index: 2; }
+
+  /* app.css clears the background on a total row and tints it on hover.
+     Both would let the scrolling figures show through the pinned cell, so
+     the cell keeps an opaque background in each state. */
+  .app.has-mnav .rpt-sheet .rpt-bold td:first-child { background: var(--surface); }
+  .app.has-mnav .rpt-sheet .rpt-open:hover td:first-child { background: var(--hover); }
+
+  /* The pinned column takes its share of a 393px screen, so give the rest
+     of the row a little more of what is left. */
+  .app.has-mnav .rpt-sheet td:first-child { max-width: 46vw; }
+
+  /* `.twrap` already carries a faint inset shadow on both inline edges.
+     On a sheet this wide it is the only cue that there is more to the side,
+     so make the trailing one carry further. */
+  .app.has-mnav .twrap.rpt-sheet {
+    box-shadow: inset -18px 0 12px -12px var(--border-2);
+  }
+}

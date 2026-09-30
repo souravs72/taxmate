@@ -1,0 +1,98 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Journal lines as cards, below 760px.
+
+   The table stays exactly as it is at every width above that — this file
+   styles a separate card list the form renders instead, and every class is
+   prefixed `jel-` so nothing here can reach another screen. Colours come
+   only from styles/tokens.css, so light and dark both work with no extra
+   rules, and every box model is written with logical properties, so Arabic
+   needs nothing direction-specific.
+
+   Why cards at all: the account table is Account, Cost centre, Party type,
+   Party, Debit, Credit, a remove button, and one column per accounting
+   dimension. At 393px that is 1,840px wide — you drag a table nearly five
+   screens sideways to type one line.
+
+   What is on the face of the card, and what is behind "More": the two
+   things a person types every time are the account and one of the two
+   amounts. Cost centre, party and the dimensions are usually left as they
+   come, so they collapse — except when the account makes the party
+   mandatory, in which case the card opens itself (see the .tsx) and the
+   warning shows on the face regardless.
+   ───────────────────────────────────────────────────────────────────── */
+
+.jel-list { display: flex; flex-direction: column; gap: 10px; }
+
+.jel-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 10px);
+  background: var(--surface);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ── Card head: which line this is, and how to get rid of it ────────── */
+.jel-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.jel-n {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--faint);
+}
+.jel-rm {
+  flex: none; width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-2); border-radius: var(--r-sm, 10px);
+  background: var(--surface); color: var(--muted);
+  font-size: 18px; line-height: 1; cursor: pointer;
+}
+.jel-rm:hover { background: var(--hover); color: var(--text); }
+
+/* ── One labelled field ─────────────────────────────────────────────── */
+.jel-f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.jel-f > label {
+  font-size: 11.5px; font-weight: 600; color: var(--muted);
+}
+/* The controls inside are the app's own .ctl / LinkField, so they inherit
+   the 16px font and 44px height the global phone rules already give them.
+   All they need here is permission to shrink. */
+.jel-f > *:not(label) { min-width: 0; }
+.jel-f input, .jel-f select { width: 100%; }
+
+/* ── Debit and credit, side by side ─────────────────────────────────── */
+/* They are alternatives — you fill one — so they belong on one line where
+   the choice is visible, not stacked where it reads as two questions. */
+.jel-money { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.jel-money input { text-align: end; font-variant-numeric: tabular-nums; }
+
+/* ── The collapsed part ─────────────────────────────────────────────── */
+.jel-more {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding-inline: 2px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--brand); font-size: 12.5px; font-weight: 600;
+}
+.jel-more .jel-chev { transition: transform 150ms ease; }
+.jel-more[aria-expanded="true"] .jel-chev { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .jel-more .jel-chev { transition: none; } }
+
+.jel-extra {
+  display: flex; flex-direction: column; gap: 10px;
+  padding-block-start: 10px;
+  border-block-start: 1px dashed var(--border);
+}
+/* Two dimensions sit side by side when both are short; one alone fills the
+   row rather than leaving a gap. */
+.jel-dims { display: grid; grid-template-columns: 1fr; gap: 10px; }
+
+/* A required party that has not been chosen is not allowed to hide behind
+   the toggle — it stays on the card face. */
+.jel-warn {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; color: var(--warn);
+}
+
+/* ── Add a line ─────────────────────────────────────────────────────── */
+.jel-add { width: 100%; min-height: 44px; justify-content: center; }
