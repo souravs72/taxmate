@@ -14,6 +14,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 const PURPOSES = ["Opening Stock", "Stock Reconciliation"] as const;
 type Purpose = (typeof PURPOSES)[number];
@@ -253,96 +254,95 @@ export default function StockReconciliationForm() {
           </div>
         </Card>
         <Card num={2} title={t("sr.items")} bodyClass={null as unknown as string}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th>{t("sr.warehouse")}</th>
-                  <th className="n">{t("sr.qty")}</th>
-                  <th className="n">{t("sr.rate")}</th>
-                  <th>{t("sr.batchNo")}</th>
-                  <th>{t("se.serialNo")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 200 }}>
-                      <LinkField doctype={DT.item}
-                        filters={[["is_stock_item", "=", 1]] as never}
-                        value={l.item_code}
-                        onChange={(v) => {
-                          setLine(i, { item_code: v, item_name: "", batch_no: "", serial_no: "" });
-                          void loadLine(i, v, l.warehouse);
-                        }} />
-                      {l.item_name && l.item_name !== l.item_code ? (
-                        <div className="iname">{l.item_name}</div>
-                      ) : null}
-                    </td>
-                    <td style={{ minWidth: 180 }}>
-                      <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                        value={l.warehouse}
-                        onChange={(v) => {
-                          setLine(i, { warehouse: v });
-                          if (l.item_code) void loadLine(i, l.item_code, v, l.batch_no);
-                        }} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
-                        onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 100 }} value={l.valuation_rate}
-                        onChange={(e) => setLine(i, { valuation_rate: parseNum(e.target.value) })} />
-                    </td>
-                    <td style={{ minWidth: 140 }}>
-                      {l.has_batch_no || l.batch_no ? (
-                        <LinkField
-                          doctype={DT.batch}
-                          value={l.batch_no ?? ""}
-                          placeholder={t("sr.batchNo")}
-                          filters={l.item_code ? [["item", "=", l.item_code]] : undefined}
-                          onChange={(v) => {
-                            setLine(i, { batch_no: v });
-                            if (l.item_code && l.warehouse) void loadLine(i, l.item_code, l.warehouse, v);
-                          }}
-                        />
-                      ) : (
-                        <span style={{ color: "var(--faint)" }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ minWidth: 140 }}>
-                      {l.has_serial_no || l.serial_no ? (
-                        <LinkField
-                          doctype={DT.serialNo}
-                          value={l.serial_no ?? ""}
-                          placeholder={t("se.serialNo")}
-                          filters={l.item_code ? [["item_code", "=", l.item_code]] : undefined}
-                          onChange={(v) => setLine(i, { serial_no: v })}
-                        />
-                      ) : (
-                        <span style={{ color: "var(--faint)" }}>—</span>
-                      )}
-                    </td>
-                    <td>
-                      <button type="button" className="rm" aria-label={t("inv.remove")}
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm"
-              onClick={() => setLines((ls) => [...ls, blank()])}>
-              {t("sr.addLine")}
-            </button>
-          </div>
+          {/* Item, Quantity and the valuation rate on the face of a phone
+              card — the three things a count actually types. Warehouse, batch
+              and serial sit behind "More". */}
+          <LineItems<Line>
+            rows={lines}
+            showIndex
+            onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+            addLabel={t("sr.addLine")}
+            onAdd={() => setLines((ls) => [...ls, blank()])}
+            fields={[
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 200 },
+                render: (l, i) => (
+                  <>
+                    <LinkField doctype={DT.item}
+                      filters={[["is_stock_item", "=", 1]] as never}
+                      value={l.item_code}
+                      onChange={(v) => {
+                        setLine(i, { item_code: v, item_name: "", batch_no: "", serial_no: "" });
+                        void loadLine(i, v, l.warehouse);
+                      }} />
+                    {l.item_name && l.item_name !== l.item_code ? (
+                      <div className="iname">{l.item_name}</div>
+                    ) : null}
+                  </>
+                ),
+              },
+              {
+                key: "warehouse", label: t("sr.warehouse"), td: { minWidth: 180 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.warehouse} filters={whFilters as never}
+                    value={l.warehouse}
+                    onChange={(v) => {
+                      setLine(i, { warehouse: v });
+                      if (l.item_code) void loadLine(i, l.item_code, v, l.batch_no);
+                    }} />
+                ),
+              },
+              {
+                key: "qty", label: t("sr.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
+                    onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
+                ),
+              },
+              {
+                key: "rate", label: t("sr.rate"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 100 }} value={l.valuation_rate}
+                    onChange={(e) => setLine(i, { valuation_rate: parseNum(e.target.value) })} />
+                ),
+              },
+              {
+                key: "batch", label: t("sr.batchNo"), td: { minWidth: 140 },
+                render: (l, i) => (
+                  l.has_batch_no || l.batch_no ? (
+                    <LinkField
+                      doctype={DT.batch}
+                      value={l.batch_no ?? ""}
+                      placeholder={t("sr.batchNo")}
+                      filters={l.item_code ? [["item", "=", l.item_code]] : undefined}
+                      onChange={(v) => {
+                        setLine(i, { batch_no: v });
+                        if (l.item_code && l.warehouse) void loadLine(i, l.item_code, l.warehouse, v);
+                      }}
+                    />
+                  ) : (
+                    <span style={{ color: "var(--faint)" }}>—</span>
+                  )
+                ),
+              },
+              {
+                key: "serial", label: t("se.serialNo"), td: { minWidth: 140 },
+                render: (l, i) => (
+                  l.has_serial_no || l.serial_no ? (
+                    <LinkField
+                      doctype={DT.serialNo}
+                      value={l.serial_no ?? ""}
+                      placeholder={t("se.serialNo")}
+                      filters={l.item_code ? [["item_code", "=", l.item_code]] : undefined}
+                      onChange={(v) => setLine(i, { serial_no: v })}
+                    />
+                  ) : (
+                    <span style={{ color: "var(--faint)" }}>—</span>
+                  )
+                ),
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

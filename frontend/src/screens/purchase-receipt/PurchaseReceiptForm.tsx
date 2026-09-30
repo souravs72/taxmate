@@ -16,6 +16,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 import SourceDocPicker from "../../components/SourceDocPicker";
 
 type Line = TxnLine & { warehouse?: string; batch_no?: string; serial_no?: string };
@@ -301,66 +302,69 @@ export default function PurchaseReceiptForm() {
           </div>
         </Card>
         <Card num={2} title={t("inv.lines")} bodyClass={null as unknown as string}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th>{t("nav.warehouses")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th className="n">{t("sod.col.rate")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
-                  <th>{t("pr.batchNo")}</th>
-                  <th>{t("pr.serialNo")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 220 }}>
-                      <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
-                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
-                    </td>
-                    <td style={{ minWidth: 160 }}>
-                      <LinkField doctype={DT.warehouse} value={l.warehouse ?? warehouse}
-                        onChange={(v) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, warehouse: v } : x)))}
-                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, qty: parseNum(e.target.value) } : x)))} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, rate: parseNum(e.target.value) } : x)))} />
-                    </td>
-                    <td className="n" style={{ fontWeight: 600 }}>{money(l.qty * l.rate)}</td>
-                    <td style={{ minWidth: 100 }}>
-                      <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, batch_no: e.target.value } : x))} />
-                    </td>
-                    <td style={{ minWidth: 100 }}>
-                      <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, serial_no: e.target.value } : x))} />
-                    </td>
-                    <td>
-                      <button type="button" className="rm" aria-label={t("inv.remove")}
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm"
-              onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0, warehouse }])}>
-              {t("soc.addLine")}
-            </button>
-          </div>
+          {/* Item, Quantity and Amount on the face of a phone card. The
+              warehouse defaults from the header, and the rate arrives priced;
+              batch and serial are typed only for the items that carry them —
+              all four sit behind "More". */}
+          <LineItems<Line>
+            rows={lines}
+            showIndex
+            onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+            addLabel={t("soc.addLine")}
+            onAdd={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0, warehouse }])}
+            fields={[
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 220 },
+                render: (l, i) => (
+                  <>
+                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
+                  </>
+                ),
+              },
+              {
+                key: "warehouse", label: t("nav.warehouses"), td: { minWidth: 160 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.warehouse} value={l.warehouse ?? warehouse}
+                    onChange={(v) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, warehouse: v } : x)))}
+                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                ),
+              },
+              {
+                key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, qty: parseNum(e.target.value) } : x)))} />
+                ),
+              },
+              {
+                key: "rate", label: t("sod.col.rate"), numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, rate: parseNum(e.target.value) } : x)))} />
+                ),
+              },
+              {
+                key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                td: { fontWeight: 600 },
+                render: (l) => <span>{money(l.qty * l.rate)}</span>,
+              },
+              {
+                key: "batch", label: t("pr.batchNo"), td: { minWidth: 100 },
+                render: (l, i) => (
+                  <input className="ctl mini" placeholder="Batch" value={l.batch_no ?? ""}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, batch_no: e.target.value } : x))} />
+                ),
+              },
+              {
+                key: "serial", label: t("pr.serialNo"), td: { minWidth: 100 },
+                render: (l, i) => (
+                  <input className="ctl mini" placeholder="SN" value={l.serial_no ?? ""}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, serial_no: e.target.value } : x))} />
+                ),
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

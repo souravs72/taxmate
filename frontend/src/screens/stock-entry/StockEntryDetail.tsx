@@ -17,6 +17,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = {
@@ -24,6 +25,8 @@ type Line = {
   basic_rate?: number; valuation_rate?: number; amount?: number;
   s_warehouse?: string; t_warehouse?: string;
 };
+
+type Cost = { expense_account?: string; description?: string; amount?: number };
 
 type Doc = {
   name: string;
@@ -33,7 +36,7 @@ type Doc = {
   docstatus?: number;
   total_amount?: number;
   items?: Line[];
-  additional_costs?: { expense_account?: string; description?: string; amount?: number }[];
+  additional_costs?: Cost[];
 };
 
 function sePill(ds?: number): string {
@@ -122,58 +125,64 @@ export default function StockEntryDetail() {
           </div>
         </Card>
         <Card title={t("se.items")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th>{t("se.warehouse.from")}</th>
-                  <th>{t("se.warehouse.to")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td>
-                      <div className="icode">{l.item_code}</div>
-                      <div className="iname">{l.item_name}</div>
-                    </td>
-                    <td className="n">{qty(l.qty)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></td>
-                    <td>{l.s_warehouse || "—"}</td>
-                    <td>{l.t_warehouse || "—"}</td>
-                    <td className="n">{money(l.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Read-only lines: no add, no remove, and collapse off — there is
+              nothing to type here, so both warehouses stay on the card. */}
+          <LineItems<Line>
+            rows={data.items ?? []}
+            showIndex
+            collapse={false}
+            fields={[
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title",
+                render: (l) => (
+                  <>
+                    <div className="icode">{l.item_code}</div>
+                    <div className="iname">{l.item_name}</div>
+                  </>
+                ),
+              },
+              {
+                key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                render: (l) => (
+                  <>{qty(l.qty)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></>
+                ),
+              },
+              {
+                key: "from", label: t("se.warehouse.from"),
+                render: (l) => <>{l.s_warehouse || "—"}</>,
+              },
+              {
+                key: "to", label: t("se.warehouse.to"),
+                render: (l) => <>{l.t_warehouse || "—"}</>,
+              },
+              {
+                key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                render: (l) => <>{money(l.amount)}</>,
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
         {(data.additional_costs ?? []).length > 0 && (
           <Card title={t("se.costs")}>
-            <div className="twrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t("se.costAccount")}</th>
-                    <th>{t("se.costDesc")}</th>
-                    <th className="n">{t("se.costAmt")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data.additional_costs ?? []).map((c, i) => (
-                    <tr key={i}>
-                      <td>{c.expense_account || "—"}</td>
-                      <td>{c.description || "—"}</td>
-                      <td className="n">{money(c.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* No leading # column here, so no showIndex. */}
+            <LineItems<Cost>
+              rows={data.additional_costs ?? []}
+              collapse={false}
+              fields={[
+                {
+                  key: "account", label: t("se.costAccount"), slot: "title",
+                  render: (c) => <>{c.expense_account || "—"}</>,
+                },
+                {
+                  key: "description", label: t("se.costDesc"),
+                  render: (c) => <>{c.description || "—"}</>,
+                },
+                {
+                  key: "amount", label: t("se.costAmt"), slot: "primary", numeric: true,
+                  render: (c) => <>{money(c.amount)}</>,
+                },
+              ] as LineField<Cost>[]}
+            />
           </Card>
         )}
       </FormLayout>

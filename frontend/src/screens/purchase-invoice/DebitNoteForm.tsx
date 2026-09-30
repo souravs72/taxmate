@@ -15,10 +15,13 @@ import { useInsert } from "../../lib/resource";
 import { money, parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
+
+type ReturnLine = { item_code: string; item_name?: string; qty: number; rate: number };
 
 type ReturnDoc = {
   supplier?: string;
-  items?: { item_code: string; item_name?: string; qty: number; rate: number }[];
+  items?: ReturnLine[];
   return_against?: string;
   is_return?: number;
 };
@@ -82,46 +85,49 @@ export default function DebitNoteForm() {
       />
       {saveError && <ErrorBox error={saveError} />}
       <Card title={t("inv.lines")} bodyClass={null}>
-        <div className="twrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{t("soc.pickItem")}</th>
-                <th className="n">{t("sod.col.qty")}</th>
-                <th className="n">{t("sod.col.rate")}</th>
-                <th className="n">{t("sod.col.amount")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(draft?.items ?? []).map((l, i) => (
-                <tr key={i}>
-                  <td>{l.item_name || l.item_code}</td>
-                  <td className="n">
-                    <input
-                      className="ctl mini nn"
-                      style={{ width: 80 }}
-                      value={l.qty}
-                      onChange={(e) =>
-                        setDraft((d) =>
-                          d
-                            ? {
-                                ...d,
-                                items: (d.items ?? []).map((x, j) =>
-                                  j === i ? { ...x, qty: parseNum(e.target.value) } : x,
-                                ),
-                              }
-                            : d,
-                        )
-                      }
-                    />
-                  </td>
-                  <td className="n">{money(l.rate)}</td>
-                  <td className="n">{money(l.qty * l.rate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* The returned item and its Quantity and Amount on the face of a
+            phone card; the rate comes from the invoice being returned and is
+            read-only, so it sits behind "More". The lines themselves come
+            from make_purchase_return — none can be added or removed here. */}
+        <LineItems<ReturnLine>
+          rows={draft?.items ?? []}
+          fields={[
+            {
+              key: "item", label: t("soc.pickItem"), slot: "title",
+              render: (l) => l.item_name || l.item_code,
+            },
+            {
+              key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+              render: (l, i) => (
+                <input
+                  className="ctl mini nn"
+                  style={{ width: 80 }}
+                  value={l.qty}
+                  onChange={(e) =>
+                    setDraft((d) =>
+                      d
+                        ? {
+                            ...d,
+                            items: (d.items ?? []).map((x, j) =>
+                              j === i ? { ...x, qty: parseNum(e.target.value) } : x,
+                            ),
+                          }
+                        : d,
+                    )
+                  }
+                />
+              ),
+            },
+            {
+              key: "rate", label: t("sod.col.rate"), numeric: true,
+              render: (l) => <span>{money(l.rate)}</span>,
+            },
+            {
+              key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+              render: (l) => <span>{money(l.qty * l.rate)}</span>,
+            },
+          ] as LineField<ReturnLine>[]}
+        />
       </Card>
       <Field label={t("pi.returnAgainst")}>
         <input className="ctl readonly" readOnly value={draft?.return_against || name} />

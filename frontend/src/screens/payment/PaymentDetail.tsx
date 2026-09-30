@@ -11,6 +11,7 @@ import {
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { DirChip } from "./PaymentList";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
@@ -181,42 +182,47 @@ export default function PaymentDetail() {
 
           <Card title={t("pay.hClear")} bodyClass={null as unknown as string}>
             {refs.length === 0 ? <Empty label={t("pay.noAllocations")} /> : (
-              <div className="twrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>{t("pay.aInv")}</th>
-                      <th className="n">{t("pay.cleared")}</th>
-                      <th className="n">{t("pay.remaining")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {refs.map((r, i) => {
-                      const alloc = Number(r.allocated_amount) || 0;
-                      const totalAmt = Number(r.total_amount) || 0;
+              /* What this payment cleared, invoice by invoice. Read-only —
+                 the allocation is edited on the form, never here — so no add
+                 or remove, and collapse={false} keeps both figures visible
+                 on a phone rather than behind "More". */
+              <LineItems<Ref>
+                rows={refs}
+                collapse={false}
+                fields={[
+                  {
+                    key: "inv", label: t("pay.aInv"), slot: "title", tdClass: "inv",
+                    render: (r) => {
                       const link = r.reference_doctype === DT.salesInvoice
                         ? `/invoices/${encodeURIComponent(r.reference_name ?? "")}`
                         : r.reference_doctype === DT.purchaseInvoice
                           ? `/purchase-invoices/${encodeURIComponent(r.reference_name ?? "")}`
                           : "";
                       return (
-                        <tr key={r.name ?? i}>
-                          <td className="inv">
-                            {link
-                              ? <b><button type="button" className="btn quiet" onClick={() => nav(link)}>{r.reference_name}</button></b>
-                              : <b>{r.reference_name}</b>}
-                            <span>{r.reference_doctype}{r.payment_term ? ` · ${r.payment_term}` : ""}</span>
-                          </td>
-                          <td className="n">{money(alloc)}</td>
-                          <td className="n" style={{ color: "var(--muted)" }}>
-                            {totalAmt ? money(Math.max(0, totalAmt - alloc)) : "—"}
-                          </td>
-                        </tr>
+                        <>
+                          {link
+                            ? <b><button type="button" className="btn quiet" onClick={() => nav(link)}>{r.reference_name}</button></b>
+                            : <b>{r.reference_name}</b>}
+                          <span>{r.reference_doctype}{r.payment_term ? ` · ${r.payment_term}` : ""}</span>
+                        </>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    },
+                  },
+                  {
+                    key: "cleared", label: t("pay.cleared"), slot: "primary", numeric: true,
+                    render: (r) => money(Number(r.allocated_amount) || 0),
+                  },
+                  {
+                    key: "remaining", label: t("pay.remaining"), slot: "primary", numeric: true,
+                    td: { color: "var(--muted)" },
+                    render: (r) => {
+                      const alloc = Number(r.allocated_amount) || 0;
+                      const totalAmt = Number(r.total_amount) || 0;
+                      return totalAmt ? money(Math.max(0, totalAmt - alloc)) : "—";
+                    },
+                  },
+                ] as LineField<Ref>[]}
+              />
             )}
           </Card>
       </FormLayout>

@@ -17,6 +17,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
 
@@ -140,30 +141,32 @@ export default function QuotationDetail() {
           </div>
         </Card>
         <Card title={t("inv.lines")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th className="n">{t("sod.col.rate")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></td>
-                    <td className="n">{qty(l.qty)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></td>
-                    <td className="n">{money(l.rate)}</td>
-                    <td className="n" style={{ fontWeight: 600 }}>{money(l.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* The quoted lines, read-only — the quotation is edited on its own
+              form. collapse={false} keeps the rate on the card. */}
+          <LineItems<Line>
+            rows={data.items ?? []}
+            showIndex
+            collapse={false}
+            fields={[
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title",
+                render: (l) => <><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></>,
+              },
+              {
+                key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                render: (l) => <>{qty(l.qty)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></>,
+              },
+              {
+                key: "rate", label: t("sod.col.rate"), numeric: true,
+                render: (l) => money(l.rate),
+              },
+              {
+                key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                td: { fontWeight: 600 },
+                render: (l) => money(l.amount),
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

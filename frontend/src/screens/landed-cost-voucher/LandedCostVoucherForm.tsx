@@ -13,6 +13,7 @@ import { t } from "../../i18n/strings";
 import { Card, Loading, ErrorBox, PageHead, Field } from "../../components/ui";
 import { FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { parseNum, toIsoDate } from "../../lib/format";
 
 const today = toIsoDate(new Date());
@@ -145,98 +146,84 @@ export default function LandedCostVoucherForm() {
           </div>
         </Card>
         <Card num={2} title={t("lcv.receipts")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("lcv.receiptType")}</th>
-                  <th>{t("lcv.receipt")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {receipts.map((r, i) => (
-                  <tr key={i}>
-                    <td>
-                      <select className="ctl mini" value={r.receipt_document_type}
-                        onChange={(e) => setReceipts((rs) => rs.map((x, j) => j === i ? { ...x, receipt_document_type: e.target.value as "Purchase Receipt" | "Purchase Invoice" } : x))}>
-                        <option value="Purchase Receipt">Purchase Receipt</option>
-                        <option value="Purchase Invoice">Purchase Invoice</option>
-                      </select>
-                    </td>
-                    <td style={{ minWidth: 220 }}>
-                      <LinkField
-                        doctype={r.receipt_document_type === "Purchase Receipt" ? DT.purchaseReceipt : DT.purchaseInvoice}
-                        value={r.receipt_document}
-                        onChange={(v: string) => setReceipts((rs) => rs.map((x, j) => j === i ? { ...x, receipt_document: v } : x))}
-                      />
-                    </td>
-                    <td>
-                      <button type="button" className="rm" onClick={() => setReceipts((rs) => rs.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm"
-              onClick={() => setReceipts((rs) => [...rs, { receipt_document_type: "Purchase Receipt", receipt_document: "" }])}>
-              {t("lcv.addReceipt")}
-            </button>
-          </div>
+          {/* The receipt document names the line. There is no quantity and no
+              money here, so nothing else earns the face of the card: the type
+              picker sits behind "More". */}
+          <LineItems<Receipt>
+            rows={receipts}
+            onRemove={(i) => setReceipts((rs) => rs.filter((_, j) => j !== i))}
+            addLabel={t("lcv.addReceipt")}
+            onAdd={() => setReceipts((rs) => [...rs, { receipt_document_type: "Purchase Receipt", receipt_document: "" }])}
+            fields={[
+              {
+                key: "type", label: t("lcv.receiptType"),
+                render: (r, i) => (
+                  <select className="ctl mini" value={r.receipt_document_type}
+                    onChange={(e) => setReceipts((rs) => rs.map((x, j) => j === i ? { ...x, receipt_document_type: e.target.value as "Purchase Receipt" | "Purchase Invoice" } : x))}>
+                    <option value="Purchase Receipt">Purchase Receipt</option>
+                    <option value="Purchase Invoice">Purchase Invoice</option>
+                  </select>
+                ),
+              },
+              {
+                key: "receipt", label: t("lcv.receipt"), slot: "title", td: { minWidth: 220 },
+                render: (r, i) => (
+                  <LinkField
+                    doctype={r.receipt_document_type === "Purchase Receipt" ? DT.purchaseReceipt : DT.purchaseInvoice}
+                    value={r.receipt_document}
+                    onChange={(v: string) => setReceipts((rs) => rs.map((x, j) => j === i ? { ...x, receipt_document: v } : x))}
+                  />
+                ),
+              },
+            ] as LineField<Receipt>[]}
+          />
         </Card>
         <Card num={3} title={t("lcv.taxes")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("lcv.account")}</th>
-                  <th>{t("lcv.description")}</th>
-                  <th className="n">{t("lcv.amount")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {taxes.map((tx, i) => (
-                  <tr key={i}>
-                    <td style={{ minWidth: 220 }}>
-                      <LinkField
-                        doctype={DT.account}
-                        value={tx.expense_account}
-                        onChange={(v: string) => setTaxes((ts) => ts.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
-                        filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] as never : undefined}
-                      />
-                    </td>
-                    <td>
-                      <input className="ctl mini" value={tx.description}
-                        onChange={(e) => setTaxes((ts) => ts.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 100 }} value={tx.amount}
-                        onChange={(e) => setTaxes((ts) => ts.map((x, j) => j === i ? { ...x, amount: parseNum(e.target.value) } : x))} />
-                    </td>
-                    <td>
-                      <button type="button" className="rm" onClick={() => setTaxes((ts) => ts.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={2} className="n" style={{ fontWeight: 600 }}>{t("lcv.total")}</td>
-                  <td className="n" style={{ fontWeight: 600 }}>{totalTax}</td>
-                  <td />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm"
-              onClick={() => setTaxes((ts) => [...ts, { expense_account: "", description: "", amount: 0 }])}>
-              {t("lcv.addCharge")}
-            </button>
-          </div>
+          {/* The account names the charge and the amount is what you type;
+              the free-text description is the only thing worth collapsing. */}
+          <LineItems<TaxRow>
+            rows={taxes}
+            onRemove={(i) => setTaxes((ts) => ts.filter((_, j) => j !== i))}
+            fields={[
+              {
+                key: "account", label: t("lcv.account"), slot: "title", td: { minWidth: 220 },
+                render: (tx, i) => (
+                  <LinkField
+                    doctype={DT.account}
+                    value={tx.expense_account}
+                    onChange={(v: string) => setTaxes((ts) => ts.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
+                    filters={session.company ? [["company", "=", session.company], ["is_group", "=", 0]] as never : undefined}
+                  />
+                ),
+              },
+              {
+                key: "description", label: t("lcv.description"),
+                render: (tx, i) => (
+                  <input className="ctl mini" value={tx.description}
+                    onChange={(e) => setTaxes((ts) => ts.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
+                ),
+              },
+              {
+                key: "amount", label: t("lcv.amount"), slot: "primary", numeric: true,
+                render: (tx, i) => (
+                  <input className="ctl mini nn" style={{ width: 100 }} value={tx.amount}
+                    onChange={(e) => setTaxes((ts) => ts.map((x, j) => j === i ? { ...x, amount: parseNum(e.target.value) } : x))} />
+                ),
+              },
+            ] as LineField<TaxRow>[]}
+            /* The table's own <tfoot> on a desktop; the same figure as a
+               strip under the cards on a phone. */
+            footer={
+              <tr>
+                <td colSpan={2} className="n">{t("lcv.total")}</td>
+                <td className="n">{totalTax}</td>
+                <td />
+              </tr>
+            }
+            footerCard={<><span>{t("lcv.total")}</span><span>{totalTax}</span></>}
+            addLabel={t("lcv.addCharge")}
+            onAdd={() => setTaxes((ts) => [...ts, { expense_account: "", description: "", amount: 0 }])}
+          />
         </Card>
       </FormLayout>
     </>

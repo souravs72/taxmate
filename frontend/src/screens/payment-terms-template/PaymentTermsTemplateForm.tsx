@@ -10,6 +10,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { FormActions, FormLayout } from "../../components/form";
 
 type TermRow = {
@@ -144,80 +145,73 @@ export default function PaymentTermsTemplateForm() {
         </Card>
 
         <Card title={t("ptt.terms")}>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("ptt.term.name")}</th>
-                <th>{t("ptt.term.basis")}</th>
-                <th>{t("ptt.term.portion")}</th>
-                <th>{t("ptt.term.days")}</th>
-                <th>{t("ptt.term.months")}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r) => (
-                <tr key={r._key}>
-                  <td>
-                    <input
-                      className="ctl"
-                      value={r.payment_term}
-                      onChange={(e) => setRow(r._key, "payment_term", e.target.value)}
-                      placeholder={t("ptt.term.namePh")}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      className="ctl"
-                      value={r.due_date_based_on}
-                      onChange={(e) => setRow(r._key, "due_date_based_on", e.target.value)}
-                    >
-                      <option value="Day(s) after invoice date">{t("ptt.term.dayAfter")}</option>
-                      <option value="Month(s) after the invoice date">{t("ptt.term.monthAfter")}</option>
-                      <option value="Month(s) after the end of the invoice month">{t("ptt.term.monthEnd")}</option>
-                    </select>
-                  </td>
-                  <td>
-                    <input
-                      className="ctl"
-                      type="number"
-                      min={0}
-                      max={100}
-                      step={0.01}
-                      value={r.invoice_portion}
-                      onChange={(e) => setRow(r._key, "invoice_portion", Number(e.target.value))}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="ctl"
-                      type="number"
-                      min={0}
-                      value={r.credit_days}
-                      onChange={(e) => setRow(r._key, "credit_days", Number(e.target.value))}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="ctl"
-                      type="number"
-                      min={0}
-                      value={r.credit_months}
-                      onChange={(e) => setRow(r._key, "credit_months", Number(e.target.value))}
-                    />
-                  </td>
-                  <td>
-                    <button type="button" className="btn ghost" onClick={() => removeRow(r._key)}>
-                      ×
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          <button type="button" className="btn ghost" style={{ marginTop: 8 }} onClick={addRow}>
-            {t("ptt.addTerm")}
-          </button>
+          {/* Was a raw <table className="data-table"> with five full-width
+              controls per row and no .twrap, so on a phone it pushed the
+              whole page 103px sideways rather than scrolling inside a box. */}
+          <LineItems<TermRow>
+            rows={rows}
+            addWrap="inline"
+            onRemove={(i) => removeRow(rows[i]._key)}
+            addLabel={t("ptt.addTerm")}
+            onAdd={addRow}
+            fields={[
+              {
+                key: "name", label: t("ptt.term.name"), slot: "title",
+                render: (r) => (
+                  <input
+                    className="ctl"
+                    value={r.payment_term}
+                    onChange={(e) => setRow(r._key, "payment_term", e.target.value)}
+                    placeholder={t("ptt.term.namePh")}
+                  />
+                ),
+              },
+              {
+                key: "basis", label: t("ptt.term.basis"),
+                render: (r) => (
+                  <select
+                    className="ctl"
+                    value={r.due_date_based_on}
+                    onChange={(e) => setRow(r._key, "due_date_based_on", e.target.value)}
+                  >
+                    <option value="Day(s) after invoice date">{t("ptt.term.dayAfter")}</option>
+                    <option value="Month(s) after the invoice date">{t("ptt.term.monthAfter")}</option>
+                    <option value="Month(s) after the end of the invoice month">{t("ptt.term.monthEnd")}</option>
+                  </select>
+                ),
+              },
+              {
+                key: "portion", label: t("ptt.term.portion"), slot: "primary",
+                render: (r) => (
+                  <input
+                    className="ctl" type="number" min={0} max={100} step={0.01}
+                    value={r.invoice_portion}
+                    onChange={(e) => setRow(r._key, "invoice_portion", Number(e.target.value))}
+                  />
+                ),
+              },
+              {
+                key: "days", label: t("ptt.term.days"), slot: "primary",
+                render: (r) => (
+                  <input
+                    className="ctl" type="number" min={0}
+                    value={r.credit_days}
+                    onChange={(e) => setRow(r._key, "credit_days", Number(e.target.value))}
+                  />
+                ),
+              },
+              {
+                key: "months", label: t("ptt.term.months"),
+                render: (r) => (
+                  <input
+                    className="ctl" type="number" min={0}
+                    value={r.credit_months}
+                    onChange={(e) => setRow(r._key, "credit_months", Number(e.target.value))}
+                  />
+                ),
+              },
+            ] as LineField<TermRow>[]}
+          />
         </Card>
 
         <FormActions

@@ -15,6 +15,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, MiniBar, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
 
@@ -222,60 +223,85 @@ export default function SalesOrderDetail() {
             </div>
           </Card>
 
-          <Card title={t("sod.items")}
-                bodyClass="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th className="n">{t("sod.col.rate")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
-                  <th>{t("so.bar.delivered")}</th>
-                  <th className="n">{t("sod.col.remaining")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((l, i) => {
-                  const delivered = l.delivered_qty ?? 0;
-                  const ordered = l.qty ?? 0;
-                  const remaining = Math.max(0, ordered - delivered);
-                  const p = ordered ? (delivered / ordered) * 100 : 0;
-                  return (
-                    <tr key={l.name ?? i}>
-                      <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                      <td>
-                        <div className="icode">{l.item_code}</div>
-                        <div className="iname">{l.item_name}</div>
-                      </td>
-                      <td className="n">{qty(ordered)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></td>
-                      <td className="n">{money(l.rate)}</td>
-                      <td className="n" style={{ fontWeight: 600 }}>{money(l.amount)}</td>
-                      <td>
-                        <div className="prog">
-                          <div className="row1">
-                            <span className="a">{pct(p)}</span>
-                            <span className="b">{qty(delivered)} / {qty(ordered)}</span>
-                          </div>
-                          <MiniBar value={p} colour="var(--c-delivered)" />
+          {/* bodyClass={null}: LineItems renders its own `.twrap`, so the card
+              must not render a second one. Read-only — the order is edited on
+              its form — and collapse={false} so delivery progress and the
+              remaining quantity stay on the card, which is most of why anyone
+              opens this screen on a phone. */}
+          <Card title={t("sod.items")} bodyClass={null}>
+            <LineItems<SalesOrderItem>
+              rows={data.items ?? []}
+              showIndex
+              collapse={false}
+              fields={[
+                {
+                  key: "item", label: t("soc.pickItem"), slot: "title",
+                  render: (l) => (
+                    <>
+                      <div className="icode">{l.item_code}</div>
+                      <div className="iname">{l.item_name}</div>
+                    </>
+                  ),
+                },
+                {
+                  key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                  render: (l) => <>{qty(l.qty ?? 0)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></>,
+                },
+                {
+                  key: "rate", label: t("sod.col.rate"), numeric: true,
+                  render: (l) => money(l.rate),
+                },
+                {
+                  key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                  td: { fontWeight: 600 },
+                  render: (l) => money(l.amount),
+                },
+                {
+                  key: "delivered", label: t("so.bar.delivered"),
+                  render: (l) => {
+                    const delivered = l.delivered_qty ?? 0;
+                    const ordered = l.qty ?? 0;
+                    const p = ordered ? (delivered / ordered) * 100 : 0;
+                    return (
+                      <div className="prog">
+                        <div className="row1">
+                          <span className="a">{pct(p)}</span>
+                          <span className="b">{qty(delivered)} / {qty(ordered)}</span>
                         </div>
-                      </td>
-                      <td className={`n rem ${remaining === 0 ? "zero" : "open"}`}>
+                        <MiniBar value={p} colour="var(--c-delivered)" />
+                      </div>
+                    );
+                  },
+                },
+                {
+                  /* The only cell whose class varied per row (`rem zero` when
+                     nothing is left, `rem open` otherwise). `tdClass` is one
+                     static string, so the pair moves onto a span inside the
+                     cell: `.rem.zero` / `.rem.open` are colour and weight
+                     only, so they read the same there — and, unlike a
+                     `tdClass`, they now also apply on a phone card. */
+                  key: "remaining", label: t("sod.col.remaining"), numeric: true,
+                  render: (l) => {
+                    const remaining = Math.max(0, (l.qty ?? 0) - (l.delivered_qty ?? 0));
+                    return (
+                      <span className={`rem ${remaining === 0 ? "zero" : "open"}`}>
                         {remaining === 0 ? "—" : `${qty(remaining)} ${l.uom ?? ""}`}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
+                      </span>
+                    );
+                  },
+                },
+              ] as LineField<SalesOrderItem>[]}
+              /* The net total the table carried in its <tfoot>: 4 + 1 + 2 = the
+                 seven columns the index column makes. */
+              footer={
                 <tr>
                   <td colSpan={4} className="n">{t("sod.net")}</td>
                   <td className="n">{money(net)}</td>
                   <td colSpan={2} />
                 </tr>
-              </tfoot>
-            </table>
+              }
+              footerCard={<><span>{t("sod.net")}</span><span>{money(net)}</span></>}
+            />
           </Card>
       </FormLayout>
     </>

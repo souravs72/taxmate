@@ -18,6 +18,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 const PURPOSES = ["Material Receipt", "Material Issue", "Material Transfer"] as const;
 type Purpose = (typeof PURPOSES)[number];
@@ -326,154 +327,139 @@ export default function StockEntryForm() {
           </div>
         </Card>
         <Card num={2} title={t("se.items")} bodyClass={null as unknown as string}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  {needTgt && !needSrc && <th className="n">{t("se.basicRate")}</th>}
-                  {needSrc && <th>{t("se.warehouse.source")}</th>}
-                  {needTgt && <th>{t("se.warehouse.target")}</th>}
-                  <th>{t("se.batchNo")}</th>
-                  <th>{t("se.serialNo")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 200 }}>
-                      <LinkField doctype={DT.item}
-                        filters={[["is_stock_item", "=", 1]] as never}
-                        value={l.item_code}
-                        onChange={(v) => {
-                          const source = l.s_warehouse || fromWarehouse;
-                          const target = l.t_warehouse || toWarehouse;
-                          const wh = (needSrc && source) || (needTgt && target) || source || target;
-                          setLine(i, { item_code: v, batch_no: "", serial_no: "" });
-                          void fillLine(i, v, wh || undefined);
-                        }} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
-                        onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
-                    </td>
-                    {needTgt && !needSrc && (
-                      <td className="n">
-                        <input className="ctl mini nn" style={{ width: 100 }} value={l.basic_rate}
-                          onChange={(e) => setLine(i, { basic_rate: parseNum(e.target.value) })} />
-                      </td>
-                    )}
-                    {needSrc && (
-                      <td style={{ minWidth: 180 }}>
-                        <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                          value={l.s_warehouse}
-                          onChange={(v) => {
-                            setLine(i, { s_warehouse: v });
-                            if (l.item_code) void fillLine(i, l.item_code, v);
-                          }} />
-                      </td>
-                    )}
-                    {needTgt && (
-                      <td style={{ minWidth: 180 }}>
-                        <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                          value={l.t_warehouse}
-                          onChange={(v) => {
-                            setLine(i, { t_warehouse: v });
-                            if (l.item_code && !needSrc) void fillLine(i, l.item_code, v);
-                          }} />
-                      </td>
-                    )}
-                    <td style={{ minWidth: 140 }}>
-                      {l.has_batch_no || l.batch_no ? (
-                        <LinkField
-                          doctype={DT.batch}
-                          value={l.batch_no ?? ""}
-                          placeholder={t("se.batchNo")}
-                          filters={l.item_code ? [["item", "=", l.item_code]] : undefined}
-                          onChange={(v) => setLine(i, { batch_no: v })}
-                        />
-                      ) : (
-                        <span style={{ color: "var(--faint)" }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ minWidth: 140 }}>
-                      {l.has_serial_no || l.serial_no ? (
-                        <LinkField
-                          doctype={DT.serialNo}
-                          value={l.serial_no ?? ""}
-                          placeholder={t("se.serialNo")}
-                          filters={l.item_code ? [["item_code", "=", l.item_code]] : undefined}
-                          onChange={(v) => setLine(i, { serial_no: v })}
-                        />
-                      ) : (
-                        <span style={{ color: "var(--faint)" }}>—</span>
-                      )}
-                    </td>
-                    <td>
-                      <button type="button" className="rm" aria-label={t("inv.remove")}
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm"
-              onClick={() => setLines((ls) => [...ls, blankLine()])}>
-              {t("se.addLine")}
-            </button>
-          </div>
+          {/* Item and Quantity on the face of a phone card. The warehouses,
+              batch and serial sit behind "More": a stock entry usually moves
+              everything between the same two warehouses, set once above. */}
+          <LineItems<Line>
+            rows={lines}
+            showIndex
+            onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+            addLabel={t("se.addLine")}
+            onAdd={() => setLines((ls) => [...ls, blankLine()])}
+            fields={([
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 200 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.item}
+                    filters={[["is_stock_item", "=", 1]] as never}
+                    value={l.item_code}
+                    onChange={(v) => {
+                      const source = l.s_warehouse || fromWarehouse;
+                      const target = l.t_warehouse || toWarehouse;
+                      const wh = (needSrc && source) || (needTgt && target) || source || target;
+                      setLine(i, { item_code: v, batch_no: "", serial_no: "" });
+                      void fillLine(i, v, wh || undefined);
+                    }} />
+                ),
+              },
+              {
+                key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 80 }} value={l.qty}
+                    onChange={(e) => setLine(i, { qty: parseNum(e.target.value) })} />
+                ),
+              },
+              ...(needTgt && !needSrc ? [{
+                key: "rate", label: t("se.basicRate"), slot: "primary" as const, numeric: true,
+                render: (l: Line, i: number) => (
+                  <input className="ctl mini nn" style={{ width: 100 }} value={l.basic_rate}
+                    onChange={(e) => setLine(i, { basic_rate: parseNum(e.target.value) })} />
+                ),
+              }] : []),
+              ...(needSrc ? [{
+                key: "src", label: t("se.warehouse.source"), td: { minWidth: 180 },
+                render: (l: Line, i: number) => (
+                  <LinkField doctype={DT.warehouse} filters={whFilters as never}
+                    value={l.s_warehouse}
+                    onChange={(v) => {
+                      setLine(i, { s_warehouse: v });
+                      if (l.item_code) void fillLine(i, l.item_code, v);
+                    }} />
+                ),
+              }] : []),
+              ...(needTgt ? [{
+                key: "tgt", label: t("se.warehouse.target"), td: { minWidth: 180 },
+                render: (l: Line, i: number) => (
+                  <LinkField doctype={DT.warehouse} filters={whFilters as never}
+                    value={l.t_warehouse}
+                    onChange={(v) => {
+                      setLine(i, { t_warehouse: v });
+                      if (l.item_code && !needSrc) void fillLine(i, l.item_code, v);
+                    }} />
+                ),
+              }] : []),
+              {
+                key: "batch", label: t("se.batchNo"), td: { minWidth: 140 },
+                render: (l, i) => (
+                  l.has_batch_no || l.batch_no ? (
+                    <LinkField
+                      doctype={DT.batch}
+                      value={l.batch_no ?? ""}
+                      placeholder={t("se.batchNo")}
+                      filters={l.item_code ? [["item", "=", l.item_code]] : undefined}
+                      onChange={(v) => setLine(i, { batch_no: v })}
+                    />
+                  ) : (
+                    <span style={{ color: "var(--faint)" }}>—</span>
+                  )
+                ),
+              },
+              {
+                key: "serial", label: t("se.serialNo"), td: { minWidth: 140 },
+                render: (l, i) => (
+                  l.has_serial_no || l.serial_no ? (
+                    <LinkField
+                      doctype={DT.serialNo}
+                      value={l.serial_no ?? ""}
+                      placeholder={t("se.serialNo")}
+                      filters={l.item_code ? [["item_code", "=", l.item_code]] : undefined}
+                      onChange={(v) => setLine(i, { serial_no: v })}
+                    />
+                  ) : (
+                    <span style={{ color: "var(--faint)" }}>—</span>
+                  )
+                ),
+              },
+            ]) as LineField<Line>[]}
+          />
         </Card>
         {(purpose === "Material Receipt") && (
           <Card num={3} title={t("se.costs")} bodyClass={null as unknown as string}>
-            <div className="twrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t("se.costAccount")}</th>
-                    <th>{t("se.costDesc")}</th>
-                    <th className="n">{t("se.costAmt")}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {costs.map((c, i) => (
-                    <tr key={i}>
-                      <td style={{ minWidth: 200 }}>
-                        <LinkField
-                          doctype={DT.account}
-                          value={c.expense_account}
-                          onChange={(v) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
-                          filters={[["account_type", "in", "Expense Account,Expenses Included In Valuation"], ["is_group", "=", 0]] as never}
-                        />
-                      </td>
-                      <td>
-                        <input className="ctl mini" style={{ width: 160 }} value={c.description}
-                          onChange={(e) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
-                      </td>
-                      <td className="n">
-                        <input className="ctl mini nn" style={{ width: 100 }} value={c.amount}
-                          onChange={(e) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, amount: parseNum(e.target.value) } : x))} />
-                      </td>
-                      <td>
-                        <button type="button" className="rm" aria-label={t("inv.remove")}
-                          onClick={() => setCosts((cs) => cs.filter((_, j) => j !== i))}>✕</button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="addrow">
-              <button type="button" className="btn ghost sm" onClick={() => setCosts((cs) => [...cs, blankCost()])}>
-                {t("se.addCost")}
-              </button>
-            </div>
+            {/* Account names the row; the amount is what you type. The free-text
+                description is the only thing worth collapsing. */}
+            <LineItems<CostLine>
+              rows={costs}
+              onRemove={(i) => setCosts((cs) => cs.filter((_, j) => j !== i))}
+              addLabel={t("se.addCost")}
+              onAdd={() => setCosts((cs) => [...cs, blankCost()])}
+              fields={[
+                {
+                  key: "acct", label: t("se.costAccount"), slot: "title", td: { minWidth: 200 },
+                  render: (c, i) => (
+                    <LinkField
+                      doctype={DT.account}
+                      value={c.expense_account}
+                      onChange={(v) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
+                      filters={[["account_type", "in", "Expense Account,Expenses Included In Valuation"], ["is_group", "=", 0]] as never}
+                    />
+                  ),
+                },
+                {
+                  key: "desc", label: t("se.costDesc"),
+                  render: (c, i) => (
+                    <input className="ctl mini" style={{ width: 160 }} value={c.description}
+                      onChange={(e) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, description: e.target.value } : x))} />
+                  ),
+                },
+                {
+                  key: "amt", label: t("se.costAmt"), slot: "primary", numeric: true,
+                  render: (c, i) => (
+                    <input className="ctl mini nn" style={{ width: 100 }} value={c.amount}
+                      onChange={(e) => setCosts((cs) => cs.map((x, j) => j === i ? { ...x, amount: parseNum(e.target.value) } : x))} />
+                  ),
+                },
+              ] as LineField<CostLine>[]}
+            />
           </Card>
         )}
       </FormLayout>

@@ -115,7 +115,7 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
   const [writes, setWrites] = useState<Write[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
 
-  const action = surface?.actions.find((row) => row.id === actionId) ?? null;
+  const action = surface?.actions?.find((row) => row.id === actionId) ?? null;
   const stages = surface?.read_stages ?? [];
 
   useEffect(() => {

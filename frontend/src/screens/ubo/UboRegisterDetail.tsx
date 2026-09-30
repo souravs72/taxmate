@@ -8,6 +8,7 @@ import { useDoc } from "../../lib/resource";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Owner = {
   name?: string; full_name?: string; person_type?: string; ownership_percentage?: number;
@@ -56,18 +57,37 @@ export default function UboRegisterDetail() {
       </Card>
       <Card title={t("ubo.owners")}>
         {owners.length === 0 ? <p className="sub">{t("ubo.noOwners")}</p> : (
-          <div className="twrap"><table>
-            <thead><tr><th>{t("ubo.owner")}</th><th>{t("ubo.type")}</th><th className="n">{t("ubo.pct")}</th><th>{t("ubo.control")}</th><th>{t("so.col.status")}</th></tr></thead>
-            <tbody>{owners.map((o) => (
-              <tr key={o.name}>
-                <td>{o.full_name || "—"}</td>
-                <td>{o.person_type || "—"}</td>
-                <td className="n">{o.ownership_percentage ?? "—"}</td>
-                <td>{o.control_basis || "—"}</td>
-                <td><Pill cls={o.is_active ? "p-done" : "p-flat"}>{o.is_active ? t("wh.active") : t("ubo.inactive")}</Pill></td>
-              </tr>
-            ))}</tbody>
-          </table></div>
+          /* A list of people, but still a flat read-only table: five columns,
+             one row per owner, no totals. Collapse off so nationality-level
+             detail is not hidden behind a toggle on a register you read. */
+          <LineItems<Owner>
+            rows={owners}
+            collapse={false}
+            fields={[
+              {
+                key: "owner", label: t("ubo.owner"), slot: "title",
+                render: (o) => <>{o.full_name || "—"}</>,
+              },
+              {
+                key: "type", label: t("ubo.type"),
+                render: (o) => <>{o.person_type || "—"}</>,
+              },
+              {
+                key: "pct", label: t("ubo.pct"), slot: "primary", numeric: true,
+                render: (o) => <>{o.ownership_percentage ?? "—"}</>,
+              },
+              {
+                key: "control", label: t("ubo.control"),
+                render: (o) => <>{o.control_basis || "—"}</>,
+              },
+              {
+                key: "status", label: t("so.col.status"),
+                render: (o) => (
+                  <Pill cls={o.is_active ? "p-done" : "p-flat"}>{o.is_active ? t("wh.active") : t("ubo.inactive")}</Pill>
+                ),
+              },
+            ] as LineField<Owner>[]}
+          />
         )}
       </Card>
     </>

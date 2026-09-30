@@ -15,6 +15,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
 
@@ -179,28 +180,31 @@ export default function DeliveryNoteDetail() {
         }
       >
         <Card title={t("dn.items")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("dn.item")}</th>
-                  <th>{t("dn.warehouse")}</th>
-                  <th className="n">{t("dn.qty")}</th>
-                  <th className="n">{t("dn.amount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((row, i) => (
-                  <tr key={row.item_code ?? i}>
-                    <td>{row.item_name || row.item_code}</td>
-                    <td>{row.warehouse || data.set_warehouse || "—"}</td>
-                    <td className="n">{qty(row.qty)} {row.uom}</td>
-                    <td className="n tot">{money(row.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* A delivered note's lines are read-only here — no add, no remove —
+              and on a phone the warehouse stays on the card rather than behind
+              a "More" toggle. */}
+          <LineItems<Line>
+            rows={data.items ?? []}
+            collapse={false}
+            fields={[
+              {
+                key: "item", label: t("dn.item"), slot: "title",
+                render: (row) => <>{row.item_name || row.item_code}</>,
+              },
+              {
+                key: "warehouse", label: t("dn.warehouse"),
+                render: (row) => <>{row.warehouse || data.set_warehouse || "—"}</>,
+              },
+              {
+                key: "qty", label: t("dn.qty"), slot: "primary", numeric: true,
+                render: (row) => <>{qty(row.qty)} {row.uom}</>,
+              },
+              {
+                key: "amount", label: t("dn.amount"), slot: "primary", numeric: true, tdClass: "tot",
+                render: (row) => <>{money(row.amount)}</>,
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

@@ -9,6 +9,7 @@ import { useDoc, useSave } from "../../lib/resource";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Act = {
   name?: string;
@@ -97,28 +98,32 @@ export default function EsrFilingDetail() {
       </Card>
       {acts.length > 0 ? (
         <Card title={t("esr.activities")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("esr.activity")}</th>
-                  <th className="n">{t("esr.income")}</th>
-                  <th className="n">{t("esr.employees")}</th>
-                  <th>{t("esr.ciga")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {acts.map((a) => (
-                  <tr key={a.name}>
-                    <td>{a.activity || "—"}</td>
-                    <td className="n">{money(a.income_from_activity)}</td>
-                    <td className="n">{a.employee_count ?? "—"}</td>
-                    <td>{a.is_core_income_generating_activity_in_uae ? t("yes") : t("no")}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Read-only activities: no add, no remove. The activity's income is
+              the one figure on the face of a phone card — the headcount and the
+              CIGA answer are attributes of the activity, not its quantity, so
+              they sit below the title, still visible with collapse off. */}
+          <LineItems<Act>
+            rows={acts}
+            collapse={false}
+            fields={[
+              {
+                key: "activity", label: t("esr.activity"), slot: "title",
+                render: (a) => <>{a.activity || "—"}</>,
+              },
+              {
+                key: "income", label: t("esr.income"), slot: "primary", numeric: true,
+                render: (a) => <>{money(a.income_from_activity)}</>,
+              },
+              {
+                key: "employees", label: t("esr.employees"), numeric: true,
+                render: (a) => <>{a.employee_count ?? "—"}</>,
+              },
+              {
+                key: "ciga", label: t("esr.ciga"),
+                render: (a) => <>{a.is_core_income_generating_activity_in_uae ? t("yes") : t("no")}</>,
+              },
+            ] as LineField<Act>[]}
+          />
         </Card>
       ) : null}
     </>

@@ -17,6 +17,7 @@ import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
+import LineItems, { type LineField } from "../../components/LineItems";
 import SourceDocPicker from "../../components/SourceDocPicker";
 
 type InvoiceDoc = {
@@ -429,74 +430,79 @@ export default function PurchaseInvoiceForm() {
         </Card>
 
         <Card num={3} title={t("inv.lines")} bodyClass={null}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 26 }}>#</th>
-                  <th>{t("soc.pickItem")}</th>
-                  <th>{t("pi.hsSac")}</th>
-                  <th>{t("f.expenseAccount")}</th>
-                  <th>{t("f.costCenter")}</th>
-                  <th className="n">{t("sod.col.qty")}</th>
-                  <th className="n">{t("sod.col.rate")}</th>
-                  <th className="n">{t("sod.col.amount")}</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((l, i) => (
-                  <tr key={i}>
-                    <td style={{ color: "var(--faint)", fontSize: 11.5, textAlign: "center" }}>{i + 1}</td>
-                    <td style={{ minWidth: 180 }}>
-                      <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
-                      <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
-                    </td>
-                    <td>
-                      {l.uae_item_type !== "Service" && (
-                        <input className="ctl mini" style={{ width: 88 }}
-                          aria-label={t("item.hs")} placeholder={t("item.hs")} value={l.hs_code || ""}
-                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
-                      )}
-                      {l.uae_item_type !== "Goods" && (
-                        <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
-                          aria-label={t("item.sac")} placeholder={t("item.sac")} value={l.sac_code || ""}
-                          onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
-                      )}
-                    </td>
-                    <td style={{ minWidth: 140 }}>
-                      <LinkField doctype={DT.account} value={l.expense_account || ""}
-                        onChange={(v) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
-                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
-                    </td>
-                    <td style={{ minWidth: 120 }}>
-                      <LinkField doctype={DT.costCenter} value={l.cost_center || ""}
-                        onChange={(v) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, cost_center: v } : x))}
-                        filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 72 }} value={l.qty}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, qty: parseNum(e.target.value) } : x))} />
-                    </td>
-                    <td className="n">
-                      <input className="ctl mini nn" style={{ width: 96 }} value={l.rate}
-                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, rate: parseNum(e.target.value) } : x))} />
-                    </td>
-                    <td className="n" style={{ fontWeight: 600 }}>{money(l.qty * l.rate)}</td>
-                    <td>
-                      <button type="button" className="rm" aria-label={t("inv.remove")}
-                        onClick={() => setLines((ls) => ls.filter((_, j) => j !== i))}>✕</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <div className="addrow">
-            <button type="button" className="btn ghost sm" onClick={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}>
-              {t("soc.addLine")}
-            </button>
-          </div>
+          {/* Item, Quantity and Amount on the face of a phone card; rate, the
+              HS/SAC codes, the expense account and the cost centre behind
+              "More" — they are set once and rarely changed per line. */}
+          <LineItems<TxnLine>
+            rows={lines}
+            showIndex
+            onRemove={(i) => setLines((ls) => ls.filter((_, j) => j !== i))}
+            addLabel={t("soc.addLine")}
+            onAdd={() => setLines((ls) => [...ls, { item_code: "", qty: 1, rate: 0 }])}
+            fields={[
+              {
+                key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 180 },
+                render: (l, i) => (
+                  <>
+                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
+                  </>
+                ),
+              },
+              {
+                key: "hssac", label: t("pi.hsSac"),
+                render: (l, i) => (
+                  <>
+                    {l.uae_item_type !== "Service" && (
+                      <input className="ctl mini" style={{ width: 88 }}
+                        aria-label={t("item.hs")} placeholder={t("item.hs")} value={l.hs_code || ""}
+                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, hs_code: e.target.value } : x))} />
+                    )}
+                    {l.uae_item_type !== "Goods" && (
+                      <input className="ctl mini" style={{ width: 88, marginTop: l.uae_item_type === "Both" || !l.uae_item_type ? 4 : 0 }}
+                        aria-label={t("item.sac")} placeholder={t("item.sac")} value={l.sac_code || ""}
+                        onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, sac_code: e.target.value } : x))} />
+                    )}
+                  </>
+                ),
+              },
+              {
+                key: "expense", label: t("f.expenseAccount"), td: { minWidth: 140 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.account} value={l.expense_account || ""}
+                    onChange={(v) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, expense_account: v } : x))}
+                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                ),
+              },
+              {
+                key: "cc", label: t("f.costCenter"), td: { minWidth: 120 },
+                render: (l, i) => (
+                  <LinkField doctype={DT.costCenter} value={l.cost_center || ""}
+                    onChange={(v) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, cost_center: v } : x))}
+                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                ),
+              },
+              {
+                key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 72 }} value={l.qty}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, qty: parseNum(e.target.value) } : x))} />
+                ),
+              },
+              {
+                key: "rate", label: t("sod.col.rate"), numeric: true,
+                render: (l, i) => (
+                  <input className="ctl mini nn" style={{ width: 96 }} value={l.rate}
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, rate: parseNum(e.target.value) } : x))} />
+                ),
+              },
+              {
+                key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
+                td: { fontWeight: 600 },
+                render: (l) => <span>{money(l.qty * l.rate)}</span>,
+              },
+            ] as LineField<TxnLine>[]}
+          />
         </Card>
       </FormLayout>
     </>

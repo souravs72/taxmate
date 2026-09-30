@@ -11,6 +11,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
 
@@ -155,30 +156,36 @@ export default function PurchaseOrderDetail() {
         }
       >
         <Card title={t("dn.items")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("dn.item")}</th>
-                  <th className="n">{t("dn.qty")}</th>
-                  <th className="n">{t("po.received")}</th>
-                  <th className="n">{t("po.billed")}</th>
-                  <th className="n">{t("dn.amount")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.items ?? []).map((row, i) => (
-                  <tr key={row.item_code ?? String(i)}>
-                    <td>{row.item_name || row.item_code}</td>
-                    <td className="n">{qty(row.qty)} {row.uom}</td>
-                    <td className="n">{qty(row.received_qty)}</td>
-                    <td className="n">{money(row.billed_amt)}</td>
-                    <td className="n tot">{money(row.amount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Read-only progress against the order: ordered, received, billed.
+              Nothing is added or removed here, and collapse={false} keeps the
+              received and billed figures — the reason to open this screen —
+              on the card rather than behind "More". */}
+          <LineItems<Line>
+            rows={data.items ?? []}
+            collapse={false}
+            fields={[
+              {
+                key: "item", label: t("dn.item"), slot: "title",
+                render: (row) => row.item_name || row.item_code,
+              },
+              {
+                key: "qty", label: t("dn.qty"), slot: "primary", numeric: true,
+                render: (row) => <>{qty(row.qty)} {row.uom}</>,
+              },
+              {
+                key: "received", label: t("po.received"), numeric: true,
+                render: (row) => qty(row.received_qty),
+              },
+              {
+                key: "billed", label: t("po.billed"), numeric: true,
+                render: (row) => money(row.billed_amt),
+              },
+              {
+                key: "amount", label: t("dn.amount"), slot: "primary", numeric: true, tdClass: "tot",
+                render: (row) => money(row.amount),
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

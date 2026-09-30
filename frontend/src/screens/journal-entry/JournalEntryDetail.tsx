@@ -10,6 +10,7 @@ import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = {
@@ -123,30 +124,36 @@ export default function JournalEntryDetail() {
           </div>
         </Card>
         <Card title={t("je.accounts")}>
-          <div className="twrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>{t("je.account")}</th>
-                  <th>{t("je.costCenter")}</th>
-                  <th>{t("je.party")}</th>
-                  <th className="n">{t("je.col.debit")}</th>
-                  <th className="n">{t("je.col.credit")}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data.accounts ?? []).map((row, i) => (
-                  <tr key={`${row.account}-${i}`}>
-                    <td>{row.account}</td>
-                    <td>{row.cost_center || "—"}</td>
-                    <td>{row.party || "—"}</td>
-                    <td className="n">{money(row.debit_in_account_currency)}</td>
-                    <td className="n tot">{money(row.credit_in_account_currency)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          {/* Read-only: a posted journal's legs cannot be added or removed here.
+              The account names the row and the two figures are the point of it,
+              so debit and credit take the card face; cost centre and party sit
+              below, still visible with collapse off. */}
+          <LineItems<Line>
+            rows={data.accounts ?? []}
+            collapse={false}
+            fields={[
+              {
+                key: "account", label: t("je.account"), slot: "title",
+                render: (row) => <>{row.account}</>,
+              },
+              {
+                key: "costCenter", label: t("je.costCenter"),
+                render: (row) => <>{row.cost_center || "—"}</>,
+              },
+              {
+                key: "party", label: t("je.party"),
+                render: (row) => <>{row.party || "—"}</>,
+              },
+              {
+                key: "debit", label: t("je.col.debit"), slot: "primary", numeric: true,
+                render: (row) => <>{money(row.debit_in_account_currency)}</>,
+              },
+              {
+                key: "credit", label: t("je.col.credit"), slot: "primary", numeric: true, tdClass: "tot",
+                render: (row) => <>{money(row.credit_in_account_currency)}</>,
+              },
+            ] as LineField<Line>[]}
+          />
         </Card>
       </FormLayout>
     </>

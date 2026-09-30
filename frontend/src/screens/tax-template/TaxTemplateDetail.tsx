@@ -5,6 +5,7 @@ import { useDoc } from "../../lib/resource";
 import { money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Charge = { charge_type?: string; account_head?: string; rate?: number; tax_amount?: number; description?: string };
 type Doc = {
@@ -45,26 +46,27 @@ export default function TaxTemplateDetail() {
         </div>
       </Card>
       <Card title={t("tx.charges")}>
-        <div className="twrap">
-          <table>
-            <thead>
-              <tr>
-                <th>{t("tx.col.account")}</th>
-                <th>{t("tx.col.charge")}</th>
-                <th className="n">{t("tx.col.rate")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.taxes ?? []).map((row, i) => (
-                <tr key={`${row.account_head}-${i}`}>
-                  <td>{row.account_head || row.description || "—"}</td>
-                  <td>{row.charge_type || "—"}</td>
-                  <td className="n tot">{money(row.rate)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        {/* Three read-only columns and nothing else in the table body: no
+            add, no remove, and collapse off so the charge type stays visible. */}
+        <LineItems<Charge>
+          rows={data.taxes ?? []}
+          collapse={false}
+          fields={[
+            {
+              key: "account", label: t("tx.col.account"), slot: "title",
+              render: (row) => <>{row.account_head || row.description || "—"}</>,
+            },
+            {
+              key: "charge", label: t("tx.col.charge"),
+              render: (row) => <>{row.charge_type || "—"}</>,
+            },
+            {
+              key: "rate", label: t("tx.col.rate"), slot: "primary", numeric: true,
+              tdClass: "tot",
+              render: (row) => <>{money(row.rate)}</>,
+            },
+          ] as LineField<Charge>[]}
+        />
       </Card>
     </>
   );

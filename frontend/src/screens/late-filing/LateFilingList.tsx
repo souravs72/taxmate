@@ -78,13 +78,16 @@ export default function LateFilingList() {
   }));
   const donutTotal = donut.reduce((a, b) => a + b.n, 0);
   const oblTotal = byObl.rows.reduce((a, r) => a + (Number(r.count) || 0), 0);
+  /* Explicit card roles. Left to inference, the obligation column — free text
+     that can be a full Arabic company name — was taken for the amount and
+     rendered nowrap, pushing the page 61px sideways at 360px. */
   const columns: Column<Row>[] = [
-    { key: "name", header: t("lf.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "obl", header: t("lf.col.obligation"), cell: (r) => r.obligation || "—" },
-    { key: "src", header: t("lf.col.source"), cell: (r) => r.source_name || "—" },
-    { key: "due", header: t("v201.col.due"), className: "dt", cell: (r) => date(r.due_date) },
-    { key: "late", header: t("lf.col.days"), className: "n", cell: (r) => r.days_late ?? 0 },
-    { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={latePill(r.status)}>{r.status || "—"}</Pill> },
+    { key: "name", header: t("lf.col.name"), role: "title", cell: (r) => <span className="ordno">{r.name}</span> },
+    { key: "obl", header: t("lf.col.obligation"), role: "meta", cell: (r) => r.obligation || "—" },
+    { key: "src", header: t("lf.col.source"), role: "meta", cell: (r) => r.source_name || "—" },
+    { key: "due", header: t("v201.col.due"), className: "dt", role: "subtitle", cell: (r) => date(r.due_date) },
+    { key: "late", header: t("lf.col.days"), className: "n", role: "amount", cell: (r) => r.days_late ?? 0 },
+    { key: "status", header: t("so.col.status"), role: "status", cell: (r) => <Pill cls={latePill(r.status)}>{r.status || "—"}</Pill> },
   ];
   const rows = list.data ?? [];
 

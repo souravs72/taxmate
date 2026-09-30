@@ -1,0 +1,109 @@
+/* ─────────────────────────────────────────────────────────────────────
+   Document lines as cards, below 760px. Loaded only by components/LineItems.
+
+   Every class is prefixed `li-`, and none of these rules apply above 760px
+   because the component renders its table instead — there is no card in the
+   DOM to style. styles/app.css is not touched.
+
+   Logical properties throughout, so Arabic needs nothing direction-specific.
+   Colours come only from styles/tokens.css, so light and dark both work.
+   ───────────────────────────────────────────────────────────────────── */
+
+.li-list { display: flex; flex-direction: column; gap: 10px; }
+
+.li-card {
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 10px);
+  background: var(--surface);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ── Which line this is, and how to remove it ───────────────────────── */
+.li-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.li-n {
+  font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--faint);
+}
+.li-rm {
+  flex: none; width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--border-2); border-radius: var(--r-sm, 10px);
+  background: var(--surface); color: var(--muted);
+  font-size: 15px; line-height: 1; cursor: pointer;
+}
+.li-rm:hover { background: var(--hover); color: var(--text); }
+
+/* ── One labelled field ─────────────────────────────────────────────── */
+.li-f { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.li-f > label { font-size: 11.5px; font-weight: 600; color: var(--muted); }
+.li-f > *:not(label) { min-width: 0; }
+
+/* The screens size their table inputs inline — `style={{ width: 80 }}` and
+   the like — which is right for a column and useless in a card. An inline
+   style can only be beaten by !important, so that is what this is: the one
+   place it is needed, scoped to a card that exists only below 760px. */
+.li-card .ctl,
+.li-card input:not([type="checkbox"]):not([type="radio"]),
+.li-card select { width: 100% !important; }
+
+/* Figures read right-aligned wherever they appear. */
+.li-num input, .li-num .ctl { text-align: end; font-variant-numeric: tabular-nums; }
+/* A computed value (Amount) is text, not a control — give the field the
+   height of one so a row of figures keeps its baseline beside an input.
+   The height goes on the field, not on each child: a read-only cell often
+   renders the figure plus a sub-line under it (a quantity and its UOM), and
+   putting 44px on every child pushed that sub-line onto its own tall row. */
+.li-num:not(:has(input, select)) { min-height: 44px; justify-content: center; }
+.li-num:not(:has(input, select)) > *:not(label) {
+  font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* ── Fields side by side on the card face ───────────────────────────── */
+.li-row { display: grid; gap: 10px; grid-template-columns: 1fr; }
+.li-row[data-cols="2"] { grid-template-columns: 1fr 1fr; }
+/* Two columns stop being readable once the screen is narrower than about a
+   Pixel; below that they stack rather than squeeze. */
+@media (max-width: 340px) { .li-row[data-cols="2"] { grid-template-columns: 1fr; } }
+
+/* ── The collapsed part ─────────────────────────────────────────────── */
+.li-more {
+  align-self: flex-start;
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: 44px; padding-inline: 2px;
+  border: 0; background: transparent; cursor: pointer;
+  color: var(--brand); font-size: 12.5px; font-weight: 600;
+}
+.li-more .li-chev { transition: transform 150ms ease; }
+.li-more[aria-expanded="true"] .li-chev { transform: rotate(180deg); }
+@media (prefers-reduced-motion: reduce) { .li-more .li-chev { transition: none; } }
+
+.li-extra {
+  display: flex; flex-direction: column; gap: 10px;
+  padding-block-start: 10px;
+  border-block-start: 1px dashed var(--border);
+}
+
+/* ── Add a line ─────────────────────────────────────────────────────── */
+.li-add { width: 100%; min-height: 44px; justify-content: center; }
+
+/* ── A totals row ───────────────────────────────────────────────────── */
+/* Screens with a <tfoot> get it here instead: a table footer has nothing to
+   align to once the rows are cards. */
+.li-foot {
+  margin-block-start: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 10px);
+  background: var(--sunk);
+  display: flex; align-items: baseline; justify-content: space-between; gap: 12px;
+  font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* ── A row a screen has marked ──────────────────────────────────────── */
+/* `picked` is the payment screen's ticked-invoice tint; app.css styles
+   tr.picked, which no longer matches once the row is a card. */
+.li-card.picked { background: var(--brand-soft); border-color: var(--brand); }

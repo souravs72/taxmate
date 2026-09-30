@@ -13,6 +13,7 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
+import LineItems, { type LineField } from "../../components/LineItems";
 
 type Box = {
   name?: string;
@@ -145,28 +146,32 @@ export default function Vat201Detail() {
         </Card>
         {boxes.length > 0 ? (
           <Card title={t("v201.boxes")}>
-            <div className="twrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>{t("v201.box")}</th>
-                    <th>{t("v201.legend")}</th>
-                    <th className="n">{t("v201.amount")}</th>
-                    <th className="n">{t("v201.vat")}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {boxes.map((b) => (
-                    <tr key={b.name || b.box_no}>
-                      <td className="ordno">{b.box_no || "—"}</td>
-                      <td>{b.legend || "—"}</td>
-                      <td className="n">{money(b.amount)}</td>
-                      <td className="n">{money(b.vat_amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            {/* The return's boxes are rendered as a flat four-column table —
+                no row spans, no section rows, no totals row — so it converts
+                like any other read-only line table. The legend names the row;
+                the box number rides along beneath it on a card. */}
+            <LineItems<Box>
+              rows={boxes}
+              collapse={false}
+              fields={[
+                {
+                  key: "box", label: t("v201.box"), tdClass: "ordno",
+                  render: (b) => <>{b.box_no || "—"}</>,
+                },
+                {
+                  key: "legend", label: t("v201.legend"), slot: "title",
+                  render: (b) => <>{b.legend || "—"}</>,
+                },
+                {
+                  key: "amount", label: t("v201.amount"), slot: "primary", numeric: true,
+                  render: (b) => <>{money(b.amount)}</>,
+                },
+                {
+                  key: "vat", label: t("v201.vat"), slot: "primary", numeric: true,
+                  render: (b) => <>{money(b.vat_amount)}</>,
+                },
+              ] as LineField<Box>[]}
+            />
           </Card>
         ) : null}
       </FormLayout>
