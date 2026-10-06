@@ -17,10 +17,34 @@ def setup():
 	if not frappe.db.exists("DocType", "Landed Cost Voucher"):
 		fields.pop("Landed Cost Voucher", None)
 	create_custom_fields(fields, ignore_validate=True, update=True)
+	keep_chosen_vat_emirate()
 	_ensure_excise_settings_defaults()
 	drop_field_unique("UAE Bad Debt Relief", "sales_invoice")
 	ensure_tax_manager_role()
 	grant_tax_manager_permissions()
+
+
+# ERPNext creates these with fetch_from and no fetch_if_empty, so a company
+# address replaces an emirate the user already chose, including a blank one.
+_CHOSEN_EMIRATE_DOCTYPES = (
+	"Quotation",
+	"Sales Order",
+	"Delivery Note",
+	"Sales Invoice",
+	"POS Invoice",
+)
+
+
+def keep_chosen_vat_emirate() -> None:
+	"""Keep a typed VAT emirate when the company address is applied."""
+	for doctype in _CHOSEN_EMIRATE_DOCTYPES:
+		name = frappe.db.get_value("Custom Field", {"dt": doctype, "fieldname": "vat_emirate"}, "name")
+		if not name:
+			continue
+		if int(frappe.db.get_value("Custom Field", name, "fetch_if_empty") or 0):
+			continue
+		frappe.db.set_value("Custom Field", name, "fetch_if_empty", 1, update_modified=False)
+		frappe.clear_cache(doctype=doctype)
 
 
 def _ensure_excise_settings_defaults() -> None:

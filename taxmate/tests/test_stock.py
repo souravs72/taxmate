@@ -292,6 +292,103 @@ class TestQuotationInsert(FrappeTestCase):
 		self.assertEqual(submitted["docstatus"], 1)
 		cancel("Quotation", doc["name"])
 
+	def test_draft_reload_keeps_selected_emirate(self):
+		"""VAT emirate chosen on create must still be on the draft when it is reopened."""
+		from taxmate.api.resource import get
+		from taxmate.uae.constants import UAE_EMIRATES
+		from taxmate.uae_vat.setup import setup
+
+		setup()
+		frappe.clear_cache(doctype="Quotation")
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		if not company:
+			self.skipTest("No Company configured")
+		customer = frappe.db.get_value("Customer", {"disabled": 0}, "name")
+		if not customer:
+			self.skipTest("No active Customer available")
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_sales_item": 1}, "name")
+		if not item:
+			self.skipTest("No sales item available")
+
+		meta = frappe.get_meta("Quotation")
+		field = meta.get_field("vat_emirate")
+		self.assertIsNotNone(field)
+		self.assertEqual(field.fieldtype, "Select")
+		self.assertEqual(field.options, "\n" + "\n".join(UAE_EMIRATES))
+		self.assertEqual(field.fetch_from, "company_address.emirate")
+		self.assertEqual(int(field.fetch_if_empty or 0), 1)
+		for doctype in ("Sales Order", "Delivery Note", "Sales Invoice", "POS Invoice"):
+			row = frappe.db.get_value(
+				"Custom Field",
+				{"dt": doctype, "fieldname": "vat_emirate"},
+				["name", "fetch_if_empty"],
+				as_dict=True,
+			)
+			if not row:
+				continue
+			self.assertEqual(int(row.fetch_if_empty or 0), 1)
+
+		doc = insert(
+			{
+				"doctype": "Quotation",
+				"quotation_to": "Customer",
+				"party_name": customer,
+				"transaction_date": "2026-10-01",
+				"valid_till": "2026-10-31",
+				"company": company,
+				"vat_emirate": "Sharjah",
+				"items": [{"item_code": item, "qty": 1, "rate": 100}],
+			}
+		)
+		self.addCleanup(frappe.delete_doc, "Quotation", doc["name"], force=True, ignore_permissions=True)
+		self.assertEqual(doc.get("vat_emirate"), "Sharjah")
+		reloaded = get("Quotation", doc["name"])
+		self.assertEqual(reloaded.get("vat_emirate"), "Sharjah")
+
+		address = insert(
+			{
+				"doctype": "Address",
+				"address_title": f"TM QTN {frappe.generate_hash(length=6)}",
+				"address_type": "Billing",
+				"address_line1": "Street 1",
+				"city": "Dubai",
+				"emirate": "Dubai",
+				"country": "United Arab Emirates",
+				"links": [{"link_doctype": "Company", "link_name": company}],
+			}
+		)
+		self.addCleanup(frappe.delete_doc, "Address", address["name"], force=True, ignore_permissions=True)
+		chosen = insert(
+			{
+				"doctype": "Quotation",
+				"quotation_to": "Customer",
+				"party_name": customer,
+				"transaction_date": "2026-10-01",
+				"valid_till": "2026-10-31",
+				"company": company,
+				"company_address": address["name"],
+				"vat_emirate": "Abu Dhabi",
+				"items": [{"item_code": item, "qty": 1, "rate": 50}],
+			}
+		)
+		self.addCleanup(frappe.delete_doc, "Quotation", chosen["name"], force=True, ignore_permissions=True)
+		self.assertEqual(get("Quotation", chosen["name"]).get("vat_emirate"), "Abu Dhabi")
+
+		filled = insert(
+			{
+				"doctype": "Quotation",
+				"quotation_to": "Customer",
+				"party_name": customer,
+				"transaction_date": "2026-10-01",
+				"valid_till": "2026-10-31",
+				"company": company,
+				"company_address": address["name"],
+				"items": [{"item_code": item, "qty": 1, "rate": 50}],
+			}
+		)
+		self.addCleanup(frappe.delete_doc, "Quotation", filled["name"], force=True, ignore_permissions=True)
+		self.assertEqual(get("Quotation", filled["name"]).get("vat_emirate"), "Dubai")
+
 
 class TestMaterialRequestPurchaseInsert(FrappeTestCase):
 	def test_material_request_purchase_insert_then_submit(self):

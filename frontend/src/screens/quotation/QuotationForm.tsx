@@ -2,7 +2,7 @@
  * Quotation create/edit. Catalog party/item/tax preview.
  * Routes: /quotations/new, /quotations/:name/edit
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -24,6 +24,8 @@ type Doc = {
   name: string; party_name?: string; transaction_date?: string; valid_till?: string;
   taxes_and_charges?: string; vat_emirate?: string; docstatus?: number;
   payment_terms_template?: string; additional_discount_percentage?: number; tc_name?: string;
+  customer_address?: string; shipping_address_name?: string; contact_person?: string;
+  selling_price_list?: string; currency?: string; conversion_rate?: number;
   items?: TxnLine[];
 };
 
@@ -60,7 +62,10 @@ export default function QuotationForm() {
   const [lines, setLines] = useState<TxnLine[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
-  const [skipReprice, setSkipReprice] = useState(false);
+  // Party name loaded from the draft. The customer effect that follows must
+  // not replace saved fields; a later customer change should.
+  const hydratedCustomer = useRef<string | null>(null);
+  const partyFetchId = useRef(0);
 
   useEffect(() => {
     const d = existing.data;
@@ -73,6 +78,15 @@ export default function QuotationForm() {
     setDiscountPct(Number(d.additional_discount_percentage || 0));
     setTcName(d.tc_name || "");
     setEmirate(d.vat_emirate || "");
+    setConversionRate(Number(d.conversion_rate) || 1);
+    setParty((prev) => ({
+      ...prev,
+      customer_address: d.customer_address,
+      shipping_address_name: d.shipping_address_name,
+      contact_person: d.contact_person,
+      selling_price_list: d.selling_price_list,
+      currency: d.currency,
+    }));
     setLines((d.items ?? []).map((it) => ({
       item_code: it.item_code || "",
       item_name: it.item_name,
@@ -80,14 +94,29 @@ export default function QuotationForm() {
       qty: Number(it.qty) || 1,
       rate: Number(it.rate) || 0,
     })));
-    setSkipReprice(true);
+    hydratedCustomer.current = d.party_name || "";
   }, [existing.data]);
 
   useEffect(() => {
     if (!customer) return;
+    const fetchId = ++partyFetchId.current;
+    const preserveSaved = hydratedCustomer.current === customer;
+    hydratedCustomer.current = null;
     void txn.fetchParty(customer, txDate).then(async (m) => {
-      if (!m) return;
-      if (skipReprice) { setSkipReprice(false); return; }
+      if (fetchId !== partyFetchId.current || !m) return;
+      if (preserveSaved) {
+        // Party master fills TRN. Address, price list, and currency already
+        // saved on the draft stay, because save() writes those fields back.
+        setParty((saved) => ({
+          ...m,
+          customer_address: saved.customer_address ?? m.customer_address,
+          shipping_address_name: saved.shipping_address_name ?? m.shipping_address_name,
+          contact_person: saved.contact_person ?? m.contact_person,
+          selling_price_list: saved.selling_price_list ?? m.selling_price_list,
+          currency: saved.currency ?? m.currency,
+        }));
+        return;
+      }
       setParty(m);
       if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
       if (m.vat_emirate) setEmirate(m.vat_emirate);
