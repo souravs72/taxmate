@@ -9,6 +9,7 @@ from frappe import _
 from frappe.utils import flt
 
 from taxmate.api.resource import assert_allowed_doctype, assert_company_read, require_login
+from taxmate.utils.company import get_default_company
 
 
 @frappe.whitelist()
@@ -26,7 +27,7 @@ def item_qty(item_code: str, company: str | None = None) -> dict[str, Any]:
 	if not frappe.has_permission("Item", "read", code):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	assert_company_read(company)
 
 	if not frappe.has_permission("Bin", "read"):
@@ -151,7 +152,7 @@ def reconciliation_balance(
 	code = (item_code or "").strip()
 	if not code:
 		frappe.throw(_("Item is required"))
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	assert_company_read(company)
 	if not (
 		frappe.has_permission("Stock Reconciliation", "write")

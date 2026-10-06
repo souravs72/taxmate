@@ -15,6 +15,7 @@ from frappe.client import save as client_save
 from frappe.utils import cint
 
 from taxmate.search import DENIED_SEARCH_DOCTYPES
+from taxmate.utils.company import can_use_company, company_scoped, get_default_company
 
 
 def is_allowed_doctype(doctype: str) -> bool:
@@ -41,7 +42,7 @@ def assert_allowed_doctype(doctype: str) -> None:
 def assert_company_read(company: str | None) -> None:
 	if not company:
 		return
-	if not frappe.has_permission("Company", "read", company):
+	if not can_use_company(company):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 
@@ -54,6 +55,94 @@ def _parse(value):
 	if isinstance(value, str):
 		return frappe.parse_json(value)
 	return value
+
+
+def _names_company(row) -> bool:
+	"""Does one filter row (``[field, op, value]`` or ``[doctype, field, op, value]``) set company?"""
+	if not isinstance(row, list | tuple) or not row:
+		return False
+	field = row[1] if len(row) >= 4 else row[0]
+	return field == "company"
+
+
+def _row_company_clause(row):
+	"""``(operator, value)`` when a filter row constrains ``company``."""
+	if not isinstance(row, list | tuple):
+		return None
+	if len(row) >= 4 and row[1] == "company":
+		return row[2], row[3]
+	if len(row) >= 3 and row[0] == "company":
+		return row[1], row[2]
+	return None
+
+
+def _pinned_companies(parsed) -> list[str]:
+	"""Company names a filter pins with ``=`` or ``in``."""
+	names: list[str] = []
+	if isinstance(parsed, dict) and "company" in parsed:
+		value = parsed["company"]
+		if isinstance(value, str):
+			names.append(value)
+		elif isinstance(value, list | tuple) and value:
+			op = value[0]
+			if op in ("=", "==") and len(value) > 1 and isinstance(value[1], str):
+				names.append(value[1])
+			elif op == "in" and len(value) > 1 and isinstance(value[1], list | tuple):
+				names.extend(str(name) for name in value[1] if name)
+	elif isinstance(parsed, list | tuple):
+		for row in parsed:
+			clause = _row_company_clause(row)
+			if not clause:
+				continue
+			op, value = clause
+			if op in ("=", "==") and isinstance(value, str):
+				names.append(value)
+			elif op == "in" and isinstance(value, list | tuple):
+				names.extend(str(name) for name in value if name)
+	return names
+
+
+def assert_company_filters(filters=None, or_filters=None) -> None:
+	"""Reject a company a caller names but cannot read.
+
+	Link search and list screens pass their own company. That value has to be
+	one ``can_use_company`` allows. Frappe still applies User Permissions on
+	the query; this fails the request instead of returning another company's rows.
+	"""
+	for name in _pinned_companies(_parse(filters)) + _pinned_companies(_parse(or_filters)):
+		if not can_use_company(name):
+			frappe.throw(_("You do not have access to {0}").format(name), frappe.PermissionError)
+
+
+def scope_to_active_company(doctype: str, filters=None, or_filters=None):
+	"""Add ``company = <active company>`` to ``filters`` for single-company doctypes.
+
+	The header company switcher picks ONE company; every list and count follows
+	it without each screen having to remember a filter. A screen that passes its
+	own company filter (in ``filters`` or ``or_filters``) keeps it, still
+	permission-checked. Link search is NOT scoped here: forms whose company can
+	differ from the active one (Item defaults, Bank Account, POS Profile) pass
+	their own company filter to the picker.
+	"""
+	assert_company_filters(filters, or_filters)
+	if not company_scoped(doctype):
+		return filters
+	parsed_or = _parse(or_filters)
+	if _pinned_companies(parsed_or):
+		return filters
+	company = get_default_company()
+	if not company:
+		return filters
+	parsed = _parse(filters)
+	if not parsed:
+		return [["company", "=", company]]
+	if _pinned_companies(parsed):
+		return parsed
+	if isinstance(parsed, dict):
+		return {**parsed, "company": company}
+	if isinstance(parsed, list | tuple):
+		return [*parsed, ["company", "=", company]]
+	return filters
 
 
 def _as_data(value):
@@ -105,7 +194,7 @@ def get_list(
 	return client_get_list(
 		doctype,
 		fields=fields,
-		filters=filters,
+		filters=scope_to_active_company(doctype, filters, or_filters),
 		order_by=order_by,
 		limit_start=limit_start,
 		limit_page_length=limit_page_length,
@@ -119,6 +208,7 @@ def get_list(
 def get_count(doctype, filters=None, or_filters=None):
 	require_login()
 	assert_allowed_doctype(doctype)
+	filters = scope_to_active_company(doctype, filters, or_filters)
 	or_filters = _parse(or_filters)
 	if or_filters:
 		return _permission_aware_count(doctype, filters=_parse(filters), or_filters=or_filters)
@@ -131,9 +221,8 @@ def group_by_count(doctype: str, current_filters=None, field: str = "status"):
 	assert_allowed_doctype(doctype)
 	from frappe.desk.listview import get_group_by_count as desk_group_by_count
 
-	if current_filters is None:
-		current_filters = "[]"
-	elif not isinstance(current_filters, str):
+	current_filters = scope_to_active_company(doctype, current_filters) or []
+	if not isinstance(current_filters, str):
 		current_filters = frappe.as_json(current_filters)
 	return desk_group_by_count(doctype, current_filters, field)
 
@@ -328,6 +417,7 @@ def search_link(
 ):
 	require_login()
 	assert_allowed_doctype(doctype)
+	assert_company_filters(filters)
 	from frappe.desk.search import search_link as desk_search_link
 
 	return desk_search_link(

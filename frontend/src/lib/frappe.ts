@@ -124,6 +124,8 @@ export const DT = {
 export const METHOD = {
   getCatalog: "taxmate.api.get_catalog",
   getSession: "taxmate.api.get_session",
+  listMyCompanies: "taxmate.api.company.list_my_companies",
+  switchCompany: "taxmate.api.company.switch_company",
   getHome: "taxmate.api.dashboard.get_home",
   ownerDashboard: "taxmate.api.owner_dashboard.get_owner_dashboard",
   accountantDashboard: "taxmate.api.accountant_dashboard.get_accountant_dashboard",

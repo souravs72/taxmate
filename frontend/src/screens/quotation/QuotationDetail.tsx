@@ -25,7 +25,7 @@ type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string
 type Doc = {
   name: string; party_name?: string; customer_name?: string; transaction_date?: string;
   valid_till?: string; status?: string; grand_total?: number; net_total?: number;
-  total_taxes_and_charges?: number; docstatus?: number; items?: Line[];
+  total_taxes_and_charges?: number; vat_emirate?: string; docstatus?: number; items?: Line[];
 };
 
 function quotPill(status?: string): string {
@@ -138,6 +138,7 @@ export default function QuotationDetail() {
             <ReadRow k={t("quot.customer")} v={data.customer_name || data.party_name || "—"} />
             <ReadRow k={t("quot.date")} v={date(data.transaction_date)} />
             <ReadRow k={t("quot.validTill")} v={date(data.valid_till)} />
+            <ReadRow k={t("f.emirate")} v={data.vat_emirate || "—"} />
           </div>
         </Card>
         <Card title={t("inv.lines")}>

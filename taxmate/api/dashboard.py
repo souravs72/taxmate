@@ -9,6 +9,7 @@ import frappe
 
 from taxmate.api.resource import assert_company_read, require_login
 from taxmate.setup.home import NUMBER_CARD_SPECS
+from taxmate.utils.company import get_default_company
 
 
 def _count(doctype: str, filters: list) -> int:
@@ -20,7 +21,7 @@ def _count(doctype: str, filters: list) -> int:
 @frappe.whitelist()
 def get_home(company: str | None = None) -> dict[str, Any]:
 	require_login()
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	assert_company_read(company)
 	kpis: list[dict[str, Any]] = []
 	for spec in NUMBER_CARD_SPECS:

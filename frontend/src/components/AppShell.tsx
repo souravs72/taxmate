@@ -10,6 +10,7 @@ import { buildNav, groupedNav, groupForPath, FeatureFlags } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
 import UserMenu from "./UserMenu";
+import CompanySwitcher from "./CompanySwitcher";
 import MobileNav, { useIsMobileShell } from "./MobileNav";
 import "../styles/phone-fixes.css";
 import { navIcon } from "./navIcons";
@@ -177,6 +178,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span>TaxMate</span>
           </div>
           )}
+
+          <CompanySwitcher />
 
           <GlobalSearch />
 

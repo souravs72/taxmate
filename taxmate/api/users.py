@@ -31,6 +31,7 @@ from taxmate.setup.spa_roles import (
 	spa_role_of,
 	spa_roles_of,
 )
+from taxmate.utils.company import ACTIVE_COMPANY_KEY, get_default_company
 
 _SKIP_USERS = frozenset({"Guest", "Administrator"})
 
@@ -279,9 +280,16 @@ def invite_user(
 		user.flags.no_welcome_mail = True
 	user.insert(ignore_permissions=True)
 	apply_spa_roles(user.name, roles, extra_roles=addons if addons is not None else [])
-	company = frappe.defaults.get_user_default("Company")
+	company = get_default_company()
 	if company:
-		frappe.defaults.set_user_default("Company", company, user.name)
+		frappe.defaults.set_user_default(ACTIVE_COMPANY_KEY, company, user.name)
+		frappe.defaults.set_user_default("company", company, user.name)
+		# Owner stays unrestricted, same as System Manager in uae.permissions.
+		# Everyone else is limited to this company through Frappe User Permission.
+		if "owner" not in roles:
+			from frappe.permissions import add_user_permission
+
+			add_user_permission("Company", company, user.name, ignore_permissions=True, is_default=1)
 	return _as_user_row(user.name)
 
 

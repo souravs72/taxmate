@@ -248,10 +248,13 @@ scheduler_events = {
 # Extend DocType Class
 # ------------------------------
 #
-# Specify custom mixins to extend the standard doctype controller.
-# extend_doctype_class = {
-# 	"Task": "taxmate.custom.task.CustomTaskMixin"
-# }
+# Mixin runs before ERPNext's Purchase Invoice controller. It does not
+# replace reverse-charge posting. get_gl_entries installs a binder so
+# ERPNext's UAE regional ledger sees this invoice's company when it
+# chooses the VAT credit. Setting the flag earlier is cleared before then.
+extend_doctype_class = {
+	"Purchase Invoice": "taxmate.uae_vat.overrides.purchase_invoice.PurchaseInvoiceReverseCharge",
+}
 
 # Overriding Methods
 # ------------------------------
@@ -318,6 +321,10 @@ before_request = ["taxmate.setup.desk_gate.block_desk_for_non_admin"]
 # ]
 
 extend_bootinfo = "taxmate.search.boot_session"
+
+# Header company switcher: logout clears ERPNext's session-default company;
+# put the user's chosen company back when they sign in again.
+on_session_creation = ["taxmate.utils.company.restore_active_company"]
 
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True

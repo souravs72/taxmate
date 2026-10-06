@@ -18,6 +18,31 @@ def ensure_uae_regional_setup(company: str | None = None) -> None:
 	erpnext_uae_setup(company=company, patch=True)
 
 
+def ensure_uae_system_country() -> bool:
+	"""Set System Settings country when a UAE install left it blank.
+
+	ERPNext's regional overrides, including the reverse-charge VAT credit,
+	read this through ``erpnext.get_region()``. The setup wizard writes it.
+	``bench new-site`` plus ``install-app`` does not. An existing country is
+	left alone.
+	"""
+	from frappe.core.doctype.system_settings.system_settings import clear_system_settings_cache
+
+	current = frappe.db.get_single_value("System Settings", "country")
+	if current:
+		return False
+	if not frappe.db.exists("Country", UAE_COUNTRY):
+		return False
+
+	# set_single_value does not run System Settings.on_update, so the global
+	# default stays blank and boot / Desk still read an empty country.
+	frappe.db.set_single_value("System Settings", "country", UAE_COUNTRY)
+	frappe.db.set_default("country", UAE_COUNTRY)
+	frappe.local.system_settings = None
+	clear_system_settings_cache()
+	return True
+
+
 def ensure_company_uae_ready(company: str) -> None:
 	"""Verify / complete UAE readiness for a company after ERPNext country fixtures."""
 	if not company:
@@ -27,6 +52,7 @@ def ensure_company_uae_ready(company: str) -> None:
 	if country != UAE_COUNTRY:
 		return
 
+	ensure_uae_system_country()
 	ensure_uae_regional_setup(company=company)
 	_ensure_print_formats_enabled()
 	_ensure_uae_vat_settings_shell(company)

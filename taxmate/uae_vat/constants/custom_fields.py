@@ -6,6 +6,7 @@ is_exempt, vat_emirate, company_trn, reverse_charge, permit_no, etc.).
 
 from __future__ import annotations
 
+from taxmate.uae.constants import UAE_EMIRATES
 from taxmate.uae_e_invoicing.constants import (
 	BILLING_FREQUENCY_SELECT_OPTIONS,
 	PAYMENT_MEANS_SELECT_OPTIONS,
@@ -617,6 +618,22 @@ CUSTOM_FIELDS = {
 	],
 	"Sales Invoice Item": INVOICE_ITEM_FIELDS,
 	"Purchase Invoice Item": INVOICE_ITEM_FIELDS,
+	# Same Select as erpnext/regional/united_arab_emirates/setup.py sales_invoice_fields.
+	# fetch_if_empty: Desk fetch_from runs in _validate_links and overwrites a
+	# typed value (blank company-address emirate clears it). Keep a chosen
+	# emirate; fill only when the quotation does not have one yet.
+	"Quotation": [
+		{
+			"fieldname": "vat_emirate",
+			"label": "VAT Emirate",
+			"fieldtype": "Select",
+			"options": "\n" + "\n".join(UAE_EMIRATES),
+			"insert_after": "taxes_and_charges",
+			"fetch_from": "company_address.emirate",
+			"fetch_if_empty": 1,
+			"translatable": 0,
+		},
+	],
 	"Landed Cost Voucher": [
 		{
 			"fieldname": "uae_customs_declaration",

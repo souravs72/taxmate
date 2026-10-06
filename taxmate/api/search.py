@@ -15,6 +15,7 @@ from frappe.utils import cint, cstr
 
 from taxmate.api.resource import is_allowed_doctype, require_login
 from taxmate.search import GLOBAL_SEARCH_DOCTYPES
+from taxmate.utils.company import company_scoped, get_default_company
 
 # Only doctypes the React app owns. No Desk fallback.
 _SPA_DOC_ROUTES: dict[str, str] = {
@@ -360,6 +361,33 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 _SPA_DOCTYPES = frozenset(_SPA_DOC_ROUTES)
 
 
+def _in_active_company(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
+	"""Drop document hits that belong to a company other than the active one."""
+	company = get_default_company()
+	if not company:
+		return hits
+	by_doctype: dict[str, list[str]] = {}
+	for hit in hits:
+		if hit.get("type") == "document" and company_scoped(hit["doctype"]):
+			by_doctype.setdefault(hit["doctype"], []).append(hit["name"])
+	keep: set[tuple[str, str]] = set()
+	for doctype, names in by_doctype.items():
+		for name in frappe.get_list(
+			doctype,
+			filters={"name": ["in", names], "company": company},
+			pluck="name",
+			limit=len(names),
+		):
+			keep.add((doctype, name))
+	return [
+		hit
+		for hit in hits
+		if hit.get("type") != "document"
+		or not company_scoped(hit["doctype"])
+		or (hit["doctype"], hit["name"]) in keep
+	]
+
+
 def _doc_route(doctype: str, name: str) -> str | None:
 	template = _SPA_DOC_ROUTES.get(doctype)
 	if not template:
@@ -528,10 +556,12 @@ def awesome(text: str = "", limit: int = 20) -> dict[str, Any]:
 	pages = _nav_results(text, limit=8)
 	lists = _doctype_list_results(text, limit=8)
 	exact = _exact_name_hits(text, limit=5)
-	documents = _global_results(text, limit=limit)
+	# Over-fetch: hits from other companies are dropped after the limit.
+	documents = _global_results(text, limit=limit * 3)
 
 	doc_keys = {(d["doctype"], d["name"]) for d in exact}
 	documents = exact + [d for d in documents if (d["doctype"], d["name"]) not in doc_keys]
+	documents = _in_active_company(documents)[:limit]
 
 	groups: list[dict[str, Any]] = []
 	if pages:

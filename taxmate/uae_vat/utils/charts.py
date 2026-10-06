@@ -102,9 +102,11 @@ def resolve_chart_company(filters) -> str | None:
 	"""Company from chart filters, only if the user can read that Company."""
 	import frappe
 
+	from taxmate.utils.company import get_default_company
+
 	parsed = frappe.parse_json(filters) if filters else {}
 	company = parsed.get("company") if isinstance(parsed, dict) else None
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	if not company or not frappe.db.exists("Company", company):
 		return None
 	if not frappe.has_permission("Company", "read", doc=company):

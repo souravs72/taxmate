@@ -14,13 +14,14 @@ from taxmate.api.resource import (
 	assert_company_read,
 	require_login,
 )
+from taxmate.utils.company import get_default_company
 
 
 @frappe.whitelist()
 def get_defaults(company: str | None = None) -> dict[str, Any]:
 	"""Company, currency, and fiscal year for new vouchers."""
 	require_login()
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	if not company:
 		return {"company": None}
 
@@ -76,7 +77,7 @@ def get_party_details(
 		frappe.throw(_("party is required"))
 	require_login()
 	assert_allowed_doctype(party_type)
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	assert_company_read(company)
 	if not frappe.has_permission(party_type, "read", party):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
@@ -166,7 +167,7 @@ def get_account_tree(company: str | None = None, parent: str | None = None, incl
 	assert_allowed_doctype("Account")
 	if not frappe.has_permission("Account", "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	if not company:
 		frappe.throw(_("Company is required"))
 	assert_company_read(company)
@@ -451,7 +452,7 @@ def get_credit_balance(
 	assert_allowed_doctype("Customer")
 	if not frappe.has_permission("Customer", "read", customer):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	if not company:
 		frappe.throw(_("Company is required"))
 	assert_company_read(company)

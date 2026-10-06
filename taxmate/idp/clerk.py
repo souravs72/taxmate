@@ -8,6 +8,8 @@ from typing import Any
 import frappe
 from frappe import _
 
+from taxmate.utils.company import get_default_company
+
 EXTRACT_PROMPT = "Extract this supplier bill into a draft Purchase Invoice."
 
 IDP_ADMIN_SEARCH_DOCTYPES = frozenset(
@@ -134,7 +136,7 @@ def _card_from_message(message_id: str) -> dict[str, Any] | None:
 
 
 def _fill_tax_account_mappings(card: dict[str, Any], edited: dict[str, Any]) -> None:
-	company = (card.get("company") or "").strip() or frappe.defaults.get_user_default("Company")
+	company = (card.get("company") or "").strip() or get_default_company()
 	account = default_purchase_vat_account(company)
 	if not account:
 		return

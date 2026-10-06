@@ -29,6 +29,7 @@ from taxmate.idp.desk import (
 from taxmate.idp.desk import (
 	get_surface as _get_surface,
 )
+from taxmate.utils.company import get_default_company
 
 SURFACE_METHOD = "taxmate.api.idp_desk.get_surface"
 UPLOAD_METHOD = "taxmate.api.idp_desk.upload"
@@ -196,7 +197,7 @@ def _context(doctype: str, language: str):
 	return ToolContext(
 		conversation_id="dashboard",
 		user=frappe.session.user,
-		company=frappe.defaults.get_user_default("Company"),
+		company=get_default_company(),
 		target_doctype=doctype,
 		ocr_language=language or "en",
 	)
@@ -563,9 +564,15 @@ def _prefill_writes(review: dict) -> None:
 
 
 def _draft_defaults(items: list) -> dict:
-	company = frappe.defaults.get_user_default("Company") or frappe.db.get_single_value(
-		"Global Defaults", "default_company"
-	)
+	from taxmate.utils.company import can_use_company
+
+	company = get_default_company()
+	if company and not can_use_company(company):
+		company = None
+	if not company:
+		fallback = frappe.db.get_single_value("Global Defaults", "default_company")
+		if fallback and can_use_company(fallback):
+			company = fallback
 	uoms = {}
 	for row in items:
 		if not isinstance(row, dict):

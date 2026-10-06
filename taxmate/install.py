@@ -9,9 +9,17 @@ def after_install():
 	"""Ensure UAE regional fixtures exist before the first company is onboarded."""
 	from frappe.installer import add_module_defs
 
-	from taxmate.uae.setup import bootstrap_existing_uae_companies, ensure_uae_regional_setup
+	from taxmate.uae.setup import (
+		bootstrap_existing_uae_companies,
+		ensure_uae_regional_setup,
+		ensure_uae_system_country,
+	)
+	from taxmate.uae_vat.overrides.purchase_invoice import _bind_reverse_charge_region
 
 	add_module_defs("taxmate", ignore_if_duplicate=True)
+	# Blank System Settings country skips ERPNext's UAE reverse-charge credit.
+	ensure_uae_system_country()
+	_bind_reverse_charge_region()
 	ensure_uae_regional_setup()
 	_setup_vat_uae()
 	_setup_e_invoicing_uae()
