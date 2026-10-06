@@ -462,6 +462,43 @@ CUSTOM_FIELDS = {
 			"description": "Company establishment is in a UAE Designated Zone for VAT place-of-supply rules.",
 			"default": "0",
 		},
+		{
+			"fieldname": "taxmate_practice_section",
+			"label": "TaxMate Practice",
+			"fieldtype": "Section Break",
+			"insert_after": "uae_in_designated_zone",
+			"collapsible": 1,
+		},
+		{
+			"fieldname": "taxmate_vat_filing_frequency",
+			"label": "VAT Return Frequency",
+			"fieldtype": "Select",
+			"options": "\nMonthly\nQuarterly",
+			"insert_after": "taxmate_practice_section",
+			"description": (
+				"How often this company files VAT 201. Used to work out the next return period and its 28th-of-month due date when no UAE VAT 201 Filing Log exists yet. Leave empty to show the period only when a filing log is present."
+			),
+		},
+		{
+			"fieldname": "taxmate_vat_first_period_start",
+			"label": "VAT Period Start (Stagger)",
+			"fieldtype": "Date",
+			"insert_after": "taxmate_vat_filing_frequency",
+			"depends_on": "eval:doc.taxmate_vat_filing_frequency=='Quarterly'",
+			"description": (
+				"First day of any one known quarterly VAT period, so the FTA stagger can be derived. Monthly filers do not need it."
+			),
+		},
+		{
+			"fieldname": "taxmate_assigned_accountant",
+			"label": "Assigned Accountant",
+			"fieldtype": "Link",
+			"options": "User",
+			"insert_after": "taxmate_vat_first_period_start",
+			"description": (
+				"Who in the practice is responsible for this client. This is ownership, not access: who may SEE a company is decided by User Permission on Company."
+			),
+		},
 	],
 	"Customer": PARTY_LEGAL_FIELDS + PARTY_ZONE_FIELDS,
 	"Supplier": PARTY_LEGAL_FIELDS + PARTY_ZONE_FIELDS,
