@@ -570,6 +570,26 @@ td.pick{width:38px; padding-inline-end:0}
 .rpt-sheet .rpt-open:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
 .rpt-sheet td:first-child{white-space:normal; max-width:360px}
 
+/* ── Company switcher (topbar, left of search) ───────────────────────── */
+.coswitch{position:relative; flex:none; min-width:0}
+.coswitch .av,.coitem .av{width:24px; height:24px; border-radius:7px; background:var(--brand-soft); color:var(--brand); display:grid; place-items:center; font-size:9.5px; font-weight:700; flex:none; letter-spacing:.02em}
+.coswitch .nm{max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.coswitch.single{display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--text); padding:4px 6px}
+.cobtn{display:flex; align-items:center; gap:8px; padding:5px 10px 5px 6px; border-radius:10px; border:1px solid var(--border-2); background:var(--surface); color:var(--text); font:inherit; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap}
+.cobtn:hover,.cobtn[aria-expanded="true"]{background:var(--hover); border-color:var(--brand)}
+.cobtn .chev{color:var(--muted); flex:none}
+.codrop{inset-inline-end:auto; inset-inline-start:0; min-width:280px; max-width:min(360px, calc(100vw - 24px))}
+.colist{display:flex; flex-direction:column; gap:1px; max-height:min(60vh, 420px); overflow-y:auto}
+.coitem .coname{display:flex; flex-direction:column; min-width:0; flex:1}
+.coitem .coname span{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.coitem .coname small{font-size:11px; color:var(--muted)}
+.coitem.on{background:var(--brand-soft)}
+.coitem .cotick{color:var(--brand); flex:none}
+.coitem:disabled{cursor:progress; opacity:.75}
+.cofind{margin:2px 4px 6px; padding:7px 10px; border-radius:8px; border:1px solid var(--border-2); background:var(--surface); color:var(--text); font:inherit; font-size:13px}
+.coempty{padding:10px 12px; font-size:12.5px; color:var(--muted)}
+.coerr{padding:8px 12px; font-size:12px; color:var(--bad)}
+
 /* ── User menu (top-right avatar + dropdown) ─────────────────────────── */
 .umwrap{position:relative}
 .umavbtn{
@@ -829,3 +849,12 @@ td.pick{width:38px; padding-inline-end:0}
 .tools{display:flex; align-items:center; gap:6px}
 .scanbtn{min-height:44px; height:auto; padding:0 14px; border-radius:10px; gap:6px}
 .langbtn:hover,.iconbtn.bordered:hover{background:var(--hover)}
+
+/* Company switcher on phones: the abbreviation tile only; the menu names it. */
+@media (max-width:760px){
+  .coswitch .nm{max-width:110px}
+  .cobtn{padding:4px 8px 4px 4px; min-height:44px}
+}
+@media (max-width:420px){
+  .coswitch .nm{display:none}
+}

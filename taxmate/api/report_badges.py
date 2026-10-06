@@ -17,6 +17,7 @@ from frappe import _
 from frappe.utils import cint, flt, getdate, today
 
 from taxmate.api.resource import assert_company_read, require_login
+from taxmate.utils.company import get_default_company
 
 _VAT_LOG = "UAE VAT 201 Filing Log"
 _CT_LOG = "UAE CT Filing Log"
@@ -34,7 +35,7 @@ def _can(doctype: str) -> bool:
 def get_report_badges(company: str | None = None) -> dict[str, Any]:
 	"""One badge per report that has something worth saying today."""
 	require_login()
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	if not company:
 		return {"company": None, "badges": {}}
 	assert_company_read(company)

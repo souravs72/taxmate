@@ -11,6 +11,7 @@ from taxmate.uae_e_invoicing.constants import (
 	ITEM_TYPE_GOODS,
 	ITEM_TYPE_SERVICE,
 )
+from taxmate.utils.company import get_default_company
 
 
 def validate(doc, method=None):
@@ -59,7 +60,7 @@ def assign_company(doc) -> None:
 			company = row.company
 			break
 	if not company:
-		company = frappe.defaults.get_user_default("Company") or frappe.defaults.get_global_default("Company")
+		company = get_default_company() or frappe.defaults.get_global_default("Company")
 	if company and frappe.db.exists("Company", company):
 		doc.custom_company = company
 

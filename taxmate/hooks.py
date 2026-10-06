@@ -322,6 +322,10 @@ before_request = ["taxmate.setup.desk_gate.block_desk_for_non_admin"]
 
 extend_bootinfo = "taxmate.search.boot_session"
 
+# Header company switcher: logout clears ERPNext's session-default company;
+# put the user's chosen company back when they sign in again.
+on_session_creation = ["taxmate.utils.company.restore_active_company"]
+
 # Automatically update python controller files with type annotations for this app.
 # export_python_type_annotations = True
 

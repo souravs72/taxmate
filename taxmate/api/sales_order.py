@@ -14,6 +14,7 @@ from taxmate.api.resource import (
 	assert_company_read,
 	require_login,
 )
+from taxmate.utils.company import get_default_company
 
 # Open = promised and not fully billed (excludes Draft / Completed / Cancelled / Closed).
 _OPEN_STATUSES = (
@@ -49,7 +50,7 @@ def fulfilment_summary(company: str | None = None) -> dict[str, Any]:
 	if not frappe.has_permission("Sales Order", "read"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	assert_company_read(company)
 
 	filters: dict[str, Any] = {"docstatus": 1, "status": ["in", _OPEN_STATUSES]}

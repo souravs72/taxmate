@@ -11,6 +11,7 @@ from taxmate.search import ALLOWED_SEARCH_DOCTYPES, DENIED_SEARCH_DOCTYPES, GLOB
 from taxmate.setup.financial_reports import CORE_REPORT_LINKS, TAXMATE_REPORT_LINKS
 from taxmate.setup.home import DAILY_SHORTCUTS, HOME_LINKS, UAE_SHORTCUTS
 from taxmate.setup.spa_roles import addon_roles_of, spa_role_of, spa_roles_of
+from taxmate.utils.company import get_default_company
 
 # Masters a books frontend needs that are not always in global search.
 _CORE_MASTERS: tuple[str, ...] = (
@@ -186,6 +187,8 @@ def get_catalog() -> dict[str, Any]:
 			"cards": [row["label"] for row in HOME_LINKS if row.get("type") == "Card Break"],
 		},
 		"actions": [
+			{"name": "list_my_companies", "method": "taxmate.api.company.list_my_companies"},
+			{"name": "switch_company", "method": "taxmate.api.company.switch_company"},
 			{"name": "get_list", "method": "taxmate.api.resource.get_list"},
 			{"name": "get", "method": "taxmate.api.resource.get"},
 			{"name": "insert", "method": "taxmate.api.resource.insert"},
@@ -310,7 +313,7 @@ def get_catalog() -> dict[str, Any]:
 def get_session() -> dict[str, Any]:
 	require_login()
 
-	company = frappe.defaults.get_user_default("Company")
+	company = get_default_company()
 	currency = None
 	country = None
 	if company and frappe.has_permission("Company", "read", company):

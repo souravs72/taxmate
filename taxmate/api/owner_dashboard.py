@@ -33,6 +33,7 @@ from frappe import _
 from frappe.utils import add_months, cint, flt, getdate, today
 
 from taxmate.api.resource import assert_company_read, require_login
+from taxmate.utils.company import get_default_company
 
 PERIODS = ("month", "quarter", "year")
 AGE_BUCKETS = ("current", "1_30", "31_60", "61_90", "90_plus")
@@ -127,7 +128,7 @@ def get_owner_dashboard(
 	company: str | None = None,
 ) -> dict[str, Any]:
 	require_login()
-	company = company or frappe.defaults.get_user_default("Company")
+	company = company or get_default_company()
 	if not company:
 		frappe.throw(_("Set a default Company to see the dashboard."))
 	assert_company_read(company)

@@ -9,6 +9,7 @@ from frappe import _
 
 from taxmate.uae_e_invoicing.constants import EMIRATE_SUBDIVISION_CODES
 from taxmate.uae_e_invoicing.utils.e_invoice import get_api
+from taxmate.utils.company import get_default_company
 
 
 def _require_flick():
@@ -109,7 +110,7 @@ def update_participant_profile(company: str | None = None) -> dict[str, Any]:
 	"""PUT company identity to the ASP participant profile."""
 	frappe.only_for(("System Manager", "Accounts Manager"))
 	if not company:
-		company = frappe.defaults.get_user_default("Company")
+		company = get_default_company()
 	if not company:
 		frappe.throw(_("Select a Company before updating the participant profile."))
 
