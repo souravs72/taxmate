@@ -64,6 +64,8 @@ type TableProps<Row> = {
   rowKey: (row: Row) => string;
   /** Present makes rows clickable and keyboard-reachable. */
   onOpen?: (row: Row) => void;
+  /** When set, a row that returns false stays visible but is not a control. */
+  canOpen?: (row: Row) => boolean;
   state?: AsyncState;
   emptyLabel: string;
   selection?: Selection<Row>;
@@ -71,7 +73,7 @@ type TableProps<Row> = {
 };
 
 export function DataTable<Row>(props: TableProps<Row>) {
-  const { rows, columns, rowKey, onOpen, state, emptyLabel, selection, rowClassName } = props;
+  const { rows, columns, rowKey, onOpen, canOpen, state, emptyLabel, selection, rowClassName } = props;
   const phone = useIsPhone();
 
   if (state?.error) return <ErrorBox error={state.error} onRetry={state.onRetry} />;
@@ -108,7 +110,7 @@ export function DataTable<Row>(props: TableProps<Row>) {
         <tbody>
           {rows.map((row) => {
             const id = rowKey(row);
-            const open = onOpen ? () => onOpen(row) : undefined;
+            const open = rowOpens(onOpen, canOpen, row);
             const picked = selection?.picked.has(id);
             const cls = [rowClassName?.(row), picked ? "picked" : ""].filter(Boolean).join(" ");
             return (
@@ -271,8 +273,17 @@ function inferRoles<Row>(columns: Column<Row>[], sample: Row | undefined): Map<s
   return roles;
 }
 
+function rowOpens<Row>(
+  onOpen: ((row: Row) => void) | undefined,
+  canOpen: ((row: Row) => boolean) | undefined,
+  row: Row,
+): (() => void) | undefined {
+  if (!onOpen || (canOpen && !canOpen(row))) return undefined;
+  return () => onOpen(row);
+}
+
 function CardList<Row>({
-  rows, columns, rowKey, onOpen, selection, rowClassName,
+  rows, columns, rowKey, onOpen, canOpen, selection, rowClassName,
 }: TableProps<Row>) {
   const sample = rows[0];
   const roles = useMemo(() => inferRoles(columns, sample), [columns, sample]);
@@ -302,7 +313,7 @@ function CardList<Row>({
 
       {rows.map((row) => {
         const id = rowKey(row);
-        const open = onOpen ? () => onOpen(row) : undefined;
+        const open = rowOpens(onOpen, canOpen, row);
         const picked = selection?.picked.has(id);
         const cls = ["lm-card", picked ? "lm-picked" : "", rowClassName?.(row) ?? ""]
           .filter(Boolean).join(" ");

@@ -13,13 +13,13 @@ import { useSession } from "../../lib/session";
 import { spaRoleOf } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 
-export type DashMode = "owner" | "accountant";
+export type DashMode = "owner" | "accountant" | "clients";
 
 export function useDashMode(): DashMode {
   const [params] = useSearchParams();
   const session = useSession();
   const asked = params.get("as");
-  if (asked === "owner" || asked === "accountant") return asked;
+  if (asked === "owner" || asked === "accountant" || asked === "clients") return asked;
   const role = spaRoleOf(session);
   return role === "accountant" || role === "clerk" ? "accountant" : "owner";
 }
@@ -34,6 +34,9 @@ export function DashSwitch() {
   };
   return (
     <div className="seg" role="group" aria-label={t("ad.switch")}>
+      {/* Two, not three: the All-clients view is reachable at ?as=clients but
+          deliberately not offered here until it has been reviewed. Ship 4
+          adds the third button and the company-switcher entry. */}
       {(["owner", "accountant"] as DashMode[]).map((m) => (
         <button key={m} type="button" aria-pressed={mode === m} onClick={() => pick(m)}>
           {t(`ad.switch.${m}`)}

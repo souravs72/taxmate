@@ -129,6 +129,7 @@ export const METHOD = {
   getHome: "taxmate.api.dashboard.get_home",
   ownerDashboard: "taxmate.api.owner_dashboard.get_owner_dashboard",
   accountantDashboard: "taxmate.api.accountant_dashboard.get_accountant_dashboard",
+  clientsDashboard: "taxmate.api.clients_dashboard.get_clients_dashboard",
   idpSurface: "taxmate.api.idp_desk.get_surface",
   idpUpload: "taxmate.api.idp_desk.upload",
   idpRun: "taxmate.api.idp_desk.run",

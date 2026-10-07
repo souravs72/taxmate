@@ -30,12 +30,17 @@ from datetime import date
 from typing import Any
 
 import frappe
-from frappe.utils import getdate, today
+from frappe import _
+from frappe.utils import cint, getdate, today
 
-from taxmate.api.accountant_dashboard import _Ctx, month_options
+from taxmate.api.accountant_dashboard import LATE_DAYS, _Ctx, month_options
 from taxmate.api.resource import require_login
 from taxmate.utils.client_status import (
+	BANK_LINES_PILING,
+	CLOSE_LATE_DAYS,
+	FIXES_PILING,
 	TILES,
+	VAT_DUE_SOON_DAYS,
 	client_status,
 	current_vat_period,
 	overdue_total,
@@ -44,6 +49,21 @@ from taxmate.utils.client_status import (
 from taxmate.utils.company import user_companies
 
 _CT_LOG = "UAE CT Filing Log"
+
+
+def _company_limit(limit: int | str | None) -> int | None:
+	"""A positive cap, or None when the caller did not ask for one.
+
+	Whitelist arguments arrive as strings. ``cint`` turns a non-number into 0,
+	which is rejected here so a bad ``limit`` fails the request instead of
+	slicing the company list with ``int()``.
+	"""
+	if limit in (None, ""):
+		return None
+	n = cint(limit)
+	if n < 1:
+		frappe.throw(_("Limit must be at least 1"))
+	return n
 
 
 @frappe.whitelist()
@@ -64,13 +84,25 @@ def get_clients_dashboard(month: str | None = None, limit: int | None = None) ->
 
 	names = user_companies()
 	truncated = False
-	if limit and len(names) > int(limit):
-		names = names[: int(limit)]
+	cap = _company_limit(limit)
+	if cap is not None and len(names) > cap:
+		names = names[:cap]
 		truncated = True
 
 	rows = []
 	for company in names:
 		rows.append(_row(company, on, month))
+
+	# Which tiles this client falls under, decided HERE with the same
+	# predicates that count the tiles. The SPA filters on this list rather
+	# than re-implementing the rules, so a tile and its filter cannot drift.
+	for row in rows:
+		row["tiles"] = [] if row.get("error") else [k for k, fn in TILES.items() if fn(row)]
+
+	# Most urgent first, so "sort by most urgent" in the SPA is just the order
+	# it was given. Overdue before due soon before on track, then the nearest
+	# VAT deadline, then by name for a stable order.
+	rows.sort(key=_urgency)
 
 	elapsed_ms = int((time.monotonic() - started) * 1000)
 	return {
@@ -81,6 +113,17 @@ def get_clients_dashboard(month: str | None = None, limit: int | None = None) ->
 		"totals": tile_totals(rows),
 		"companies": len(rows),
 		"truncated": truncated,
+		# Published so the SPA never writes one of these numbers itself. The
+		# legend, the tile captions and the "nothing due in N days" line all
+		# read them from here, so changing a rule is still one edit in
+		# utils/client_status.py.
+		"thresholds": {
+			"vat_due_soon_days": VAT_DUE_SOON_DAYS,
+			"close_late_days": CLOSE_LATE_DAYS,
+			"bank_lines_piling": BANK_LINES_PILING,
+			"fixes_piling": FIXES_PILING,
+			"receivable_late_days": LATE_DAYS,
+		},
 		# Built in on purpose: this is the measurement that decides whether a
 		# cached Client Status Snapshot is needed at all (design doc v1.3,
 		# "Measure before building the snapshot"). Read it from a real site
@@ -311,14 +354,24 @@ def _fixes(ctx: _Ctx) -> dict[str, Any] | None:
 
 
 def _receivable(ctx: _Ctx) -> dict[str, Any] | None:
+	"""Outstanding, overdue, and the 60+ figure with its invoice count.
+
+	The money comes from the ageing buckets so one source governs it. The
+	COUNT comes from ``_Ctx.late_invoices()``, which queries on the same basis
+	(``is_opening`` excluded, due date past the same cutoff) — that is why the
+	two agree. ``None`` where sales invoices cannot be read, never 0.
+	"""
 	data = ctx.party_ageing("Sales Invoice")
 	if not data:
 		return None
 	buckets = ((data.get("total") or {}).get("buckets")) or None
+	late = ctx.late_invoices()
 	return {
 		"outstanding": (data.get("total") or {}).get("total"),
 		"overdue": overdue_total(buckets),
 		"sixty_plus": sixty_plus_total(buckets),
+		"sixty_plus_invoices": late.get("count") if late else None,
+		"sixty_plus_oldest_days": late.get("oldest_days") if late else None,
 		"parties": data.get("parties"),
 	}
 
@@ -392,6 +445,28 @@ def _corporate_tax(company: str) -> dict[str, Any] | None:
 	}
 
 
+# ── Ordering ───────────────────────────────────────────────────────────────
+
+_STATUS_ORDER = {"bad": 0, "warn": 1, "ok": 2}
+
+
+def _urgency(row: dict) -> tuple:
+	"""Sort key: worst status first, then the nearest VAT deadline, then name.
+
+	A failed row sorts last rather than first — it is a problem for us, not an
+	urgent client. A client with no VAT date sorts after those that have one,
+	which is what the large sentinel is for.
+	"""
+	if row.get("error"):
+		return (9, 0, row.get("label") or "")
+	days = (row.get("vat") or {}).get("days")
+	return (
+		_STATUS_ORDER.get(row.get("status"), 8),
+		days if days is not None else 10**6,
+		row.get("label") or "",
+	)
+
+
 # ── Tile totals ────────────────────────────────────────────────────────────
 
 
@@ -424,6 +499,9 @@ def tile_totals(rows: list[dict]) -> dict[str, Any]:
 			"clients": count("receivables"),
 			"overdue": total(("receivable", "overdue")),
 			"sixty_plus": total(("receivable", "sixty_plus")),
+			"sixty_plus_invoices": sum(
+				(r.get("receivable") or {}).get("sixty_plus_invoices") or 0 for r in live
+			),
 		},
 		"close": {
 			"clients": count("close"),

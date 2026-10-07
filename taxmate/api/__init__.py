@@ -300,6 +300,10 @@ def get_catalog() -> dict[str, Any]:
 				"name": "accountant_dashboard",
 				"method": "taxmate.api.accountant_dashboard.get_accountant_dashboard",
 			},
+			{
+				"name": "clients_dashboard",
+				"method": "taxmate.api.clients_dashboard.get_clients_dashboard",
+			},
 			{"name": "idp_surface", "method": "taxmate.api.idp_desk.get_surface"},
 			{"name": "idp_upload", "method": "taxmate.api.idp_desk.upload"},
 			{"name": "idp_run", "method": "taxmate.api.idp_desk.run"},
