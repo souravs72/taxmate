@@ -404,39 +404,7 @@ class _Ctx:
 			else {"count": sum(c["count"] for c in fixes), "checks": sum(1 for c in fixes if c["count"])}
 		)
 
-		late = None
-		if self._can("Sales Invoice"):
-			cutoff = self.on - timedelta(days=LATE_DAYS)
-			r = frappe.get_list(
-				"Sales Invoice",
-				filters=[
-					["company", "=", self.company],
-					["docstatus", "=", 1],
-					["outstanding_amount", ">", 0],
-					["due_date", "is", "set"],
-					["due_date", "<", cutoff],
-					# Same basis as the ageing tables below, so the tile and the 61-90 / 90+ columns agree.
-					["is_opening", "!=", "Yes"],
-				],
-				fields=[
-					"party_account_currency",
-					"conversion_rate",
-					{"COUNT": "*", "as": "n"},
-					{"SUM": "outstanding_amount", "as": "v"},
-					{"MIN": "due_date", "as": "oldest"},
-				],
-				# Grouped by currency and rate: outstanding_amount is in the party
-				# account's currency, so each group is converted before summing.
-				group_by="party_account_currency, conversion_rate",
-				order_by="party_account_currency",
-				limit_page_length=0,
-			)
-			oldest = min((getdate(x.oldest) for x in r if x.oldest), default=None)
-			late = {
-				"count": sum(cint(x.n) for x in r),
-				"amount": round(sum(self._in_company_currency(x) for x in r), 2),
-				"oldest_days": (self.on - oldest).days if oldest else None,
-			}
+		late = self.late_invoices()
 
 		return {
 			"drafts": drafts,
@@ -446,6 +414,55 @@ class _Ctx:
 			"data": data,
 			"late": late,
 		}
+
+	# ── invoices long past due (today) ──
+
+	def late_invoices(self) -> dict | None:
+		"""Count and value of submitted sales invoices due more than
+		``LATE_DAYS`` ago and still outstanding.
+
+		Lifted out of ``queues()`` unchanged so the All-clients dashboard can
+		ask for this one figure without paying for the whole queue payload.
+		``queues()`` now calls it, so there is still one definition and the two
+		dashboards cannot disagree.
+
+		The ``is_opening`` exclusion is why this agrees with the 61-90 and 90+
+		ageing columns; see the comment in the filters below.
+		"""
+		if not self._can("Sales Invoice"):
+			return None
+		cutoff = self.on - timedelta(days=LATE_DAYS)
+		r = frappe.get_list(
+			"Sales Invoice",
+			filters=[
+				["company", "=", self.company],
+				["docstatus", "=", 1],
+				["outstanding_amount", ">", 0],
+				["due_date", "is", "set"],
+				["due_date", "<", cutoff],
+				# Same basis as the ageing tables below, so the tile and the 61-90 / 90+ columns agree.
+				["is_opening", "!=", "Yes"],
+			],
+			fields=[
+				"party_account_currency",
+				"conversion_rate",
+				{"COUNT": "*", "as": "n"},
+				{"SUM": "outstanding_amount", "as": "v"},
+				{"MIN": "due_date", "as": "oldest"},
+			],
+			# Grouped by currency and rate: outstanding_amount is in the party
+			# account's currency, so each group is converted before summing.
+			group_by="party_account_currency, conversion_rate",
+			order_by="party_account_currency",
+			limit_page_length=0,
+		)
+		oldest = min((getdate(x.oldest) for x in r if x.oldest), default=None)
+		late = {
+			"count": sum(cint(x.n) for x in r),
+			"amount": round(sum(self._in_company_currency(x) for x in r), 2),
+			"oldest_days": (self.on - oldest).days if oldest else None,
+		}
+		return late
 
 	# ── month-end close ──
 

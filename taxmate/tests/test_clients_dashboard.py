@@ -77,6 +77,9 @@ class TestClientsDashboard(FrappeTestCase):
 		self.assertTrue(capped["truncated"])
 		self.assertFalse(self.payload["truncated"])
 
+	def test_a_bad_limit_is_rejected(self):
+		self.assertRaises(frappe.ValidationError, lambda: get_clients_dashboard(limit="nope"))
+
 	# ── The invariant that makes the tiles trustworthy ──
 
 	def test_every_tile_total_equals_its_own_filter(self):
@@ -137,6 +140,87 @@ class TestClientsDashboard(FrappeTestCase):
 			check = get_uae_readiness_checklist(row["company"])
 			self.assertEqual(e["total"], len(check["items"]))
 			self.assertLessEqual(e["done"], e["total"])
+
+	# ── Ship 2a: the 60+ invoice count and the published thresholds ──
+
+	def test_sixty_plus_invoice_count_is_present_and_sane(self):
+		for row in self.payload["rows"]:
+			recv = row.get("receivable")
+			if not recv:
+				continue
+			self.assertIn("sixty_plus_invoices", recv)
+			n = recv["sixty_plus_invoices"]
+			if n is None:
+				continue
+			self.assertGreaterEqual(n, 0)
+			# A count without money, or money without a count, means the two
+			# queries disagree about what "60+ days late" is.
+			if n > 0:
+				self.assertTrue(
+					recv.get("sixty_plus"),
+					f"{row['company']}: {n} invoices 60+ days late but no amount",
+				)
+
+	def test_receivables_tile_count_is_the_sum_of_the_rows(self):
+		live = [r for r in self.payload["rows"] if not r.get("error")]
+		expected = sum((r.get("receivable") or {}).get("sixty_plus_invoices") or 0 for r in live)
+		self.assertEqual(self.payload["totals"]["receivables"]["sixty_plus_invoices"], expected)
+
+	def test_thresholds_come_from_client_status(self):
+		"""The SPA reads these; nothing may hardcode them on either side."""
+		from taxmate.api.accountant_dashboard import LATE_DAYS
+		from taxmate.utils import client_status as cs
+
+		self.assertEqual(
+			self.payload["thresholds"],
+			{
+				"vat_due_soon_days": cs.VAT_DUE_SOON_DAYS,
+				"close_late_days": cs.CLOSE_LATE_DAYS,
+				"bank_lines_piling": cs.BANK_LINES_PILING,
+				"fixes_piling": cs.FIXES_PILING,
+				"receivable_late_days": LATE_DAYS,
+			},
+		)
+
+	def test_late_invoices_matches_the_queue_it_came_from(self):
+		"""queues()['late'] and late_invoices() must stay the same figure."""
+		from frappe.utils import getdate, today
+
+		from taxmate.api.accountant_dashboard import _Ctx, month_options
+
+		on = getdate(today())
+		for row in self.payload["rows"][:3]:
+			if row.get("error"):
+				continue
+			ctx = _Ctx(row["company"], on, month_options(on)[-1])
+			self.assertEqual(ctx.queues()["late"], ctx.late_invoices())
+
+	def test_every_row_is_tagged_with_its_tiles(self):
+		"""The SPA filters on row["tiles"]; it must agree with the predicates."""
+		for row in self.payload["rows"]:
+			self.assertIsInstance(row.get("tiles"), list)
+			if row.get("error"):
+				self.assertEqual(row["tiles"], [])
+				continue
+			expected = sorted(k for k, fn in TILES.items() if fn(row))
+			self.assertEqual(sorted(row["tiles"]), expected, row["company"])
+
+	def test_tile_totals_equal_the_rows_tagged_with_that_tile(self):
+		"""Counting two ways must give one answer."""
+		live = [r for r in self.payload["rows"] if not r.get("error")]
+		for key in TILES:
+			tagged = sum(1 for r in live if key in (r.get("tiles") or []))
+			self.assertEqual(self.payload["totals"][key]["clients"], tagged, key)
+
+	def test_rows_arrive_most_urgent_first(self):
+		order = {"bad": 0, "warn": 1, "ok": 2}
+		seen = [order.get(r.get("status"), 8) for r in self.payload["rows"] if not r.get("error")]
+		self.assertEqual(seen, sorted(seen), "rows are not ordered worst status first")
+
+	def test_late_days_is_published(self):
+		from taxmate.api.accountant_dashboard import LATE_DAYS
+
+		self.assertEqual(self.payload["thresholds"]["receivable_late_days"], LATE_DAYS)
 
 	# ── Drift ──
 

@@ -100,6 +100,7 @@ class TestApiCatalog(FrappeTestCase):
 		# Phase 0: role-specific dashboard actions catalogued.
 		self.assertIn("taxmate.api.owner_dashboard.get_owner_dashboard", methods)
 		self.assertIn("taxmate.api.accountant_dashboard.get_accountant_dashboard", methods)
+		self.assertIn("taxmate.api.clients_dashboard.get_clients_dashboard", methods)
 		self.assertFalse(any("rest" in row for row in catalog["resources"]))
 		self.assertFalse(is_allowed_doctype("User"))
 		self.assertFalse(is_allowed_doctype("Data Import"))

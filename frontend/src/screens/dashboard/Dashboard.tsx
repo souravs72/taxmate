@@ -23,6 +23,7 @@ import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { SplitBar, Spark, TrendChart, whole } from "../../components/charts";
 import AccountantDashboard from "./AccountantDashboard";
+import ClientsDashboard from "./ClientsDashboard";
 import { DashSwitch, useDashMode } from "./DashSwitch";
 import "./dashboard.css";
 
@@ -126,9 +127,11 @@ function daysText(days: number | null): string {
 
 /* ── Screen ──────────────────────────────────────────────────────────── */
 
-/** Home screen: the owner or the accountant view (see DashSwitch). */
+/** Home screen: the owner, the accountant, or the all-clients view (see DashSwitch). */
 export default function Dashboard() {
-  return useDashMode() === "accountant" ? <AccountantDashboard /> : <OwnerDashboard />;
+  const mode = useDashMode();
+  if (mode === "clients") return <ClientsDashboard />;
+  return mode === "accountant" ? <AccountantDashboard /> : <OwnerDashboard />;
 }
 
 function OwnerDashboard() {

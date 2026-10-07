@@ -1,0 +1,195 @@
+/* ─────────────────────────────────────────────────────────────────────
+   All-clients dashboard (CA view).
+
+   Everything is scoped under `.cdash` and every class is prefixed `cd-`, so
+   nothing here can reach another screen. Every colour is a token from
+   styles/tokens.css, so light and dark both work with no second block, and
+   every offset is logical so Arabic mirrors itself.
+
+   styles/app.css is NOT touched. The table, the cards, the filter bar and
+   the pills all come from components that already exist; this file only
+   styles the tiles, the client cell and the legend.
+   ───────────────────────────────────────────────────────────────────── */
+
+.cdash {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* A grid places cards side by side; app.css's `.card + .card` stacking
+   margin would push the second one down. */
+.cdash .card + .card { margin-block-start: 0; }
+
+.cd-note {
+  margin: -8px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cd-note-bad { color: var(--bad); font-weight: 600; }
+
+/* ── Tiles ─────────────────────────────────────────────────────────── */
+/* minmax(0, …) on the track, not `1fr`: a bare 1fr is minmax(auto, 1fr),
+   and one long caption would then push the row wider than the page. */
+.cd-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(206px, 1fr));
+  gap: 14px;
+}
+
+.cd-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-width: 0;
+  padding: 15px 17px;
+  text-align: start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.cd-tile:hover { border-color: var(--brand-line); background: var(--hover); }
+.cd-tile:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+
+/* Pressed reads as pressed: brand border plus an inner ring, so it does not
+   rely on the fill alone (in light mode --hover and --brand-soft match). */
+.cd-tile[aria-pressed="true"] {
+  border-color: var(--brand);
+  background: var(--brand-soft);
+  box-shadow: inset 0 0 0 1px var(--brand);
+}
+
+.cd-tile-lbl {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+
+.cd-tile-big {
+  font-size: 27px;
+  font-weight: 700;
+  letter-spacing: -.025em;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+}
+
+.cd-tile-sub { font-size: 12px; color: var(--muted); }
+
+/* ── The filtered banner ───────────────────────────────────────────── */
+.cd-filtered {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+/* ── Cells ─────────────────────────────────────────────────────────── */
+.cd-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+/* A numeric column's cell stacks to the end, matching app.css's `.n`. */
+.cd-end { align-items: flex-end; }
+[dir="rtl"] .cd-end { align-items: flex-start; }
+
+.cd-client {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.cd-client b { font-size: 13.5px; font-weight: 600; overflow-wrap: anywhere; }
+.cd-trn { font-size: 11.5px; color: var(--muted); }
+.cd-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+.cd-chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 6px;
+  background: var(--sunk);
+  color: var(--muted);
+}
+
+.cd-strong { font-size: 13px; font-weight: 600; }
+.cd-sub { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.cd-why { font-size: 11.5px; color: var(--muted); overflow-wrap: anywhere; }
+.cd-dash { color: var(--faint); }
+
+.cd-count { font-size: 14.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cd-count.zero { color: var(--faint); font-weight: 500; }
+
+.cd-staff { font-size: 12.5px; }
+
+/* Month-close progress. `.od-progress` in dashboard.css is sized for a card;
+   this one has to sit inside a table cell. */
+.cd-bar {
+  display: block;
+  width: 100%;
+  max-width: 108px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--track);
+  overflow: hidden;
+}
+
+.cd-bar i { display: block; height: 100%; border-radius: 3px; }
+.cd-bar i.ok { background: var(--ok); }
+.cd-bar i.warn { background: var(--warn); }
+
+/* ── Rows in an unusual state ──────────────────────────────────────── */
+/* A row whose figures could not be built is dimmed and not clickable-looking;
+   the screen still lists it, because silently dropping a client is worse. */
+.cdash .cd-row-failed { opacity: .65; cursor: default; }
+.cdash .cd-row-busy { opacity: .5; }
+
+/* ── Legend ────────────────────────────────────────────────────────── */
+.cd-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.cd-legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+/* ── Phone ─────────────────────────────────────────────────────────── */
+/* 760px, the same step DataTable swaps its table for cards at
+   (lib/useMedia.ts PHONE_QUERY), so the tiles and the list change together. */
+@media (max-width: 760px) {
+  .cd-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .cd-tile { padding: 12px 13px; gap: 5px; min-height: 44px; }
+  .cd-tile-lbl { font-size: 11.5px; }
+  .cd-tile-big { font-size: 22px; }
+
+  /* The receivables tile carries a currency figure and a long caption, so it
+     takes the full width rather than being squeezed into half of a 360px
+     screen. It is the fourth tile, hence nth-child(4). */
+  .cd-tile:nth-child(4) { grid-column: 1 / -1; }
+
+  /* The table became cards, so the card already has the padding. */
+  .cdash .cd-table { background: transparent; border: 0; }
+
+  .cd-legend { gap: 6px 14px; }
+  .cd-legend > span { align-items: flex-start; }
+}
