@@ -1284,9 +1284,6 @@ const en: Record<string, string> = {
   /* ── All-clients (CA) dashboard ── */
   "ad.switch.clients": "All clients",
   "cd.title": "Dashboard",
-  "cd.sub": "All clients · {n} companies",
-  "cd.live": "figures computed live",
-  "cd.hint": "Every client you have access to, most urgent first. Open one to work in it.",
   "cd.truncated": "Showing the first {n} clients.",
   "cd.someFailed": "{n} client(s) could not be loaded. The rest are shown below.",
   "cd.find": "Client name or TRN",
@@ -3840,9 +3837,6 @@ const ar: Record<string, string> = {
   /* ── All-clients (CA) dashboard ── */
   "ad.switch.clients": "كل العملاء",
   "cd.title": "لوحة المعلومات",
-  "cd.sub": "كل العملاء · {n} شركة",
-  "cd.live": "أرقام محسوبة الآن",
-  "cd.hint": "كل عميل لديك صلاحية عليه، الأكثر إلحاحًا أولًا. افتح عميلًا للعمل عليه.",
   "cd.truncated": "عرض أول {n} عميل.",
   "cd.someFailed": "تعذر تحميل {n} من العملاء. الباقي معروض أدناه.",
   "cd.find": "اسم العميل أو الرقم الضريبي",
