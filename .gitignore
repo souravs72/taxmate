@@ -76,3 +76,6 @@ tasks/
 .mobile-merge-backup-*/
 .mobile-backup-*/
 _imports/
+
+# Agent working prompts — not part of the app
+docs/*-prompt.md
