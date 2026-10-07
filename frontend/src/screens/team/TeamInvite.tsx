@@ -116,7 +116,6 @@ export default function TeamInvite() {
               </Field>
             </div>
             <Field label={t("team.col.role")} required>
-              <p style={{ margin: "0 0 8px", fontSize: 12, color: "var(--muted)" }}>{t("team.roles.hint")}</p>
               <div className="stack" style={{ gap: 8 }}>
                 {SPA_ROLES.map((r) => (
                   <label key={r} style={{ display: "flex", alignItems: "center", gap: 8 }}>

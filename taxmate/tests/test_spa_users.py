@@ -31,7 +31,24 @@ class TestSpaUsers(FrappeTestCase):
 	def setUp(self):
 		ensure_spa_roles()
 
+	def _use_company(self, company: str) -> None:
+		from taxmate.utils.company import ACTIVE_COMPANY_KEY
+
+		frappe.defaults.set_user_default(ACTIVE_COMPANY_KEY, company, frappe.session.user)
+		frappe.defaults.set_user_default("company", company, frappe.session.user)
+
+	def _company(self) -> str:
+		from taxmate.utils.company import get_default_company
+
+		company = get_default_company()
+		if not company:
+			company = frappe.db.get_value("Company", {}, "name")
+			self.assertTrue(company, "site has no company")
+			self._use_company(company)
+		return company
+
 	def _invite(self, spa_role: str = "clerk") -> dict:
+		self._company()
 		email = f"tm-{spa_role}-{uuid.uuid4().hex[:8]}@example.com"
 		return invite_user(
 			email=email,
@@ -43,6 +60,7 @@ class TestSpaUsers(FrappeTestCase):
 
 	def _delete(self, name: str) -> None:
 		if name and frappe.db.exists("User", name):
+			frappe.db.delete("User Permission", {"user": name})
 			frappe.delete_doc("User", name, force=True, ignore_permissions=True)
 
 	def test_session_returns_spa_role(self):
@@ -291,6 +309,138 @@ class TestSpaUsers(FrappeTestCase):
 			with self.assertRaises(frappe.AuthenticationError):
 				change_password(old_password="wrong", new_password="TaxMate-New-Pass1!")
 			change_password(old_password="TaxMate-Old-Pass1!", new_password="TaxMate-New-Pass1!")
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])
+
+	def test_owner_is_limited_to_the_active_company(self):
+		company = self._company()
+		created = self._invite("owner")
+		try:
+			rows = frappe.get_all(
+				"User Permission",
+				filters={"user": created["name"], "allow": "Company"},
+				pluck="for_value",
+			)
+			self.assertEqual(rows, [company])
+			frappe.set_user(created["name"])
+			from taxmate.api.accountant_dashboard import get_accountant_dashboard
+			from taxmate.api.clients_dashboard import get_clients_dashboard
+			from taxmate.utils.company import user_companies
+
+			self.assertEqual(user_companies(), [company])
+			self.assertRaises(frappe.PermissionError, get_clients_dashboard)
+			self.assertRaises(frappe.PermissionError, get_accountant_dashboard)
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])
+
+	def test_accountant_maps_to_each_company_and_not_the_owner_view(self):
+		names = frappe.get_all("Company", pluck="name", limit=2, order_by="name asc")
+		if len(names) < 2:
+			self.skipTest("needs two companies")
+		first, second = names[0], names[1]
+		self._use_company(first)
+		created = self._invite("accountant")
+		try:
+			self._use_company(second)
+			again = invite_user(
+				email=created["name"],
+				first_name="TaxMate",
+				spa_role="accountant",
+				send_welcome_email=0,
+			)
+			self.assertEqual(again["name"], created["name"])
+			rows = set(
+				frappe.get_all(
+					"User Permission",
+					filters={"user": created["name"], "allow": "Company"},
+					pluck="for_value",
+				)
+			)
+			self.assertEqual(rows, {first, second})
+			with self.assertRaises(frappe.ValidationError):
+				set_user_role(user=created["name"], spa_role="owner")
+			frappe.set_user(created["name"])
+			from taxmate.api.owner_dashboard import get_owner_dashboard
+
+			self.assertRaises(frappe.PermissionError, get_owner_dashboard)
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])
+
+	def test_owner_team_list_stays_inside_the_company(self):
+		names = frappe.get_all("Company", pluck="name", limit=2, order_by="name asc")
+		if len(names) < 2:
+			self.skipTest("needs two companies")
+		first, second = names[0], names[1]
+		self._use_company(first)
+		owner = self._invite("owner")
+		home = self._invite("clerk")
+		self._use_company(second)
+		other = self._invite("clerk")
+		try:
+			frappe.set_user(owner["name"])
+			listed = {row["name"] for row in list_users()}
+			self.assertIn(home["name"], listed)
+			self.assertNotIn(other["name"], listed)
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(owner["name"])
+			self._delete(home["name"])
+			self._delete(other["name"])
+
+	def test_lists_follow_the_company_the_user_is_in(self):
+		names = frappe.get_all("Company", pluck="name", limit=2, order_by="name asc")
+		if len(names) < 2:
+			self.skipTest("needs two companies")
+		first, second = names[0], names[1]
+		self._use_company(first)
+		created = self._invite("accountant")
+		self._use_company(second)
+		invite_user(
+			email=created["name"],
+			first_name="TaxMate",
+			spa_role="accountant",
+			send_welcome_email=0,
+		)
+		try:
+			frappe.set_user(created["name"])
+			from taxmate.uae.permissions import get_permission_query_conditions, has_permission
+			from taxmate.utils.company import set_active_company
+
+			set_active_company(second)
+			invoice = get_permission_query_conditions(doctype="Sales Invoice")
+			self.assertIn(second, invoice)
+			self.assertNotIn(first, invoice)
+			self.assertNotIn("IS NULL", invoice)
+			item = get_permission_query_conditions(doctype="Item")
+			self.assertIn("custom_company", item)
+			self.assertIn(second, item)
+			self.assertIn("IS NULL", item)
+			self.assertNotIn(first, item)
+			group = get_permission_query_conditions(doctype="UAE VAT Group")
+			self.assertIn("representative_company", group)
+			self.assertIn(second, group)
+			rows = frappe.client.get_list(
+				"Sales Invoice",
+				fields=["name", "company"],
+				limit_page_length=20,
+			)
+			self.assertTrue(all(row.company == second for row in rows))
+			items = frappe.client.get_list(
+				"Item",
+				fields=["name", "custom_company"],
+				limit_page_length=50,
+			)
+			self.assertTrue(all(not row.custom_company or row.custom_company == second for row in items))
+			self.assertFalse(
+				has_permission(frappe._dict(doctype="Sales Invoice", company=first), "read")
+			)
+			self.assertTrue(
+				has_permission(frappe._dict(doctype="Sales Invoice", company=second), "read")
+			)
+			self.assertTrue(has_permission(frappe._dict(doctype="Customer", custom_company=None), "read"))
 		finally:
 			frappe.set_user("Administrator")
 			self._delete(created["name"])

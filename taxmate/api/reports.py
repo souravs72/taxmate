@@ -9,6 +9,7 @@ from frappe import _
 
 from taxmate.api import catalog_reports
 from taxmate.api.resource import _parse, assert_company_read, require_login
+from taxmate.utils.company import get_default_company
 
 
 def assert_allowed_report(report_name: str) -> None:
@@ -31,6 +32,11 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 	require_login()
 	assert_allowed_report(report_name)
 	filters = _as_filter_dict(filters)
+	# Sidebar reports follow the company in the header. A caller-supplied
+	# company is replaced so one request cannot read another mapped company.
+	active = get_default_company()
+	if active:
+		filters["company"] = active
 	assert_company_read(filters.get("company"))
 	from frappe.desk.query_report import run
 

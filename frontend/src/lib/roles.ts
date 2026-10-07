@@ -73,6 +73,26 @@ export function spaRoleOf(session: {
   return spaRolesOf(session)[0] ?? "viewer";
 }
 
+export type HomeView = "owner" | "accountant" | "clients";
+
+/** Home screens this person may open. Null until the session has loaded. */
+export function allowedDashModes(session: {
+  user?: string;
+  spa_role?: string;
+  spa_roles?: string[];
+  roles?: string[];
+} | undefined): HomeView[] | null {
+  if (!session?.user) return null;
+  const roles = session.roles ?? [];
+  if (session.user === "Administrator" || roles.includes("System Manager")) {
+    return ["owner", "accountant", "clients"];
+  }
+  const role = spaRoleOf(session);
+  if (role === "owner") return ["owner"];
+  if (role === "accountant") return ["accountant", "clients"];
+  return ["accountant"];
+}
+
 export function canWrite(session: { spa_role?: string; spa_roles?: string[]; roles?: string[] } | undefined): boolean {
   return spaRoleOf(session) !== "viewer";
 }

@@ -157,6 +157,14 @@
 .cdash .cd-row-failed { opacity: .65; cursor: default; }
 .cdash .cd-row-busy { opacity: .5; }
 
+/* ── The "All clients" item in the header company switcher ─────────── */
+/* Not scoped under .cdash: the switcher lives in the top bar, which is
+   outside the screen. Prefixed `coall` and reachable only from the markup
+   this ship adds, so it cannot affect the company rows beside it. */
+.coall { border-block-end: 1px solid var(--border); border-radius: 0; }
+.coall .av { background: var(--brand-soft); color: var(--brand); font-variant-numeric: tabular-nums; }
+.coall.on .av { background: var(--brand); color: var(--brand-ink); }
+
 /* ── Legend ────────────────────────────────────────────────────────── */
 .cd-legend {
   display: flex;

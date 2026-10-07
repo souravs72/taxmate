@@ -130,6 +130,7 @@ function daysText(days: number | null): string {
 /** Home screen: the owner, the accountant, or the all-clients view (see DashSwitch). */
 export default function Dashboard() {
   const mode = useDashMode();
+  if (!mode) return <Loading />;
   if (mode === "clients") return <ClientsDashboard />;
   return mode === "accountant" ? <AccountantDashboard /> : <OwnerDashboard />;
 }

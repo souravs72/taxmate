@@ -27,6 +27,7 @@ from frappe.utils import add_months, cint, flt, get_last_day, getdate, today
 
 from taxmate.api.owner_dashboard import AGE_BUCKETS, _filing_row, age_bucket
 from taxmate.api.resource import assert_company_read, require_login
+from taxmate.setup.spa_roles import require_spa_role
 from taxmate.utils.company import get_default_company
 
 _VAT_LOG = "UAE VAT 201 Filing Log"
@@ -143,6 +144,7 @@ def activity_verb(docstatus: int, amended_from: str | None) -> str:
 @frappe.whitelist()
 def get_accountant_dashboard(month: str | None = None, company: str | None = None) -> dict[str, Any]:
 	require_login()
+	require_spa_role("accountant", "clerk", "viewer")
 	company = company or get_default_company()
 	if not company:
 		frappe.throw(_("Set a default Company to see the dashboard."))

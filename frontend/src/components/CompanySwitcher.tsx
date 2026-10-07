@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
 import { METHOD } from "../lib/frappe";
+import { allowedDashModes } from "../lib/roles";
 import { useSession } from "../lib/session";
 import { t } from "../i18n/strings";
 
@@ -42,6 +43,14 @@ function landingFor(pathname: string, search: string): string {
   return `/taxmate/${parts[0]}`;
 }
 
+/** The all-clients screen is a view. Leaving it opens that one company. */
+function searchAfterLeavingClients(search: string): string {
+  const params = new URLSearchParams(search);
+  if (params.get("as") === "clients") params.set("as", "accountant");
+  const q = params.toString();
+  return q ? `?${q}` : "";
+}
+
 /**
  * Header company switcher. Every screen, list, report, search and new
  * document follows the company chosen here (the server scopes lists to it).
@@ -68,8 +77,18 @@ export default function CompanySwitcher() {
   const companies = data?.message?.companies ?? [];
   const activeName = session.company ?? data?.message?.active ?? null;
   const active = companies.find((c) => c.name === activeName) ?? null;
-  const label = active?.company_name || activeName || "—";
   const multi = companies.length > 1;
+  /* All clients is a view in the URL, not a stored company. A fake company
+     name would fail can_use_company and be dropped. The header names the view
+     while it is open, so it does not keep showing one company's name. */
+  const clientsAllowed = (allowedDashModes(session) ?? []).includes("clients");
+  const allView = clientsAllowed && new URLSearchParams(location.search).get("as") === "clients";
+  const label = allView
+    ? t("company.allClientsN").replace("{n}", String(companies.length))
+    : active?.company_name || activeName || "—";
+  const mark = allView && companies.length > 0
+    ? String(companies.length)
+    : abbrOf(active, activeName);
 
   const shown = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -112,21 +131,35 @@ export default function CompanySwitcher() {
 
   async function choose(name: string) {
     if (busy) return;
-    if (name === activeName) {
+    if (name === activeName && !allView) {
       setOpen(false);
       return;
     }
     setBusy(name);
     setError(null);
     try {
-      await switcher.call({ company: name });
+      if (name !== activeName) await switcher.call({ company: name });
       // A full reload drops every cached list, dashboard and form default
-      // that belonged to the previous company.
-      window.location.assign(landingFor(location.pathname, location.search));
+      // that belonged to the previous company. The dashboard keeps its query
+      // string, so leaving the all-clients view has to replace `as=clients`
+      // or the reload lands on the same practice screen.
+      const search = allView ? searchAfterLeavingClients(location.search) : location.search;
+      window.location.assign(landingFor(location.pathname, search));
     } catch {
       setBusy(null);
       setError(t("company.switchFailed"));
     }
+  }
+
+  function goAllClients() {
+    if (busy) return;
+    setOpen(false);
+    if (allView) return;
+    /* A navigation, not a company switch: switch_company is never called, so
+       no document screen can end up with "all clients" as its company. A full
+       assign rather than a router push, to match choose() above — the clients
+       dashboard then loads with nothing cached from a single company. */
+    window.location.assign("/taxmate/?as=clients");
   }
 
   function onListKey(event: React.KeyboardEvent<HTMLDivElement>) {
@@ -150,7 +183,7 @@ export default function CompanySwitcher() {
   if (!multi) {
     return (
       <div className="coswitch single" title={label}>
-        <span className="av" aria-hidden="true">{abbrOf(active, activeName)}</span>
+        <span className="av" aria-hidden="true">{mark}</span>
         <span className="nm">{label}</span>
       </div>
     );
@@ -169,7 +202,7 @@ export default function CompanySwitcher() {
         title={label}
         onClick={() => setOpen((o) => !o)}
       >
-        <span className="av" aria-hidden="true">{abbrOf(active, activeName)}</span>
+        <span className="av" aria-hidden="true">{mark}</span>
         <span className="nm">{label}</span>
         <svg className="chev" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
           <path d="M3 4.5 6 7.5l3-3" />
@@ -207,8 +240,33 @@ export default function CompanySwitcher() {
             aria-label={t("company.switch")}
             onKeyDown={onListKey}
           >
+            {/* First, above the clients themselves — it is the way back out of
+                a single company, and the only affordance that returns you to
+                the practice view. Filtered out by the search box like any
+                other item would be, so it is rendered outside `shown`. */}
+            {!q.trim() && clientsAllowed && companies.length > 1 && (
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={allView}
+                className={`umdrop-item coitem coall${allView ? " on" : ""}`}
+                disabled={busy !== null}
+                onClick={goAllClients}
+              >
+                <span className="av" aria-hidden="true">{companies.length}</span>
+                <span className="coname">
+                  <span>{t("company.allClients")}</span>
+                  <small>{t("company.allClientsHint")}</small>
+                </span>
+                {allView && (
+                  <svg className="cotick" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                    <path d="m3 7.5 2.5 2.5L11 4.5" />
+                  </svg>
+                )}
+              </button>
+            )}
             {shown.map((c) => {
-              const on = c.name === activeName;
+              const on = !allView && c.name === activeName;
               return (
                 <button
                   key={c.name}

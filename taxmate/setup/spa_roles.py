@@ -263,6 +263,19 @@ def spa_role_of(user: str | None = None) -> str:
 	return roles[0] if roles else "viewer"
 
 
+def require_spa_role(*allowed: str) -> None:
+	"""Reject the call unless the user holds one of these SPA roles.
+
+	Administrator and System Manager pass. They are the product operators and
+	stay on Frappe's own bypass, not a second TaxMate rule.
+	"""
+	user = frappe.session.user
+	if user == "Administrator" or "System Manager" in frappe.get_roles(user):
+		return
+	if spa_role_of(user) not in allowed:
+		frappe.throw(frappe._("Not permitted"), frappe.PermissionError)
+
+
 def apply_spa_role(user: str, spa_role: str) -> None:
 	"""Assign a single TaxMate marker (preserves existing add-on roles)."""
 	apply_spa_roles(user, [spa_role], extra_roles=None)
