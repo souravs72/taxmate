@@ -15,7 +15,7 @@ from frappe.utils import cint, cstr
 
 from taxmate.api.resource import is_allowed_doctype, require_login
 from taxmate.search import GLOBAL_SEARCH_DOCTYPES
-from taxmate.utils.company import company_scoped, get_default_company
+from taxmate.utils.company import get_default_company, owning_company_field
 
 # Only doctypes the React app owns. No Desk fallback.
 _SPA_DOC_ROUTES: dict[str, str] = {
@@ -368,13 +368,19 @@ def _in_active_company(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
 		return hits
 	by_doctype: dict[str, list[str]] = {}
 	for hit in hits:
-		if hit.get("type") == "document" and company_scoped(hit["doctype"]):
+		if hit.get("type") == "document" and owning_company_field(hit["doctype"]):
 			by_doctype.setdefault(hit["doctype"], []).append(hit["name"])
 	keep: set[tuple[str, str]] = set()
 	for doctype, names in by_doctype.items():
+		field = owning_company_field(doctype)
+		filters: dict[str, Any] = {"name": ["in", names]}
+		# Mandatory link: equality. Optional link: the permission query keeps
+		# this company and untagged rows, and get_list applies that query.
+		if field and field[1]:
+			filters[field[0]] = company
 		for name in frappe.get_list(
 			doctype,
-			filters={"name": ["in", names], "company": company},
+			filters=filters,
 			pluck="name",
 			limit=len(names),
 		):
@@ -383,7 +389,7 @@ def _in_active_company(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
 		hit
 		for hit in hits
 		if hit.get("type") != "document"
-		or not company_scoped(hit["doctype"])
+		or hit.get("doctype") not in by_doctype
 		or (hit["doctype"], hit["name"]) in keep
 	]
 

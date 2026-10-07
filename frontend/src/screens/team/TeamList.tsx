@@ -28,6 +28,8 @@ export type TeamUser = {
   last_active?: string | null;
   last_login?: string | null;
   creation?: string | null;
+  /** False when this person also works for a company the caller does not own. */
+  can_manage?: boolean;
 };
 
 function roleLabels(u: TeamUser): string[] {

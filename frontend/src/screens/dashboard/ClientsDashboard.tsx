@@ -2,9 +2,8 @@
  * All-clients dashboard — the CA / practice view.
  * Design v1.3, claude/ca-my-clients-design.md.
  *
- * Reached at `?as=clients`. Deliberately NOT yet offered by the view switch:
- * the screen is live and real but undiscoverable until it has been reviewed
- * (Ship 4 adds the third button and the switcher entry).
+ * Reached at `?as=clients`, from the view switch when the user can open more
+ * than one company, and from the header company menu.
  *
  * One server call carries every figure AND every rule:
  *
@@ -163,6 +162,65 @@ function einvoiceTone(row: Row): string {
   return e.done >= e.total ? "p-done" : "p-warn";
 }
 
+/* ── Export ──────────────────────────────────────────────────────────── */
+
+/**
+ * The rows as a CSV, built from the PAYLOAD rather than from the rendered
+ * cells. A spreadsheet wants `142300`, not the `AED 142,300.00` a cell
+ * renders, and not a React node at all.
+ *
+ * Same Blob-and-anchor shape as the reports export (screens/reports/
+ * ReportRunner.tsx), with one addition: a UTF-8 BOM. Without it Excel on
+ * Windows reads the file as the local codepage and Arabic client names arrive
+ * as mojibake. Worth adding to the reports export too — it is one string.
+ */
+function csvCell(v: unknown): string {
+  if (typeof v === "number" && Number.isFinite(v)) return `"${v}"`;
+  let s = v == null ? "" : String(v);
+  // Excel runs a text cell that starts with one of these. Numbers stay numeric,
+  // including a negative "days to VAT due", so a column can still be summed.
+  if (/^[=+\-@]/.test(s)) s = `'${s}`;
+  return `"${s.replace(/"/g, '""')}"`;
+}
+
+function exportCsv(rows: Row[], th: Thresholds, filename: string): void {
+  const head = [
+    t("cd.col.client"), t("cd.trn").replace(" {v}", ""), t("f.currency"), t("cd.col.staff"),
+    t("cd.col.status"), t("cd.csv.reason"),
+    t("cd.csv.vatPeriodEnd"), t("cd.csv.vatDue"), t("cd.csv.vatDays"), t("cd.csv.vatState"),
+    t("cd.csv.closeDone"), t("cd.csv.closeTotal"),
+    t("cd.col.bank"), t("cd.col.fixes"),
+    t("cd.csv.overdue"),
+    t("cd.csv.sixtyPlus").replace("{d}", String(th.receivable_late_days)),
+    t("cd.csv.sixtyPlusCount").replace("{d}", String(th.receivable_late_days)),
+    t("cd.csv.einvDone"), t("cd.csv.einvTotal"),
+    t("cd.csv.ctDue"),
+  ];
+  const lines = [
+    head.map(csvCell).join(","),
+    ...rows.map((r) => [
+      r.label, r.trn, r.currency ?? "", r.staff?.full_name ?? "",
+      r.status ? t(`cd.st.${r.status}Short`) : "", reasonOf(r),
+      r.vat?.period_end ?? "", r.vat?.due_date ?? "", r.vat?.days ?? "", r.vat?.state ?? "",
+      r.close?.done ?? "", r.close?.total ?? "",
+      r.bank?.unreconciled ?? "", r.fixes?.count ?? "",
+      r.receivable?.overdue ?? "",
+      r.receivable?.sixty_plus ?? "",
+      r.receivable?.sixty_plus_invoices ?? "",
+      r.einvoice?.done ?? "", r.einvoice?.total ?? "",
+      r.ct?.due_date ?? "",
+    ].map(csvCell).join(",")),
+  ];
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${filename}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+}
+
 /* ── Screen ──────────────────────────────────────────────────────────── */
 
 export default function ClientsDashboard() {
@@ -244,14 +302,18 @@ export default function ClientsDashboard() {
     <div className="odash cdash">
       <PageHead
         title={t("cd.title")}
-        sub={[
-          d ? fill(t("cd.sub"), { n: d.companies }) : "",
-          d ? date(d.today) : "",
-          d ? t("cd.live") : "",
-        ].filter(Boolean).join(" · ")}
         viewControls={<DashSwitch />}
+        actions={
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={!d || rows.length === 0}
+            onClick={() => d && exportCsv(rows, d.thresholds, `${t("cd.exportFile")}-${d.today}`)}
+          >
+            {t("cd.export").replace("{n}", String(rows.length))}
+          </button>
+        }
       />
-      <p className="od-hint">{t("cd.hint")}</p>
 
       {res.error && <ErrorBox error={res.error} onRetry={() => res.mutate()} />}
       {!d && res.isLoading && <Loading />}

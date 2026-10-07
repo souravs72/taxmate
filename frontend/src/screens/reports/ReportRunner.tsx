@@ -86,7 +86,7 @@ function exportCsv(name: string, cols: Col[], rows: Row[]): void {
     cols.map((c) => esc(c.label || c.fieldname || "")).join(","),
     ...rows.map((r) => cols.map((c) => esc(cell(r, c))).join(",")),
   ];
-  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = `${name}.csv`;

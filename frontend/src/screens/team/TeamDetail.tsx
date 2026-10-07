@@ -25,7 +25,6 @@ export default function TeamDetail() {
   const owner = canManageUsers(session);
   const allowed = canViewTeam(session);
   const self = userName === session.user;
-  const canEdit = owner && !self;
 
   const [tab, setTab] = useState<TabId>("details");
   const [firstName, setFirstName] = useState("");
@@ -43,6 +42,7 @@ export default function TeamDetail() {
     allowed && userName ? `team-user-${userName}` : null,
     { revalidateOnFocus: false },
   );
+  const canEdit = owner && !self && get.data?.message?.can_manage !== false;
   const flags = useFrappeGetCall<{ message: { addon_roles?: string[] } }>(
     METHOD.getFeatureFlags,
     undefined,
@@ -263,7 +263,7 @@ export default function TeamDetail() {
 
         {tab === "roles" && (
           <div role="tabpanel" id="team-panel-roles" aria-labelledby="team-tab-roles">
-          <Card title={t("team.tab.roles")} hint={t("team.roles.hint")}>
+          <Card title={t("team.tab.roles")}>
             <div className="stack" style={{ gap: 10 }}>
               {SPA_ROLES.map((role) => (
                 <label key={role} className="team-check">

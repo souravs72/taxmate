@@ -34,7 +34,8 @@ from frappe import _
 from frappe.utils import cint, getdate, today
 
 from taxmate.api.accountant_dashboard import LATE_DAYS, _Ctx, month_options
-from taxmate.api.resource import require_login
+from taxmate.api.resource import assert_company_read, require_login
+from taxmate.setup.spa_roles import require_spa_role
 from taxmate.utils.client_status import (
 	BANK_LINES_PILING,
 	CLOSE_LATE_DAYS,
@@ -49,6 +50,26 @@ from taxmate.utils.client_status import (
 from taxmate.utils.company import user_companies
 
 _CT_LOG = "UAE CT Filing Log"
+
+
+def _readable_companies() -> list[str]:
+	"""Companies this user may open, checked again before any ``get_all``.
+
+	``user_companies()`` is the list. ``assert_company_read`` is the gate the
+	other dashboards use, because ``_Ctx`` reads through ``frappe.get_all``,
+	which does not apply permission query conditions. A company that fails the
+	gate is left out of the payload entirely.
+	"""
+	names = []
+	for company in user_companies():
+		if not company:
+			continue
+		try:
+			assert_company_read(company)
+		except frappe.PermissionError:
+			continue
+		names.append(company)
+	return names
 
 
 def _company_limit(limit: int | str | None) -> int | None:
@@ -76,13 +97,14 @@ def get_clients_dashboard(month: str | None = None, limit: int | None = None) ->
 	a client, but it is there for a firm with a very large book.
 	"""
 	require_login()
+	require_spa_role("accountant")
 	started = time.monotonic()
 
 	on = getdate(today())
 	months = month_options(on)
 	month = month if month in months else months[-1]
 
-	names = user_companies()
+	names = _readable_companies()
 	truncated = False
 	cap = _company_limit(limit)
 	if cap is not None and len(names) > cap:

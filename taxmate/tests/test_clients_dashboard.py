@@ -10,9 +10,12 @@ Run: bench --site taxmate.site run-tests --module taxmate.tests.test_clients_das
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
+from taxmate.api import resource
 from taxmate.api.clients_dashboard import get_clients_dashboard, tile_totals
 from taxmate.utils.client_status import AGE_BUCKETS, TILES
 from taxmate.utils.company import user_companies
@@ -68,6 +71,23 @@ class TestClientsDashboard(FrappeTestCase):
 			returned.issubset(permitted),
 			f"returned companies outside the permitted set: {returned - permitted}",
 		)
+
+	def test_a_company_the_user_cannot_read_is_omitted(self):
+		"""A forged or revoked company must not appear, even inside the helper's list."""
+		names = user_companies()
+		if not names:
+			self.skipTest("no companies")
+		blocked = names[0]
+		real = resource.can_use_company
+
+		def gate(company, user=None):
+			if company == blocked:
+				return False
+			return real(company, user)
+
+		with patch.object(resource, "can_use_company", gate):
+			payload = get_clients_dashboard()
+		self.assertNotIn(blocked, {r["company"] for r in payload["rows"]})
 
 	def test_limit_caps_and_flags(self):
 		if len(self.payload["rows"]) < 2:

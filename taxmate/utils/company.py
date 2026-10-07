@@ -24,13 +24,11 @@ from frappe import _
 ACTIVE_COMPANY_KEY = "taxmate_active_company"
 
 
-def _permitted(user: str) -> list[str] | None:
-	"""Company names from the user's User Permissions; ``None`` = unrestricted."""
+def _permitted(user: str) -> list[str]:
+	"""Company names from the user's User Permissions. Empty means none."""
 	from frappe.core.doctype.user_permission.user_permission import get_user_permissions
 
 	perms = get_user_permissions(user).get("Company") or []
-	if not perms:
-		return None
 	return [p.get("doc") for p in perms if p.get("doc")]
 
 
@@ -47,10 +45,8 @@ def can_use_company(company: str | None, user: str | None = None) -> bool:
 	user = user or frappe.session.user
 	if not company or user == "Guest" or not frappe.db.exists("Company", company):
 		return False
-	if not _unrestricted(user):
-		allowed = _permitted(user)
-		if allowed is not None and company not in allowed:
-			return False
+	if not _unrestricted(user) and company not in _permitted(user):
+		return False
 	return bool(frappe.has_permission("Company", "read", company, user=user))
 
 
@@ -59,8 +55,13 @@ def user_companies(user: str | None = None) -> list[str]:
 	user = user or frappe.session.user
 	if user == "Guest":
 		return []
-	allowed = None if _unrestricted(user) else _permitted(user)
-	filters = {"name": ["in", allowed]} if allowed is not None else {}
+	if _unrestricted(user):
+		filters: dict = {}
+	else:
+		allowed = _permitted(user)
+		if not allowed:
+			return []
+		filters = {"name": ["in", allowed]}
 	names = frappe.get_all("Company", filters=filters, pluck="name", order_by="company_name asc")
 	return [n for n in names if frappe.has_permission("Company", "read", n, user=user)]
 
@@ -115,6 +116,29 @@ def restore_active_company(login_manager=None) -> None:
 	active = get_active_company(user)
 	if active and frappe.defaults.get_user_default("Company", user=user) != active:
 		frappe.defaults.set_user_default("company", active, user=user)
+
+
+OWNING_COMPANY_FIELDS = ("company", "representative_company", "custom_company")
+
+
+def owning_company_field(doctype: str) -> tuple[str, bool] | None:
+	"""Link that ties a row to one company, and whether that link is mandatory.
+
+	``company`` is ERPNext's field. ``representative_company`` owns a VAT Group.
+	``custom_company`` tags a shared master (Item, Customer, Supplier): a blank
+	value stays visible in every company, a filled value belongs to one.
+	Callers: taxmate.uae.permissions and taxmate.api.search._in_active_company.
+	"""
+	if not doctype or doctype == "Company":
+		return None
+	if not frappe.db.exists("DocType", doctype):
+		return None
+	meta = frappe.get_meta(doctype)
+	for name in OWNING_COMPANY_FIELDS:
+		field = meta.get_field(name)
+		if field and field.fieldtype == "Link" and field.options == "Company":
+			return name, bool(field.reqd)
+	return None
 
 
 def company_scoped(doctype: str) -> bool:

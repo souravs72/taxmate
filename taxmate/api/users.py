@@ -31,7 +31,7 @@ from taxmate.setup.spa_roles import (
 	spa_role_of,
 	spa_roles_of,
 )
-from taxmate.utils.company import ACTIVE_COMPANY_KEY, get_default_company
+from taxmate.utils.company import ACTIVE_COMPANY_KEY, can_use_company, get_default_company, user_companies
 
 _SKIP_USERS = frozenset({"Guest", "Administrator"})
 
@@ -51,6 +51,66 @@ def _assert_taxmate_teammate(user: str) -> None:
 	held = set(frappe.get_roles(user))
 	if not held.intersection(ALL_MARKER_ROLE_NAMES):
 		frappe.throw(_("User not found"))
+
+
+def _caller_unrestricted() -> bool:
+	user = frappe.session.user
+	return user == "Administrator" or "System Manager" in frappe.get_roles(user)
+
+
+def _shares_company(user: str) -> bool:
+	"""True when this teammate works for a company the caller may open."""
+	if _caller_unrestricted():
+		return True
+	return bool(set(user_companies()) & set(user_companies(user)))
+
+
+def _can_manage_target(user: str) -> bool:
+	"""True when every company on the target is one the caller owns.
+
+	An accountant who also works for another business stays visible, but this
+	company's owner cannot change a role that would affect the other business.
+	"""
+	if _caller_unrestricted():
+		return True
+	mine = set(user_companies())
+	theirs = set(user_companies(user))
+	return bool(theirs) and theirs <= mine
+
+
+def _assert_can_manage(user: str) -> None:
+	_assert_taxmate_teammate(user)
+	if not _can_manage_target(user):
+		frappe.throw(_("That user belongs to another company"), frappe.PermissionError)
+
+
+def _invite_company() -> str:
+	company = get_default_company()
+	if not company or not can_use_company(company):
+		frappe.throw(_("Choose a company before inviting someone"))
+	return company
+
+
+def _grant_company(user: str, company: str, *, multi: bool) -> None:
+	"""Frappe User Permission on Company. Accountants may hold more than one."""
+	current = frappe.get_all(
+		"User Permission",
+		filters={"user": user, "allow": "Company"},
+		pluck="for_value",
+	)
+	if company in current:
+		return
+	if current and not multi:
+		frappe.throw(_("That user already belongs to another company"))
+	from frappe.permissions import add_user_permission
+
+	add_user_permission(
+		"Company",
+		company,
+		user,
+		ignore_permissions=True,
+		is_default=0 if current else 1,
+	)
 
 
 def _assert_mutable_user(user: str) -> None:
@@ -143,6 +203,7 @@ def _as_user_row(name: str) -> dict[str, Any]:
 		"last_active": str(doc.last_active) if doc.last_active else None,
 		"last_login": str(doc.last_login) if getattr(doc, "last_login", None) else None,
 		"creation": str(doc.creation) if doc.creation else None,
+		"can_manage": _can_manage_target(doc.name),
 	}
 
 
@@ -166,6 +227,8 @@ def list_users() -> list[dict[str, Any]]:
 			continue
 		if not frappe.db.exists("User", name):
 			continue
+		if not _shares_company(name):
+			continue
 		out.append(_as_user_row(name))
 	out.sort(key=lambda row: (0 if row.get("enabled") else 1, (row.get("full_name") or row["name"]).lower()))
 	return out
@@ -183,6 +246,8 @@ def get_user(user: str) -> dict[str, Any]:
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
 	_assert_taxmate_teammate(user)
+	if not _shares_company(user):
+		frappe.throw(_("User not found"))
 	return _as_user_row(user)
 
 
@@ -200,7 +265,7 @@ def update_user(
 	_assert_mutable_user(user)
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
-	_assert_taxmate_teammate(user)
+	_assert_can_manage(user)
 
 	first_name = (first_name or "").strip()
 	if not first_name:
@@ -227,7 +292,7 @@ def reset_user_password(user: str) -> dict[str, str]:
 		frappe.throw(_("Use Profile to change your own password"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
-	_assert_taxmate_teammate(user)
+	_assert_can_manage(user)
 
 	doc = frappe.get_doc("User", user)
 	if not cint(doc.enabled):
@@ -261,7 +326,14 @@ def invite_user(
 		spa_role=spa_role or ("clerk" if spa_roles is None else None), spa_roles=spa_roles
 	)
 	addons = _parse_extra_roles(extra_roles)
+	company = _invite_company()
 	if frappe.db.exists("User", email):
+		# An accountant can be mapped to another company the owner already has.
+		# Owner, clerk, and viewer stay on the one company they were given.
+		held = spa_roles_of(email)
+		if "accountant" in held and "owner" not in held:
+			_grant_company(email, company, multi=True)
+			return _as_user_row(email)
 		frappe.throw(_("That user already exists"))
 
 	welcome = cint(send_welcome_email)
@@ -280,16 +352,11 @@ def invite_user(
 		user.flags.no_welcome_mail = True
 	user.insert(ignore_permissions=True)
 	apply_spa_roles(user.name, roles, extra_roles=addons if addons is not None else [])
-	company = get_default_company()
-	if company:
-		frappe.defaults.set_user_default(ACTIVE_COMPANY_KEY, company, user.name)
-		frappe.defaults.set_user_default("company", company, user.name)
-		# Owner stays unrestricted, same as System Manager in uae.permissions.
-		# Everyone else is limited to this company through Frappe User Permission.
-		if "owner" not in roles:
-			from frappe.permissions import add_user_permission
-
-			add_user_permission("Company", company, user.name, ignore_permissions=True, is_default=1)
+	frappe.defaults.set_user_default(ACTIVE_COMPANY_KEY, company, user.name)
+	frappe.defaults.set_user_default("company", company, user.name)
+	# Every company user, including the owner, is limited by a Frappe User
+	# Permission. Only an accountant may later be granted further companies.
+	_grant_company(user.name, company, multi="accountant" in roles and "owner" not in roles)
 	return _as_user_row(user.name)
 
 
@@ -308,10 +375,20 @@ def set_user_role(
 		frappe.throw(_("You cannot change your own role"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
-	_assert_taxmate_teammate(user)
+	_assert_can_manage(user)
 
 	roles = _parse_spa_roles(spa_role=spa_role, spa_roles=spa_roles)
 	addons = _parse_extra_roles(extra_roles)
+	if "owner" in roles:
+		# An owner is one company. User Permission is the Frappe record of that,
+		# and a role change must not leave the extra companies in place.
+		held = frappe.get_all(
+			"User Permission",
+			filters={"user": user, "allow": "Company"},
+			pluck="for_value",
+		)
+		if len(held) > 1:
+			frappe.throw(_("An owner belongs to one company"))
 	apply_spa_roles(user, roles, extra_roles=addons)
 	return _as_user_row(user)
 
@@ -325,7 +402,7 @@ def set_user_enabled(user: str, enabled: int | str = 0) -> dict[str, Any]:
 		frappe.throw(_("You cannot disable yourself"))
 	if not frappe.db.exists("User", user):
 		frappe.throw(_("User not found"))
-	_assert_taxmate_teammate(user)
+	_assert_can_manage(user)
 
 	doc = frappe.get_doc("User", user)
 	doc.enabled = 1 if cint(enabled) else 0
