@@ -126,6 +126,8 @@ export const METHOD = {
   getSession: "taxmate.api.get_session",
   listMyCompanies: "taxmate.api.company.list_my_companies",
   switchCompany: "taxmate.api.company.switch_company",
+  listCompanyAddresses: "taxmate.api.company.list_company_addresses",
+  uploadCompanyLogo: "taxmate.api.company.upload_company_logo",
   getHome: "taxmate.api.dashboard.get_home",
   ownerDashboard: "taxmate.api.owner_dashboard.get_owner_dashboard",
   accountantDashboard: "taxmate.api.accountant_dashboard.get_accountant_dashboard",

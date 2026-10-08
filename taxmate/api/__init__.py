@@ -28,6 +28,9 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"Bank Account",
 	"Fiscal Year",
 	"Currency",
+	"Country",
+	"Letter Head",
+	"Holiday List",
 	"Sales Taxes and Charges Template",
 	"Purchase Taxes and Charges Template",
 	"Item Tax Template",
@@ -189,6 +192,8 @@ def get_catalog() -> dict[str, Any]:
 		"actions": [
 			{"name": "list_my_companies", "method": "taxmate.api.company.list_my_companies"},
 			{"name": "switch_company", "method": "taxmate.api.company.switch_company"},
+			{"name": "list_company_addresses", "method": "taxmate.api.company.list_company_addresses"},
+			{"name": "upload_company_logo", "method": "taxmate.api.company.upload_company_logo"},
 			{"name": "get_list", "method": "taxmate.api.resource.get_list"},
 			{"name": "get", "method": "taxmate.api.resource.get"},
 			{"name": "insert", "method": "taxmate.api.resource.insert"},
