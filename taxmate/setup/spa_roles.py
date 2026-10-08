@@ -463,13 +463,21 @@ def _ensure_books_perms() -> None:
 
 
 def _allow_reports() -> None:
+	"""Grant TaxMate marker roles on every SPA catalog report.
+
+	Frappe ``Report.is_permitted`` prefers a ``Custom Role`` row for the report
+	when one exists, and that list *replaces* ``Report.roles``. ERPNext UAE
+	seeds often leave Custom Role with only Desk roles (Accounts User / Manager),
+	which blocks Website-User SPA accountants. Keep Desk roles and add markers.
+	"""
 	from taxmate.setup.financial_reports import CORE_REPORT_LINKS, TAXMATE_REPORT_LINKS
 
 	names = [name for _, name in (*CORE_REPORT_LINKS, *TAXMATE_REPORT_LINKS)]
+	marker_roles = tuple(MARKER.values())
 	for report in names:
 		if not frappe.db.exists("Report", report):
 			continue
-		for role in MARKER.values():
+		for role in marker_roles:
 			if frappe.db.exists("Has Role", {"parent": report, "parenttype": "Report", "role": role}):
 				continue
 			try:
@@ -483,7 +491,28 @@ def _allow_reports() -> None:
 					}
 				).insert(ignore_permissions=True)
 			except Exception:
-				pass
+				frappe.log_error(title=f"TaxMate Report Has Role failed: {report} / {role}")
+		_ensure_report_custom_roles(report, marker_roles)
+
+
+def _ensure_report_custom_roles(report: str, marker_roles: tuple[str, ...]) -> None:
+	"""Add TaxMate markers to Custom Role for ``report`` when that override exists."""
+	if not frappe.db.exists("DocType", "Custom Role"):
+		return
+	custom_name = frappe.db.get_value("Custom Role", {"report": report}, "name")
+	if not custom_name:
+		return
+	doc = frappe.get_doc("Custom Role", custom_name)
+	have = {row.role for row in doc.roles}
+	missing = [role for role in marker_roles if role not in have and frappe.db.exists("Role", role)]
+	if not missing:
+		return
+	try:
+		for role in missing:
+			doc.append("roles", {"role": role})
+		doc.save(ignore_permissions=True)
+	except Exception:
+		frappe.log_error(title=f"TaxMate Custom Role report roles failed: {report}")
 
 
 def _strip_desk_roles_from_spa_users() -> None:

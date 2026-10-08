@@ -193,7 +193,6 @@ export default function AccountantDashboard() {
           </>
         }
       />
-      <p className="od-hint">{t("ad.hint")}</p>
 
       {res.error && <ErrorBox error={res.error} onRetry={() => res.mutate()} />}
       {!d && res.isLoading && <Loading />}

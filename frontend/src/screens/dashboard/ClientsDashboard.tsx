@@ -393,7 +393,6 @@ export default function ClientsDashboard() {
             <span><Pill cls="p-warn">{t("cd.st.warnShort")}</Pill> {fill(t("cd.legend.warn"), { n: d.thresholds.vat_due_soon_days })}</span>
             <span><Pill cls="p-done">{t("cd.st.okShort")}</Pill> {fill(t("cd.legend.ok"), { n: d.thresholds.vat_due_soon_days })}</span>
           </div>
-          <p className="od-hint">{t("cd.foot")}</p>
         </>
       )}
     </div>
