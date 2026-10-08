@@ -378,9 +378,22 @@ def _perm_values(spa: str, doctype: str) -> dict[str, int]:
 		return read
 	if settings and spa in ("owner", "accountant"):
 		return {**read, "write": 1}
+	submittable = False
+	try:
+		submittable = bool(frappe.get_meta(doctype).is_submittable)
+	except Exception:
+		submittable = False
 	if spa == "clerk":
-		return {**read, "write": 1, "create": 1, "submit": 1}
-	return {**read, "write": 1, "create": 1, "submit": 1, "cancel": 1, "amend": 1}
+		flags = {**read, "write": 1, "create": 1}
+		if submittable:
+			flags["submit"] = 1
+		return flags
+	flags = {**read, "write": 1, "create": 1}
+	if submittable:
+		flags["submit"] = 1
+		flags["cancel"] = 1
+		flags["amend"] = 1
+	return flags
 
 
 def _books_perms_ready() -> bool:
@@ -415,11 +428,17 @@ def _books_perms_ready() -> bool:
 
 
 def _ensure_books_perms() -> None:
-	if _books_perms_ready():
-		return
+	"""Sync marker Custom DocPerms for every catalog DocType.
+
+	``_books_perms_ready`` only samples Sales Invoice / Journal Entry. New
+	catalog DocTypes (IDP, Item Attribute, …) must still get rows even when
+	that sample already looks correct.
+	"""
 	from frappe.permissions import setup_custom_perms
 
+	refresh_flags = not _books_perms_ready()
 	names = list(dict.fromkeys([*_catalog_names(), *VIEWER_READ_DOCTYPES]))
+	changed = False
 	for doctype in names:
 		if not frappe.db.exists("DocType", doctype):
 			continue
@@ -443,7 +462,14 @@ def _ensure_books_perms() -> None:
 			)
 			try:
 				if existing:
-					frappe.db.set_value("Custom DocPerm", existing, flags, update_modified=False)
+					# Refresh when the sample SI/JE check fails, or when a row
+					# exists but has no read (broken / partial seed).
+					needs_update = refresh_flags or not cint(
+						frappe.db.get_value("Custom DocPerm", existing, "read")
+					)
+					if needs_update:
+						frappe.db.set_value("Custom DocPerm", existing, flags, update_modified=False)
+						changed = True
 				else:
 					frappe.get_doc(
 						{
@@ -457,9 +483,11 @@ def _ensure_books_perms() -> None:
 							**flags,
 						}
 					).insert(ignore_permissions=True)
+					changed = True
 			except Exception:
 				frappe.log_error(title=f"TaxMate perm failed: {role} / {doctype}")
-	frappe.clear_cache()
+	if changed or refresh_flags:
+		frappe.clear_cache()
 
 
 def _allow_reports() -> None:
