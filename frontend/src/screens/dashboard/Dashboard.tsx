@@ -211,7 +211,6 @@ function OwnerDashboard() {
           </div>
         </div>
       </div>
-      <p className="od-hint">{t(`od.hint.${view}`)}</p>
 
       {res.error && <ErrorBox error={res.error} onRetry={() => res.mutate()} />}
       {!d && res.isLoading && <Loading />}
@@ -542,7 +541,6 @@ function PnlCard({ d, view, cur, months, highlight }: {
             <span className="num od-muted">{nm - nmPrev >= 0 ? "+" : "−"}{fill(t("od.pts"), { n: pctText(Math.abs(nm - nmPrev)).replace("%", "") })}</span>
           </div>
         </div>
-        <p className="od-note">{t("od.pl.note")}</p>
       </Card>
     );
   }
@@ -675,7 +673,6 @@ function BudgetCard({ budget, cur }: { budget: NonNullable<Payload["budget"]>; c
           );
         })}
       </div>
-      <p className="od-note">{t("od.budgetLine")}</p>
     </Card>
   );
 }
