@@ -1,8 +1,8 @@
 /**
  * Home-screen switch. The choice lives in the URL (?as=) so it can be shared.
  * Which buttons exist comes from allowedDashModes: an owner stays on the owner
- * view, an accountant may open All clients, a clerk stays on the accountant
- * view. The server rejects a view the role cannot open.
+ * view, an accountant may open owner + books + All clients, a clerk stays on
+ * the accountant view. The server rejects a view the role cannot open.
  */
 
 import { useSearchParams } from "react-router-dom";

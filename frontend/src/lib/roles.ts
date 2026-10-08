@@ -88,8 +88,10 @@ export function allowedDashModes(session: {
     return ["owner", "accountant", "clients"];
   }
   const role = spaRoleOf(session);
+  // Owner stays on the owner view only. Accountant may open the owner view
+  // as well as the books / all-clients views; clerk and viewer stay on books.
   if (role === "owner") return ["owner"];
-  if (role === "accountant") return ["accountant", "clients"];
+  if (role === "accountant") return ["accountant", "owner", "clients"];
   return ["accountant"];
 }
 

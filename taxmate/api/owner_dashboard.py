@@ -129,7 +129,9 @@ def get_owner_dashboard(
 	company: str | None = None,
 ) -> dict[str, Any]:
 	require_login()
-	require_spa_role("owner")
+	# Accountants may open the owner KPI view; owners must not open the
+	# accountant books dashboard (gated separately on that endpoint).
+	require_spa_role("owner", "accountant")
 	company = company or get_default_company()
 	if not company:
 		frappe.throw(_("Set a default Company to see the dashboard."))
