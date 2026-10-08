@@ -2,9 +2,11 @@
  * Catalog CRUD hooks. Screens must not call /api/resource or Desk methods.
  * These wrap taxmate.api.resource.* listed in get_catalog().
  */
+import { useEffect } from "react";
 import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
 import { METHOD } from "./frappe";
+import { useSession } from "./session";
 
 type OrderBy = { field: string; order?: "asc" | "desc" };
 
@@ -17,6 +19,16 @@ type ListOpts = {
   limit_start?: number;
   groupBy?: string;
 };
+
+function owningCompanyOf(doc: unknown): string | null {
+  if (!doc || typeof doc !== "object") return null;
+  const row = doc as Record<string, unknown>;
+  for (const key of ["company", "representative_company", "custom_company"]) {
+    const value = row[key];
+    if (typeof value === "string" && value) return value;
+  }
+  return null;
+}
 
 export function useDocList<T>(doctype: string, opts: ListOpts = {}, key?: string | null) {
   const params = {
@@ -50,14 +62,25 @@ export function useDoc<T>(
   key?: string | null,
   opts?: { isPaused?: () => boolean },
 ) {
+  const session = useSession();
   const paused = opts?.isPaused?.() || !name;
   const call = useFrappeGetCall<{ message: T }>(
     METHOD.get,
     { doctype, name },
     paused ? null : (key ?? `get-${doctype}-${name}`),
   );
+  const data = call.data?.message;
+
+  // resource.get may adopt the document's company; refresh like the switcher
+  // so the header and cached lists match the document just opened.
+  useEffect(() => {
+    const company = owningCompanyOf(data);
+    if (!company || !session.company || company === session.company) return;
+    window.location.reload();
+  }, [data, session.company]);
+
   return {
-    data: call.data?.message,
+    data,
     error: call.error,
     isLoading: call.isLoading,
     mutate: call.mutate,
