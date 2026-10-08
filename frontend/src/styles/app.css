@@ -122,18 +122,28 @@ svg{display:block}
 .chead .hint{font-size:11.5px; color:var(--faint)}
 .cbody{padding:16px}
 
-/* Title left; action cluster (ghosts → view switcher → primary) packed right. */
+/* Title left; action cluster packed right. */
 .phead{display:flex; flex-wrap:wrap; gap:14px; align-items:flex-start; justify-content:space-between}
 .phead-main{min-width:0; flex:1 1 12rem}
 .phead h1{margin:0; font-size:23px; font-weight:700; letter-spacing:-.025em; text-wrap:balance}
 .phead .sub{margin:4px 0 0; font-size:12.5px; color:var(--muted)}
 .eyebrow{margin:0 0 3px; font-size:12px; color:var(--muted); font-family:var(--mono)}
 .acts{display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-inline-start:auto; justify-content:flex-end}
-/* Switcher sits immediately before the last button (New sale / Export CSV). */
-.acts > .phead-views{order:10; flex:none}
-.acts > .btn{order:0}
-.acts > .btn:last-of-type{order:20}
+/* Dashboard home: secondary | switcher | primary — reserved column widths so
+   Accountant ↔ Owner ↔ All clients does not slide the switcher. */
+.acts:has(> .dash-acts-sec){
+  display:grid;
+  grid-template-columns:minmax(17.5rem,max-content) auto minmax(10.5rem,max-content);
+  align-items:center;
+  gap:8px;
+}
+.acts > .dash-acts-sec{order:1; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; min-inline-size:17.5rem; min-block-size:2.5rem}
+.acts > .phead-views{order:2; flex:none}
+.acts > .dash-acts-pri{order:3; display:flex; justify-content:flex-end; min-inline-size:10.5rem}
+.acts > .dash-acts-pri > .btn{inline-size:100%; justify-content:center}
 .dash-seg{flex:none}
+/* Home title block keeps one sub-line of height even when a view has no sub. */
+.odash > .phead .phead-main{min-block-size:3.4rem}
 .btn{display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:600; cursor:pointer; border-radius:var(--r-sm); padding:8px 14px; border:1px solid transparent; white-space:nowrap; background:var(--brand); color:var(--brand-ink)}
 .btn:hover{background:var(--brand-hover)}
 .btn:disabled{opacity:.45; cursor:not-allowed}
@@ -672,9 +682,12 @@ td.pick{width:38px; padding-inline-end:0}
   .phead h1{font-size:19px}
   /* 23px wraps mid-word on a 360px screen. */
   .acts{width:100%; margin-inline-start:0}
+  .acts:has(> .dash-acts-sec){display:flex; grid-template-columns:none}
+  .acts > .dash-acts-sec,.acts > .dash-acts-pri{order:0; min-inline-size:0; flex:1 1 auto}
+  .acts > .dash-acts-pri > .btn{inline-size:auto; flex:1 1 auto}
   .acts > .btn{flex:1 1 auto; justify-content:center; order:0}
-  .acts > .btn:last-of-type{order:0}
   .acts > .phead-views{order:0; width:100%}
+  .odash > .phead .phead-main{min-block-size:0}
   /* A notch off the card padding so content is not squeezed at 360px.
      Border and radius are deliberately left alone. */
   .cbody{padding:13px}

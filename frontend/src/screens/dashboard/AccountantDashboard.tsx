@@ -187,9 +187,13 @@ export default function AccountantDashboard() {
         viewControls={<DashSwitch />}
         actions={
           <>
-            <button type="button" className="btn ghost" onClick={openBankRec}>{t("ad.reconcileBank")}</button>
-            <button type="button" className="btn ghost" onClick={() => nav("/journals/new")}>{t("ad.journal")}</button>
-            <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
+            <span className="dash-acts-sec">
+              <button type="button" className="btn ghost" onClick={openBankRec}>{t("ad.reconcileBank")}</button>
+              <button type="button" className="btn ghost" onClick={() => nav("/journals/new")}>{t("ad.journal")}</button>
+            </span>
+            <span className="dash-acts-pri">
+              <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
+            </span>
           </>
         }
       />

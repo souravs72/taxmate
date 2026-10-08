@@ -302,16 +302,24 @@ export default function ClientsDashboard() {
     <div className="odash cdash">
       <PageHead
         title={t("cd.title")}
+        /* Keep the same title+sub block height as the other home views so the
+           action row (and switcher) does not jump vertically. */
+        sub={"\u00a0"}
         viewControls={<DashSwitch />}
         actions={
-          <button
-            type="button"
-            className="btn ghost"
-            disabled={!d || rows.length === 0}
-            onClick={() => d && exportCsv(rows, d.thresholds, `${t("cd.exportFile")}-${d.today}`)}
-          >
-            {t("cd.export").replace("{n}", String(rows.length))}
-          </button>
+          <>
+            <span className="dash-acts-sec" aria-hidden="true" />
+            <span className="dash-acts-pri">
+              <button
+                type="button"
+                className="btn ghost"
+                disabled={!d || rows.length === 0}
+                onClick={() => d && exportCsv(rows, d.thresholds, `${t("cd.exportFile")}-${d.today}`)}
+              >
+                {t("cd.export").replace("{n}", String(rows.length))}
+              </button>
+            </span>
+          </>
         }
       />
 
