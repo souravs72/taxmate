@@ -103,9 +103,29 @@ export function canManageUsers(session: { spa_role?: string; spa_roles?: string[
   return spaRoleOf(session) === "owner";
 }
 
-/** True when the user may read and write the Company record (Owner + Provider). */
-export function canManageCompany(session: { spa_role?: string; spa_roles?: string[]; roles?: string[] } | undefined): boolean {
+/** True when the user may edit all curated Company Settings fields (Owner + Provider). */
+export function canManageCompany(session: {
+  spa_role?: string;
+  spa_roles?: string[];
+  roles?: string[];
+  user?: string;
+} | undefined): boolean {
+  if (isAppProvider(session)) return true;
   return spaRoleOf(session) === "owner";
+}
+
+/**
+ * Accounts / stock / buying-selling / practice VAT / books-lock tabs.
+ * Owner and Accountant (DocPerm already grants Company write to both).
+ */
+export function canEditCompanyAccounts(session: {
+  spa_role?: string;
+  spa_roles?: string[];
+  roles?: string[];
+  user?: string;
+} | undefined): boolean {
+  if (canManageCompany(session)) return true;
+  return spaRoleOf(session) === "accountant";
 }
 
 /**

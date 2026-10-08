@@ -101,6 +101,8 @@ class TestApiCatalog(FrappeTestCase):
 		self.assertIn("taxmate.api.owner_dashboard.get_owner_dashboard", methods)
 		self.assertIn("taxmate.api.accountant_dashboard.get_accountant_dashboard", methods)
 		self.assertIn("taxmate.api.clients_dashboard.get_clients_dashboard", methods)
+		self.assertIn("taxmate.api.company.list_company_addresses", methods)
+		self.assertIn("taxmate.api.company.upload_company_logo", methods)
 		self.assertFalse(any("rest" in row for row in catalog["resources"]))
 		self.assertFalse(is_allowed_doctype("User"))
 		self.assertFalse(is_allowed_doctype("Data Import"))
@@ -1751,3 +1753,23 @@ class TestCompanySettingsWrite(FrappeTestCase):
 		doc["phone_no"] = new_phone
 		saved = save(doc)
 		self.assertEqual(saved.get("phone_no"), new_phone)
+
+	def test_company_save_frozen_date_and_vat_frequency(self):
+		from taxmate.api.company import list_company_addresses
+
+		company = frappe.db.get_single_value("Global Defaults", "default_company") or frappe.db.get_value(
+			"Company", {"country": "United Arab Emirates"}, "name"
+		)
+		self.assertTrue(company)
+		doc = get("Company", company)
+		doc["accounts_frozen_till_date"] = "2026-01-15"
+		if "taxmate_vat_filing_frequency" in (doc or {}) or frappe.get_meta("Company").has_field(
+			"taxmate_vat_filing_frequency"
+		):
+			doc["taxmate_vat_filing_frequency"] = "Quarterly"
+		saved = save(doc)
+		self.assertEqual(str(saved.get("accounts_frozen_till_date") or ""), "2026-01-15")
+		if frappe.get_meta("Company").has_field("taxmate_vat_filing_frequency"):
+			self.assertEqual(saved.get("taxmate_vat_filing_frequency"), "Quarterly")
+		addrs = list_company_addresses(company)
+		self.assertIsInstance(addrs, list)
