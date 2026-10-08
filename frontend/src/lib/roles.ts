@@ -108,6 +108,15 @@ export function canManageCompany(session: { spa_role?: string; spa_roles?: strin
   return spaRoleOf(session) === "owner";
 }
 
+/**
+ * Desk (`/app`, `/desk`) is gated server-side to Administrator only
+ * (`taxmate.setup.desk_gate`). Mirror that here so the SPA never offers
+ * a Desk link that the gate would bounce.
+ */
+export function canOpenDesk(session: { user?: string } | undefined): boolean {
+  return session?.user === "Administrator";
+}
+
 export function canViewTeam(session: { spa_role?: string; spa_roles?: string[]; roles?: string[] } | undefined): boolean {
   const spa = spaRoleOf(session);
   return spa === "owner" || spa === "accountant";

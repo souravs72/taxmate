@@ -217,8 +217,8 @@ export default function App() {
         {!hasCsrfToken() && (
           <ErrorBox error={{ message:
             "This page was served without a CSRF token, so saving will fail. " +
-            "It usually means index.html was served statically instead of rendered " +
-            "by Frappe — check taxmate/www/taxmate.py and that the build copied " +
+            "It usually means the static shell was served instead of the TaxMate " +
+            "page — check taxmate/www/taxmate.py and that the build copied " +
             "index.html to www/taxmate.html." }} />
         )}
         <Routes>

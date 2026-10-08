@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useFrappeAuth } from "frappe-react-sdk";
 
 import { useSession } from "../lib/session";
-import { canManageCompany, isAppProvider, spaRoleOf } from "../lib/roles";
+import { canManageCompany, canOpenDesk, isAppProvider, spaRoleOf } from "../lib/roles";
 import { t } from "../i18n/strings";
 
 export default function UserMenu() {
@@ -19,6 +19,7 @@ export default function UserMenu() {
   const provider = isAppProvider(session);
   const roleLabel = provider ? t("role.provider") : t(`role.${spaRoleOf(session)}`);
   const canSettings = canManageCompany(session);
+  const showDesk = canOpenDesk(session);
   const displayName = session.full_name || currentUser || "—";
 
   const initials = displayName
@@ -90,6 +91,12 @@ export default function UserMenu() {
     nav(path);
   }
 
+  function openDesk() {
+    setOpen(false);
+    // Full navigation — admin console is outside the SPA; gate allows Administrator only.
+    window.location.assign("/app");
+  }
+
   return (
     <div className="umwrap" ref={wrapRef}>
       <button
@@ -143,6 +150,25 @@ export default function UserMenu() {
             </span>
             {t("user.editProfile")}
           </button>
+
+          {showDesk && (
+            <button
+              type="button"
+              role="menuitem"
+              className="umdrop-item"
+              onClick={openDesk}
+            >
+              <span className="umdrop-ic">
+                <svg width="15" height="15" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6">
+                  <rect x="2.5" y="2.5" width="5" height="5" rx="1" />
+                  <rect x="10.5" y="2.5" width="5" height="5" rx="1" />
+                  <rect x="2.5" y="10.5" width="5" height="5" rx="1" />
+                  <rect x="10.5" y="10.5" width="5" height="5" rx="1" />
+                </svg>
+              </span>
+              {t("user.openDesk")}
+            </button>
+          )}
 
           <div className="umdrop-sep" role="separator" />
 
