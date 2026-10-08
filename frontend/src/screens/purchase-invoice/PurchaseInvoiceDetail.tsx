@@ -12,6 +12,7 @@ import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { isNative } from "../../mobile/platform";
 
 type Line = {
   name?: string; item_code?: string; item_name?: string; qty?: number; uom?: string;
@@ -151,9 +152,12 @@ export default function PurchaseInvoiceDetail() {
                     {t("pi.debit")}
                   </button>
                 )}
+                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                {!isNative() && (
                 <button type="button" className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
                   {t("inv.print")}
                 </button>
+                )}
               </>
             }
           />

@@ -13,10 +13,25 @@ import { resolve } from "node:path";
  */
 const APP = resolve(__dirname, "../taxmate");
 
-export default defineConfig({
+/**
+ * `npm run build:mobile` (vite --mode mobile) builds the Capacitor bundle
+ * instead: assets from the root "/", output in frontend/dist-mobile (capacitor
+ * webDir), no copy into www/, and the Jinja boot script stripped from
+ * index.html (there is no server render inside the app).
+ * `__TAXMATE_MOBILE__` is false in the web build, so every native branch
+ * (src/mobile/platform.ts isNative()) is dead code there.
+ */
+export default defineConfig(({ mode }) => {
+  const mobile = mode === "mobile";
+  return {
   plugins: [
     react(),
-    {
+    mobile ? {
+      name: "strip-jinja-boot",
+      transformIndexHtml(html: string) {
+        return html.replace(/\s*<!--[\s\S]*?-->\s*<script>[\s\S]*?window\.csrf_token[\s\S]*?<\/script>/, "\n");
+      },
+    } : {
       name: "copy-html-to-www",
       closeBundle() {
         const from = resolve(APP, "public/frontend/index.html");
@@ -31,9 +46,16 @@ export default defineConfig({
       },
     },
   ],
+  define: { __TAXMATE_MOBILE__: JSON.stringify(mobile) },
   resolve: { alias: { "@": resolve(__dirname, "src") } },
-  base: "/assets/taxmate/frontend/",
-  build: {
+  // Capacitor serves dist-mobile from the root (https://localhost/, capacitor://localhost/),
+  // so absolute "/" keeps assets loading after a reload on a deep route like /orders/123.
+  base: mobile ? "/" : "/assets/taxmate/frontend/",
+  build: mobile ? {
+    outDir: resolve(__dirname, "dist-mobile"),
+    emptyOutDir: true,
+    sourcemap: false,
+  } : {
     outDir: resolve(APP, "public/frontend"),
     emptyOutDir: true,
     sourcemap: true,
@@ -47,4 +69,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

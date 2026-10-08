@@ -18,6 +18,7 @@ import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
+import { isNative } from "../../mobile/platform";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string };
 type Doc = {
@@ -135,9 +136,12 @@ export default function DeliveryNoteDetail() {
             }}
             extra={
               <>
+                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                {!isNative() && (
                 <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.deliveryNote, name), "_blank", "noopener")}>
                   {t("inv.print")}
                 </button>
+                )}
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn" disabled={busySi} onClick={() => void createInvoice()}>
                     {busySi ? t("soc.saving") : t("dn.createSi")}

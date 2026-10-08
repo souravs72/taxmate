@@ -17,6 +17,7 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import LineItems, { type LineField } from "../../components/LineItems";
+import { isNative } from "../../mobile/platform";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; rate?: number; amount?: number; uom?: string };
 type Doc = {
@@ -88,9 +89,12 @@ export default function SupplierQuotationDetail() {
         title={data.name}
       >
         <Pill cls={sqPill(data.status)}>{data.status || "Draft"}</Pill>
+        {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+        {!isNative() && (
         <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.supplierQuotation, name), "_blank", "noopener")}>
           {t("inv.print")}
         </button>
+        )}
         {writable && data.docstatus === 0 && (
           <>
             <button className="btn ghost" onClick={() => nav(`/supplier-quotations/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>

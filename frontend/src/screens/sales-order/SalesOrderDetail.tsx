@@ -18,6 +18,7 @@ import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
+import { isNative } from "../../mobile/platform";
 
 type Doc = SalesOrder & { items: SalesOrderItem[] };
 
@@ -129,9 +130,12 @@ export default function SalesOrderDetail() {
             }}
             extra={
               <>
+                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                {!isNative() && (
                 <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.salesOrder, name), "_blank", "noopener")}>
                   {t("inv.print")}
                 </button>
+                )}
                 {/* Same gate ERPNext's own buttons use: at 100% every row's
                     mapper condition is false and the result has no items.   */}
                 <button type="button" className="btn ghost"

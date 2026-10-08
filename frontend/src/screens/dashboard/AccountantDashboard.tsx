@@ -119,8 +119,12 @@ const ROUTE: Record<string, string> = {
 };
 const docRoute = (doctype: string, name: string) => (ROUTE[doctype] ? `${ROUTE[doctype]}/${encodeURIComponent(name)}` : null);
 
-/** TaxMate SPA bank reconciliation route (Phase 14). */
-const openBankRec = () => { window.location.href = "/taxmate/bank-reconciliation"; };
+/** TaxMate SPA bank reconciliation route (Phase 14). Router navigation, so the
+ *  basename applies: /taxmate/bank-reconciliation on the web, /bank-reconciliation in the app. */
+function useOpenBankRec() {
+  const nav = useNavigate();
+  return () => nav("/bank-reconciliation");
+}
 
 const AGE = ["var(--od-age-0)", "var(--od-age-1)", "var(--od-age-2)", "var(--od-age-3)", "var(--od-age-4)"];
 
@@ -154,6 +158,7 @@ const amt = (cur: string, v: number) => `${cur} ${money(v)}`;
 
 export default function AccountantDashboard() {
   const nav = useNavigate();
+  const openBankRec = useOpenBankRec();
   const session = useSession();
   const [params, setParams] = useSearchParams();
   const month = params.get("month") ?? "";
@@ -360,6 +365,7 @@ function stepText(s: Step, cur: string): { title: string; sub: string } {
 
 function CloseCard({ d, cur }: { d: Payload; cur: string }) {
   const nav = useNavigate();
+  const openBankRec = useOpenBankRec();
   const writer = canWrite(useSession());
   const c = d.close;
   const draftsTo = (() => {
@@ -549,6 +555,7 @@ function HealthCard({ health, cur }: { health: Health[] | null; cur: string }) {
 /* ── Bank reconciliation ─────────────────────────────────────────────── */
 
 function BankCard({ banks, cur }: { banks: Payload["banks"]; cur: string }) {
+  const openBankRec = useOpenBankRec();
   if (!banks) {
     return (
       <section className="card" id="ad-bank">

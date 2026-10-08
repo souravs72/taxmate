@@ -254,6 +254,10 @@ def _adopt_active_company_for_doc(doctype: str, name: str | None) -> str | None:
 	if not can_use_company(company):
 		return None
 	set_active_company(company)
+	# resource.get is a GET: Frappe rolls back GET requests unless asked to commit
+	# (frappe/app.py after_request), which would undo the switch and make the SPA
+	# reload forever. Persist it explicitly.
+	frappe.local.flags.commit = True
 	return company
 
 

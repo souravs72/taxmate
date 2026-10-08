@@ -306,8 +306,11 @@ class TestSpaUsers(FrappeTestCase):
 		update_password(created["name"], "TaxMate-Old-Pass1!")
 		try:
 			frappe.set_user(created["name"])
-			with self.assertRaises(frappe.AuthenticationError):
+			# 417 ValidationError (not 401 AuthenticationError): mobile treats 401 as a dead device token.
+			with self.assertRaises(frappe.ValidationError) as ctx:
 				change_password(old_password="wrong", new_password="TaxMate-New-Pass1!")
+			self.assertNotIsInstance(ctx.exception, frappe.AuthenticationError)
+			self.assertEqual(ctx.exception.http_status_code, 417)
 			change_password(old_password="TaxMate-Old-Pass1!", new_password="TaxMate-New-Pass1!")
 		finally:
 			frappe.set_user("Administrator")

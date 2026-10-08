@@ -21,6 +21,7 @@ import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { isNative } from "../../mobile/platform";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string };
 type Doc = {
@@ -115,9 +116,12 @@ export default function PurchaseReceiptDetail() {
             }}
             extra={
               <>
+                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                {!isNative() && (
                 <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseReceipt, name), "_blank", "noopener")}>
                   {t("inv.print")}
                 </button>
+                )}
                 {submitted && writable && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
                     {busyPi ? t("soc.saving") : t("pr.createPi")}

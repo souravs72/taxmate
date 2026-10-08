@@ -15,6 +15,8 @@
   "enforce_credit_note_reference",
   "block_invoices_in_filed_vat_period",
   "vat_201_reminder_days",
+  "mobile_section",
+  "mobile_email_code_login",
   "statutory_section",
   "prefer_uae_hosted_files",
   "data_residency_note",
@@ -96,6 +98,18 @@
    "label": "VAT 201 Reminder Lead Days"
   },
   {
+   "fieldname": "mobile_section",
+   "fieldtype": "Section Break",
+   "label": "Mobile app"
+  },
+  {
+   "default": "1",
+   "description": "Let people sign in to the TaxMate mobile app with a 6-digit code sent to their e-mail. Turn off to allow password sign-in only.",
+   "fieldname": "mobile_email_code_login",
+   "fieldtype": "Check",
+   "label": "Allow E-mail Code Sign-in"
+  },
+  {
    "fieldname": "statutory_section",
    "fieldtype": "Section Break",
    "label": "Statutory records"
@@ -128,7 +142,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-09-19 10:00:00.000000",
+ "modified": "2026-10-04 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "TaxMate",
  "name": "TaxMate Settings",

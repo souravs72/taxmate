@@ -20,6 +20,7 @@ import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
+import { isNative } from "../../mobile/platform";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; };
 type Doc = {
@@ -101,9 +102,12 @@ export default function QuotationDetail() {
             }}
             extra={
               <>
+                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                {!isNative() && (
                 <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.quotation, name), "_blank", "noopener")}>
                   {t("inv.print")}
                 </button>
+                )}
                 {submitted ? (
                   <button type="button" className="btn" disabled={mapBusy}
                     onClick={() => void createSO()}>

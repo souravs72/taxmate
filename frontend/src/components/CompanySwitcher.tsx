@@ -5,6 +5,7 @@ import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 import { METHOD } from "../lib/frappe";
 import { allowedDashModes } from "../lib/roles";
 import { useSession } from "../lib/session";
+import { hardNavigate } from "../mobile/platform";
 import { t } from "../i18n/strings";
 
 type CompanyRow = {
@@ -144,7 +145,7 @@ export default function CompanySwitcher() {
       // string, so leaving the all-clients view has to replace `as=clients`
       // or the reload lands on the same practice screen.
       const search = allView ? searchAfterLeavingClients(location.search) : location.search;
-      window.location.assign(landingFor(location.pathname, search));
+      hardNavigate(landingFor(location.pathname, search));
     } catch {
       setBusy(null);
       setError(t("company.switchFailed"));
@@ -159,7 +160,7 @@ export default function CompanySwitcher() {
        no document screen can end up with "all clients" as its company. A full
        assign rather than a router push, to match choose() above — the clients
        dashboard then loads with nothing cached from a single company. */
-    window.location.assign("/taxmate/?as=clients");
+    hardNavigate("/taxmate/?as=clients");
   }
 
   function onListKey(event: React.KeyboardEvent<HTMLDivElement>) {

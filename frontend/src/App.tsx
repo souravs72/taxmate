@@ -13,6 +13,7 @@ import { ErrorBox, Loading } from "./components/ui";
 import { hasCsrfToken } from "./lib/frappe";
 import { LangProvider } from "./lib/i18n";
 import { SessionProvider } from "./lib/session";
+import { isAuthLost, isNative, signalMobile } from "./mobile/platform";
 import SalesOrderList from "./screens/sales-order/SalesOrderList";
 import SalesOrderDetail from "./screens/sales-order/SalesOrderDetail";
 import SalesOrderCreate from "./screens/sales-order/SalesOrderCreate";
@@ -204,17 +205,18 @@ export default function App() {
 
   useEffect(() => {
     if (!needsLogin) return;
+    // Native: dead token → the app's own sign-in; offline / 5xx → retry screen, credentials kept.
+    if (isNative()) return signalMobile(isAuthLost(error, currentUser) ? "auth-lost" : "unreachable");
     const back = encodeURIComponent(window.location.pathname + window.location.search);
     window.location.href = `/login?redirect-to=${back}`;
-  }, [needsLogin]);
+  }, [needsLogin, error, currentUser]);
 
   if (isLoading || needsLogin) return <Loading />;
 
-  return (
-    <LangProvider>
+  const tree = (
     <SessionProvider>
       <AppShell>
-        {!hasCsrfToken() && (
+        {!isNative() && !hasCsrfToken() && (
           <ErrorBox error={{ message:
             "This page was served without a CSRF token, so saving will fail. " +
             "It usually means the static shell was served instead of the TaxMate " +
@@ -475,6 +477,6 @@ export default function App() {
         </Routes>
       </AppShell>
     </SessionProvider>
-    </LangProvider>
   );
+  return isNative() ? tree : <LangProvider>{tree}</LangProvider>;
 }

@@ -1,0 +1,127 @@
+name: Mobile
+
+# Builds the Capacitor shells (frontend/android, frontend/ios) to prove they
+# compile. Unsigned / debug only — signing and store uploads come later.
+
+on:
+  push:
+    branches:
+      - version-16
+      - frontend
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/mobile.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-taxmate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  android-debug:
+    runs-on: ubuntu-latest
+    name: Android (debug APK)
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build mobile bundle
+        working-directory: frontend
+        run: npm run build:mobile
+
+      - name: Sync Android project
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: |
+            frontend/android/*.gradle*
+            frontend/android/app/*.gradle*
+            frontend/android/gradle/wrapper/gradle-wrapper.properties
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Build debug APK
+        working-directory: frontend/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: taxmate-debug-apk
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
+
+  ios-simulator:
+    runs-on: macos-latest
+    name: iOS (simulator, unsigned)
+
+    steps:
+      - name: Clone
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build mobile bundle
+        working-directory: frontend
+        run: npm run build:mobile
+
+      # Capacitor 8 uses Swift Package Manager (ios/App/CapApp-SPM/Package.swift),
+      # not CocoaPods — no `pod install`. The plugin packages point into
+      # node_modules, so `npm ci` must run first.
+      - name: Sync iOS project
+        working-directory: frontend
+        run: npx cap sync ios
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Resolve Swift packages
+        working-directory: frontend/ios/App
+        run: xcodebuild -resolvePackageDependencies -project App.xcodeproj -scheme App
+
+      - name: Build for simulator
+        working-directory: frontend/ios/App
+        run: |
+          xcodebuild build \
+            -project App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO

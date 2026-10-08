@@ -178,6 +178,7 @@ DENIED_SEARCH_DOCTYPES = frozenset(
 		"User",
 		"Role",
 		"Has Role",
+		"TaxMate Mobile Device",
 	}
 )
 

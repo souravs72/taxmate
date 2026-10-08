@@ -26,6 +26,7 @@ import { useMemo, useState } from "react";
 import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
 import { METHOD } from "../../lib/frappe";
+import { hardNavigate } from "../../mobile/platform";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
@@ -285,7 +286,7 @@ export default function ClientsDashboard() {
       await switcher.call({ company: row.company });
       /* A full reload, exactly as the header switcher does: it drops every
          cached list, dashboard and form default from the previous company. */
-      window.location.assign("/taxmate/?as=accountant");
+      hardNavigate("/taxmate/?as=accountant");
     } catch {
       setBusy(null);
       setFailed(true);
