@@ -194,3 +194,269 @@
   .rpt .rpt-name { font-size: 13px; }
   .rpt .rpt-name > span:first-child { min-width: 0; }
 }
+
+/* ─────────────────────────────────────────────────────────────────────
+   Report runner — Frappe query-report chrome
+   Mirrors Desk `.page-form` + `.report-wrapper` + frappe-datatable
+   (sticky header, bordered cells, horizontal scroll, footer meta).
+   ───────────────────────────────────────────────────────────────────── */
+
+.rpt-run {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+}
+
+.rpt-run .phead {
+  margin-block-end: 0;
+}
+
+/* Frappe `.page-form` — filters strip above the grid */
+.rpt-form {
+  margin: 0;
+  padding: 8px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  margin-block: 12px;
+}
+
+.rpt-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  align-items: center;
+}
+
+.rpt-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.rpt-links button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.rpt-links button:hover { color: var(--text); }
+.rpt-links button[aria-pressed="true"] {
+  color: var(--text);
+  font-weight: 600;
+  background: var(--hover);
+}
+.rpt-links button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.rpt-grain {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-inline-start: auto;
+  color: var(--muted);
+  font-size: 12px;
+}
+.rpt-grain .ctl { width: auto; min-width: 132px; }
+
+.rpt-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  align-items: flex-end;
+}
+.rpt-fields .f { width: 168px; flex: none; }
+.rpt-fields .fsearch { flex: 1 1 200px; min-width: 180px; }
+
+.rpt-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  min-height: 38px;
+}
+.rpt-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+.rpt-check:hover { color: var(--text); }
+.rpt-check input { accent-color: var(--brand); }
+
+/* Grid shell — Frappe `.report-wrapper` */
+.rpt-grid-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r, 8px);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.rpt-dt-msg {
+  min-height: 200px;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+
+.rpt-dt-shell {
+  position: relative;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* Edge fades — cue that the grid scrolls horizontally */
+.rpt-dt-shell.rpt-dt-fade-start::before,
+.rpt-dt-shell.rpt-dt-fade-end::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 18px;
+  pointer-events: none;
+  z-index: 3;
+}
+.rpt-dt-shell.rpt-dt-fade-start::before {
+  inset-inline-start: 0;
+  background: linear-gradient(to right, var(--surface), transparent);
+}
+.rpt-dt-shell.rpt-dt-fade-end::after {
+  inset-inline-end: 0;
+  background: linear-gradient(to left, var(--surface), transparent);
+}
+[dir="rtl"] .rpt-dt-shell.rpt-dt-fade-start::before {
+  background: linear-gradient(to left, var(--surface), transparent);
+}
+[dir="rtl"] .rpt-dt-shell.rpt-dt-fade-end::after {
+  background: linear-gradient(to right, var(--surface), transparent);
+}
+
+/* Frappe `.dt-scrollable` — one viewport, both axes */
+.rpt-dt {
+  overflow: auto;
+  max-height: min(70vh, calc(100vh - 280px));
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  outline: none;
+}
+.rpt-dt:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--brand);
+}
+
+.rpt-dt-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12.5px;
+  font-feature-settings: "tnum";
+}
+
+.rpt-dt-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--hover, #f4f5f6);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  text-align: start;
+  text-transform: none;
+  letter-spacing: 0;
+  padding: 8px 12px;
+  border-block-end: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+.rpt-dt-table thead th.n { text-align: end; }
+.rpt-dt-table thead th:last-child { border-inline-end: 0; }
+
+.rpt-dt-table tbody td {
+  padding: 7px 12px;
+  border-block-end: 1px solid var(--border);
+  border-inline-end: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  vertical-align: middle;
+  white-space: nowrap;
+  height: 35px;
+  box-sizing: border-box;
+}
+.rpt-dt-table tbody td:last-child { border-inline-end: 0; }
+.rpt-dt-table tbody tr:last-child td { border-block-end: 0; }
+.rpt-dt-table tbody td.n { text-align: end; }
+.rpt-dt-table tbody td.tot { font-weight: 650; }
+.rpt-dt-table tbody td.rpt-zero { color: var(--faint); font-weight: 400; }
+.rpt-dt-table tbody td.rpt-tree {
+  white-space: normal;
+  max-width: 360px;
+}
+
+.rpt-dt-table tbody tr.rpt-bold td {
+  font-weight: 650;
+  background: var(--hover, #f8f9fa);
+}
+.rpt-dt-table tbody tr.rpt-open { cursor: pointer; }
+.rpt-dt-table tbody tr.rpt-open:hover td { background: var(--hover); }
+.rpt-dt-table tbody tr.rpt-open:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+/* Footer — row count + find (Desk list/report meta strip) */
+.rpt-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 8px 12px;
+  border-block-start: 1px solid var(--border);
+  background: var(--hover, #f8f9fa);
+  min-height: 44px;
+}
+.rpt-footer-meta {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.rpt-footer-find {
+  flex: 0 1 240px;
+  min-width: 140px;
+}
+.rpt-footer-find .fsearch { width: 100%; }
+
+@media (max-width: 760px) {
+  .rpt-form { padding: 10px 12px; margin-block: 10px; }
+  .rpt-fields .f { width: 100%; flex: 1 1 100%; }
+  .rpt-fields .fsearch { flex: 1 1 100%; min-width: 0; }
+  .rpt-grain { margin-inline-start: 0; width: 100%; }
+  .rpt-grain .ctl { flex: 1; min-width: 0; width: auto; }
+  .rpt-top { gap: 10px; }
+  .rpt-dt { max-height: calc(100vh - 260px); }
+  .rpt-dt-table tbody td.rpt-tree { max-width: 210px; }
+  .rpt-footer { flex-direction: column; align-items: stretch; }
+  .rpt-footer-find { flex: 1 1 auto; width: 100%; }
+  .rpt-links button,
+  .rpt-check { min-height: 44px; }
+  .rpt-checks { min-height: 44px; }
+}
