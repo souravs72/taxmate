@@ -128,6 +128,16 @@ export function canEditCompanyAccounts(session: {
   return spaRoleOf(session) === "accountant";
 }
 
+/** Site-wide UAE Tax Settings (ASP). Same write roles as settings Singles. */
+export function canEditTaxSettings(session: {
+  spa_role?: string;
+  spa_roles?: string[];
+  roles?: string[];
+  user?: string;
+} | undefined): boolean {
+  return canEditCompanyAccounts(session);
+}
+
 /**
  * Desk (`/app`, `/desk`) is gated server-side to Administrator only
  * (`taxmate.setup.desk_gate`). Mirror that here so the SPA never offers

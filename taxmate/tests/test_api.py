@@ -1773,3 +1773,65 @@ class TestCompanySettingsWrite(FrappeTestCase):
 			self.assertEqual(saved.get("taxmate_vat_filing_frequency"), "Quarterly")
 		addrs = list_company_addresses(company)
 		self.assertIsInstance(addrs, list)
+
+class TestUaeTaxSettingsApi(FrappeTestCase):
+	"""SPA E-Invoice ASP page: get/save without leaking password values."""
+
+	def test_catalog_lists_tax_settings_actions(self):
+		from taxmate.api import get_catalog
+
+		methods = {row["method"] for row in get_catalog()["actions"]}
+		self.assertIn("taxmate.api.tax_settings.get_uae_tax_settings", methods)
+		self.assertIn("taxmate.api.tax_settings.save_uae_tax_settings", methods)
+
+	def test_get_and_save_public_fields_without_secrets(self):
+		from taxmate.api.tax_settings import get_uae_tax_settings, save_uae_tax_settings
+
+		if not frappe.db.exists("DocType", "UAE Tax Settings"):
+			self.skipTest("UAE Tax Settings missing")
+		before = get_uae_tax_settings()
+		self.assertNotIn("client_secret", before)
+		self.assertNotIn("auth_key", before)
+		self.assertNotIn("webhook_secret", before)
+		self.assertIn("has_client_secret", before)
+		old_sla = before.get("sla_days") or 14
+		new_sla = 13 if int(old_sla) == 14 else 14
+		saved = save_uae_tax_settings({"sla_days": new_sla, "asp_provider": before.get("asp_provider") or "Sandbox"})
+		self.assertEqual(int(saved.get("sla_days")), new_sla)
+		# restore
+		save_uae_tax_settings({"sla_days": old_sla, "asp_provider": before.get("asp_provider") or "Sandbox"})
+
+	def test_save_preserves_existing_secrets(self):
+		from frappe.utils.password import get_decrypted_password, set_encrypted_password
+		from taxmate.api.tax_settings import get_uae_tax_settings, save_uae_tax_settings
+
+		if not frappe.db.exists("DocType", "UAE Tax Settings"):
+			self.skipTest("UAE Tax Settings missing")
+		marker = f"tm-asp-{frappe.generate_hash(length=8)}"
+		set_encrypted_password("UAE Tax Settings", "UAE Tax Settings", marker, "auth_key")
+		frappe.db.commit()
+		before = get_uae_tax_settings()
+		self.assertTrue(before.get("has_auth_key"))
+		old_sla = before.get("sla_days") or 14
+		new_sla = 13 if int(old_sla) == 14 else 14
+		save_uae_tax_settings(
+			{
+				"sla_days": new_sla,
+				"asp_provider": before.get("asp_provider") or "Sandbox",
+				"archive_retention_years": before.get("archive_retention_years") or 5,
+			}
+		)
+		stored = get_decrypted_password(
+			"UAE Tax Settings", "UAE Tax Settings", "auth_key", raise_exception=False
+		)
+		self.assertEqual(stored, marker)
+		after = get_uae_tax_settings()
+		self.assertTrue(after.get("has_auth_key"))
+		save_uae_tax_settings(
+			{
+				"sla_days": old_sla,
+				"asp_provider": before.get("asp_provider") or "Sandbox",
+				"archive_retention_years": before.get("archive_retention_years") or 5,
+			}
+		)
+
