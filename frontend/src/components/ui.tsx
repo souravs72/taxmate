@@ -82,7 +82,7 @@ export function PageHead({
   /**
    * Controls that change what you are *looking at* rather than what you are
    * doing — the dashboards' Owner/Accountant switch, say. On a desktop they
-   * sit in the header row beside the actions, exactly where they always have;
+   * sit in their own header column (so action-button width cannot shove them);
    * on a phone they stay under the title instead of taking a whole row of the
    * fixed action bar, which is for things you tap once and move on.
    */
@@ -104,20 +104,20 @@ export function PageHead({
   );
   const hosted = actions ? null : (hostedVersion ? getFormActionNode() : null);
   const bar = actions ?? hosted;
+  const showInlineActs = !(phone && stickyActions && bar) && Boolean(bar);
   return (
     <InPageHead.Provider value={true}>
       <div className="phead">
-        <div>
+        <div className="phead-main">
           {eyebrow && <p className="eyebrow">{eyebrow}</p>}
           <h1>{title}</h1>
           {sub && <p className="sub">{sub}</p>}
           {children}
           {phone && viewControls && <div className="phead-views">{viewControls}</div>}
         </div>
+        {!phone && viewControls ? <div className="phead-views">{viewControls}</div> : null}
         {phone && stickyActions && bar && <PageActionBar actions={bar} />}
-        {!(phone && stickyActions && bar) && (bar || (!phone && viewControls)) && (
-          <div className="acts">{!phone && viewControls}{bar}</div>
-        )}
+        {showInlineActs ? <div className="acts">{bar}</div> : null}
       </div>
     </InPageHead.Provider>
   );

@@ -39,27 +39,29 @@ export function DashSwitch() {
     undefined,
     session.user ? `my-companies-${session.user}` : null,
   );
-  const companyCount = data?.message?.companies?.length ?? 0;
+  const companies = data?.message?.companies;
+  const companiesLoaded = companies !== undefined;
+  const companyCount = companies?.length ?? 0;
   const allowed = allowedDashModes(session);
   if (!session.user || !mode || !allowed) return null;
-  /* All clients is an accountant view, and only when more than one company
-     is mapped. Keep the button while that view is already open. */
-  const modes = allowed.filter((m) => m !== "clients" || companyCount > 1 || mode === "clients");
+  /* All clients only when more than one company is mapped. While the list is
+     still loading, keep the slot so the segment does not grow/shrink later. */
+  const modes = allowed.filter(
+    (m) => m !== "clients" || !companiesLoaded || companyCount > 1 || mode === "clients",
+  );
   const pick = (m: DashMode) => {
     if (m === mode) return;
-    // The views have different filters; carrying one's over to the other would be meaningless.
-    setParams(new URLSearchParams({ as: m }), { replace: false });
+    // Replace so switching views does not stack history (back/forward thrash).
+    // Each view has its own filters; do not carry period/month across.
+    setParams(new URLSearchParams({ as: m }), { replace: true });
   };
   if (modes.length < 2) return null;
   return (
-    <div className="seg" role="group" aria-label={t("ad.switch")}>
-      {/* "All clients" only means something to someone who has more than one.
-          A single-company business never sees a third button. The count comes
-          from the list above, so the label is never a number written here. */}
+    <div className="seg dash-seg" role="group" aria-label={t("ad.switch")}>
       {modes.map((m) => (
         <button key={m} type="button" aria-pressed={mode === m} onClick={() => pick(m)}>
           {m === "clients"
-            ? (companyCount > 0
+            ? (companyCount > 1
                 ? t("ad.switch.clientsN").replace("{n}", String(companyCount))
                 : t("company.allClients"))
             : t(`ad.switch.${m}`)}
