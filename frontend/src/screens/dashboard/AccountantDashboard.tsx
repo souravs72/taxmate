@@ -192,7 +192,7 @@ export default function AccountantDashboard() {
               <button type="button" className="btn ghost" onClick={() => nav("/journals/new")}>{t("ad.journal")}</button>
             </span>
             <span className="dash-acts-pri">
-              <button type="button" className="btn" onClick={() => nav("/invoices/new")}>＋ {t("hub.newSale")}</button>
+              <button type="button" className="btn" onClick={() => nav("/invoices/new")}>{t("hub.newSale")}</button>
             </span>
           </>
         }
