@@ -9,6 +9,7 @@ import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { METHOD, readableError } from "../../lib/frappe";
 import { t } from "../../i18n/strings";
+import { apiFetch } from "../../mobile/http";
 
 type Target = {
   doctype: string;
@@ -704,7 +705,7 @@ function trapTab(event: KeyboardEvent, root: HTMLElement) {
 async function postFile(file: File): Promise<Record<string, unknown>> {
   const body = new FormData();
   body.append("file", file);
-  const res = await fetch(`/api/method/${METHOD.idpUpload}`, {
+  const res = await apiFetch(`/api/method/${METHOD.idpUpload}`, {
     method: "POST",
     headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" },
     body,
@@ -713,7 +714,7 @@ async function postFile(file: File): Promise<Record<string, unknown>> {
 }
 
 async function postForm(method: string, args: Record<string, string>): Promise<Review> {
-  const res = await fetch(`/api/method/${method}`, {
+  const res = await apiFetch(`/api/method/${method}`, {
     method: "POST",
     headers: {
       "X-Frappe-CSRF-Token": window.csrf_token || "",

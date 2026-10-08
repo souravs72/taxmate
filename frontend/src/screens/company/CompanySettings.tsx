@@ -17,6 +17,7 @@ import { canEditCompanyAccounts, canManageCompany } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import LinkField from "../../components/LinkField";
+import { apiFetch, fileUrl } from "../../mobile/http";
 
 type CompanyDoc = {
   name: string;
@@ -280,7 +281,7 @@ export default function CompanySettings() {
       const body = new FormData();
       body.append("file", file);
       body.append("company", company);
-      const resp = await fetch(`/api/method/${METHOD.uploadCompanyLogo}`, {
+      const resp = await apiFetch(`/api/method/${METHOD.uploadCompanyLogo}`, {
         method: "POST",
         headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" },
         body,
@@ -379,7 +380,7 @@ export default function CompanySettings() {
                   <Field label={t("cs.logo")}>
                     <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
                       {logo ? (
-                        <img src={logo} alt="" style={{ height: 48, maxWidth: 120, objectFit: "contain" }} />
+                        <img src={fileUrl(logo)} alt="" style={{ height: 48, maxWidth: 120, objectFit: "contain" }} />
                       ) : (
                         <span className="od-note">{t("cs.logoEmpty")}</span>
                       )}

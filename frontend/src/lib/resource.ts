@@ -7,6 +7,7 @@ import { useFrappeGetCall, useFrappePostCall } from "frappe-react-sdk";
 
 import { METHOD } from "./frappe";
 import { useSession } from "./session";
+import { hardReload } from "../mobile/platform";
 
 type OrderBy = { field: string; order?: "asc" | "desc" };
 
@@ -76,7 +77,7 @@ export function useDoc<T>(
   useEffect(() => {
     const company = owningCompanyOf(data);
     if (!company || !session.company || company === session.company) return;
-    window.location.reload();
+    hardReload();
   }, [data, session.company]);
 
   return {

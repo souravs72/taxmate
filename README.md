@@ -18,6 +18,10 @@ See [UAE VAT setup](https://docs.frappe.io/erpnext/UAE-vat-setup) and [UAE VAT 2
 
 TaxMate exposes authenticated RPC methods under `taxmate.api.*` so a custom frontend can run books: parties, invoices, payments, journals, chart of accounts, financial reports, and UAE tax actions. Start with `taxmate.api.get_catalog`. See [docs/api.md](docs/api.md).
 
+### Monorepo (web + mobile)
+
+One Frappe app repo holds the Python package (`taxmate/`), the React SPA (`frontend/`), and the Capacitor Android/iOS shells (`frontend/android`, `frontend/ios`). Phone and browser share the same screens; the phone adds a token-auth shell under `frontend/src/mobile/`. See [frontend/README.md](frontend/README.md) and [frontend/MOBILE.md](frontend/MOBILE.md).
+
 ### UAE UBO and ESR compliance tracking
 
 TaxMate also tracks two UAE compliance obligations that sit alongside VAT and Corporate Tax:
@@ -61,6 +65,7 @@ This app can use GitHub Actions for CI. The following workflows are configured:
 
 - CI: Installs this app and runs unit tests on every push to `develop` branch.
 - Linters: Runs [Frappe Semgrep Rules](https://github.com/frappe/semgrep-rules) and [pip-audit](https://pypi.org/project/pip-audit/) on every pull request.
+- Mobile: Builds the Capacitor Android debug APK and compiles the iOS simulator target when `frontend/` changes.
 
 ### License
 

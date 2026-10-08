@@ -14,6 +14,7 @@ import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { DirChip } from "./PaymentList";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { isNative } from "../../mobile/platform";
 
 type Ref = {
   name?: string;
@@ -91,10 +92,13 @@ export default function PaymentDetail() {
         title={data.party_name || data.party}
         actions={
           <>
-            <button className="btn ghost"
+            {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+            {!isNative() && (
+            <button type="button" className="btn ghost"
               onClick={() => window.open(printUrl(data.name), "_blank", "noopener")}>
               {t("pay.print")}
             </button>
+            )}
             {data.docstatus === 0 && (
               <button className="btn ghost" onClick={() => nav(`/payments/${encodeURIComponent(name)}/edit`)}>
                 {t("inv.edit")}

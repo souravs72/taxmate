@@ -14,6 +14,7 @@ import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { printDocUrl } from "../../lib/printDoc";
+import { isNative } from "../../mobile/platform";
 
 type Line = {
   item_code?: string; item_name?: string; qty?: number; received_qty?: number;
@@ -114,9 +115,12 @@ export default function PurchaseOrderDetail() {
               }}
               extra={
                 <>
+                  {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                  {!isNative() && (
                   <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseOrder, name), "_blank", "noopener")}>
                     {t("inv.print")}
                   </button>
+                  )}
                   <button type="button" className="btn ghost"
                     disabled={!!busy || data.docstatus !== 1 || (data.per_received ?? 0) >= 100}
                     onClick={() => void createDownstream("pr")}>

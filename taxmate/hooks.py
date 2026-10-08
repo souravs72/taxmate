@@ -206,6 +206,12 @@ doc_events = {
 		],
 		"on_cancel": "taxmate.uae_e_invoicing.overrides.purchase_invoice.on_cancel",
 	},
+	# Mobile device tokens: sign out devices when the user is disabled or the password changes.
+	"User": {
+		"before_validate": "taxmate.api.mobile_auth.user_before_validate",
+		"on_update": "taxmate.api.mobile_auth.user_on_update",
+		"on_trash": "taxmate.api.mobile_auth.user_on_trash",
+	},
 }
 
 for _retained in (
@@ -237,6 +243,7 @@ scheduler_events = {
 		"taxmate.uae_e_invoicing.notifications.send_e_invoice_reminders",
 		"taxmate.uae_corporate_tax.notifications.send_ct_reminders",
 		"taxmate.uae_vat.utils.late_filing.sync_late_filing_notices",
+		"taxmate.api.mobile_auth.cleanup_devices",
 	],
 }
 
@@ -261,6 +268,8 @@ extend_doctype_class = {
 override_whitelisted_methods = {
 	"idp.api.settings.get_settings": "taxmate.idp.clerk.get_settings",
 	"idp.api.conversation.confirm_card": "taxmate.idp.clerk.confirm_card",
+	# Same behaviour, then signs out the user's TaxMate mobile devices.
+	"frappe.core.doctype.user.user.update_password": "taxmate.api.mobile_auth.update_password",
 }
 
 # each overriding function accepts a `data` argument;
@@ -316,9 +325,10 @@ before_request = ["taxmate.setup.desk_gate.block_desk_for_non_admin"]
 # Authentication and authorization
 # --------------------------------
 
-# auth_hooks = [
-# 	"taxmate.auth.validate"
-# ]
+# TaxMate mobile app: ``Authorization: TaxMate <device_token>`` (no-op for any other scheme).
+auth_hooks = [
+	"taxmate.api.mobile_auth.validate",
+]
 
 extend_bootinfo = "taxmate.search.boot_session"
 

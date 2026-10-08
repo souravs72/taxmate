@@ -75,6 +75,7 @@ tasks/
 # Local merge scratch — never ship in the app package
 .mobile-merge-backup-*/
 .mobile-backup-*/
+.taxmate-backup-*/
 _imports/
 
 # Agent working prompts — not part of the app

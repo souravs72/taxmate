@@ -5,6 +5,7 @@ import { useFrappeAuth } from "frappe-react-sdk";
 import { useSession } from "../lib/session";
 import { canManageCompany, canOpenDesk, isAppProvider, spaRoleOf } from "../lib/roles";
 import { t } from "../i18n/strings";
+import { isNative, signalMobile } from "../mobile/platform";
 
 export default function UserMenu() {
   const [open, setOpen] = useState(false);
@@ -19,7 +20,7 @@ export default function UserMenu() {
   const provider = isAppProvider(session);
   const roleLabel = provider ? t("role.provider") : t(`role.${spaRoleOf(session)}`);
   const canSettings = canManageCompany(session);
-  const showDesk = canOpenDesk(session);
+  const showDesk = canOpenDesk(session) && !isNative();
   const displayName = session.full_name || currentUser || "—";
 
   const initials = displayName
@@ -79,6 +80,7 @@ export default function UserMenu() {
     if (signingOut) return;
     setSigningOut(true);
     setOpen(false);
+    if (isNative()) return signalMobile("logout"); // native: revoke device token, back to sign-in
     try {
       await logout();
     } finally {

@@ -475,7 +475,16 @@ def change_password(old_password: str, new_password: str) -> dict[str, str]:
 	if feedback and not feedback.get("password_policy_validation_passed", False):
 		handle_password_test_fail(feedback)
 
-	check_password(user, old_password)
+	try:
+		check_password(user, old_password)
+	except frappe.AuthenticationError:
+		# 417, not 401: the mobile app treats any 401 as a dead device token.
+		frappe.throw(_("Incorrect User or Password"), frappe.ValidationError)
 	logout_all = cint(frappe.get_system_settings("logout_on_password_reset"))
 	update_password(user, new_password, logout_all_sessions=logout_all)
+	# update_password does not save the User doc, so User doc_events do not fire:
+	# sign out other mobile devices here (keeps the device making this request).
+	from taxmate.api.mobile_auth import current_device, revoke_user_devices
+
+	revoke_user_devices(user, keep=current_device())
 	return {"ok": "1"}

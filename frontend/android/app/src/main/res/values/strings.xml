@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">TaxMate</string>
+    <string name="title_activity_main">TaxMate</string>
+    <string name="package_name">com.ascratech.taxmate</string>
+    <string name="custom_url_scheme">com.ascratech.taxmate</string>
+</resources>

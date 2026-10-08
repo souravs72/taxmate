@@ -13,6 +13,7 @@ import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
+import { isNative } from "../../mobile/platform";
 
 /** The pipeline the e-invoice walks, in order. */
 const PIPE = ["Generated", "Queued", "Submitted", "Accepted"] as const;
@@ -188,9 +189,12 @@ export default function InvoiceDetail() {
                     {t("inv.credit")}
                   </button>
                 )}
-                <button className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
+                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
+                {!isNative() && (
+                <button type="button" className="btn ghost" onClick={() => window.open(printUrl(name), "_blank", "noopener")}>
                   {t("inv.print")}
                 </button>
+                )}
               </>
             }
           />
