@@ -170,12 +170,18 @@ def _file_gate(file_url: str) -> str | None:
 
 
 def _ocr_language(path: str) -> str:
-	"""Detect a real OCR code from the file on disk. Never pass ``auto`` to Paddle."""
+	"""Detect a real OCR code from the file on disk. Never pass ``auto`` to Paddle.
+
+	Runs through ``detect_language_isolated`` (subprocess + timeout) rather
+	than the bare engine call: an in-process PaddleOCR init can hang on a
+	model download with no bound, which blocked the whole scan at this
+	first stage before the fix.
+	"""
 	from idp.core.constants import OCR_LANGUAGES
-	from idp.ocr.engine import detect_language
+	from idp.ocr.engine import detect_language_isolated
 
 	try:
-		detected = detect_language(path) or ""
+		detected = detect_language_isolated(path) or ""
 	except Exception:
 		detected = ""
 	return resolve_ocr_language(detected, set(OCR_LANGUAGES))
