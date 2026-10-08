@@ -30,8 +30,7 @@ import "./reports.css";
 
 type Col = ReportCol;
 type Row = Record<string, unknown>;
-type Chart = { data?: { labels?: string[]; datasets?: { name?: string; values?: number[] }[] } };
-type Payload = { result?: Row[]; columns?: Col[]; chart?: Chart };
+type Payload = { result?: Row[]; columns?: Col[] };
 type Fy = { year_start_date?: string; year_end_date?: string };
 type Chip = "month" | "quarter" | "ytd" | "fy";
 
@@ -419,6 +418,21 @@ export default function ReportRunner() {
           loading={paused || run.isLoading}
           loadingNode={<Loading />}
           empty={<Empty label={q ? t("rpt.noneRows") : t("rpt.empty")} />}
+          regionLabel={t("rpt.resultsRegion")}
+          isRowActive={(row) => {
+            if (spaRouteForVoucher(row.voucher_type, row.voucher_no)) return true;
+            return Boolean(caps.tree && row.account && name !== "General Ledger");
+          }}
+          rowLabel={(row) => {
+            const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
+            if (voucherRoute) {
+              return fill(t("rpt.openVoucher"), {
+                t: String(row.voucher_type || ""),
+                n: String(row.voucher_no || ""),
+              });
+            }
+            return fill(t("rpt.openAccount"), { a: String(row.account || "") });
+          }}
           rowClassName={(row) => {
             const clickable = Boolean(caps.tree && row.account && name !== "General Ledger");
             const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);

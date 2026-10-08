@@ -13,7 +13,12 @@ type Props = {
   renderCell: (row: Record<string, unknown>, col: ReportCol, colIndex: number) => ReactNode;
   isMoney: (col: ReportCol) => boolean;
   rowClassName?: (row: Record<string, unknown>) => string;
+  /** When true, row is keyboard/mouse activatable (do not infer from CSS). */
+  isRowActive?: (row: Record<string, unknown>) => boolean;
+  rowLabel?: (row: Record<string, unknown>) => string;
   onRowActivate?: (row: Record<string, unknown>) => void;
+  rowKey?: (row: Record<string, unknown>, index: number) => string;
+  regionLabel: string;
   empty: ReactNode;
   loading?: boolean;
   loadingNode?: ReactNode;
@@ -29,13 +34,25 @@ function colWidth(col: ReportCol, index: number): number {
   return 160;
 }
 
+function defaultRowKey(row: Record<string, unknown>, index: number): string {
+  const parts = [
+    row.voucher_no, row.voucher_type, row.account, row.party,
+    row.item_code, row.posting_date, row.idx, index,
+  ];
+  return parts.map((p) => (p == null ? "" : String(p))).join("|");
+}
+
 export default function ReportDataTable({
   columns,
   rows,
   renderCell,
   isMoney,
   rowClassName,
+  isRowActive,
+  rowLabel,
   onRowActivate,
+  rowKey,
+  regionLabel,
   empty,
   loading,
   loadingNode,
@@ -48,10 +65,15 @@ export default function ReportDataTable({
     if (!el) return;
     const sync = () => {
       const max = el.scrollWidth - el.clientWidth;
-      setEdge({
-        start: el.scrollLeft <= 2,
-        end: max <= 2 || el.scrollLeft >= max - 2,
-      });
+      if (max <= 2) {
+        setEdge({ start: true, end: true });
+        return;
+      }
+      const sl = el.scrollLeft;
+      // Normalize physical scrollLeft for RTL (engines differ on sign).
+      const atStart = Math.abs(sl) <= 2;
+      const atEnd = Math.abs(sl) >= max - 2 || Math.abs(sl + max) <= 2;
+      setEdge({ start: atStart, end: atEnd });
     };
     sync();
     el.addEventListener("scroll", sync, { passive: true });
@@ -76,7 +98,7 @@ export default function ReportDataTable({
         !edge.end ? "rpt-dt-fade-end" : "",
       ].filter(Boolean).join(" ")}
     >
-      <div className="rpt-dt" ref={scroller} tabIndex={0} role="region" aria-label="Report results">
+      <div className="rpt-dt" ref={scroller} role="region" aria-label={regionLabel}>
         <table className="rpt-dt-table" style={{ minWidth }}>
           <thead>
             <tr>
@@ -94,7 +116,8 @@ export default function ReportDataTable({
           <tbody>
             {rows.map((row, i) => {
               const cls = rowClassName?.(row) ?? "";
-              const active = Boolean(onRowActivate) && cls.includes("rpt-open");
+              const active = Boolean(onRowActivate && isRowActive?.(row));
+              const label = active ? rowLabel?.(row) : undefined;
               const onKey = active
                 ? (e: KeyboardEvent<HTMLTableRowElement>) => {
                     if (e.key === "Enter" || e.key === " ") {
@@ -105,8 +128,10 @@ export default function ReportDataTable({
                 : undefined;
               return (
                 <tr
-                  key={i}
+                  key={rowKey?.(row, i) ?? defaultRowKey(row, i)}
                   className={cls || undefined}
+                  role={active ? "button" : undefined}
+                  aria-label={label}
                   tabIndex={active ? 0 : undefined}
                   onClick={active ? () => onRowActivate?.(row) : undefined}
                   onKeyDown={onKey}
