@@ -386,13 +386,20 @@ export function Field({ label, required, hint, htmlFor, children }: {
 }
 
 /** Checkbox for a doctype flag such as Disabled or Enabled. */
-export function CheckField({ label, hint, checked, onChange }: {
-  label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void;
+export function CheckField({ label, hint, checked, onChange, disabled }: {
+  label: string; hint?: string; checked: boolean; onChange: (on: boolean) => void; disabled?: boolean;
 }) {
   const id = useId();
   return (
     <Field label={label} hint={hint} htmlFor={id}>
-      <input id={id} className="check" type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input
+        id={id}
+        className="check"
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
     </Field>
   );
 }

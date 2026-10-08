@@ -194,6 +194,8 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "switch_company", "method": "taxmate.api.company.switch_company"},
 			{"name": "list_company_addresses", "method": "taxmate.api.company.list_company_addresses"},
 			{"name": "upload_company_logo", "method": "taxmate.api.company.upload_company_logo"},
+			{"name": "get_uae_tax_settings", "method": "taxmate.api.tax_settings.get_uae_tax_settings"},
+			{"name": "save_uae_tax_settings", "method": "taxmate.api.tax_settings.save_uae_tax_settings"},
 			{"name": "get_list", "method": "taxmate.api.resource.get_list"},
 			{"name": "get", "method": "taxmate.api.resource.get"},
 			{"name": "insert", "method": "taxmate.api.resource.insert"},

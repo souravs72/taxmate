@@ -128,6 +128,8 @@ export const METHOD = {
   switchCompany: "taxmate.api.company.switch_company",
   listCompanyAddresses: "taxmate.api.company.list_company_addresses",
   uploadCompanyLogo: "taxmate.api.company.upload_company_logo",
+  getUaeTaxSettings: "taxmate.api.tax_settings.get_uae_tax_settings",
+  saveUaeTaxSettings: "taxmate.api.tax_settings.save_uae_tax_settings",
   getHome: "taxmate.api.dashboard.get_home",
   ownerDashboard: "taxmate.api.owner_dashboard.get_owner_dashboard",
   accountantDashboard: "taxmate.api.accountant_dashboard.get_accountant_dashboard",

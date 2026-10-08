@@ -224,7 +224,11 @@ _NAV_PAGES: tuple[dict[str, str], ...] = (
 	{"label": "UBO Register", "route": "/ubo", "keywords": "ubo beneficial owner register"},
 	{"label": "Late Filings", "route": "/late-filings", "keywords": "late filing notice overdue fta"},
 	{"label": "E-Invoice Log", "route": "/e-invoice-log", "keywords": "einvoice peppol asp"},
-	{"label": "Tax Settings", "route": "/tax-settings", "keywords": "asp uae tax settings"},
+	{
+		"label": "E-Invoice ASP",
+		"route": "/tax-settings",
+		"keywords": "asp uae tax settings e-invoice einvoice flick sandbox peppol access point",
+	},
 	{
 		"label": "Team",
 		"route": "/team",
