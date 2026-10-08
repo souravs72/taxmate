@@ -126,3 +126,19 @@ class TestActiveCompany(FrappeTestCase):
 		company_utils.set_active_company(target)
 		rows = resource.get_list("Sales Invoice", fields='["name","company"]', limit_page_length=50)
 		self.assertTrue(all(r.company == target for r in rows))
+
+	def test_get_adopts_document_company(self):
+		"""Deep-linked Account from another permitted company must open.
+
+		Covers SPA Account detail: controller has_permission follows the active
+		company, so resource.get adopts the document's company when allowed.
+		"""
+		first, second = self.companies[0], self.companies[1]
+		account = frappe.db.get_value("Account", {"company": second, "is_group": 0}, "name")
+		if not account:
+			self.skipTest("needs a leaf Account on the second company")
+		company_utils.set_active_company(first)
+		self.assertEqual(company_utils.get_default_company(), first)
+		doc = resource.get("Account", account)
+		self.assertEqual(doc.get("name") or doc.name, account)
+		self.assertEqual(company_utils.get_default_company(), second)

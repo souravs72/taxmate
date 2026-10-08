@@ -15,7 +15,13 @@ from frappe.client import save as client_save
 from frappe.utils import cint
 
 from taxmate.search import DENIED_SEARCH_DOCTYPES
-from taxmate.utils.company import can_use_company, company_scoped, get_default_company
+from taxmate.utils.company import (
+	can_use_company,
+	company_scoped,
+	get_default_company,
+	owning_company_field,
+	set_active_company,
+)
 
 
 def is_allowed_doctype(doctype: str) -> bool:
@@ -227,10 +233,35 @@ def group_by_count(doctype: str, current_filters=None, field: str = "status"):
 	return desk_group_by_count(doctype, current_filters, field)
 
 
+def _adopt_active_company_for_doc(doctype: str, name: str | None) -> str | None:
+	"""Switch the header company when a deep-linked document belongs elsewhere.
+
+	Lists stay scoped to the active company. Opening one document the user may
+	read (User Permission) moves the switcher to that document's company so
+	controller ``has_permission`` and the SPA header agree.
+	"""
+	if not name:
+		return None
+	field = owning_company_field(doctype)
+	if not field:
+		return None
+	company = frappe.db.get_value(doctype, name, field[0])
+	if not company:
+		return None
+	active = get_default_company()
+	if str(company) == str(active or ""):
+		return None
+	if not can_use_company(company):
+		return None
+	set_active_company(company)
+	return company
+
+
 @frappe.whitelist()
 def get(doctype, name=None, filters=None, parent=None):
 	require_login()
 	assert_allowed_doctype(doctype)
+	_adopt_active_company_for_doc(doctype, name)
 	return client_get(doctype, name=name, filters=filters, parent=parent)
 
 
