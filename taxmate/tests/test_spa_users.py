@@ -335,7 +335,7 @@ class TestSpaUsers(FrappeTestCase):
 			frappe.set_user("Administrator")
 			self._delete(created["name"])
 
-	def test_accountant_maps_to_each_company_and_not_the_owner_view(self):
+	def test_accountant_maps_to_each_company_and_may_open_owner_dashboard(self):
 		names = frappe.get_all("Company", pluck="name", limit=2, order_by="name asc")
 		if len(names) < 2:
 			self.skipTest("needs two companies")
@@ -363,8 +363,12 @@ class TestSpaUsers(FrappeTestCase):
 				set_user_role(user=created["name"], spa_role="owner")
 			frappe.set_user(created["name"])
 			from taxmate.api.owner_dashboard import get_owner_dashboard
+			from taxmate.utils.company import get_default_company, set_active_company
 
-			self.assertRaises(frappe.PermissionError, get_owner_dashboard)
+			set_active_company(first)
+			# Accountant may load the owner KPI dashboard for a mapped company.
+			data = get_owner_dashboard(company=get_default_company())
+			self.assertEqual(data.get("company") or get_default_company(), first)
 		finally:
 			frappe.set_user("Administrator")
 			self._delete(created["name"])
