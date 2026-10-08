@@ -316,7 +316,7 @@ export default function ClientsDashboard() {
                 disabled={!d || rows.length === 0}
                 onClick={() => d && exportCsv(rows, d.thresholds, `${t("cd.exportFile")}-${d.today}`)}
               >
-                {t("cd.export").replace("{n}", String(rows.length))}
+                {t("cd.export")}
               </button>
             </span>
           </>

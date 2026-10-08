@@ -1,3 +1,8 @@
+/**
+ * Query-report runner — Frappe Desk layout: page head, page-form filters,
+ * scrollable datatable, footer. SPA routes only. Callers: App.tsx /reports/:report.
+ * User: reports UI like Frappe with horizontal slider.
+ */
 import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
@@ -18,13 +23,14 @@ import { useDoc } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { money, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, Empty, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Empty, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { LinkFilter, SearchFilter } from "../../components/filters";
+import ReportDataTable, { type ReportCol } from "./ReportDataTable";
+import "./reports.css";
 
-type Col = { fieldname?: string; label?: string; fieldtype?: string };
+type Col = ReportCol;
 type Row = Record<string, unknown>;
-type Chart = { data?: { labels?: string[]; datasets?: { name?: string; values?: number[] }[] } };
-type Payload = { result?: Row[]; columns?: Col[]; chart?: Chart };
+type Payload = { result?: Row[]; columns?: Col[] };
 type Fy = { year_start_date?: string; year_end_date?: string };
 type Chip = "month" | "quarter" | "ytd" | "fy";
 
@@ -39,6 +45,9 @@ const CAT_LABEL: Record<string, string> = {
   "Categorize by Account": "rpt.cat.account",
   "Categorize by Party": "rpt.cat.party",
 };
+
+const fill = (s: string, vars: Record<string, string | number>) =>
+  Object.entries(vars).reduce((out, [k, v]) => out.replaceAll(`{${k}}`, String(v)), s);
 
 function yearStart(iso?: string): string {
   const d = iso || toIsoDate(new Date());
@@ -56,17 +65,16 @@ function cell(row: Row, col: Col): string {
   return String(v);
 }
 
-/** Map General Ledger voucher_type to a SPA route — SPA routes only, no Desk /app/ links. */
 function spaRouteForVoucher(voucherType: unknown, voucherNo: unknown): string | null {
-  const t = String(voucherType || "");
+  const vt = String(voucherType || "");
   const n = String(voucherNo || "");
   if (!n) return null;
-  if (t === "Payment Entry") return `/payments/${encodeURIComponent(n)}`;
-  if (t === "Journal Entry") return `/journals/${encodeURIComponent(n)}`;
-  if (t === "Sales Invoice") return `/invoices/${encodeURIComponent(n)}`;
-  if (t === "Purchase Invoice") return `/purchase-invoices/${encodeURIComponent(n)}`;
-  if (t === "Purchase Receipt") return `/purchase-receipts/${encodeURIComponent(n)}`;
-  if (t === "Delivery Note") return `/delivery-notes/${encodeURIComponent(n)}`;
+  if (vt === "Payment Entry") return `/payments/${encodeURIComponent(n)}`;
+  if (vt === "Journal Entry") return `/journals/${encodeURIComponent(n)}`;
+  if (vt === "Sales Invoice") return `/invoices/${encodeURIComponent(n)}`;
+  if (vt === "Purchase Invoice") return `/purchase-invoices/${encodeURIComponent(n)}`;
+  if (vt === "Purchase Receipt") return `/purchase-receipts/${encodeURIComponent(n)}`;
+  if (vt === "Delivery Note") return `/delivery-notes/${encodeURIComponent(n)}`;
   return null;
 }
 
@@ -194,9 +202,14 @@ export default function ReportRunner() {
     setMany({ from: next.from, to: next.to });
   };
 
-  const openGl = (row: Row) => {
+  const activateRow = (row: Row) => {
+    const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
+    if (voucherRoute) {
+      nav(voucherRoute);
+      return;
+    }
     const acct = String(row.account || "");
-    if (!acct || name === "General Ledger") return;
+    if (!acct || name === "General Ledger" || !caps.tree) return;
     const params = new URLSearchParams({ account: acct, from: fromDate, to: toDate });
     nav(`/reports/${encodeURIComponent("General Ledger")}?${params}`);
   };
@@ -219,15 +232,31 @@ export default function ReportRunner() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/reports")}>{t("rpt.title")}</button>}
         title={name}
         sub={blurbKey ? t(blurbKey) : t("rpt.runSub")}
+        stickyActions={false}
         actions={
-          <button type="button" className="btn ghost sm" disabled={!shown.length}
-            onClick={() => exportCsv(name, columns, shown)}>
-            {t("rpt.export")}
-          </button>
+          <>
+            <button
+              type="button"
+              className="btn ghost sm"
+              disabled={paused || run.isLoading}
+              onClick={() => run.mutate()}
+            >
+              {t("rpt.refresh")}
+            </button>
+            <button
+              type="button"
+              className="btn ghost sm"
+              disabled={!shown.length}
+              onClick={() => exportCsv(name, columns, shown)}
+            >
+              {t("rpt.export")}
+            </button>
+          </>
         }
       />
 
-      <Card bodyClass="rpt-bar">
+      {/* Frappe `.page-form` — filters above the grid */}
+      <div className="rpt-form">
         {(caps.periodChips || caps.periodicity) && (
           <div className="rpt-top">
             {caps.periodChips && (
@@ -376,71 +405,58 @@ export default function ReportRunner() {
               )}
             </div>
           )}
-          {!!rows.length && (
-            <SearchFilter value={find} onChange={setFind} placeholder={t("rpt.find")} />
-          )}
         </div>
-      </Card>
+      </div>
 
       {run.error && <ErrorBox error={run.error} onRetry={() => run.mutate()} />}
 
-      <Card bodyClass="twrap rpt-sheet">
-        {paused || run.isLoading ? <Loading />
-          : shown.length === 0 ? <Empty label={q ? t("rpt.noneRows") : t("rpt.empty")} />
-          : (
-            <table>
-              <thead>
-                <tr>
-                  {columns.map((c, i) => (
-                    <th key={c.fieldname} className={isMoney(c) || i > 0 ? "n" : undefined}>
-                      {c.label || c.fieldname}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((row, i) => {
-                  const indent = Number(row.indent) || 0;
-                  const clickable = caps.tree && !!row.account && name !== "General Ledger";
-                  const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
-                  return (
-                    <tr
-                      key={i}
-                      className={`${row.bold ? "rpt-bold" : ""}${clickable ? " rpt-open" : ""}${voucherRoute ? " rpt-open" : ""}`}
-                      tabIndex={clickable || voucherRoute ? 0 : undefined}
-                      onClick={clickable ? () => openGl(row) : voucherRoute ? () => nav(voucherRoute) : undefined}
-                      onKeyDown={(clickable || voucherRoute) ? (e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          if (clickable) openGl(row);
-                          else if (voucherRoute) nav(voucherRoute);
-                        }
-                      } : undefined}
-                    >
-                      {columns.map((c, ci) => {
-                        const raw = row[c.fieldname || ""];
-                        const zero = isMoney(c) && (raw === 0 || raw === "0");
-                        return (
-                          <td
-                            key={c.fieldname}
-                            className={[
-                              isMoney(c) ? "n" : "",
-                              row.bold && isMoney(c) ? "tot" : "",
-                              zero ? "rpt-zero" : "",
-                            ].filter(Boolean).join(" ") || undefined}
-                            style={ci === 0 && indent ? { paddingInlineStart: 14 + indent * 16 } : undefined}
-                          >
-                            {cell(row, c)}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-      </Card>
+      <div className="rpt-grid-wrap">
+        <ReportDataTable
+          columns={columns}
+          rows={shown}
+          isMoney={isMoney}
+          loading={paused || run.isLoading}
+          loadingNode={<Loading />}
+          empty={<Empty label={q ? t("rpt.noneRows") : t("rpt.empty")} />}
+          regionLabel={t("rpt.resultsRegion")}
+          isRowActive={(row) => {
+            if (spaRouteForVoucher(row.voucher_type, row.voucher_no)) return true;
+            return Boolean(caps.tree && row.account && name !== "General Ledger");
+          }}
+          rowLabel={(row) => {
+            const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
+            if (voucherRoute) {
+              return fill(t("rpt.openVoucher"), {
+                t: String(row.voucher_type || ""),
+                n: String(row.voucher_no || ""),
+              });
+            }
+            return fill(t("rpt.openAccount"), { a: String(row.account || "") });
+          }}
+          rowClassName={(row) => {
+            const clickable = Boolean(caps.tree && row.account && name !== "General Ledger");
+            const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
+            return [
+              row.bold ? "rpt-bold" : "",
+              clickable || voucherRoute ? "rpt-open" : "",
+            ].filter(Boolean).join(" ");
+          }}
+          onRowActivate={activateRow}
+          renderCell={(row, c) => cell(row, c)}
+        />
+        <div className="rpt-footer">
+          <span className="rpt-footer-meta">
+            {paused || run.isLoading
+              ? t("list.loading")
+              : q && rows.length !== shown.length
+                ? fill(t("rpt.ofTotal"), { n: shown.length, total: rows.length })
+                : fill(t("rpt.rowCount"), { n: shown.length })}
+          </span>
+          <div className="rpt-footer-find">
+            <SearchFilter value={find} onChange={setFind} placeholder={t("rpt.find")} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

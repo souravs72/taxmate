@@ -52,47 +52,22 @@
 }
 
 /* ── Report sheets: pin the first column ────────────────────────────── */
-/* A report is the one thing in the app that stays a table on a phone — a
-   trial balance or a general ledger is read by comparing rows, which cards
-   destroy. `.twrap` already scrolls it sideways, so the page never moves.
-   The problem was what happens while you scroll: the account name slides
-   away with everything else and you are left reading a column of figures
-   with no idea which row is which.
-   Measured at 393px: the sheet is 992px wide, 599px of it off-screen.
-
-   `.rpt-sheet thead th` is already `position: sticky; top: 0` in app.css, so
-   the header row stays put vertically. This does the same horizontally for
-   the first column, and the corner cell needs to win both. */
+/* Reports stay tabular on a phone. `.rpt-dt` scrolls both axes; pin the
+   first column so account names stay visible while figures slide. */
 @media (max-width: 760px) {
-  .app.has-mnav .rpt-sheet td:first-child,
-  .app.has-mnav .rpt-sheet th:first-child {
+  .app.has-mnav .rpt-dt-table td:first-child,
+  .app.has-mnav .rpt-dt-table th:first-child {
     position: sticky;
-    /* Logical, so Arabic pins the right-hand edge without another rule. */
     inset-inline-start: 0;
     background: var(--surface);
-    /* A visible seam, so the column reads as pinned rather than as a
-       rendering glitch. A border rather than a shadow because box-shadow
-       offsets are physical and would fall on the wrong side in Arabic. */
     border-inline-end: 1px solid var(--border-2);
   }
-  /* Above the scrolling cells; the corner cell above the header row too. */
-  .app.has-mnav .rpt-sheet td:first-child { z-index: 1; }
-  .app.has-mnav .rpt-sheet th:first-child { z-index: 2; }
-
-  /* app.css clears the background on a total row and tints it on hover.
-     Both would let the scrolling figures show through the pinned cell, so
-     the cell keeps an opaque background in each state. */
-  .app.has-mnav .rpt-sheet .rpt-bold td:first-child { background: var(--surface); }
-  .app.has-mnav .rpt-sheet .rpt-open:hover td:first-child { background: var(--hover); }
-
-  /* The pinned column takes its share of a 393px screen, so give the rest
-     of the row a little more of what is left. */
-  .app.has-mnav .rpt-sheet td:first-child { max-width: 46vw; }
-
-  /* `.twrap` already carries a faint inset shadow on both inline edges.
-     On a sheet this wide it is the only cue that there is more to the side,
-     so make the trailing one carry further. */
-  .app.has-mnav .twrap.rpt-sheet {
-    box-shadow: inset -18px 0 12px -12px var(--border-2);
+  .app.has-mnav .rpt-dt-table td:first-child { z-index: 1; }
+  .app.has-mnav .rpt-dt-table th:first-child {
+    z-index: 3;
+    background: var(--hover, #f4f5f6);
   }
+  .app.has-mnav .rpt-dt-table .rpt-bold td:first-child { background: var(--hover, #f8f9fa); }
+  .app.has-mnav .rpt-dt-table .rpt-open:hover td:first-child { background: var(--hover); }
+  .app.has-mnav .rpt-dt-table td:first-child { max-width: 46vw; }
 }

@@ -152,9 +152,28 @@ export function Card({
 /* ── State ────────────────────────────────────────────────────────────── */
 
 export function Loading({ label }: { label?: string }) {
-  return <div className="empty" role="status" aria-live="polite">
-    {label ?? t("list.loading")}
-  </div>;
+  return (
+    <div className="tm-load" role="status" aria-live="polite" aria-busy="true">
+      <div className="tm-load-orb" aria-hidden="true">
+        <svg className="tm-load-svg" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+          <circle className="tm-load-track" cx="36" cy="36" r="30" />
+          <g className="tm-load-spin">
+            <circle className="tm-load-arc" cx="36" cy="36" r="30" />
+          </g>
+          <g className="tm-load-spin-rev">
+            <circle className="tm-load-halo" cx="36" cy="36" r="22" />
+          </g>
+        </svg>
+        <span className="tm-load-core">
+          <span className="tm-load-glyph">T</span>
+        </span>
+      </div>
+      <div className="tm-load-ledger" aria-hidden="true">
+        <span /><span /><span />
+      </div>
+      <p className="tm-load-label">{label ?? t("list.loading")}</p>
+    </div>
+  );
 }
 
 export function Empty({ label }: { label: string }) {
