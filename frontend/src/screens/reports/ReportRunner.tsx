@@ -58,11 +58,27 @@ function isMoney(col: Col): boolean {
   return col.fieldtype === "Currency" || col.fieldtype === "Float" || col.fieldtype === "Int";
 }
 
+/** UAE VAT 201 (and a few other regional reports) return `frappe.format(..., "Currency")`
+ * strings like `د.إ 2,067,705.60`. `Number(...)` / `money(...)` turn those into 0.00. */
 function cell(row: Row, col: Col): string {
-  const v = row[col.fieldname || ""];
+  const field = col.fieldname || "";
+  const v = row[field];
   if (v == null || v === "") return "—";
-  if (typeof v === "number" || isMoney(col)) return money(Number(v));
-  return String(v);
+  if (typeof v === "number") return isMoney(col) ? money(v) : String(v);
+  if (!isMoney(col)) return String(v);
+
+  const raw = row[`raw_${field}`];
+  if (typeof raw === "number" && Number.isFinite(raw)) return money(raw);
+
+  if (typeof v === "string") {
+    const trimmed = v.trim();
+    if (trimmed === "-" || trimmed === "—") return "—";
+    // Plain numeric string from other reports
+    if (/^[-\d.,\s]+$/.test(trimmed)) return money(trimmed);
+    // Already formatted by the report — show as returned
+    return trimmed;
+  }
+  return money(Number(v));
 }
 
 function spaRouteForVoucher(voucherType: unknown, voucherNo: unknown): string | null {
