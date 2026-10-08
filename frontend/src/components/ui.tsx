@@ -82,9 +82,9 @@ export function PageHead({
   /**
    * Controls that change what you are *looking at* rather than what you are
    * doing — the dashboards' Owner/Accountant switch, say. On a desktop they
-   * sit in their own header column (so action-button width cannot shove them);
-   * on a phone they stay under the title instead of taking a whole row of the
-   * fixed action bar, which is for things you tap once and move on.
+   * sit in the right-hand action cluster immediately before the primary
+   * button (New sale / Export); on a phone they stay under the title instead
+   * of taking a whole row of the fixed action bar.
    */
   viewControls?: React.ReactNode;
   /**
@@ -104,7 +104,10 @@ export function PageHead({
   );
   const hosted = actions ? null : (hostedVersion ? getFormActionNode() : null);
   const bar = actions ?? hosted;
-  const showInlineActs = !(phone && stickyActions && bar) && Boolean(bar);
+  const pinActions = phone && stickyActions && bar;
+  // Desktop (and non-pinned phone): pack switcher + buttons on the right.
+  // CSS orders the switcher just before the last .btn (Sale / Export).
+  const showInlineActs = !pinActions && Boolean(bar || (!phone && viewControls));
   return (
     <InPageHead.Provider value={true}>
       <div className="phead">
@@ -115,9 +118,13 @@ export function PageHead({
           {children}
           {phone && viewControls && <div className="phead-views">{viewControls}</div>}
         </div>
-        {!phone && viewControls ? <div className="phead-views">{viewControls}</div> : null}
-        {phone && stickyActions && bar && <PageActionBar actions={bar} />}
-        {showInlineActs ? <div className="acts">{bar}</div> : null}
+        {pinActions && <PageActionBar actions={bar} />}
+        {showInlineActs ? (
+          <div className="acts">
+            {!phone && viewControls ? <div className="phead-views">{viewControls}</div> : null}
+            {bar}
+          </div>
+        ) : null}
       </div>
     </InPageHead.Provider>
   );
