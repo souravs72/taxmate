@@ -829,9 +829,9 @@ td.pick{width:38px; padding-inline-end:0}
   .iconbtn{width:44px; height:44px}
   .umavbtn{width:44px; height:44px}
   .rm{width:44px; height:44px}
-  /* Checkbox rows: the label is the target, not the 18px box. */
-  .rpt-check,.team-check{min-height:44px}
-  .rpt-checks{min-height:44px}
+  /* Checkbox rows: the label is the target, not the 18px box.
+     .rpt-check height lives in reports.css. */
+  .team-check{min-height:44px}
   .umdrop-item,.tsearch-item,.linkhit,.qrow,.doc{min-height:44px}
 
   /* ── Donut legend / charts ────────────────────────────────────────── */
@@ -888,12 +888,7 @@ td.pick{width:38px; padding-inline-end:0}
   .step{padding-inline-end:12px}
   .step .val{font-size:17px}
   .sbar{margin-inline-end:12px}
-  /* A fixed 168px field width plus gaps does not fit a 360px report bar. */
-  .rpt-fields .f{width:100%; flex:1 1 100%}
-  .rpt-fields .fsearch{flex:1 1 100%; min-width:0}
-  .rpt-grain{margin-inline-start:0; width:100%}
-  .rpt-grain .ctl{flex:1; min-width:0; width:auto}
-  .rpt-top{gap:10px}
+  /* Report phone field widths live in reports.css (single source). */
   .fsearch{flex:1 1 100%; min-width:0}
   .rlist{gap:9px}
   .ri{min-width:0}

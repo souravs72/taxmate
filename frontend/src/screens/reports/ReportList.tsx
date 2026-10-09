@@ -21,9 +21,11 @@ import {
   writePinned,
   type ReportSection,
 } from "../../lib/reportCatalog";
+import { useIsPhone } from "../../lib/useMedia";
 import { t } from "../../i18n/strings";
 import { ErrorBox, Loading, PageHead, Card } from "../../components/ui";
 import "./reports.css";
+/* Callers: App.tsx Route /reports. Edit existing ReportList.tsx. */
 
 type CatalogReport = { label: string; report: string };
 type Badge = {
@@ -87,6 +89,7 @@ const TONE_CLASS: Record<Badge["tone"], string> = {
 
 export default function ReportList() {
   const nav = useNavigate();
+  const phone = useIsPhone();
   const session = useSession();
   const search = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -162,7 +165,7 @@ export default function ReportList() {
     <div className="rpt">
       <PageHead
         title={t("rpt.title")}
-        sub={t("rpt.sub")}
+        sub={phone ? undefined : t("rpt.sub")}
         /* The filter is typed into, not tapped: it stays in the header on a
            phone rather than sitting over the list it is filtering. */
         stickyActions={false}
@@ -181,9 +184,9 @@ export default function ReportList() {
               placeholder={t("rpt.filter")}
               aria-label={t("rpt.filter")}
             />
-            <span className="rpt-kbd" aria-hidden="true">
-              /
-            </span>
+            {!phone && (
+              <span className="rpt-kbd" aria-hidden="true">/</span>
+            )}
           </label>
         }
       />
