@@ -473,4 +473,12 @@
     align-items: stretch;
     gap: 10px;
   }
+  .rpt-icon-act {
+    width: 44px;
+    min-width: 44px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+  .rpt .rpt-kbd { display: none; }
+  .rpt .rpt-search .ctl { padding-inline-end: 12px; }
 }

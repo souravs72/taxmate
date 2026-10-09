@@ -344,25 +344,36 @@ export default function ReportRunner() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/reports")}>{t("rpt.title")}</button>}
         title={name}
-        sub={blurbKey ? t(blurbKey) : t("rpt.runSub")}
+        sub={phone ? undefined : (blurbKey ? t(blurbKey) : t("rpt.runSub"))}
         stickyActions={false}
         actions={
           <>
             <button
               type="button"
-              className="btn ghost sm"
+              className={`btn ghost sm${phone ? " rpt-icon-act" : ""}`}
               disabled={paused || run.isLoading}
               onClick={() => run.mutate()}
+              aria-label={t("rpt.refresh")}
             >
-              {t("rpt.refresh")}
+              {phone ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                  <path d="M13.2 8a5.2 5.2 0 1 1-1.4-3.5" strokeLinecap="round" />
+                  <path d="M13.2 2.8v3.2H10" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : t("rpt.refresh")}
             </button>
             <button
               type="button"
-              className="btn ghost sm"
+              className={`btn ghost sm${phone ? " rpt-icon-act" : ""}`}
               disabled={!shown.length}
               onClick={() => exportCsv(name, columns, shown)}
+              aria-label={t("rpt.export")}
             >
-              {t("rpt.export")}
+              {phone ? (
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+                  <path d="M8 2.5v7M5.5 7.2 8 9.7l2.5-2.5M3.2 12.5h9.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              ) : t("rpt.export")}
             </button>
           </>
         }
