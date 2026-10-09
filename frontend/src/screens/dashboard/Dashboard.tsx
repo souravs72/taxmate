@@ -22,6 +22,7 @@ import { getLocale } from "../../lib/i18n";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { SplitBar, Spark, TrendChart, whole } from "../../components/charts";
+import { useIsPhone } from "../../lib/useMedia";
 import AccountantDashboard from "./AccountantDashboard";
 import ClientsDashboard from "./ClientsDashboard";
 import { DashSwitch, useDashMode } from "./DashSwitch";
@@ -138,6 +139,7 @@ export default function Dashboard() {
 function OwnerDashboard() {
   const nav = useNavigate();
   const session = useSession();
+  const phone = useIsPhone();
   const [params, setParams] = useSearchParams();
 
   const period = (PERIODS.includes(params.get("period") as Period) ? params.get("period") : "month") as Period;
@@ -160,12 +162,18 @@ function OwnerDashboard() {
   const d = res.data?.message;
   const cur = d?.currency || session.currency || "";
   const firstName = (session.full_name || session.user || "").trim().split(/[\s@._-]/)[0];
+  /* Phone: date only — company is in the switcher. Desktop keeps company · date. */
+  const headSub = phone
+    ? date(session.today)
+    : session.company
+      ? `${session.company} · ${date(session.today)}`
+      : date(session.today);
 
   return (
     <div className="odash">
       <PageHead
         title={firstName ? `${t("dash.hello")}, ${firstName}` : t("nav.dashboard")}
-        sub={session.company ? `${session.company} · ${date(session.today)}` : date(session.today)}
+        sub={headSub}
         /* The role switch changes what you are looking at, not what you are
            doing: on a phone it stays under the title instead of taking a whole
            row of the action bar. Unchanged on a desktop. */

@@ -55,7 +55,12 @@
 .od-hero{display:grid; grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr); gap:16px}
 @media (max-width:1200px){.od-hero{grid-template-columns:repeat(2,minmax(0,1fr))} .od-profit{grid-column:1 / -1}}
 /* 760px, not 640px: the rest of the phone pass steps here (lib/useMedia.ts). */
-@media (max-width:760px){.od-hero{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:760px){
+  .od-hero{grid-template-columns:minmax(0,1fr)}
+  /* Period-range chrome in card headers; keep action hints (View all). */
+  .odash .card .chead .hint .od-muted{display:none}
+  .od-flabel{letter-spacing:0; text-transform:none; font-size:12px}
+}
 .od-profit-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
 .od-side{display:flex; flex-direction:column; align-items:flex-end; gap:4px; text-align:end}
 .od-side b{color:var(--text); font-variant-numeric:tabular-nums}

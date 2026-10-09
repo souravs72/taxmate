@@ -45,8 +45,9 @@
     align-items: stretch;
     gap: 8px;
     padding: 10px;
-    background: var(--surface);
+    background-color: var(--surface);
     border-block-start: 1px solid var(--border);
+    isolation: isolate;
   }
 
   /* Children are whatever the screen passed — usually `.btn`s, but the rule

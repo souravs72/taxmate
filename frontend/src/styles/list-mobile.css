@@ -291,9 +291,9 @@
   max-height: min(86dvh, 640px);
   background: var(--surface);
   border-block-start: 1px solid var(--border);
-  border-start-start-radius: 16px;
-  border-start-end-radius: 16px;
-  box-shadow: 0 -12px 40px rgba(0, 0, 0, .22);
+  border-start-start-radius: 18px;
+  border-start-end-radius: 18px;
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.18);
   padding-block-end: env(safe-area-inset-bottom, 0px);
 }
 
