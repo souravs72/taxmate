@@ -63,8 +63,19 @@ function isMoney(col: Col): boolean {
   return col.fieldtype === "Currency" || col.fieldtype === "Float" || col.fieldtype === "Int";
 }
 
-/** UAE VAT 201 (and a few other regional reports) return `frappe.format(..., "Currency")`
- * strings like `د.إ 2,067,705.60`. `Number(...)` / `money(...)` turn those into 0.00. */
+/** Pull a finite amount from Frappe-formatted currency text (`د.إ 1,234.50`, `AED 9.00`). */
+function parseFormattedMoney(s: string): number | null {
+  const m = s.match(/-?[\d]{1,3}(?:,\d{3})*(?:\.\d+)?|-?\d+(?:\.\d+)?/);
+  if (!m) return null;
+  const n = parseFloat(m[0].replace(/,/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+
+/**
+ * Money cells show numerals only — currency lives once in the footer.
+ * UAE VAT 201 (and similar) return `frappe.format` strings; prefer `raw_*`
+ * when present, else parse the decorated string.
+ */
 function cell(row: Row, col: Col): string {
   const field = col.fieldname || "";
   const v = row[field];
@@ -78,9 +89,9 @@ function cell(row: Row, col: Col): string {
   if (typeof v === "string") {
     const trimmed = v.trim();
     if (trimmed === "-" || trimmed === "—") return "—";
-    // Plain numeric string from other reports
     if (/^[-\d.,\s]+$/.test(trimmed)) return money(trimmed);
-    // Already formatted by the report — show as returned
+    const parsed = parseFormattedMoney(trimmed);
+    if (parsed != null) return money(parsed);
     return trimmed;
   }
   return money(Number(v));
@@ -711,6 +722,7 @@ export default function ReportRunner() {
           columns={columns}
           rows={shown}
           isMoney={isMoney}
+          compact={phone}
           loading={paused || run.isLoading}
           loadingNode={<Loading />}
           empty={<Empty label={q ? t("rpt.noneRows") : t("rpt.empty")} />}
@@ -742,11 +754,14 @@ export default function ReportRunner() {
         />
         <div className="rpt-footer">
           <span className="rpt-footer-meta">
-            {paused || run.isLoading
-              ? t("list.loading")
-              : q && rows.length !== shown.length
-                ? fill(t("rpt.ofTotal"), { n: shown.length, total: rows.length })
-                : fill(t("rpt.rowCount"), { n: shown.length })}
+            {[
+              session.currency || null,
+              paused || run.isLoading
+                ? t("list.loading")
+                : q && rows.length !== shown.length
+                  ? fill(t("rpt.ofTotal"), { n: shown.length, total: rows.length })
+                  : fill(t("rpt.rowCount"), { n: shown.length }),
+            ].filter(Boolean).join(" · ")}
           </span>
           <div className="rpt-footer-find">
             <SearchFilter value={find} onChange={setFind} placeholder={t("rpt.find")} />

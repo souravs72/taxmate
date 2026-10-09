@@ -462,7 +462,7 @@
     max-height: min(72dvh, calc(100dvh - 220px));
   }
   .rpt-dt { max-height: calc(100dvh - 260px); }
-  .rpt-dt-table tbody td.rpt-tree { max-width: 210px; }
+  .rpt-dt-table tbody td.rpt-tree { max-width: min(52vw, 220px); }
   .rpt-footer { flex-direction: column; align-items: stretch; }
   .rpt-footer-find { flex: 1 1 auto; width: 100%; }
   .rpt-links button,

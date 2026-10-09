@@ -12,6 +12,8 @@ type Props = {
   rows: Record<string, unknown>[];
   renderCell: (row: Record<string, unknown>, col: ReportCol, colIndex: number) => ReactNode;
   isMoney: (col: ReportCol) => boolean;
+  /** Phone: narrower money columns once currency symbols are off the cells. */
+  compact?: boolean;
   rowClassName?: (row: Record<string, unknown>) => string;
   /** When true, row is keyboard/mouse activatable (do not infer from CSS). */
   isRowActive?: (row: Record<string, unknown>) => boolean;
@@ -24,8 +26,16 @@ type Props = {
   loadingNode?: ReactNode;
 };
 
-function colWidth(col: ReportCol, index: number): number {
+function colWidth(col: ReportCol, index: number, compact?: boolean): number {
   const ft = col.fieldtype || "";
+  if (compact) {
+    if (ft === "Currency" || ft === "Float") return 100;
+    if (ft === "Int" || ft === "Percent") return 72;
+    if (ft === "Date" || ft === "Datetime") return 100;
+    if (ft === "Check") return 64;
+    if (index === 0) return 168;
+    return 120;
+  }
   if (ft === "Currency" || ft === "Float") return 130;
   if (ft === "Int" || ft === "Percent") return 100;
   if (ft === "Date" || ft === "Datetime") return 120;
@@ -47,6 +57,7 @@ export default function ReportDataTable({
   rows,
   renderCell,
   isMoney,
+  compact,
   rowClassName,
   isRowActive,
   rowLabel,
@@ -83,12 +94,12 @@ export default function ReportDataTable({
       el.removeEventListener("scroll", sync);
       ro.disconnect();
     };
-  }, [columns, rows.length, loading]);
+  }, [columns, rows.length, loading, compact]);
 
   if (loading) return <div className="rpt-dt-msg">{loadingNode}</div>;
   if (!rows.length) return <div className="rpt-dt-msg">{empty}</div>;
 
-  const minWidth = columns.reduce((n, c, i) => n + colWidth(c, i), 0);
+  const minWidth = columns.reduce((n, c, i) => n + colWidth(c, i, compact), 0);
 
   return (
     <div
@@ -102,11 +113,11 @@ export default function ReportDataTable({
         <table className="rpt-dt-table" style={{ minWidth }}>
           <thead>
             <tr>
-              {columns.map((c, i) => (
+                  {columns.map((c, i) => (
                 <th
                   key={c.fieldname || i}
                   className={isMoney(c) ? "n" : undefined}
-                  style={{ width: colWidth(c, i), minWidth: colWidth(c, i) }}
+                  style={{ width: colWidth(c, i, compact), minWidth: colWidth(c, i, compact) }}
                 >
                   {c.label || c.fieldname}
                 </th>
@@ -149,7 +160,7 @@ export default function ReportDataTable({
                           zero ? "rpt-zero" : "",
                           ci === 0 ? "rpt-tree" : "",
                         ].filter(Boolean).join(" ") || undefined}
-                        style={indent ? { paddingInlineStart: 12 + indent * 16 } : undefined}
+                        style={indent ? { paddingInlineStart: 10 + indent * (compact ? 12 : 16) } : undefined}
                       >
                         {renderCell(row, c, ci)}
                       </td>
