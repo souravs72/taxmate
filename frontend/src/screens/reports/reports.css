@@ -446,17 +446,31 @@
 .rpt-footer-find .fsearch { width: 100%; }
 
 @media (max-width: 760px) {
+  /* Importers: ReportList.tsx + ReportRunner.tsx import ./reports.css */
   .rpt-form { padding: 10px 12px; margin-block: 10px; }
+  .rpt-form-phone { gap: 8px; }
   .rpt-fields .f { width: 100%; flex: 1 1 100%; }
   .rpt-fields .fsearch { flex: 1 1 100%; min-width: 0; }
   .rpt-grain { margin-inline-start: 0; width: 100%; }
   .rpt-grain .ctl { flex: 1; min-width: 0; width: auto; }
-  .rpt-top { gap: 10px; }
-  .rpt-dt { max-height: calc(100vh - 260px); }
+  .rpt-top { gap: 8px 10px; width: 100%; }
+  .rpt-form-phone .rpt-top { display: flex; flex-wrap: wrap; align-items: center; }
+  .rpt-form-phone .rpt-links { flex: 1 1 auto; min-width: 0; }
+  .rpt-form-phone .rpt-grain { flex: 1 1 100%; margin-inline-start: 0; }
+  .rpt-fbtn { margin-inline-start: auto; flex: none; }
+  .rpt-run:has(.rpt-form-phone) .rpt-dt {
+    max-height: min(72dvh, calc(100dvh - 220px));
+  }
+  .rpt-dt { max-height: calc(100dvh - 260px); }
   .rpt-dt-table tbody td.rpt-tree { max-width: 210px; }
   .rpt-footer { flex-direction: column; align-items: stretch; }
   .rpt-footer-find { flex: 1 1 auto; width: 100%; }
   .rpt-links button,
   .rpt-check { min-height: 44px; }
   .rpt-checks { min-height: 44px; }
+  .rpt-sheet-body .rpt-checks {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
 }
