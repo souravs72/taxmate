@@ -111,6 +111,8 @@ export default function SalesOrderDetail() {
         title={data.customer_name || data.customer}
         actions={
           <DetailActions
+            doctype={DT.salesOrder}
+            name={name}
             draft={data.docstatus === 0}
             submitted={data.docstatus === 1}
             cancelled={data.docstatus === 2}

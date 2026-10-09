@@ -12,6 +12,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string;
@@ -45,13 +46,15 @@ export default function BankAccountDetail() {
         }
         title={data.account_name || data.name}
         actions={
-          writable ? (
+          <>
+            <DocHistory doctype={DT.bankAccount} name={name} />
+            {writable ? (
             <button type="button" className="btn ghost"
               onClick={() => nav(`/bank-accounts/${encodeURIComponent(name)}/edit`)}>
               {t("inv.edit")}
             </button>
-          ) : undefined
-        }
+          ) : null}
+          </>}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>

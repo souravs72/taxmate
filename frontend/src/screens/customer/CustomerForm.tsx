@@ -5,6 +5,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
 type CreditLimitRow = {
@@ -244,6 +245,8 @@ export default function CustomerForm() {
         title={isNew ? t("cust.new") : form.customer_name || name}
         actions={
           <>
+            {!isNew ? (<DocHistory doctype={DT.customer} name={name} />) : null}
+
             <button className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}

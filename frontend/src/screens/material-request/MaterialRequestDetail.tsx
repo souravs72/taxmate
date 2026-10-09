@@ -18,6 +18,7 @@ import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 import LineItems, { type LineField } from "../../components/LineItems";
@@ -176,6 +177,7 @@ export default function MaterialRequestDetail() {
         title={data.material_request_type || data.name}
         actions={
           <>
+            <DocHistory doctype={DT.materialRequest} name={name} />
             {draft && (
               <>
                 <button type="button" className="btn ghost"

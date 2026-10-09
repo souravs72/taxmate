@@ -12,6 +12,7 @@ import { useSession } from "../../lib/session";
 import { toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Company = { company: string };
@@ -95,6 +96,9 @@ export default function FiscalYearForm() {
           </button>
         }
         title={isNew ? t("fy.newTitle") : form.year || name}
+        actions={
+          !isNew ? (<DocHistory doctype="Fiscal Year" name={name} />) : null
+        }
       />
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>

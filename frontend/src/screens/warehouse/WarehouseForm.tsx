@@ -12,6 +12,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
 const WH_TYPES = ["Transit", "Stores", "Scrap", "Finished Goods", "Raw Material", "Work In Progress"];
@@ -99,6 +100,8 @@ export default function WarehouseForm() {
         title={isNew ? t("wh.new") : form.warehouse_name || name}
         actions={
           <>
+            {!isNew ? (<DocHistory doctype={DT.warehouse} name={name} />) : null}
+
             <button type="button" className="btn ghost" onClick={() => nav("/warehouses")}>{t("soc.discard")}</button>
             <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}

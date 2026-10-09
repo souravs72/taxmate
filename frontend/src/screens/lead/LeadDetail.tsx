@@ -12,6 +12,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = { name: string; lead_name?: string; company_name?: string; email_id?: string; mobile_no?: string; status?: string; city?: string; country?: string };
 
@@ -56,6 +57,7 @@ export default function LeadDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/leads")}>{t("lead.title")}</button>}
         title={data.lead_name || data.name}
+        actions={<DocHistory doctype={DT.lead} name={name} />}
       >
         <Pill cls={leadPill(data.status)}>{data.status || "Open"}</Pill>
         {writable && data.status !== "Converted" && (

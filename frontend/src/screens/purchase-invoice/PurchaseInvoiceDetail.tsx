@@ -120,6 +120,8 @@ export default function PurchaseInvoiceDetail() {
         title={data.supplier_name || data.supplier || data.name}
         actions={
           <DetailActions
+            doctype={DT.purchaseInvoice}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={data.docstatus === 2}

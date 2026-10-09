@@ -10,6 +10,7 @@ import { useSession } from "../../lib/session";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 
@@ -49,13 +50,16 @@ export default function CtFilingDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/ct-filings")}>{t("nav.ct")}</button>}
         title={data.name}
         actions={
-          <button type="button" className="btn" disabled={update.loading} onClick={() => {
+          <>
+            <DocHistory doctype={DT.ctFiling} name={name} />
+            <button type="button" className="btn" disabled={update.loading} onClick={() => {
             setSaveError(null);
             void update.updateDoc(DT.ctFiling, name, {
               elect_small_business_relief: sbr ?? (data.elect_small_business_relief ? 1 : 0),
               elect_qfzp: qfzp ?? (data.elect_qfzp ? 1 : 0),
             }).then(() => mutate()).catch(setSaveError);
           }}>{t("common.save")}</button>
+          </>
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

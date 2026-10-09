@@ -8,6 +8,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string;
@@ -61,9 +62,12 @@ export default function SerialNoDetail() {
         }
         title={d.name}
         actions={
-          <button type="button" className="btn" disabled={busy} onClick={() => void saveFn()}>
+          <>
+            <DocHistory doctype={DT.serialNo} name={name} />
+            <button type="button" className="btn" disabled={busy} onClick={() => void saveFn()}>
             {busy ? t("soc.saving") : t("soc.save")}
           </button>
+          </>
         }
       />
       {saveError ? <ErrorBox error={saveError} /> : null}

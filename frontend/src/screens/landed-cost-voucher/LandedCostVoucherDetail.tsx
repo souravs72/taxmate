@@ -60,6 +60,8 @@ export default function LandedCostVoucherDetail() {
           <>
             <Pill cls={statusCls}>{statusLabel}</Pill>
             <DetailActions
+            doctype={DT.landedCostVoucher}
+            name={name}
               draft={isDraft}
               submitted={isSubmitted}
               cancelled={docstatus === 2}

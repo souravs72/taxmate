@@ -15,6 +15,7 @@ import { useSession } from "../../lib/session";
 import { canEditTaxSettings } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Settings = {
   name?: string;
@@ -166,11 +167,14 @@ export default function TaxSettings() {
         title={t("nav.taxSettings")}
         sub={t("tax.sub")}
         actions={
-          canEdit ? (
-            <button type="submit" form="tax-asp-form" className="btn" disabled={busy}>
-              {busy ? t("soc.saving") : t("tax.save")}
-            </button>
-          ) : undefined
+          <>
+            <DocHistory doctype="UAE Tax Settings" name="UAE Tax Settings" />
+            {canEdit ? (
+              <button type="submit" form="tax-asp-form" className="btn" disabled={busy}>
+                {busy ? t("soc.saving") : t("tax.save")}
+              </button>
+            ) : null}
+          </>
         }
       />
 

@@ -10,6 +10,7 @@ import {
 } from "../../lib/payments";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { DirChip } from "./PaymentList";
@@ -92,6 +93,7 @@ export default function PaymentDetail() {
         title={data.party_name || data.party}
         actions={
           <>
+            <DocHistory doctype={DT.paymentEntry} name={name} />
             {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
             {!isNative() && (
             <button type="button" className="btn ghost"

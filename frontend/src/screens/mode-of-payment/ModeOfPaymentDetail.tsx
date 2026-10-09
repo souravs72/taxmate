@@ -12,6 +12,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type MoPAccount = { company?: string; default_account?: string };
@@ -44,7 +45,9 @@ export default function ModeOfPaymentDetail() {
         }
         title={data.name}
         actions={
-          writable ? (
+          <>
+            <DocHistory doctype={DT.modeOfPayment} name={name} />
+            {writable ? (
             <button
               type="button"
               className="btn ghost"
@@ -52,8 +55,8 @@ export default function ModeOfPaymentDetail() {
             >
               {t("inv.edit")}
             </button>
-          ) : undefined
-        }
+          ) : null}
+          </>}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>

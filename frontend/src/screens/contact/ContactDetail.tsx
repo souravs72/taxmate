@@ -8,6 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { IfCanWrite } from "../../components/RoleGate";
 
 type LinkEntry = { link_doctype?: string; link_name?: string };
@@ -42,6 +43,7 @@ export default function ContactDetail() {
           </button>
         }
         title={fullName}
+        actions=<DocHistory doctype="Contact" name={name} />
       >
         <IfCanWrite>
           <button

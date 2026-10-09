@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
 const LINK_DOCTYPES = ["Customer", "Supplier", "Company"];
@@ -121,6 +122,9 @@ export default function ContactForm() {
           isNew
             ? t("cnt.new")
             : [form.first_name, form.last_name].filter(Boolean).join(" ") || name
+        }
+        actions={
+          !isNew ? (<DocHistory doctype="Contact" name={name} />) : null
         }
       />
       {saveError && <ErrorBox error={saveError} />}

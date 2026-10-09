@@ -9,6 +9,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, Loading, ErrorBox, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   title?: string;
@@ -45,11 +46,14 @@ export default function PricingRuleDetail() {
         title={name}
         eyebrow={<Link to="/pricing-rules">{t("prule.title")}</Link>}
         actions={
-          canWrite(session) ? (
-            <button type="button" className="btn" onClick={() => nav(`/pricing-rules/${encodeURIComponent(name)}/edit`)}>
-              {t("form.edit")}
-            </button>
-          ) : null
+          <>
+            <DocHistory doctype={DT.pricingRule} name={name} />
+            {canWrite(session) ? (
+              <button type="button" className="btn" onClick={() => nav(`/pricing-rules/${encodeURIComponent(name)}/edit`)}>
+                {t("form.edit")}
+              </button>
+            ) : null}
+          </>
         }
       />
       <Card num={1} title={t("prule.details")}>

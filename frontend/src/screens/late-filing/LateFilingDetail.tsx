@@ -8,6 +8,7 @@ import { useDoc } from "../../lib/resource";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string; company?: string; obligation?: string; status?: string; due_date?: string;
@@ -33,6 +34,7 @@ export default function LateFilingDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/late-filings")}>{t("nav.lateFilings")}</button>}
         title={data.name}
+        actions={<DocHistory doctype={DT.lateFiling} name={name} />}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <Pill cls={latePill(data.status)}>{data.status || "—"}</Pill>

@@ -13,6 +13,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
 const ROOT_TYPES = ["Asset", "Liability", "Income", "Expense", "Equity"];
@@ -132,6 +133,9 @@ export default function AccountForm() {
           </button>
         }
         title={isNew ? t("acct.newTitle") : form.account_name || name}
+        actions={
+          !isNew ? (<DocHistory doctype={DT.account} name={name} />) : null
+        }
       />
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>

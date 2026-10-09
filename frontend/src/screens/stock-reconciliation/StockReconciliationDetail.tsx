@@ -14,6 +14,7 @@ import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 
@@ -51,6 +52,7 @@ export default function StockReconciliationDetail() {
         title={data.purpose || data.name}
         actions={
           <>
+            <DocHistory doctype={DT.stockReconciliation} name={name} />
             {draft && (
               <button type="button" className="btn ghost"
                 onClick={() => nav(`/stock-reconciliations/${encodeURIComponent(name)}/edit`)}>

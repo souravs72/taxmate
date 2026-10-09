@@ -9,6 +9,7 @@
  */
 import type { ReactNode } from "react";
 import { t } from "../i18n/strings";
+import DocHistory from "./DocHistory";
 
 export type DetailActionsProps = {
   /** True when docstatus === 0. */
@@ -40,6 +41,9 @@ export type DetailActionsProps = {
    * Rendered between Submit and Cancel.
    */
   extra?: ReactNode;
+  /** When set with `name`, shows the shared History control. */
+  doctype?: string;
+  name?: string;
 };
 
 /**
@@ -60,9 +64,12 @@ export default function DetailActions({
   onCancel,
   onAmend,
   extra,
+  doctype,
+  name,
 }: DetailActionsProps) {
   return (
     <>
+      {doctype && name ? <DocHistory doctype={doctype} name={name} /> : null}
       {draft && canWrite && onEdit && (
         <button type="button" className="btn ghost" onClick={onEdit}>
           {t("inv.edit")}

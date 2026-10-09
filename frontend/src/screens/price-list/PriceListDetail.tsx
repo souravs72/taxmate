@@ -40,6 +40,8 @@ export default function PriceListDetail() {
         title={d.price_list_name || d.name}
         actions={
           <DetailActions
+            doctype={DT.priceList}
+            name={name}
             draft
             canSubmit={false}
             canCancel={false}

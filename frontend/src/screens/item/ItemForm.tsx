@@ -7,6 +7,7 @@ import { useSession } from "../../lib/session";
 import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
 const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
@@ -364,6 +365,8 @@ export default function ItemForm() {
         title={isNew ? t("item.new") : form.item_name || name}
         actions={
           <>
+            {!isNew ? (<DocHistory doctype={DT.item} name={name} />) : null}
+
             <button className="btn ghost" onClick={() => nav("/catalogue/items")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}

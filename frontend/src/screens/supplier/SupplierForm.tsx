@@ -5,6 +5,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
 type SupplierDoc = {
@@ -221,6 +222,8 @@ export default function SupplierForm() {
         title={isNew ? t("supp.new") : form.supplier_name || name}
         actions={
           <>
+            {!isNew ? (<DocHistory doctype={DT.supplier} name={name} />) : null}
+
             <button type="button" className="btn ghost" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
             <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("soc.save")}
