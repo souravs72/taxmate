@@ -695,14 +695,47 @@ def _ensure_line_from_total(data: dict[str, Any]) -> None:
 	]
 
 
+_ADDRESS_LINK_FIELDS: tuple[str, ...] = (
+	"supplier_address",
+	"customer_address",
+	"shipping_address",
+	"billing_address",
+	"billing_address_name",
+)
+
+
 def _scrub_address_links(header: dict[str, Any]) -> None:
-	"""Drop free-text values parked on Address Link fields (they are not Address names)."""
-	for key in ("supplier_address", "customer_address", "shipping_address", "billing_address_name"):
+	"""Drop free-text values parked on Address Link fields (they are not Address names).
+
+	OCR often parks the full street line on billing_address. Schema then reports a
+	missing Address master, which blocked Save with idp.notice.masters even though
+	party create attaches a real Address from the proposal fields.
+	"""
+	for key in _ADDRESS_LINK_FIELDS:
 		value = str(header.get(key) or "").strip()
 		if not value:
 			continue
-		if "," in value or len(value) > 60 or "\n" in value:
+		if key == "billing_address" or "," in value or len(value) > 60 or "\n" in value:
 			header.pop(key, None)
+
+
+def release_address_links(extracted: dict[str, Any]) -> None:
+	"""Strip Address Link blockers so Scan can propose Supplier/Customer/Item create."""
+	data = extracted.get("extracted_data")
+	header = data.get("header") if isinstance(data, dict) else None
+	if isinstance(header, dict):
+		_scrub_address_links(header)
+	validation = extracted.get("validation")
+	if not isinstance(validation, dict):
+		return
+	rows = validation.get("missing_masters")
+	if not isinstance(rows, list):
+		return
+	validation["missing_masters"] = [
+		row
+		for row in rows
+		if not (isinstance(row, dict) and str(row.get("doctype") or "") == "Address")
+	]
 
 
 # A currency code is not a Company. The model often parks "AED" there.
@@ -821,6 +854,62 @@ def _sanitize_item_values(data: dict[str, Any]) -> None:
 			row["stock_uom"] = row.get("uom") or "Nos"
 		if not row.get("uom"):
 			row["uom"] = row.get("stock_uom") or "Nos"
+	_fill_zero_rates_from_total(data)
+
+
+def _fill_zero_rates_from_total(data: dict[str, Any]) -> None:
+	"""Purchase OCR often leaves rate=0 while the header still has the bill total."""
+	items = [row for row in (data.get("items") or []) if isinstance(row, dict)]
+	if not items:
+		return
+	header = data.get("header") if isinstance(data.get("header"), dict) else {}
+	total = _parse_ocr_amount(header.get("grand_total") or header.get("net_total") or header.get("total"))
+	if total is None or total <= 0:
+		return
+	if any(float(row.get("rate") or 0) > 0 or float(row.get("amount") or 0) > 0 for row in items):
+		return
+	if len(items) == 1:
+		qty = float(items[0].get("qty") or items[0].get("quantity") or 1) or 1
+		items[0]["qty"] = qty
+		items[0]["rate"] = total / qty
+		items[0]["amount"] = total
+		items[0]["unit_price"] = items[0]["rate"]
+		return
+	share = total / len(items)
+	for row in items:
+		qty = float(row.get("qty") or row.get("quantity") or 1) or 1
+		row["qty"] = qty
+		row["rate"] = share / qty
+		row["amount"] = share
+		row["unit_price"] = row["rate"]
+	_fill_zero_rates_from_total(data)
+
+
+def _fill_zero_rates_from_total(data: dict[str, Any]) -> None:
+	"""Purchase OCR often leaves rate=0 while the header still has the bill total."""
+	items = [row for row in (data.get("items") or []) if isinstance(row, dict)]
+	if not items:
+		return
+	header = data.get("header") if isinstance(data.get("header"), dict) else {}
+	total = _parse_ocr_amount(header.get("grand_total") or header.get("net_total") or header.get("total"))
+	if total is None or total <= 0:
+		return
+	if any(float(row.get("rate") or 0) > 0 or float(row.get("amount") or 0) > 0 for row in items):
+		return
+	if len(items) == 1:
+		qty = float(items[0].get("qty") or items[0].get("quantity") or 1) or 1
+		items[0]["qty"] = qty
+		items[0]["rate"] = total / qty
+		items[0]["amount"] = total
+		items[0]["unit_price"] = items[0]["rate"]
+		return
+	share = total / len(items)
+	for row in items:
+		qty = float(row.get("qty") or row.get("quantity") or 1) or 1
+		row["qty"] = qty
+		row["rate"] = share / qty
+		row["amount"] = share
+		row["unit_price"] = row["rate"]
 
 
 def _parse_ocr_amount(value: Any) -> float | None:
@@ -1027,6 +1116,13 @@ def create_confirmed(
 			return fail("idp.denied")
 		if not frappe.has_permission(doctype, "create"):
 			return fail("idp.denied")
+		# Blank party Type on the card — treat as Company (ERPNext default).
+		for field in row.get("required_fields") or []:
+			if not isinstance(field, dict):
+				continue
+			name = str(field.get("field") or "")
+			if name in ("supplier_type", "customer_type") and not str(field.get("value") or "").strip():
+				field["value"] = "Company"
 		for field in row.get("required_fields") or []:
 			if not str(field.get("value") or "").strip():
 				return fail("idp.propose.needFields")
@@ -1060,6 +1156,26 @@ def _values_from_proposal(row: dict[str, Any]) -> dict[str, str]:
 	return values
 
 
+def _stamp_custom_company(payload: dict[str, Any]) -> dict[str, Any]:
+	"""Tag masters with the clerk's active company before insert.
+
+	Accountants with Company User Permissions cannot insert Supplier / Customer /
+	Item when custom_company is blank — Frappe denies create even though role
+	perms allow it. That surfaced as idp.denied ("You cannot run that scan.").
+	"""
+	import frappe
+
+	from taxmate.utils.company import get_default_company
+
+	meta = frappe.get_meta(str(payload.get("doctype") or ""))
+	if not meta.has_field("custom_company"):
+		return payload
+	company = get_default_company()
+	if company and frappe.db.exists("Company", company):
+		payload["custom_company"] = company
+	return payload
+
+
 def _create_supplier(values: dict[str, str]) -> str:
 	import frappe
 
@@ -1073,14 +1189,16 @@ def _create_supplier(values: dict[str, str]) -> str:
 		or "All Supplier Groups"
 	)
 	doc = frappe.get_doc(
-		{
-			"doctype": "Supplier",
-			"supplier_name": name,
-			"supplier_type": values.get("supplier_type") or "Company",
-			"supplier_group": group,
-			"tax_id": values.get("tax_id") or None,
-			"country": "United Arab Emirates",
-		}
+		_stamp_custom_company(
+			{
+				"doctype": "Supplier",
+				"supplier_name": name,
+				"supplier_type": values.get("supplier_type") or "Company",
+				"supplier_group": group,
+				"tax_id": values.get("tax_id") or None,
+				"country": "United Arab Emirates",
+			}
+		)
 	)
 	doc.insert()
 	if _has_address(values):
@@ -1104,14 +1222,16 @@ def _create_customer(values: dict[str, str]) -> str:
 		"Territory", {"is_group": 0}, "name"
 	)
 	doc = frappe.get_doc(
-		{
-			"doctype": "Customer",
-			"customer_name": name,
-			"customer_type": values.get("customer_type") or "Company",
-			"customer_group": group,
-			"territory": territory,
-			"tax_id": values.get("tax_id") or None,
-		}
+		_stamp_custom_company(
+			{
+				"doctype": "Customer",
+				"customer_name": name,
+				"customer_type": values.get("customer_type") or "Company",
+				"customer_group": group,
+				"territory": territory,
+				"tax_id": values.get("tax_id") or None,
+			}
+		)
 	)
 	doc.insert()
 	if _has_address(values):
@@ -1122,7 +1242,9 @@ def _create_customer(values: dict[str, str]) -> str:
 def _create_item(values: dict[str, str]) -> str:
 	import frappe
 
-	code = values.get("item_code") or _slug_code(values.get("item_name") or "ITEM")
+	raw_code = values.get("item_code") or values.get("item_name") or "ITEM"
+	# Spaces / punctuation break Item naming for some sites; slug when needed.
+	code = raw_code if re.fullmatch(r"[A-Za-z0-9_-]+", raw_code) else _slug_code(raw_code)
 	if frappe.db.exists("Item", code):
 		return code
 	by_name = frappe.db.get_value("Item", {"item_name": values.get("item_name")}, "name")
@@ -1135,14 +1257,16 @@ def _create_item(values: dict[str, str]) -> str:
 	if not frappe.db.exists("UOM", uom):
 		uom = "Nos"
 	doc = frappe.get_doc(
-		{
-			"doctype": "Item",
-			"item_code": code,
-			"item_name": values.get("item_name") or code,
-			"item_group": group,
-			"stock_uom": uom,
-			"is_stock_item": 0,
-		}
+		_stamp_custom_company(
+			{
+				"doctype": "Item",
+				"item_code": code,
+				"item_name": values.get("item_name") or code,
+				"item_group": group,
+				"stock_uom": uom,
+				"is_stock_item": 0,
+			}
+		)
 	)
 	doc.insert()
 	return doc.name
@@ -1220,7 +1344,12 @@ def _attach_address_contact(link_doctype: str, link_name: str, title: str, value
 
 
 def apply_created_links(extracted: dict[str, Any], created: dict[str, str]) -> None:
-	"""Point the extract header/items at masters just created."""
+	"""Point the extract header/items at masters just created.
+
+	Always overwrite Link values. A second LLM read often leaves a different
+	party/item string than the clerk confirmed; keeping the stale name makes
+	Save return needConsent and look like a no-op.
+	"""
 	data = extracted.get("extracted_data") or {}
 	header = data.get("header")
 	if isinstance(header, dict):
@@ -1234,7 +1363,5 @@ def apply_created_links(extracted: dict[str, Any], created: dict[str, str]) -> N
 		if not isinstance(row, dict):
 			continue
 		code = created.get(f"item:{idx}") or default_item
-		if code and not row.get("item_code"):
-			row["item_code"] = code
-		elif code and str(row.get("item_code") or "") == str(row.get("item_name") or ""):
+		if code:
 			row["item_code"] = code

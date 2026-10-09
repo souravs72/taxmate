@@ -120,11 +120,13 @@ PARTY_FIELD: dict[str, str] = {
 	"Opportunity": "party_name",
 }
 
-NOTICES: tuple[str, ...] = (
-	"idp.notice.draft",
-	"idp.notice.masters",
-	"idp.notice.language",
-)
+# Panel copy stays short. Masters / language notes are not on the first screen;
+# propose still appears on review when the file names an unknown party or item.
+NOTICES: tuple[str, ...] = ()
+
+# Jobs the dashboard Scan panel offers. Other JOBS rows stay for plan_run tests
+# and tooling; the SPA surface is create-draft only.
+SURFACE_JOB_IDS: frozenset[str] = frozenset({"create"})
 
 READ_STAGES: tuple[dict[str, str], ...] = (
 	{"key": "upload", "label_key": "idp.stage.upload"},
@@ -188,15 +190,26 @@ FIELD_LABELS: dict[str, str] = {
 Can = Callable[[str, str], bool]
 
 
-def build_surface(*, can: Can, llm_ready: bool) -> dict[str, Any]:
+def build_surface(
+	*,
+	can: Can,
+	llm_ready: bool,
+	job_ids: frozenset[str] | None = None,
+) -> dict[str, Any]:
 	"""Return the panel payload for one user.
 
 	`can(doctype, permission)` is the only permission check. A target with
 	no TaxMate route is included and marked not ready, so the screen can
 	say so without linking to Desk.
+
+	`job_ids` defaults to SURFACE_JOB_IDS (create only). Pass the full JOBS
+	set when a caller needs compare / search / update for tests or tooling.
 	"""
+	wanted = job_ids if job_ids is not None else SURFACE_JOB_IDS
 	actions: list[dict[str, Any]] = []
 	for job in JOBS:
+		if job["id"] not in wanted:
+			continue
 		perm = job["permission"]
 		targets = []
 		for row in TARGETS:
@@ -718,11 +731,17 @@ def submit_requested(flag: str | None) -> bool:
 
 def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict[str, Any]:
 	"""Turn an IDP extract payload into the panel review. Draft save stays off until the map is valid."""
-	from taxmate.idp.masters import build_proposals, release_currency_company, split_missing
+	from taxmate.idp.masters import (
+		build_proposals,
+		release_address_links,
+		release_currency_company,
+		split_missing,
+	)
 
 	if not extracted.get("success"):
 		return {"ok": False, "step": "review", "error_key": "idp.readFailed", "can_save": False}
 	release_currency_company(extracted)
+	release_address_links(extracted)
 	data = extracted.get("extracted_data") or {}
 	header = _header_rows(data.get("header") or {})
 	lines = [{"label_key": label_key_for(key), "value": str(value)} for key, value in header.items()]
@@ -791,15 +810,32 @@ def draft_instructions(
 	pending = proposals if proposals is not None else review.get("proposals") or []
 	_creatable, blocked = split_missing((extracted.get("validation") or {}).get("missing_masters"))
 	if blocked:
-		return {"ok": False, "error_key": "idp.notice.masters"}
-	if pending and not proposals_complete(pending):
+		named = []
+		for row in blocked:
+			kind = str(row.get("doctype") or "").strip()
+			name = str(row.get("name") or "").strip()
+			named.append(f"{kind}: {name}" if kind and name else (kind or name))
+		return {
+			"ok": False,
+			"error_key": "idp.notice.masters",
+			"detail": "; ".join(n for n in named if n) or None,
+		}
+	confirmed = bool(pending) and proposals_complete(pending)
+	if pending and not confirmed:
 		return {"ok": False, "error_key": "idp.propose.needConsent"}
-	if not review.get("can_save") and not pending:
-		return {"ok": False, "error_key": review.get("error_key") or "idp.invalid"}
+	# Confirmed create cards already stamped Links. Schema noise (base_rate,
+	# conversion_factor, …) must not soft-block with a vague idp.invalid.
+	if not review.get("can_save") and not confirmed:
+		gaps = review.get("gaps") or []
+		return {
+			"ok": False,
+			"error_key": "idp.blocked.gaps" if gaps else (review.get("error_key") or "idp.invalid"),
+			"detail": ", ".join(str(g) for g in gaps) if gaps else review.get("detail"),
+		}
 	data = extracted.get("extracted_data") or {}
 	header = _header_rows(data.get("header") or {})
 	if not header:
-		return {"ok": False, "error_key": "idp.invalid"}
+		return {"ok": False, "error_key": "idp.invalid", "detail": "header"}
 	return {
 		"ok": True,
 		"doctype": data.get("doctype"),

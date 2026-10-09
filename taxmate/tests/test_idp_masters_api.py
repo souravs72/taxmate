@@ -77,6 +77,50 @@ class TestIdpMastersApi(FrappeTestCase):
 		self.assertEqual(extracted["extracted_data"]["header"]["supplier"], made["created"]["supplier"])
 		self.assertEqual(extracted["extracted_data"]["items"][0]["item_code"], made["created"]["item_code"])
 
+	def test_apply_created_links_overwrites_stale_item_code(self):
+		"""Second LLM read often leaves a different item_code than the clerk confirmed."""
+		suffix = uuid.uuid4().hex[:8]
+		code = f"OVW-{suffix[:6].upper()}"
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Sales Invoice",
+				"header": {"customer": "Stale Customer Name"},
+				"items": [{"item_code": "STALE-FROM-LLM", "item_name": "Critical Device"}],
+			},
+		}
+		apply_created_links(
+			extracted,
+			{"customer": f"Real Cust {suffix}", "item_code": code, "item:0": code},
+		)
+		self.assertEqual(extracted["extracted_data"]["header"]["customer"], f"Real Cust {suffix}")
+		self.assertEqual(extracted["extracted_data"]["items"][0]["item_code"], code)
+
+	def test_zero_line_rate_filled_from_header_total(self):
+		from taxmate.idp.masters import normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"supplier": "Vendor LLC", "grand_total": 271000},
+				"items": [
+					{
+						"item_name": "Critical Device with actionable intelligence",
+						"qty": 1,
+						"rate": 0,
+						"amount": 0,
+						"uom": "Nos",
+					}
+				],
+			},
+			"validation": {"missing_masters": []},
+		}
+		normalize_extract(extracted)
+		item = extracted["extracted_data"]["items"][0]
+		self.assertEqual(item["rate"], 271000)
+		self.assertEqual(item["amount"], 271000)
+
 	def test_create_confirmed_customer(self):
 		suffix = uuid.uuid4().hex[:8]
 		name = f"Scan Cust {suffix}"
