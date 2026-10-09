@@ -7,6 +7,7 @@ import { useSession } from "../../lib/session";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
 
 type Doc = {
@@ -73,6 +74,7 @@ export default function IncomingInvoiceDetail() {
         title={data.supplier_name || data.asp_document_id || data.name}
         actions={
           <>
+            <DocHistory doctype={DT.incomingInvoice} name={name} />
             {received && (
               <button type="button" className="btn" disabled={draft.loading} onClick={() => void draftPi()}>
                 {draft.loading ? t("soc.saving") : t("in.draftPi")}

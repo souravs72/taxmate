@@ -99,6 +99,8 @@ export default function PickListDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/pick-lists")}>{t("picklist.title")}</button>}
         actions={
           <DetailActions
+            doctype={DT.pickList}
+            name={name}
             draft={draft}
             submitted={submitted}
             canSubmit={canSubmit}

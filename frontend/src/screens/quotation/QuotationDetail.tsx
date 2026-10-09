@@ -83,6 +83,8 @@ export default function QuotationDetail() {
         title={data.customer_name || data.party_name || data.name}
         actions={
           <DetailActions
+            doctype={DT.quotation}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={data.docstatus === 2}

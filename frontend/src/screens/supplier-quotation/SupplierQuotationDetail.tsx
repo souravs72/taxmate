@@ -16,6 +16,7 @@ import { canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { isNative } from "../../mobile/platform";
 
@@ -87,6 +88,7 @@ export default function SupplierQuotationDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/supplier-quotations")}>{t("sq.title")}</button>}
         title={data.name}
+        actions={<DocHistory doctype={DT.supplierQuotation} name={name} />}
       >
         <Pill cls={sqPill(data.status)}>{data.status || "Draft"}</Pill>
         {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}

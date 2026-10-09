@@ -12,7 +12,7 @@ from frappe.client import get_count as client_get_count
 from frappe.client import get_list as client_get_list
 from frappe.client import insert as client_insert
 from frappe.client import save as client_save
-from frappe.utils import cint
+from frappe.utils import cint, cstr
 
 from taxmate.search import DENIED_SEARCH_DOCTYPES
 from taxmate.utils.company import (
@@ -463,3 +463,186 @@ def search_link(
 		searchfield=searchfield,
 		reference_doctype=reference_doctype,
 	)
+
+
+_VERSION_VALUE_MAX = 240
+_VERSION_LIMIT_MAX = 100
+
+
+def _version_display(value: Any) -> str:
+	"""Short, printable value for a Version diff cell."""
+	if value is None:
+		return ""
+	if isinstance(value, dict):
+		# Child-row snapshot — prefer a human key, else name.
+		for key in ("item_code", "account", "party", "user", "title", "item_name", "name"):
+			if value.get(key):
+				return _version_display(value.get(key))
+		return _("(row)")
+	text = cstr(value).strip()
+	if len(text) > _VERSION_VALUE_MAX:
+		return text[: _VERSION_VALUE_MAX - 1] + "…"
+	return text
+
+
+def _field_labels(doctype: str) -> dict[str, str]:
+	meta = frappe.get_meta(doctype)
+	labels: dict[str, str] = {}
+	for field in meta.fields:
+		if field.fieldname:
+			labels[field.fieldname] = field.label or field.fieldname
+	# Standard audit fields that may appear in diffs.
+	for fieldname, label in (
+		("docstatus", _("Status")),
+		("owner", _("Owner")),
+		("modified_by", _("Last updated by")),
+	):
+		labels.setdefault(fieldname, label)
+	return labels
+
+
+def _shape_version(row: dict[str, Any], labels: dict[str, str]) -> dict[str, Any]:
+	raw = row.get("data")
+	try:
+		data = frappe.parse_json(raw) if raw else {}
+	except Exception:
+		data = {}
+	if not isinstance(data, dict):
+		data = {}
+
+	changed = []
+	for item in data.get("changed") or []:
+		if not isinstance(item, (list, tuple)) or len(item) < 3:
+			continue
+		field = cstr(item[0])
+		changed.append(
+			{
+				"field": field,
+				"label": labels.get(field) or field,
+				"old": _version_display(item[1]),
+				"new": _version_display(item[2]),
+			}
+		)
+
+	added = []
+	for item in data.get("added") or []:
+		if not isinstance(item, (list, tuple)) or len(item) < 2:
+			continue
+		table = cstr(item[0])
+		added.append(
+			{
+				"table": table,
+				"label": labels.get(table) or table,
+				"summary": _version_display(item[1]),
+			}
+		)
+
+	removed = []
+	for item in data.get("removed") or []:
+		if not isinstance(item, (list, tuple)) or len(item) < 2:
+			continue
+		table = cstr(item[0])
+		removed.append(
+			{
+				"table": table,
+				"label": labels.get(table) or table,
+				"summary": _version_display(item[1]),
+			}
+		)
+
+	row_changed = []
+	for item in data.get("row_changed") or []:
+		if not isinstance(item, (list, tuple)) or len(item) < 4:
+			continue
+		table = cstr(item[0])
+		fields = []
+		for cell in item[3] or []:
+			if not isinstance(cell, (list, tuple)) or len(cell) < 3:
+				continue
+			field = cstr(cell[0])
+			fields.append(
+				{
+					"field": field,
+					"label": labels.get(field) or field,
+					"old": _version_display(cell[1]),
+					"new": _version_display(cell[2]),
+				}
+			)
+		row_changed.append(
+			{
+				"table": table,
+				"label": labels.get(table) or table,
+				"row": cint(item[1]),
+				"row_name": cstr(item[2]),
+				"fields": fields,
+			}
+		)
+
+	return {
+		"name": row.get("name"),
+		"owner": row.get("owner"),
+		"creation": row.get("creation"),
+		"changed": changed,
+		"added": added,
+		"removed": removed,
+		"row_changed": row_changed,
+	}
+
+
+@frappe.whitelist()
+def get_versions(doctype: str, name: str, limit: int = 50) -> dict[str, Any]:
+	"""Field-level change history for one document.
+
+	Uses the Version table (track_changes). Callers must have read
+	permission on the source document. Version itself is not catalogued
+	for direct SPA list access.
+	"""
+	require_login()
+	assert_allowed_doctype(doctype)
+	if not name:
+		frappe.throw(_("name is required"))
+	if not frappe.db.exists(doctype, name):
+		frappe.throw(_("Document {0} {1} not found").format(doctype, name), frappe.DoesNotExistError)
+	if not frappe.has_permission(doctype, "read", doc=name):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+
+	meta = frappe.get_meta(doctype)
+	limit = min(max(cint(limit), 1), _VERSION_LIMIT_MAX)
+	owner, creation = frappe.db.get_value(doctype, name, ["owner", "creation"]) or (None, None)
+
+	versions: list[dict[str, Any]] = []
+	if meta.track_changes:
+		rows = frappe.get_all(
+			"Version",
+			filters={"ref_doctype": doctype, "docname": cstr(name)},
+			fields=["name", "owner", "creation", "data"],
+			limit_page_length=limit,
+			order_by="creation desc",
+		)
+		labels = _field_labels(doctype)
+		versions = [_shape_version(row, labels) for row in rows]
+
+	owners = {owner} | {row.get("owner") for row in versions if row.get("owner")}
+	owners.discard(None)
+	owners.discard("")
+	full_names: dict[str, str] = {}
+	if owners:
+		for row in frappe.get_all(
+			"User",
+			filters={"name": ("in", list(owners))},
+			fields=["name", "full_name"],
+		):
+			full_names[row.name] = row.full_name or row.name
+
+	for row in versions:
+		user = row.get("owner")
+		row["owner_name"] = full_names.get(user) or user
+
+	return {
+		"track_changes": bool(meta.track_changes),
+		"created_by": owner,
+		"created_by_name": full_names.get(owner) or owner,
+		"created_on": creation,
+		"versions": versions,
+	}

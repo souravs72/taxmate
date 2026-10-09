@@ -13,6 +13,7 @@ import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
 type TaxRate = { _key: string; tax_type: string; tax_rate: number };
@@ -94,9 +95,12 @@ export default function ItemTaxTemplateDetail() {
         }
         title={isNew ? t("itt.new") : title || name}
         actions={
-          <button type="button" className="btn" disabled={busy || !title.trim()} onClick={() => void save()}>
+          <>
+            {!isNew ? <DocHistory doctype={DT.itemTaxTemplate} name={name} /> : null}
+            <button type="button" className="btn" disabled={busy || !title.trim()} onClick={() => void save()}>
             {t("common.save")}
           </button>
+          </>
         }
       />
       {saveError && <ErrorBox error={saveError} />}

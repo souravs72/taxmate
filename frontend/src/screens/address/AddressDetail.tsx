@@ -8,6 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { IfCanWrite } from "../../components/RoleGate";
 
 type LinkEntry = { link_doctype?: string; link_name?: string };
@@ -48,16 +49,21 @@ export default function AddressDetail() {
           </button>
         }
         title={data.address_title || data.name}
-      >
-        <IfCanWrite>
-          <button
-            className="btn ghost"
-            onClick={() => nav(`/addresses/${encodeURIComponent(name)}/edit`)}
-          >
-            {t("edit")}
-          </button>
-        </IfCanWrite>
-      </PageHead>
+        actions={
+          <>
+            <DocHistory doctype="Address" name={name} />
+            <IfCanWrite>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => nav(`/addresses/${encodeURIComponent(name)}/edit`)}
+              >
+                {t("edit")}
+              </button>
+            </IfCanWrite>
+          </>
+        }
+      />
       <Card>
         <div className="fg">
           <ReadRow k={t("addr.col.type")} v={data.address_type || "—"} />

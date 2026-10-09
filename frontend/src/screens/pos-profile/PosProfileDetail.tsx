@@ -13,6 +13,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
 type PaymentRow = { mode_of_payment?: string; default?: 0 | 1 };
@@ -68,14 +69,17 @@ export default function PosProfileDetail() {
         title={data.name}
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/pos-profiles")}>{t("posp.title")}</button>}
         actions={
-          editing ? (
-            <>
-              <button className="btn" onClick={handleSave} disabled={saving}>{saving ? t("common.saving") : t("common.save")}</button>
-              <button className="btn btn-ghost ml-2" onClick={() => setEditing(false)}>{t("common.cancel")}</button>
-            </>
-          ) : (
-            <button className="btn btn-secondary" onClick={() => setEditing(true)}>{t("common.edit")}</button>
-          )
+          <>
+            <DocHistory doctype={DT.posProfile} name={name} />
+            {editing ? (
+              <>
+                <button className="btn" onClick={handleSave} disabled={saving}>{saving ? t("common.saving") : t("common.save")}</button>
+                <button className="btn btn-ghost ml-2" onClick={() => setEditing(false)}>{t("common.cancel")}</button>
+              </>
+            ) : (
+              <button className="btn btn-secondary" onClick={() => setEditing(true)}>{t("common.edit")}</button>
+            )}
+          </>
         }
       />
       {saveError && <ErrorBox error={saveError} />}

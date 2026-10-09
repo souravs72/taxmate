@@ -11,6 +11,7 @@ import { useDoc, useInsert, useSave } from "../../lib/resource";
 import LinkField from "../../components/LinkField";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
 const STATUSES = ["Open", "Replied", "Opportunity", "Interested", "Converted", "Do Not Contact", "Lost Quotation"];
@@ -76,6 +77,9 @@ export default function LeadForm() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/leads")}>{t("lead.title")}</button>}
         title={isNew ? t("lead.new") : form.lead_name || name}
+        actions={
+          !isNew ? (<DocHistory doctype={DT.lead} name={name} />) : null
+        }
       />
       {saveError ? <ErrorBox error={saveError} /> : null}
       <FormLayout>

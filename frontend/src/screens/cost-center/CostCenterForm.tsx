@@ -11,6 +11,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = {
@@ -104,6 +105,9 @@ export default function CostCenterForm() {
           </button>
         }
         title={isNew ? t("cc.newTitle") : form.cost_center_name || name}
+        actions={
+          !isNew ? (<DocHistory doctype={DT.costCenter} name={name} />) : null
+        }
       />
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>

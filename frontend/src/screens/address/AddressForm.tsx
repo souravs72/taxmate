@@ -13,6 +13,7 @@ import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
 const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Personal", "Other"];
@@ -144,6 +145,9 @@ export default function AddressForm() {
           </button>
         }
         title={isNew ? t("addr.new") : form.address_title || name}
+        actions={
+          !isNew ? (<DocHistory doctype="Address" name={name} />) : null
+        }
       />
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>

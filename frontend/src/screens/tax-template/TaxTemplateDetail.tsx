@@ -5,6 +5,7 @@ import { useDoc } from "../../lib/resource";
 import { money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type Charge = { charge_type?: string; account_head?: string; rate?: number; tax_amount?: number; description?: string };
@@ -33,6 +34,7 @@ export default function TaxTemplateDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav(`/tax-templates?kind=${kind}`)}>{t("nav.taxTemplates")}</button>}
         title={data.title || data.name}
+        actions=<DocHistory doctype={dt} name={name} />
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>

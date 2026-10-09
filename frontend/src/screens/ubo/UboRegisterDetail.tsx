@@ -8,6 +8,7 @@ import { useDoc } from "../../lib/resource";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type Owner = {
@@ -38,6 +39,7 @@ export default function UboRegisterDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/ubo")}>{t("nav.ubo")}</button>}
         title={data.company || data.name}
+        actions={<DocHistory doctype={DT.uboRegister} name={name} />}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <Pill cls={uboPill(data.status)}>{data.status || "—"}</Pill>

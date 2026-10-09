@@ -9,6 +9,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string;
@@ -37,9 +38,12 @@ export default function CostCenterDetail() {
         }
         title={data.cost_center_name || data.name}
         actions={
-          <button className="btn ghost" onClick={() => nav(`/cost-centers/${encodeURIComponent(name)}/edit`)}>
+          <>
+            <DocHistory doctype={DT.costCenter} name={name} />
+            <button className="btn ghost" onClick={() => nav(`/cost-centers/${encodeURIComponent(name)}/edit`)}>
             {t("inv.edit")}
           </button>
+          </>
         }
       >
         {data.is_group ? <Pill cls="p-flat">{t("cc.col.isGroup")}</Pill> : null}

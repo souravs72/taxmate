@@ -9,6 +9,7 @@ import { useDoc, useSave } from "../../lib/resource";
 import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type Act = {
@@ -64,10 +65,13 @@ export default function EsrFilingDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/esr")}>{t("nav.esr")}</button>}
         title={data.name}
         actions={
-          <button type="button" className="btn" disabled={update.loading} onClick={() => {
+          <>
+            <DocHistory doctype={DT.esrFiling} name={name} />
+            <button type="button" className="btn" disabled={update.loading} onClick={() => {
             setSaveError(null);
             void update.updateDoc(DT.esrFiling, name, { regulatory_authority: shown }).then(() => mutate()).catch(setSaveError);
           }}>{t("common.save")}</button>
+          </>
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>

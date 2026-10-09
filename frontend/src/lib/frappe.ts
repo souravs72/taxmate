@@ -174,6 +174,7 @@ export const METHOD = {
   cancel: "taxmate.api.workflow.cancel",
   amend: "taxmate.api.workflow.amend",
   searchLink: "taxmate.api.resource.search_link",
+  getVersions: "taxmate.api.resource.get_versions",
   runReport: "taxmate.api.reports.run_report",
   listReports: "taxmate.api.reports.list_reports",
   reportBadges: "taxmate.api.report_badges.get_report_badges",

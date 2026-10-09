@@ -77,6 +77,8 @@ export default function JournalEntryDetail() {
         title={data.voucher_type || data.name}
         actions={
           <DetailActions
+            doctype={DT.journalEntry}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={cancelled}

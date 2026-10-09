@@ -97,6 +97,8 @@ export default function PurchaseReceiptDetail() {
         title={data.supplier_name || data.supplier || data.name}
         actions={
           <DetailActions
+            doctype={DT.purchaseReceipt}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={data.docstatus === 2}

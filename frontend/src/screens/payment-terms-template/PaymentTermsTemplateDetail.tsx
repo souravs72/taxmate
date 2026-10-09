@@ -47,6 +47,8 @@ export default function PaymentTermsTemplateDetail() {
         title={d.template_name || d.name}
         actions={
           <DetailActions
+            doctype={DT.paymentTerms}
+            name={name}
             draft
             canSubmit={false}
             canCancel={false}

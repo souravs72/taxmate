@@ -10,6 +10,7 @@ import { useDoc } from "../../lib/resource";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Company = { company?: string };
 type Doc = {
@@ -39,10 +40,12 @@ export default function FiscalYearDetail() {
         }
         title={data.name}
         actions={
-          <button className="btn ghost" onClick={() => nav(`/fiscal-years/${encodeURIComponent(data.name)}/edit`)}>
+          <>
+            <DocHistory doctype="Fiscal Year" name={name} />
+            <button className="btn ghost" onClick={() => nav(`/fiscal-years/${encodeURIComponent(data.name)}/edit`)}>
             {t("inv.edit")}
           </button>
-        }
+          </>}
       >
         {data.is_short_year ? <Pill cls="p-flat">{t("fy.short")}</Pill> : null}
       </PageHead>

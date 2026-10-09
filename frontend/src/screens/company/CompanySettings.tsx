@@ -16,6 +16,7 @@ import { useSession } from "../../lib/session";
 import { canEditCompanyAccounts, canManageCompany } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 import { apiFetch, fileUrl } from "../../mobile/http";
 
@@ -344,7 +345,11 @@ export default function CompanySettings() {
 
   return (
     <div className="odash">
-      <PageHead title={t("nav.companySettings")} sub={doc.company_name} />
+      <PageHead
+        title={t("nav.companySettings")}
+        sub={doc.company_name}
+        actions={<DocHistory doctype={DT.company} name={doc.name} />}
+      />
 
       <div className="ftabs" role="tablist" aria-label={t("nav.companySettings")}>
         {TABS.map((item) => (

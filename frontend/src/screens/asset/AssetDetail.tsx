@@ -87,6 +87,8 @@ export default function AssetDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/assets")}>{t("ast.title")}</button>}
         actions={
           <DetailActions
+            doctype={DT.asset}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={data.docstatus === 2}

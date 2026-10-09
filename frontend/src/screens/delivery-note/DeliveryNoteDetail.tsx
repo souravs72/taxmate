@@ -117,6 +117,8 @@ export default function DeliveryNoteDetail() {
         }
         actions={
           <DetailActions
+            doctype={DT.deliveryNote}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={data.docstatus === 2}

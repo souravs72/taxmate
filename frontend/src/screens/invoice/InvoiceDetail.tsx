@@ -160,6 +160,8 @@ export default function InvoiceDetail() {
         title={data.customer_name || data.customer}
         actions={
           <DetailActions
+            doctype={DT.salesInvoice}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={data.docstatus === 2}

@@ -6,6 +6,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string;
@@ -35,13 +36,15 @@ export default function WarehouseDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/warehouses")}>{t("nav.warehouses")}</button>}
         title={data.warehouse_name || data.name}
         actions={
-          writable ? (
+          <>
+            <DocHistory doctype={DT.warehouse} name={name} />
+            {writable ? (
             <button type="button" className="btn ghost"
               onClick={() => nav(`/warehouses/${encodeURIComponent(name)}/edit`)}>
               {t("inv.edit")}
             </button>
-          ) : undefined
-        }
+          ) : null}
+          </>}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>

@@ -14,6 +14,7 @@ import { canWrite } from "../../lib/roles";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string; bom_no?: string; item_name?: string; qty?: number; produced_qty?: number;
@@ -62,6 +63,7 @@ export default function WorkOrderDetail() {
         title={data.name}
         actions={
           <>
+            <DocHistory doctype={DT.workOrder} name={name} />
             {writable && data.docstatus === 0 && (
               <button type="button" className="btn ghost" onClick={() => nav(`/work-orders/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
             )}

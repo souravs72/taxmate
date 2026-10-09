@@ -96,6 +96,8 @@ export default function PurchaseOrderDetail() {
         actions={
           writable ? (
             <DetailActions
+            doctype={DT.purchaseOrder}
+            name={name}
               draft={data.docstatus === 0}
               submitted={data.docstatus === 1}
               cancelled={data.docstatus === 2}

@@ -206,6 +206,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "group_by_count", "method": "taxmate.api.resource.group_by_count"},
 			{"name": "get_meta", "method": "taxmate.api.resource.get_meta"},
 			{"name": "search_link", "method": "taxmate.api.resource.search_link"},
+			{"name": "get_versions", "method": "taxmate.api.resource.get_versions"},
 			{"name": "submit", "method": "taxmate.api.workflow.submit"},
 			{"name": "cancel", "method": "taxmate.api.workflow.cancel"},
 			{"name": "amend", "method": "taxmate.api.workflow.amend"},

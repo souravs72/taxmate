@@ -14,7 +14,7 @@ from frappe.tests.utils import FrappeTestCase
 from taxmate.api import get_catalog, get_session
 from taxmate.api.dashboard import get_home
 from taxmate.api.reports import list_reports
-from taxmate.api.resource import bulk_delete, delete, get, get_list, get_meta, insert, is_allowed_doctype, save
+from taxmate.api.resource import bulk_delete, delete, get, get_list, get_meta, get_versions, insert, is_allowed_doctype, save
 
 
 class TestApiAllowlist(unittest.TestCase):
@@ -63,6 +63,7 @@ class TestApiCatalog(FrappeTestCase):
 
 		methods = {row["method"] for row in catalog["actions"]}
 		self.assertIn("taxmate.api.resource.get_list", methods)
+		self.assertIn("taxmate.api.resource.get_versions", methods)
 		self.assertIn("taxmate.api.resource.bulk_delete", methods)
 		self.assertIn("taxmate.api.workflow.submit", methods)
 		self.assertIn("taxmate.api.accounts.get_party_details", methods)
@@ -1364,6 +1365,22 @@ class TestPhase7SerialBatchMasters(FrappeTestCase):
 		from taxmate.api.resource import is_allowed_doctype
 
 		self.assertTrue(is_allowed_doctype("Batch"))
+
+	def test_get_versions_requires_read_and_returns_shape(self):
+		"""History API checks source-doc permission and returns a stable shape."""
+		customer = frappe.get_all("Customer", pluck="name", limit=1)
+		if not customer:
+			self.skipTest("No Customer")
+		name = customer[0]
+		out = get_versions("Customer", name, limit=5)
+		self.assertIn("track_changes", out)
+		self.assertIn("versions", out)
+		self.assertIn("created_by", out)
+		self.assertIn("created_on", out)
+		self.assertIsInstance(out["versions"], list)
+		# Employee is outside the TaxMate catalog (see is_allowed_doctype).
+		with self.assertRaises(frappe.PermissionError):
+			get_versions("Employee", "x")
 
 	def test_serial_no_get_list(self):
 		rows = get_list("Serial No", fields=["name", "item_code"], limit_page_length=5, filters=[])

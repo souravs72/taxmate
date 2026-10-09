@@ -84,6 +84,8 @@ export default function StockEntryDetail() {
         title={data.stock_entry_type || data.name}
         actions={
           <DetailActions
+            doctype={DT.stockEntry}
+            name={name}
             draft={draft}
             submitted={submitted}
             cancelled={cancelled}

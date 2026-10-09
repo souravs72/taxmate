@@ -9,6 +9,7 @@ import { useDoc } from "../../lib/resource";
 import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 
 type Doc = {
   name: string;
@@ -42,6 +43,7 @@ export default function PeriodClosingDetail() {
           </button>
         }
         title={data.name}
+        actions=<DocHistory doctype="Period Closing Voucher" name={name} />
       >
         <Pill cls={data.docstatus === 1 ? "p-sub" : data.docstatus === 2 ? "p-cancel" : "p-draft"}>
           {t(`status.${st}`)}

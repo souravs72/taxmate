@@ -10,6 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type BomItem = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number };
@@ -31,9 +32,12 @@ export default function BomDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/boms")}>{t("bom.title")}</button>}
         title={data.name}
-        actions={writable ? (
+        actions={<>
+            <DocHistory doctype={DT.bom} name={name} />
+            {writable ? (
           <button type="button" className="btn ghost" onClick={() => nav(`/boms/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
         ) : null}
+          </>}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           {data.is_active ? <Pill cls="p-done">{t("bom.activeLabel")}</Pill> : <Pill cls="p-flat">{t("no")}</Pill>}

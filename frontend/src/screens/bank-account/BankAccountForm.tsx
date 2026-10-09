@@ -12,6 +12,7 @@ import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 import { FormActions, FormLayout } from "../../components/form";
 
@@ -96,6 +97,9 @@ export default function BankAccountForm() {
           </button>
         }
         title={isNew ? t("ba.newTitle") : t("ba.editTitle")}
+        actions={
+          !isNew ? (<DocHistory doctype={DT.bankAccount} name={name} />) : null
+        }
       />
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>

@@ -40,6 +40,8 @@ export default function LoyaltyProgramDetail() {
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/loyalty-programs")}>{t("lp.title")}</button>}
         actions={
           <DetailActions
+            doctype={DT.loyaltyProgram}
+            name={name}
             draft={true}
             submitted={false}
             canSubmit={false}
