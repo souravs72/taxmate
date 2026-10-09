@@ -15,7 +15,7 @@
 /* Bar height is shared with the page's bottom padding, so it lives in one
    place. Set on .app: the bar and .page both inherit it. */
 .app {
-  --mnav-h: 58px;
+  --mnav-h: 54px;
 }
 
 /* ── Content clearance ──────────────────────────────────────────────── */
@@ -32,11 +32,11 @@
   z-index: 60;
   display: flex;
   align-items: stretch;
-  gap: 2px;
-  padding: 0 4px;
+  gap: 0;
+  padding: 0 6px;
   padding-block-end: env(safe-area-inset-bottom, 0px);
   background: var(--surface);
-  border-block-start: 1px solid var(--border);
+  border-block-start: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
 }
 
 .mnav-tab {
@@ -48,17 +48,20 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   padding: 6px 2px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
   background: transparent;
   color: var(--muted);
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
-  line-height: 1.2;
+  letter-spacing: 0.01em;
+  line-height: 1.15;
   text-decoration: none;
   cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   transition: color 150ms ease, background 150ms ease;
 }
 
@@ -67,9 +70,11 @@
   color: var(--text);
 }
 
+/* Quiet active: brand colour, no filled chip. */
 .mnav-tab.on {
   color: var(--brand);
-  background: var(--brand-soft);
+  background: transparent;
+  font-weight: 700;
 }
 
 .mnav-ic {
@@ -349,12 +354,54 @@
 @media (max-width: 900px) {
   /* Row 1: the mark, then Scan / language / theme / avatar.
      Row 2: the search box, which needs the full width to be usable. */
-  .app.has-mnav .topbar { padding: 8px 12px; gap: 8px 10px; }
-  .app.has-mnav .tsearch { flex: 1 1 auto; max-width: none; min-width: 0; }
+  /* Opaque band from the physical top (incl. status bar) so list cards
+     cannot scroll through the sticky chrome. */
+  .app.has-mnav .topbar {
+    top: 0;
+    padding: 6px 12px 8px;
+    padding-block-start: calc(6px + env(safe-area-inset-top, 0px));
+    gap: 6px 8px;
+    background-color: var(--surface);
+    border-block-end-color: color-mix(in srgb, var(--border) 70%, transparent);
+  }
+  .app.has-mnav .tsearch { flex: 1 1 100%; max-width: none; min-width: 0; order: 10; }
+  /* Keyboard shortcuts are desktop chrome. */
+  .app.has-mnav .tsearch-kbd { display: none; }
+  .app.has-mnav .tsearch input {
+    min-height: 42px;
+    font-size: 16px;
+    padding-inline-end: 12px;
+    border-radius: 11px;
+    background: var(--sunk);
+  }
+  [dir="rtl"] .app.has-mnav .tsearch input { padding-inline-start: 12px; }
   /* A finger, not a mouse. */
   .app.has-mnav .topbar .iconbtn,
-  .app.has-mnav .topbar .umavbtn { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
-  .app.has-mnav .topbar .langbtn,
-  .app.has-mnav .tools > button { min-height: 44px; }
-  .app.has-mnav .tsearch input { min-height: 44px; font-size: 16px; }
+  .app.has-mnav .topbar .umavbtn {
+    width: 40px; height: 40px; min-width: 40px; min-height: 40px;
+    border-radius: 11px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .app.has-mnav .topbar .langbtn {
+    min-height: 40px;
+    padding-inline: 10px;
+    border-radius: 11px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  /* Scan: mark only — label lives in aria-label. */
+  .app.has-mnav .scanbtn {
+    width: 40px;
+    min-width: 40px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    border-radius: 11px;
+    gap: 0;
+    justify-content: center;
+  }
+  .app.has-mnav .scanbtn-lab { display: none; }
+  .app.has-mnav .tools { gap: 4px; }
+  .app.has-mnav .tright { gap: 4px; }
 }

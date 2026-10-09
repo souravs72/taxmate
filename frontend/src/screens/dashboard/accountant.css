@@ -20,7 +20,17 @@
 /* 760px, not 640px, so the queue tiles step with the rest of the phone pass
    (lib/useMedia.ts PHONE_QUERY). The 1280px step above is a desktop choice
    and is deliberately left alone. */
-@media (max-width:760px){.ad-queues{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){
+  .ad-queues{grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px}
+  /* Number + label only — drop the caption and trailing CTA on a phone. */
+  .ad-q{padding:12px 13px; gap:4px; border-radius:12px}
+  .ad-q::before{opacity:.45}
+  .ad-q-n{font-size:22px; letter-spacing:-.04em}
+  .ad-q-l{font-size:12.5px; font-weight:600}
+  .ad-q-s,.ad-q-go{display:none}
+  .ad-month-note{display:none}
+  .ad-step-t > span{display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden}
+}
 .ad-q{
   --q:var(--warn); --q-bg:var(--warn-bg);
   display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding:14px 16px;

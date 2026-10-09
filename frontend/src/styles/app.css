@@ -74,7 +74,15 @@ svg{display:block}
 .app.collapsed .rfoot span:last-child{display:none}
 
 .main{min-width:0; display:flex; flex-direction:column}
-.topbar{display:flex; gap:12px; align-items:center; padding:10px 18px; background:var(--surface); border-block-end:1px solid var(--border); flex-wrap:wrap; position:sticky; top:env(safe-area-inset-top, 0px); z-index:20}
+/* Stick at the physical top; paint the notch/status-bar band with the same
+   surface so scroll content cannot bleed through env(safe-area-inset-top). */
+.topbar{
+  display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+  padding:10px 18px;
+  padding-block-start:calc(10px + env(safe-area-inset-top, 0px));
+  background-color:var(--surface); border-block-end:1px solid var(--border);
+  position:sticky; top:0; z-index:20;
+}
 .skip{
   position:absolute; inset-inline-start:-999px; top:8px; z-index:80;
   background:var(--brand); color:var(--brand-ink); padding:8px 14px; border-radius:8px; font-weight:600; text-decoration:none;
@@ -762,11 +770,16 @@ td.pick{width:38px; padding-inline-end:0}
   /* 18px all round is a desktop gutter. One value replaces the old
      inline-only 520px rule. */
   .page{padding:14px; gap:14px}
-  .topbar{padding:8px 12px; gap:8px}
+  .topbar{
+    padding:8px 12px;
+    padding-block-start:calc(8px + env(safe-area-inset-top, 0px));
+    gap:8px;
+  }
   /* Stack instead of relying on wrap, and let the actions fill the width. */
   .phead{flex-direction:column; align-items:stretch; gap:12px}
   .phead-main{flex:none}
-  .phead h1{font-size:19px}
+  .phead h1{font-size:20px; letter-spacing:-.03em; font-weight:700}
+  .phead .sub{margin-block-start:2px; font-size:12px; color:var(--muted)}
   /* 23px wraps mid-word on a 360px screen. */
   .acts{width:100%; margin-inline-start:0}
   .acts:has(> .dash-acts-sec){display:flex; grid-template-columns:none}
@@ -897,8 +910,8 @@ td.pick{width:38px; padding-inline-end:0}
   /* Nothing in this file is fixed to the bottom — the tab bar
      (shell-mobile.css) and the action bar (form-mobile.css) own that edge
      and pad themselves. .page's bottom clearance comes from `.mnav-pad`.
-     The two sticky-top surfaces here already carry the top inset. */
-  .topbar{top:env(safe-area-inset-top, 0px)}
+     .topbar sticks at top:0 and pads its block-start with the inset so the
+     opaque surface covers the status-bar band (not a gap above the bar). */
 }
 
 /* ── Top-bar targets on the tablet band ─────────────────────────────── */
@@ -955,7 +968,7 @@ td.pick{width:38px; padding-inline-end:0}
 
 /* Topbar tools (CaptureDesk) — kept from live */
 .tools{display:flex; align-items:center; gap:6px}
-.scanbtn{min-height:44px; height:auto; padding:0 14px; border-radius:10px; gap:6px}
+.scanbtn{min-height:44px; height:auto; padding:0 14px; border-radius:10px; gap:6px; display:inline-flex; align-items:center}
 .langbtn:hover,.iconbtn.bordered:hover{background:var(--hover)}
 
 /* Company switcher on phones: the abbreviation tile only; the menu names it. */

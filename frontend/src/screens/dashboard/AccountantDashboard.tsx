@@ -21,6 +21,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
 import { getLocale } from "../../lib/i18n";
+import { useIsPhone } from "../../lib/useMedia";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { whole } from "../../components/charts";
@@ -160,6 +161,7 @@ export default function AccountantDashboard() {
   const nav = useNavigate();
   const openBankRec = useOpenBankRec();
   const session = useSession();
+  const phone = useIsPhone();
   const [params, setParams] = useSearchParams();
   const month = params.get("month") ?? "";
 
@@ -173,6 +175,11 @@ export default function AccountantDashboard() {
   const cur = d?.currency || session.currency || "";
   const firstName = (session.full_name || session.user || "").trim().split(/[\s@._-]/)[0];
   const openQueues = d ? Object.values(d.queues).filter((q) => q && ("total" in q ? q.total : q.count) > 0).length : 0;
+  const queueLine = d ? (openQueues ? fill(t("ad.queuesOpen"), { n: openQueues }) : t("ad.queuesClear")) : "";
+  /* Phone: one status line. Desktop keeps company · date · queues. */
+  const headSub = phone
+    ? queueLine || undefined
+    : [session.company, date(session.today), queueLine].filter(Boolean).join(" · ");
 
   const setMonth = (key: string, latest: string) => {
     const next = new URLSearchParams(params);
@@ -185,7 +192,7 @@ export default function AccountantDashboard() {
     <div className="odash adash">
       <PageHead
         title={firstName ? `${t("dash.hello")}, ${firstName}` : t("nav.dashboard")}
-        sub={[session.company, date(session.today), d ? (openQueues ? fill(t("ad.queuesOpen"), { n: openQueues }) : t("ad.queuesClear")) : ""].filter(Boolean).join(" · ")}
+        sub={headSub}
         /* The role switch changes what you are looking at, not what you are
            doing: on a phone it stays under the title instead of taking a whole
            row of the action bar. Unchanged on a desktop. */
