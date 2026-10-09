@@ -1,6 +1,7 @@
 /**
- * Scan panel. Renders the dashboard IDP payload and decides nothing.
- * The backend names the jobs, the documents, proposals, and whether a draft can be saved.
+ * Scan panel — create a draft from a file via IDP.
+ * The backend names targets, proposals, and whether a draft can be saved.
+ * One job only: create. Dialog stays open until Close/Cancel; that aborts work.
  */
 
 import { useEffect, useId, useRef, useState } from "react";
@@ -75,6 +76,10 @@ type Review = {
   diffs?: { label_key: string; before: string; after: string; status: string }[];
 };
 
+type Phase = "idle" | "uploading" | "reading" | "saving";
+
+const PREFERRED_TARGET = "Sales Invoice";
+
 export function CaptureDesk() {
   const [open, setOpen] = useState(false);
   const openRef = useRef<HTMLButtonElement>(null);
@@ -106,30 +111,46 @@ export function CaptureDesk() {
 
 function CapturePanel({ onClose }: { onClose: () => void }) {
   const titleId = useId();
+  const statusId = useId();
   const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const lock = useRef(false);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
   const nav = useNavigate();
   const res = useFrappeGetCall<{ message: Surface }>(METHOD.idpSurface, undefined, "idp-surface");
   const surface = res.data?.message;
-  const [actionId, setActionId] = useState<string | null>(null);
+  const action = surface?.actions?.find((row) => row.id === "create") ?? surface?.actions?.[0] ?? null;
+  const stages = surface?.read_stages ?? [];
+
   const [target, setTarget] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [stageIdx, setStageIdx] = useState(0);
   const [review, setReview] = useState<Review | null>(null);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
-  const [query, setQuery] = useState("");
   const [writes, setWrites] = useState<Write[]>([]);
   const [proposals, setProposals] = useState<Proposal[]>([]);
 
-  const action = surface?.actions?.find((row) => row.id === actionId) ?? null;
-  const stages = surface?.read_stages ?? [];
+  const busy = phase !== "idle";
+
+  useEffect(() => {
+    if (!action || target) return;
+    const ready = action.targets.filter((row) => row.ready);
+    const preferred = ready.find((row) => row.doctype === PREFERRED_TARGET);
+    setTarget((preferred ?? ready[0])?.doctype ?? null);
+  }, [action, target]);
 
   useEffect(() => {
     closeRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        event.preventDefault();
+        abortRef.current?.abort();
+        abortRef.current = null;
+        lock.current = false;
+        onCloseRef.current();
         return;
       }
       if (event.key === "Tab" && panelRef.current) trapTab(event, panelRef.current);
@@ -140,103 +161,164 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
     return () => {
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
+      abortRef.current?.abort();
+      abortRef.current = null;
+      lock.current = false;
     };
-  }, [onClose]);
+  }, []);
+
+  useEffect(() => {
+    if (!busy || stages.length === 0) return;
+    setStageIdx(phase === "uploading" ? 0 : phase === "saving" ? stages.length - 1 : 1);
+    const id = window.setInterval(() => {
+      setStageIdx((prev) => {
+        if (phase === "uploading") return 0;
+        if (phase === "saving") return Math.max(stages.length - 1, 0);
+        return Math.min(prev + 1, Math.max(stages.length - 2, 0));
+      });
+    }, 2800);
+    return () => window.clearInterval(id);
+  }, [busy, phase, stages.length]);
+
+  function requestClose() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    lock.current = false;
+    onClose();
+  }
 
   async function readFile() {
-    if (lock.current || !action || !target) return;
-    if (action.needs_file && !file) return;
-    if (action.needs_query && !query.trim()) return;
+    if (lock.current || !action || !target || !file) return;
     lock.current = true;
-    setBusy(true);
+    const ac = new AbortController();
+    abortRef.current = ac;
     setReview(null);
     setProposals([]);
-    let stopped = false;
+    setPhase("uploading");
+    setStageIdx(0);
+    let timedOut = false;
     const slow = window.setTimeout(() => {
-      stopped = true;
+      timedOut = true;
+      ac.abort();
       lock.current = false;
-      setBusy(false);
+      setPhase("idle");
       setReview({ ok: false, error_key: "idp.readSlow" });
     }, 100_000);
     try {
-      let url = "";
-      if (action.needs_file && file) {
-        const uploaded = await postFile(file);
-        url = String(uploaded.file_url || "");
-        setFileUrl(url);
-      }
-      const result = await postForm(METHOD.idpRun, {
-        action: action.id,
-        target_doctype: target,
-        file_url: url,
-        query: query.trim(),
-      });
-      if (stopped) return;
+      const uploaded = await postFile(file, ac.signal);
+      if (ac.signal.aborted) return;
+      const url = String(uploaded.file_url || "");
+      if (!url) throw new Error(t("idp.readFailed"));
+      setFileUrl(url);
+      setPhase("reading");
+      const result = await postForm(
+        METHOD.idpRun,
+        {
+          action: action.id,
+          target_doctype: target,
+          file_url: url,
+          query: "",
+        },
+        ac.signal,
+      );
+      if (ac.signal.aborted || timedOut) return;
       setReview(result);
       setWrites(Array.isArray(result.writes) ? result.writes : []);
       setProposals(Array.isArray(result.proposals) ? cloneProposals(result.proposals) : []);
+      setStageIdx(stages.length - 1);
     } catch (err) {
-      if (stopped) return;
+      if (ac.signal.aborted || timedOut) return;
       setReview({ ok: false, error_key: "idp.readFailed", detail: readableError(err).join(" ") });
     } finally {
       window.clearTimeout(slow);
-      if (!stopped) {
+      if (!ac.signal.aborted && !timedOut) {
         lock.current = false;
-        setBusy(false);
+        setPhase("idle");
       }
+      if (abortRef.current === ac) abortRef.current = null;
     }
   }
 
   async function saveDraft(submit = false) {
-    if (lock.current || !action || !target) return;
-    if (action.needs_file && !fileUrl) return;
+    if (lock.current || !action || !target || !fileUrl) return;
     if (!proposalsReady(proposals)) return;
     lock.current = true;
-    setBusy(true);
+    const ac = new AbortController();
+    abortRef.current = ac;
+    setPhase("saving");
     try {
       const fills = Object.fromEntries(writes.map((row) => [row.field, row.value]));
-      const result = await postForm(METHOD.idpSave, {
-        action: action.id,
-        target_doctype: target,
-        file_url: fileUrl || "",
-        query: query.trim(),
-        fills: JSON.stringify(fills),
-        proposals: JSON.stringify(proposals),
-        submit: submit ? "1" : "",
-      });
-      setReview(result);
-      if (result.ok && result.route && action.id !== "delete" && !result.error_key) nav(result.route);
+      const result = await postForm(
+        METHOD.idpSave,
+        {
+          action: action.id,
+          target_doctype: target,
+          file_url: fileUrl,
+          query: "",
+          fills: JSON.stringify(fills),
+          proposals: JSON.stringify(proposals),
+          submit: submit ? "1" : "",
+        },
+        ac.signal,
+      );
+      if (ac.signal.aborted) return;
+      if (result.ok && result.route && !result.error_key) {
+        setReview(result);
+        onClose();
+        nav(result.route);
+        return;
+      }
+      // Keep the review cards; only stamp the save failure so the foot can show it.
+      setReview((prev) => ({
+        ...(prev || {}),
+        ...result,
+        ok: false,
+        error_key: result.error_key || "idp.readFailed",
+        detail: result.detail,
+        lines: result.lines ?? prev?.lines,
+        items: result.items ?? prev?.items,
+        gaps: result.gaps ?? prev?.gaps,
+        step: result.step || prev?.step || "review",
+        can_save: prev?.can_save,
+        can_submit: prev?.can_submit,
+        save_key: prev?.save_key,
+      }));
     } catch (err) {
-      setReview({ ok: false, error_key: "idp.readFailed", detail: readableError(err).join(" ") });
+      if (ac.signal.aborted) return;
+      setReview((prev) => ({
+        ...(prev || { ok: false }),
+        ok: false,
+        error_key: "idp.readFailed",
+        detail: readableError(err).join(" "),
+        step: prev?.step || "review",
+      }));
     } finally {
-      lock.current = false;
-      setBusy(false);
+      if (!ac.signal.aborted) {
+        lock.current = false;
+        setPhase("idle");
+      }
+      if (abortRef.current === ac) abortRef.current = null;
     }
   }
 
-  const liveStages = busy
-    ? stages.map((row, index) => ({
-        ...row,
-        status: index === 0 ? "done" : index === 1 ? "active" : "pending",
-      }))
-    : review?.stage_log ?? [];
+  const liveStages =
+    busy && stages.length > 0
+      ? stages.map((row, index) => ({
+          ...row,
+          status: index < stageIdx ? "done" : index === stageIdx ? "active" : "pending",
+        }))
+      : review?.stage_log ?? [];
 
   const reviewReady = proposalsReady(proposals);
-  // Match draft_instructions: confirmed proposals unlock save even when schema
-  // still lists ERPNext auto-filled row fields as errors.
   const canSave = Boolean(
-    review &&
-      reviewReady &&
-      (review.can_delete || review.can_save || proposals.length > 0)
+    review && reviewReady && (review.can_delete || review.can_save || proposals.length > 0),
   );
   const canSubmit = Boolean(
-    review && reviewReady && (review.can_submit || (canSave && proposals.length > 0 && !review.can_delete))
+    review && reviewReady && (review.can_submit || (canSave && proposals.length > 0 && !review.can_delete)),
   );
   const consentPending = proposals.some((row) => !row.confirmed);
   const fieldsPending = proposals.some(
-    (row) =>
-      row.confirmed &&
-      row.required_fields.some((field) => !String(field.value || "").trim())
+    (row) => row.confirmed && row.required_fields.some((field) => !String(field.value || "").trim()),
   );
   const blockHint = !review
     ? null
@@ -252,179 +334,151 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
           ? "idp.blocked.save"
           : null;
 
+  const statusKey =
+    phase === "uploading"
+      ? "idp.stage.upload"
+      : phase === "reading"
+        ? "idp.reading"
+        : phase === "saving"
+          ? "idp.saving"
+          : null;
+
+  const readyTargets = action?.targets.filter((row) => row.ready) ?? [];
+
   return (
-    <div className="idp-back" onMouseDown={onClose}>
+    <div className="idp-back" role="presentation">
       <div
         ref={panelRef}
-        className="idp-panel"
+        className={`idp-panel${busy ? " idp-busy" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
+        aria-describedby={statusKey ? statusId : undefined}
         aria-busy={busy}
-        onMouseDown={(event) => event.stopPropagation()}
       >
         <div className="idp-head">
-          <h2 id={titleId}>{surface ? t(surface.title_key) : t("idp.title")}</h2>
-          <button ref={closeRef} type="button" className="btn ghost sm" onClick={onClose}>
-            {t("idp.close")}
+          <h2 id={titleId}>{t("idp.title")}</h2>
+          <button ref={closeRef} type="button" className="btn ghost sm" onClick={requestClose}>
+            {busy ? t("idp.cancel") : t("idp.close")}
           </button>
         </div>
 
+        {busy ? (
+          <div className="idp-progress" aria-hidden="true">
+            <span className="idp-progress-bar" />
+          </div>
+        ) : null}
+
         <div className="idp-body">
-          {res.error ? <p>{readableError(res.error).join(" ")}</p> : null}
-          {!surface && res.isLoading ? <p>{t("idp.loading")}</p> : null}
+          {res.error ? <p className="idp-err">{readableError(res.error).join(" ")}</p> : null}
+          {!surface && res.isLoading ? <p className="idp-hint">{t("idp.loading")}</p> : null}
+          {surface && !action ? <p className="idp-hint">{t("idp.empty")}</p> : null}
+          {action && !action.runnable ? <p className="idp-hint">{t(action.pending_key)}</p> : null}
 
-          {surface ? (
-            <>
-              {!review ? (
-                <>
-                  <ul className="idp-notes">
-                    {surface.notices.map((key) => (
-                      <li key={key}>{t(key)}</li>
-                    ))}
-                  </ul>
-                  {surface.actions.length === 0 ? <p>{t("idp.empty")}</p> : null}
-                  <div className="idp-jobs" role="group" aria-label={t("idp.title")}>
-                    {surface.actions.map((row) => (
-                      <button
-                        key={row.id}
-                        type="button"
-                        className="btn ghost sm"
-                        aria-pressed={row.id === actionId}
-                        onClick={() => {
-                          setActionId(row.id);
-                          setTarget(null);
-                          setFile(null);
-                          setFileUrl(null);
-                          setQuery("");
-                          setReview(null);
-                          setProposals([]);
-                        }}
-                      >
-                        {t(row.label_key)}
-                      </button>
-                    ))}
-                  </div>
-
-                  {action && !action.runnable ? <p className="idp-job">{t(action.pending_key)}</p> : null}
-
-                  {action?.runnable ? (
-                    <div className="idp-job">
-                      <p>{t(action.pick_key)}</p>
-                      <div className="idp-targets">
-                        {action.targets
-                          .filter((row) => row.ready)
-                          .map((row) => (
-                            <button
-                              key={row.doctype}
-                              type="button"
-                              className="btn ghost sm"
-                              aria-pressed={target === row.doctype}
-                              onClick={() => setTarget(row.doctype)}
-                            >
-                              {t(row.label_key)}
-                            </button>
-                          ))}
-                      </div>
-                      {action.targets.some((row) => !row.ready) ? (
-                        <p>
-                          {action.targets
-                            .filter((row) => !row.ready)
-                            .map((row) => t(row.label_key))
-                            .join(", ")}{" "}
-                          · {t("idp.noRoute")}
-                        </p>
-                      ) : null}
-                      {action.needs_file ? (
-                        <label className="idp-file">
-                          {t("idp.fileLabel")}
-                          <input
-                            type="file"
-                            accept={surface.accept.join(",")}
-                            onChange={(event) => {
-                              setFile(event.target.files?.[0] ?? null);
-                              setReview(null);
-                              setProposals([]);
-                              setFileUrl(null);
-                            }}
-                          />
-                        </label>
-                      ) : null}
-                      {action.needs_query ? (
-                        <label className="idp-file">
-                          {t(action.query_key || "idp.query.doc")}
-                          <input
-                            type="text"
-                            value={query}
-                            onChange={(event) => {
-                              setQuery(event.target.value);
-                              setReview(null);
-                              setProposals([]);
-                            }}
-                          />
-                        </label>
-                      ) : null}
-                      <button
-                        type="button"
-                        className="btn"
-                        disabled={
-                          busy || !target || (action.needs_file && !file) || (action.needs_query && !query.trim())
-                        }
-                        onClick={readFile}
-                      >
-                        {busy ? t(action.needs_file ? "idp.reading" : "idp.working") : t(action.run_key)}
-                      </button>
-                    </div>
-                  ) : null}
-                </>
-              ) : (
-                <div className="idp-job">
+          {action?.runnable && !review ? (
+            <div className="idp-form">
+              <p className="idp-kicker">{t("idp.pick")}</p>
+              <div className="idp-targets" role="group" aria-label={t("idp.pick")}>
+                {readyTargets.map((row) => (
                   <button
+                    key={row.doctype}
                     type="button"
                     className="btn ghost sm"
-                    onClick={() => {
-                      setReview(null);
-                      setProposals([]);
-                      setWrites([]);
-                      setFile(null);
-                      setFileUrl(null);
-                    }}
+                    aria-pressed={target === row.doctype}
+                    disabled={busy}
+                    onClick={() => setTarget(row.doctype)}
                   >
-                    {t("idp.again")}
+                    {t(row.label_key)}
                   </button>
-                </div>
-              )}
+                ))}
+              </div>
 
-              {liveStages.length > 0 ? <StageList stages={liveStages} /> : null}
-              {busy ? <p className="idp-hint">{t("idp.readingWait")}</p> : null}
-
-              {review ? (
-                <ReviewBlock
-                  review={review}
-                  writes={writes}
-                  proposals={proposals}
-                  onWrite={(field, value) =>
-                    setWrites((rows) => rows.map((row) => (row.field === field ? { ...row, value } : row)))
-                  }
-                  onProposal={setProposals}
-                  onOpen={nav}
+              <label className={`idp-drop${file ? " has-file" : ""}`}>
+                <input
+                  type="file"
+                  accept={fileAccept(surface?.accept)}
+                  disabled={busy}
+                  onChange={(event) => {
+                    setFile(event.target.files?.[0] ?? null);
+                    setReview(null);
+                    setProposals([]);
+                    setFileUrl(null);
+                  }}
                 />
-              ) : null}
-            </>
+                <span className="idp-drop-title">{file ? file.name : t("idp.drop")}</span>
+                <span className="idp-drop-hint">{t("idp.dropHint")}</span>
+              </label>
+
+              <button
+                type="button"
+                className="btn idp-run"
+                disabled={busy || !target || !file}
+                onClick={() => void readFile()}
+              >
+                {busy ? t("idp.reading") : t("idp.read")}
+              </button>
+            </div>
+          ) : null}
+
+          {review && !busy ? (
+            <div className="idp-job">
+              <button
+                type="button"
+                className="btn ghost sm"
+                onClick={() => {
+                  setReview(null);
+                  setProposals([]);
+                  setWrites([]);
+                  setFile(null);
+                  setFileUrl(null);
+                }}
+              >
+                {t("idp.again")}
+              </button>
+            </div>
+          ) : null}
+
+          {statusKey ? (
+            <p id={statusId} className="idp-status" role="status" aria-live="polite">
+              {t(statusKey)}
+            </p>
+          ) : null}
+
+          {liveStages.length > 0 ? <StageList stages={liveStages} /> : null}
+
+          {review ? (
+            <ReviewBlock
+              review={review}
+              writes={writes}
+              proposals={proposals}
+              onWrite={(field, value) =>
+                setWrites((rows) => rows.map((row) => (row.field === field ? { ...row, value } : row)))
+              }
+              onProposal={setProposals}
+              onOpen={nav}
+            />
           ) : null}
         </div>
 
         {review ? (
           <div className="idp-foot">
-            {proposals.length > 0 ? <p className="idp-hint">{t("idp.propose.onSave")}</p> : null}
-            {!canSave && review?.detail ? <p className="idp-hint">{review.detail}</p> : null}
-            {blockHint && !canSave && !review?.detail ? <p className="idp-hint">{t(blockHint)}</p> : null}
+            {review.error_key && !review.ok ? (
+              <p className="idp-err" role="alert">
+                {t(review.error_key)}
+                {review.detail ? ` — ${review.detail}` : ""}
+              </p>
+            ) : null}
+            {proposals.length > 0 && !(review.error_key && !review.ok) ? (
+              <p className="idp-hint">{t("idp.propose.onSave")}</p>
+            ) : null}
+            {!canSave && review.detail && review.ok !== false ? <p className="idp-hint">{review.detail}</p> : null}
+            {blockHint && !canSave && !review.detail ? <p className="idp-hint">{t(blockHint)}</p> : null}
             <div className="idp-jobs">
-              <button type="button" className="btn" disabled={busy || !canSave} onClick={() => saveDraft(false)}>
-                {busy ? t("idp.saving") : t(review.save_key || "idp.save")}
+              <button type="button" className="btn" disabled={busy || !canSave} onClick={() => void saveDraft(false)}>
+                {phase === "saving" ? t("idp.saving") : t(review.save_key || "idp.save")}
               </button>
               {canSubmit && !review.can_delete ? (
-                <button type="button" className="btn ghost" disabled={busy || !canSave} onClick={() => saveDraft(true)}>
+                <button type="button" className="btn ghost" disabled={busy || !canSave} onClick={() => void saveDraft(true)}>
                   {t("idp.submit")}
                 </button>
               ) : null}
@@ -437,8 +491,10 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
 }
 
 function StageList({ stages }: { stages: Stage[] }) {
+  /* Status text above is aria-live; this list is visual only so the 2.8s
+     client ticker does not spam screen readers with fake stage changes. */
   return (
-    <ol className="idp-stages" aria-live="polite" aria-label={t("idp.stages")}>
+    <ol className="idp-stages" aria-hidden="true">
       {stages.map((row) => (
         <li key={row.key} data-status={row.status || "pending"}>
           {t(row.label_key)}
@@ -474,7 +530,6 @@ function ReviewBlock({
           {review.name}
         </button>
       ) : null}
-      {review.step === "deleted" ? <p>{t("idp.deleted")}</p> : null}
       {review.used_llm ? <p className="idp-kicker">{t("idp.modelUsed")}</p> : null}
       {review.lines && review.lines.length > 0 ? (
         <>
@@ -519,30 +574,6 @@ function ReviewBlock({
             />
           ))}
         </>
-      ) : null}
-      {review.matches && review.matches.length > 0 ? (
-        <ul className="idp-notes">
-          {review.matches.map((row) => (
-            <li key={row.name}>
-              {row.route ? (
-                <button type="button" className="btn ghost sm" onClick={() => onOpen(row.route as string)}>
-                  {row.label}
-                </button>
-              ) : (
-                row.label
-              )}
-            </li>
-          ))}
-        </ul>
-      ) : null}
-      {review.diffs && review.diffs.length > 0 ? (
-        <ul className="idp-notes">
-          {review.diffs.map((row) => (
-            <li key={`${row.label_key}-${row.after}`}>
-              {fieldLabel(row.label_key)}: {row.before} → {row.after}
-            </li>
-          ))}
-        </ul>
       ) : null}
       {review.step === "review" && writes.length > 0 ? (
         <>
@@ -669,7 +700,12 @@ function cloneProposals(rows: Proposal[]): Proposal[] {
   return rows.map((row) => ({
     ...row,
     confirmed: Boolean(row.confirmed),
-    required_fields: (row.required_fields || []).map((field) => ({ ...field, value: field.value || "" })),
+    required_fields: (row.required_fields || []).map((field) => {
+      const blank = !String(field.value || "").trim();
+      const typeDefault =
+        blank && (field.field === "supplier_type" || field.field === "customer_type") ? "Company" : "";
+      return { ...field, value: field.value || typeDefault };
+    }),
     optional_fields: (row.optional_fields || []).map((field) => ({ ...field, value: field.value || "" })),
   }));
 }
@@ -679,7 +715,7 @@ function proposalsReady(rows: Proposal[]): boolean {
   return rows.every(
     (row) =>
       row.confirmed &&
-      row.required_fields.every((field) => String(field.value || "").trim().length > 0)
+      row.required_fields.every((field) => String(field.value || "").trim().length > 0),
   );
 }
 
@@ -708,18 +744,29 @@ function trapTab(event: KeyboardEvent, root: HTMLElement) {
   }
 }
 
-async function postFile(file: File): Promise<Record<string, unknown>> {
+/** Extensions from the surface plus MIME types Android/iOS WebViews honour. */
+function fileAccept(exts: string[] | undefined): string {
+  const list = exts?.length ? exts : [".pdf", ".png", ".jpg", ".jpeg"];
+  return [...list, "application/pdf", "image/*"].join(",");
+}
+
+async function postFile(file: File, signal: AbortSignal): Promise<Record<string, unknown>> {
   const body = new FormData();
   body.append("file", file);
   const res = await apiFetch(`/api/method/${METHOD.idpUpload}`, {
     method: "POST",
     headers: { "X-Frappe-CSRF-Token": window.csrf_token || "" },
     body,
+    signal,
   });
   return readMessage(res);
 }
 
-async function postForm(method: string, args: Record<string, string>): Promise<Review> {
+async function postForm(
+  method: string,
+  args: Record<string, string>,
+  signal: AbortSignal,
+): Promise<Review> {
   const res = await apiFetch(`/api/method/${method}`, {
     method: "POST",
     headers: {
@@ -727,6 +774,7 @@ async function postForm(method: string, args: Record<string, string>): Promise<R
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams(args),
+    signal,
   });
   return readMessage(res) as Promise<Review>;
 }

@@ -210,7 +210,8 @@ def _context(doctype: str, language: str):
 
 
 def _tool_error(result) -> dict:
-	return {"ok": False, "error_key": "idp.readFailed", "detail": result.error}
+	detail = getattr(result, "error", None) or ""
+	return {"ok": False, "error_key": "idp.readFailed", "detail": str(detail)[:400] or None}
 
 
 def _open_draft(doctype: str, name: str) -> dict | None:
@@ -424,25 +425,57 @@ def _save_create(
 		build_proposals,
 		create_confirmed,
 		merge_proposal_values,
+		proposals_complete,
+		release_address_links,
+		release_currency_company,
 		split_missing,
 	)
 
 	extracted = _read(file_url, planned["doctype"], use_model=True)
 	if extracted.get("error_key"):
 		return {"ok": False, "error_key": extracted["error_key"]}
+	release_currency_company(extracted)
+	release_address_links(extracted)
 	_creatable, blocked = split_missing((extracted.get("validation") or {}).get("missing_masters"))
 	if blocked:
-		return {"ok": False, "error_key": "idp.notice.masters"}
-	pending = merge_proposal_values(build_proposals(extracted), _proposals(proposals))
+		named = []
+		for row in blocked:
+			kind = str(row.get("doctype") or "").strip()
+			name = str(row.get("name") or "").strip()
+			named.append(f"{kind}: {name}" if kind and name else (kind or name))
+		return {
+			"ok": False,
+			"error_key": "idp.notice.masters",
+			"detail": "; ".join(n for n in named if n) or None,
+		}
+	# Trust the clerk's confirmed cards from the panel. A second LLM read can
+	# rename parties/items and break key-based merge, which looked like Save
+	# doing nothing while returning needConsent.
+	client_props = _coerce_proposal_defaults(_proposals(proposals))
+	client_ready = bool(client_props) and proposals_complete(client_props)
+	if client_ready:
+		pending = client_props
+	else:
+		pending = merge_proposal_values(build_proposals(extracted), client_props)
 	if pending:
 		made = create_confirmed(pending)
 		if not made.get("ok"):
-			return {"ok": False, "error_key": made.get("error_key") or "idp.propose.failed"}
+			return {
+				"ok": False,
+				"error_key": made.get("error_key") or "idp.propose.failed",
+				"detail": made.get("detail"),
+			}
 		apply_created_links(extracted, made.get("created") or {})
 		_refresh_validation(extracted)
-	if build_proposals(extracted):
+		release_address_links(extracted)
+	# Re-read leftovers only block when the clerk did not send complete cards.
+	# After create+stamp, draft_instructions keeps the confirmed cards so
+	# ERPNext schema noise cannot soft-fail as idp.invalid.
+	if build_proposals(extracted) and not client_ready:
 		return {"ok": False, "error_key": "idp.propose.needConsent"}
-	instructions = draft_instructions(extracted, proposals=[])
+	instructions = draft_instructions(
+		extracted, proposals=client_props if client_ready else pending or []
+	)
 	if not instructions.get("ok"):
 		return instructions
 	header, items = finish_draft(
@@ -494,11 +527,33 @@ def _proposals(raw: str | None) -> list[dict]:
 		return []
 	try:
 		data = json.loads(raw)
-	except TypeError, ValueError:
+	except (TypeError, ValueError):
 		return []
 	if not isinstance(data, list):
 		return []
 	return [row for row in data if isinstance(row, dict)]
+
+
+def _coerce_proposal_defaults(proposals: list[dict]) -> list[dict]:
+	"""Fill Type when the select was left blank — empty Type was blocking Save."""
+	out: list[dict] = []
+	for row in proposals:
+		entry = dict(row)
+		doctype = str(entry.get("doctype") or "")
+		default_type = "Company"
+		type_field = (
+			"supplier_type" if doctype == "Supplier" else "customer_type" if doctype == "Customer" else None
+		)
+		if type_field:
+			fields = []
+			for field in entry.get("required_fields") or []:
+				item = dict(field) if isinstance(field, dict) else field
+				if isinstance(item, dict) and item.get("field") == type_field and not str(item.get("value") or "").strip():
+					item["value"] = default_type
+				fields.append(item)
+			entry["required_fields"] = fields
+		out.append(entry)
+	return out
 
 
 def _fills(raw: str | None) -> dict:
@@ -508,7 +563,7 @@ def _fills(raw: str | None) -> dict:
 		return {}
 	try:
 		data = json.loads(raw)
-	except TypeError, ValueError:
+	except (TypeError, ValueError):
 		return {}
 	if not isinstance(data, dict):
 		return {}

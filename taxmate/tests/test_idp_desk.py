@@ -29,25 +29,35 @@ from taxmate.idp.desk import (
 	submit_requested,
 )
 
+ALL_JOB_IDS = frozenset(str(job["id"]) for job in JOBS)
+
 
 def _allow_all(_doctype: str, _permission: str) -> bool:
 	return True
 
 
+def _full_surface(*, llm_ready: bool = True):
+	"""Surface with every JOBS row — for plan_run coverage of non-create actions."""
+	return build_surface(can=_allow_all, llm_ready=llm_ready, job_ids=ALL_JOB_IDS)
+
+
 class TestIdpDeskSurface(unittest.TestCase):
-	def test_lists_the_six_user_jobs_and_not_submit(self):
+	def test_dashboard_surface_is_create_only(self):
 		surface = build_surface(can=_allow_all, llm_ready=True)
 		ids = [row["id"] for row in surface["actions"]]
-		self.assertEqual(ids, ["create", "compare", "search", "update", "match", "delete"])
+		self.assertEqual(ids, ["create"])
 		self.assertNotIn("submit", ids)
 		self.assertNotIn("create_master", ids)
+		self.assertNotIn("compare", ids)
 
-	def test_uae_notices_are_part_of_the_payload(self):
+	def test_full_job_list_still_available_for_tooling(self):
+		surface = _full_surface()
+		ids = [row["id"] for row in surface["actions"]]
+		self.assertEqual(ids, ["create", "compare", "search", "update", "match", "delete"])
+
+	def test_surface_notices_stay_empty(self):
 		surface = build_surface(can=_allow_all, llm_ready=True)
-		self.assertEqual(
-			surface["notices"],
-			["idp.notice.draft", "idp.notice.masters", "idp.notice.language"],
-		)
+		self.assertEqual(surface["notices"], [])
 
 	def test_permission_drops_a_doctype_and_an_empty_job(self):
 		def can(doctype: str, permission: str) -> bool:
@@ -69,15 +79,19 @@ class TestIdpDeskSurface(unittest.TestCase):
 				route = target["route"] or ""
 				self.assertNotIn("/app/", route)
 
-	def test_every_job_runs_without_a_model_key(self):
+	def test_create_runs_without_a_model_key(self):
 		surface = build_surface(can=_allow_all, llm_ready=False)
 		self.assertIsNone(surface["blocked_key"])
 		runnable = [row["id"] for row in surface["actions"] if row["runnable"]]
-		self.assertEqual(runnable, ["create", "compare", "search", "update", "match", "delete"])
-		self.assertEqual([row["id"] for row in JOBS], runnable)
+		self.assertEqual(runnable, ["create"])
+		full = _full_surface(llm_ready=False)
+		self.assertEqual(
+			[row["id"] for row in full["actions"] if row["runnable"]],
+			["create", "compare", "search", "update", "match", "delete"],
+		)
 
 	def test_plan_run_refuses_unwired_jobs_and_unknown_files(self):
-		surface = build_surface(can=_allow_all, llm_ready=True)
+		surface = _full_surface()
 		self.assertEqual(
 			plan_run(surface, action="delete", target="Sales Invoice", file_name=None)["error_key"],
 			"idp.query",
@@ -103,6 +117,13 @@ class TestIdpDeskSurface(unittest.TestCase):
 		)
 		self.assertTrue(planned["ok"])
 		self.assertEqual(planned["route"], "/purchase-invoices")
+		dash = build_surface(can=_allow_all, llm_ready=True)
+		self.assertEqual(
+			plan_run(dash, action="compare", target="Sales Invoice", file_name="bill.pdf", query="X")[
+				"error_key"
+			],
+			"idp.denied",
+		)
 
 	def test_draft_is_never_a_submit(self):
 		extracted = {
@@ -310,6 +331,45 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertFalse(draft_instructions(extracted)["ok"])
 		self.assertEqual(draft_instructions(extracted)["error_key"], "idp.propose.needConsent")
 
+	def test_confirmed_proposals_bypass_schema_noise(self):
+		"""ERPNext base_rate noise must not soft-fail Save after the clerk confirms create."""
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"supplier": "Real Supplier LLC", "bill_no": "SOC_0001/2026", "grand_total": 100},
+				"items": [{"item_code": "ITEM-1", "item_name": "Service", "qty": 1, "rate": 100}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [
+					{
+						"field": "mystery_field",
+						"message": "Something obscure blocked the schema",
+						"severity": "error",
+					}
+				],
+				"warnings": [],
+				"missing_masters": [],
+			},
+		}
+		self.assertFalse(draft_instructions(extracted, proposals=[])["ok"])
+		confirmed = [
+			{
+				"key": "supplier:Real Supplier LLC",
+				"doctype": "Supplier",
+				"confirmed": True,
+				"required_fields": [
+					{"field": "supplier_name", "value": "Real Supplier LLC"},
+					{"field": "supplier_type", "value": "Company"},
+				],
+				"optional_fields": [],
+			}
+		]
+		ok = draft_instructions(extracted, proposals=confirmed)
+		self.assertTrue(ok.get("ok"), ok)
+		self.assertEqual(ok["header"]["supplier"], "Real Supplier LLC")
+
 	def test_unresolved_supplier_becomes_a_proposal(self):
 		from taxmate.idp.masters import build_proposals, proposals_complete, split_missing
 
@@ -372,6 +432,44 @@ class TestIdpDeskSurface(unittest.TestCase):
 		self.assertEqual(review["error_key"], "idp.notice.masters")
 		self.assertEqual(review["proposals"], [])
 		self.assertFalse(draft_instructions(extracted)["ok"])
+
+	def test_ocr_billing_address_does_not_block_purchase(self):
+		"""Street text on billing_address must not hard-block Save as a missing Address."""
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {
+					"supplier": "Eprotect360 Cyber Security FZCO",
+					"billing_address": (
+						"302, Sheikh Mohamed Bin Sultan Suroor Al Dhaheri Building, "
+						"Salam, Lulu Center, AbuDhabi, UAE"
+					),
+					"bill_no": "SOC_0001/2026",
+					"grand_total": 271000,
+				},
+				"items": [{"item_code": "CRITICAL-DEVICE-WITH", "item_name": "Critical Device", "qty": 1}],
+			},
+			"validation": {
+				"is_valid": False,
+				"errors": [],
+				"warnings": [],
+				"missing_masters": [
+					{"doctype": "Supplier", "name": "Eprotect360 Cyber Security FZCO", "field": "supplier"},
+					{
+						"doctype": "Address",
+						"name": "302, Sheikh Mohamed Bin Sultan Suroor Al Dhaheri Building",
+						"field": "billing_address",
+					},
+					{"doctype": "Item", "name": "CRITICAL-DEVICE-WITH", "field": "item_code"},
+				],
+			},
+		}
+		review = review_from_extract(extracted, route="/purchase-invoices")
+		self.assertTrue(review["can_save"])
+		self.assertEqual(review["error_key"], "idp.notice.propose")
+		self.assertEqual([row["doctype"] for row in review["proposals"]], ["Supplier", "Item"])
+		self.assertNotIn("billing_address", extracted["extracted_data"]["header"])
 
 	def test_sales_invoice_customer_proposal(self):
 		extracted = {
