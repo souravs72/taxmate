@@ -123,10 +123,10 @@
   max-height: 80dvh;
   background: var(--surface);
   border-block-start: 1px solid var(--border);
-  border-start-start-radius: 16px;
-  border-start-end-radius: 16px;
+  border-start-start-radius: 18px;
+  border-start-end-radius: 18px;
   padding-block-end: env(safe-area-inset-bottom, 0px);
-  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.26);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.18);
 }
 
 .msheet-head {
@@ -363,6 +363,10 @@
     gap: 6px 8px;
     background-color: var(--surface);
     border-block-end-color: color-mix(in srgb, var(--border) 70%, transparent);
+    isolation: isolate;
+  }
+  .app.has-mnav .mnav-brand .mark {
+    border-radius: 9px;
   }
   .app.has-mnav .tsearch { flex: 1 1 100%; max-width: none; min-width: 0; order: 10; }
   /* Keyboard shortcuts are desktop chrome. */
@@ -404,4 +408,13 @@
   .app.has-mnav .scanbtn-lab { display: none; }
   .app.has-mnav .tools { gap: 4px; }
   .app.has-mnav .tright { gap: 4px; }
+  /* Company: abbr tile only — full name is in the menu / aria-label. */
+  .app.has-mnav .coswitch .nm { display: none; }
+  .app.has-mnav .cobtn {
+    padding: 4px;
+    min-height: 40px;
+    min-width: 40px;
+    border-radius: 11px;
+  }
+  .app.has-mnav .cobtn .chev { display: none; }
 }
