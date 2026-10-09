@@ -69,5 +69,6 @@
   }
   .app.has-mnav .rpt-dt-table .rpt-bold td:first-child { background: var(--hover, #f8f9fa); }
   .app.has-mnav .rpt-dt-table .rpt-open:hover td:first-child { background: var(--hover); }
-  .app.has-mnav .rpt-dt-table td:first-child { max-width: 46vw; }
+  /* AppShell imports phone-fixes.css. Leave room for sticky label + money cols. */
+  .app.has-mnav .rpt-dt-table td:first-child { max-width: min(52vw, 220px); }
 }
