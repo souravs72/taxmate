@@ -1,9 +1,12 @@
 /**
  * Query-report runner — Frappe Desk layout: page head, page-form filters,
- * scrollable datatable, footer. SPA routes only. Callers: App.tsx /reports/:report.
- * User: reports UI like Frappe with horizontal slider.
+ * scrollable datatable, footer. SPA routes only. Callers: App.tsx /reports/:report
+ * (Route path="/reports/:report"). User: reports UI like Frappe with horizontal slider.
+ *
+ * Phone (≤760px): period chips stay visible; dates / links / toggles move into
+ * the same bottom sheet pattern list screens use (FilterBar / .lm-sheet).
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
@@ -22,10 +25,12 @@ import { useSession } from "../../lib/session";
 import { useDoc } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { money, toIsoDate } from "../../lib/format";
+import { useIsPhone } from "../../lib/useMedia";
 import { t } from "../../i18n/strings";
 import { Empty, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { LinkFilter, SearchFilter } from "../../components/filters";
 import ReportDataTable, { type ReportCol } from "./ReportDataTable";
+import "../../styles/list-mobile.css";
 import "./reports.css";
 
 type Col = ReportCol;
@@ -132,12 +137,16 @@ export default function ReportRunner() {
   const name = decodeURIComponent(report);
   const nav = useNavigate();
   const session = useSession();
+  const phone = useIsPhone();
   const { get, set, setMany } = useListParams(20);
   const today = session.today || toIsoDate(new Date());
   const company = session.company;
   const caps = reportCaps(name);
   const allowed = isRunnableReport(name);
   const [find, setFind] = useState("");
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const filterBtnRef = useRef<HTMLButtonElement | null>(null);
 
   const defaults = useFrappeGetCall<{ message: { fiscal_year?: string } }>(
     METHOD.getDefaults,
@@ -213,9 +222,86 @@ export default function ReportRunner() {
   });
   const hasToggles = caps.accumulated || caps.zeros || caps.groups || caps.ctElections;
 
+  /** Sheet badge: URL-set extras (not period chips / grain). */
+  const sheetApplied = useMemo(() => {
+    let n = 0;
+    if (caps.dates && (get("from") || get("to"))) n += 1;
+    if (caps.costCenter && costCenter) n += 1;
+    if (caps.account && account) n += 1;
+    if (caps.warehouse && warehouse) n += 1;
+    if (caps.itemCode && itemCode) n += 1;
+    if (caps.party === "typed" && partyType) n += 1;
+    if (caps.party && party) n += 1;
+    if (caps.voucher && voucherNo) n += 1;
+    if (caps.categorize && categorizeBy !== "Categorize by Voucher (Consolidated)") n += 1;
+    if (caps.status.length > 0 && status) n += 1;
+    if (caps.sla.length > 0 && sla) n += 1;
+    if (caps.zeros && showZeros) n += 1;
+    if (caps.accumulated && get("acc")) n += 1;
+    if (caps.groups && get("groups") === "0") n += 1;
+    if (caps.ctElections && (electSbr || electQfzp)) n += 1;
+    return n;
+  }, [
+    caps, get, costCenter, account, warehouse, itemCode, partyType, party,
+    voucherNo, categorizeBy, status, sla, showZeros, electSbr, electQfzp,
+  ]);
+
+  const sheetFieldCount = useMemo(() => {
+    let n = 0;
+    if (caps.dates) n += 2;
+    if (caps.costCenter) n += 1;
+    if (caps.account) n += 1;
+    if (caps.warehouse) n += 1;
+    if (caps.itemCode) n += 1;
+    if (caps.party === "typed") n += 1;
+    if (caps.party) n += 1;
+    if (caps.voucher) n += 1;
+    if (caps.categorize) n += 1;
+    if (caps.status.length > 0) n += 1;
+    if (caps.sla.length > 0) n += 1;
+    if (hasToggles) n += 1;
+    return n;
+  }, [caps, hasToggles]);
+
+  const clearSheetFilters = () => {
+    setMany({
+      from: "", to: "", cc: "", account: "", wh: "", item: "",
+      ptype: "", party: "", vn: "", cat: "", zeros: "", acc: "", groups: "",
+      status: "", sla: "", sbr: "", qfzp: "",
+    });
+  };
+
+  useEffect(() => {
+    if (!phone) setSheetOpen(false);
+  }, [phone]);
+
+  useEffect(() => {
+    if (!sheetOpen) return;
+    sheetRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSheetOpen(false);
+        filterBtnRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [sheetOpen]);
+
   const applyChip = (kind: Chip) => {
     const next = chipRange(kind, today, fy.data?.year_start_date, fy.data?.year_end_date);
     setMany({ from: next.from, to: next.to });
+  };
+
+  const closeSheet = () => {
+    setSheetOpen(false);
+    filterBtnRef.current?.focus();
   };
 
   const activateRow = (row: Row) => {
@@ -271,9 +357,9 @@ export default function ReportRunner() {
         }
       />
 
-      {/* Frappe `.page-form` — filters above the grid */}
-      <div className="rpt-form">
-        {(caps.periodChips || caps.periodicity) && (
+      {/* Frappe `.page-form` — filters above the grid (sheet on phone). */}
+      <div className={`rpt-form${phone ? " rpt-form-phone" : ""}`}>
+        {(caps.periodChips || caps.periodicity || (phone && sheetFieldCount > 0)) && (
           <div className="rpt-top">
             {caps.periodChips && (
               <div className="rpt-links" role="group" aria-label={t("rpt.period")}>
@@ -294,135 +380,329 @@ export default function ReportRunner() {
                 </select>
               </label>
             )}
+            {phone && sheetFieldCount > 0 && (
+              <button
+                ref={filterBtnRef}
+                type="button"
+                className={`lm-fbtn rpt-fbtn${sheetApplied > 0 ? " lm-on" : ""}`}
+                aria-expanded={sheetOpen}
+                aria-haspopup="dialog"
+                onClick={() => setSheetOpen(true)}
+              >
+                <svg className="lm-ic" width="15" height="15" viewBox="0 0 16 16" fill="none"
+                  stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" aria-hidden="true">
+                  <path d="M2 4h12M4.5 8h7M7 12h2" />
+                </svg>
+                {t("m.filters")}
+                {sheetApplied > 0 && <span className="lm-fcount">{sheetApplied}</span>}
+              </button>
+            )}
           </div>
         )}
 
-        <div className="rpt-fields">
-          {caps.dates && (
-            <>
-              <Field label={t("rpt.from")}>
-                <input className="ctl" type="date" value={fromDate} onChange={(e) => set("from", e.target.value)} />
-              </Field>
-              <Field label={t("rpt.to")}>
-                <input className="ctl" type="date" value={toDate} onChange={(e) => set("to", e.target.value)} />
-              </Field>
-            </>
-          )}
-          {caps.costCenter && (
-            <Field label={t("rpt.costCenter")}>
-              <LinkFilter
-                doctype={DT.costCenter}
-                value={costCenter}
-                placeholder={t("rpt.costCenter")}
-                filters={companyFilters}
-                onChange={(v) => set("cc", v)}
-              />
-            </Field>
-          )}
-          {caps.account && (
-            <Field label={t("rpt.account")}>
-              <LinkFilter
-                doctype={DT.account}
-                value={account}
-                placeholder={t("rpt.account")}
-                filters={companyFilters}
-                onChange={(v) => set("account", v)}
-              />
-            </Field>
-          )}
-          {caps.warehouse && (
-            <Field label={t("rpt.warehouse")}>
-              <LinkFilter
-                doctype={DT.warehouse}
-                value={warehouse}
-                placeholder={t("rpt.warehouse")}
-                filters={companyFilters}
-                onChange={(v) => set("wh", v)}
-              />
-            </Field>
-          )}
-          {caps.itemCode && (
-            <Field label={t("rpt.item")}>
-              <LinkFilter
-                doctype={DT.item}
-                value={itemCode}
-                placeholder={t("rpt.item")}
-                onChange={(v) => set("item", v)}
-              />
-            </Field>
-          )}
-          {caps.party === "typed" && (
-            <Field label={t("rpt.partyType")}>
-              <select className="ctl" value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
-                <option value="">{t("rpt.any")}</option>
-                <option value="Customer">{t("nav.customers")}</option>
-                <option value="Supplier">{t("nav.suppliers")}</option>
-              </select>
-            </Field>
-          )}
-          {caps.party && (caps.party !== "typed" || partyType) && (
-            <Field label={t("rpt.party")}>
-              <LinkFilter
-                doctype={caps.party === "typed" ? partyType : caps.party}
-                value={party}
-                placeholder={t("rpt.party")}
-                onChange={(v) => set("party", v)}
-              />
-            </Field>
-          )}
-          {caps.voucher && (
-            <Field label={t("rpt.voucher")}>
-              <input className="ctl" value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
-            </Field>
-          )}
-          {caps.categorize && (
-            <Field label={t("rpt.categorize")}>
-              <select className="ctl" value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
-                {GL_CATEGORIES.map((c) => <option key={c} value={c}>{t(CAT_LABEL[c] ?? c)}</option>)}
-              </select>
-            </Field>
-          )}
-          {caps.status.length > 0 && (
-            <Field label={t("rpt.status")}>
-              <select className="ctl" value={status} onChange={(e) => set("status", e.target.value)}>
-                <option value="">{t("rpt.any")}</option>
-                {caps.status.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-          )}
-          {caps.sla.length > 0 && (
-            <Field label={t("rpt.sla")}>
-              <select className="ctl" value={sla} onChange={(e) => set("sla", e.target.value)}>
-                <option value="">{t("rpt.any")}</option>
-                {caps.sla.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-            </Field>
-          )}
-          {hasToggles && (
-            <div className="rpt-checks">
-              {caps.accumulated && (
-                <Check
-                  on={(accumulated ?? name === "Balance Sheet") === true}
-                  label={t("rpt.accumulated")}
-                  onChange={() => set("acc", (accumulated ?? name === "Balance Sheet") ? "0" : "1")}
+        {(!phone || !sheetFieldCount) && (
+          <div className="rpt-fields">
+            {caps.dates && (
+              <>
+                <Field label={t("rpt.from")}>
+                  <input className="ctl" type="date" value={fromDate} onChange={(e) => set("from", e.target.value)} />
+                </Field>
+                <Field label={t("rpt.to")}>
+                  <input className="ctl" type="date" value={toDate} onChange={(e) => set("to", e.target.value)} />
+                </Field>
+              </>
+            )}
+            {caps.costCenter && (
+              <Field label={t("rpt.costCenter")}>
+                <LinkFilter
+                  doctype={DT.costCenter}
+                  value={costCenter}
+                  placeholder={t("rpt.costCenter")}
+                  filters={companyFilters}
+                  onChange={(v) => set("cc", v)}
                 />
+              </Field>
+            )}
+            {caps.account && (
+              <Field label={t("rpt.account")}>
+                <LinkFilter
+                  doctype={DT.account}
+                  value={account}
+                  placeholder={t("rpt.account")}
+                  filters={companyFilters}
+                  onChange={(v) => set("account", v)}
+                />
+              </Field>
+            )}
+            {caps.warehouse && (
+              <Field label={t("rpt.warehouse")}>
+                <LinkFilter
+                  doctype={DT.warehouse}
+                  value={warehouse}
+                  placeholder={t("rpt.warehouse")}
+                  filters={companyFilters}
+                  onChange={(v) => set("wh", v)}
+                />
+              </Field>
+            )}
+            {caps.itemCode && (
+              <Field label={t("rpt.item")}>
+                <LinkFilter
+                  doctype={DT.item}
+                  value={itemCode}
+                  placeholder={t("rpt.item")}
+                  onChange={(v) => set("item", v)}
+                />
+              </Field>
+            )}
+            {caps.party === "typed" && (
+              <Field label={t("rpt.partyType")}>
+                <select className="ctl" value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
+                  <option value="">{t("rpt.any")}</option>
+                  <option value="Customer">{t("nav.customers")}</option>
+                  <option value="Supplier">{t("nav.suppliers")}</option>
+                </select>
+              </Field>
+            )}
+            {caps.party && (caps.party !== "typed" || partyType) && (
+              <Field label={t("rpt.party")}>
+                <LinkFilter
+                  doctype={caps.party === "typed" ? partyType : caps.party}
+                  value={party}
+                  placeholder={t("rpt.party")}
+                  onChange={(v) => set("party", v)}
+                />
+              </Field>
+            )}
+            {caps.voucher && (
+              <Field label={t("rpt.voucher")}>
+                <input className="ctl" value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
+              </Field>
+            )}
+            {caps.categorize && (
+              <Field label={t("rpt.categorize")}>
+                <select className="ctl" value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
+                  {GL_CATEGORIES.map((c) => <option key={c} value={c}>{t(CAT_LABEL[c] ?? c)}</option>)}
+                </select>
+              </Field>
+            )}
+            {caps.status.length > 0 && (
+              <Field label={t("rpt.status")}>
+                <select className="ctl" value={status} onChange={(e) => set("status", e.target.value)}>
+                  <option value="">{t("rpt.any")}</option>
+                  {caps.status.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </Field>
+            )}
+            {caps.sla.length > 0 && (
+              <Field label={t("rpt.sla")}>
+                <select className="ctl" value={sla} onChange={(e) => set("sla", e.target.value)}>
+                  <option value="">{t("rpt.any")}</option>
+                  {caps.sla.map((s) => <option key={s} value={s}>{s}</option>)}
+                </select>
+              </Field>
+            )}
+            {hasToggles && (
+              <div className="rpt-checks">
+                {caps.accumulated && (
+                  <Check
+                    on={(accumulated ?? name === "Balance Sheet") === true}
+                    label={t("rpt.accumulated")}
+                    onChange={() => set("acc", (accumulated ?? name === "Balance Sheet") ? "0" : "1")}
+                  />
+                )}
+                {caps.zeros && (
+                  <Check on={showZeros} label={t("rpt.zeros")} onChange={() => set("zeros", showZeros ? "" : "1")} />
+                )}
+                {caps.groups && (
+                  <Check on={showGroups} label={t("rpt.groups")} onChange={() => set("groups", showGroups ? "0" : "1")} />
+                )}
+                {caps.ctElections && (
+                  <>
+                    <Check on={electSbr} label={t("rpt.sbr")} onChange={() => set("sbr", electSbr ? "" : "1")} />
+                    <Check on={electQfzp} label={t("rpt.qfzp")} onChange={() => set("qfzp", electQfzp ? "" : "1")} />
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {phone && sheetOpen && sheetFieldCount > 0 && (
+        <>
+          <button type="button" className="lm-scrim" tabIndex={-1} aria-label={t("m.close")} onClick={closeSheet} />
+          <div
+            className="lm-sheet"
+            ref={sheetRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label={t("m.filters")}
+            tabIndex={-1}
+          >
+            <div className="lm-shead">
+              <b>{t("m.filters")}</b>
+              {sheetApplied > 0 && (
+                <span className="lm-sapplied">{t("m.filters.on").replace("{n}", String(sheetApplied))}</span>
               )}
-              {caps.zeros && (
-                <Check on={showZeros} label={t("rpt.zeros")} onChange={() => set("zeros", showZeros ? "" : "1")} />
-              )}
-              {caps.groups && (
-                <Check on={showGroups} label={t("rpt.groups")} onChange={() => set("groups", showGroups ? "0" : "1")} />
-              )}
-              {caps.ctElections && (
+              <button type="button" className="lm-x" aria-label={t("m.close")} onClick={closeSheet}>✕</button>
+            </div>
+            <div className="lm-sbody rpt-sheet-body">
+              {caps.dates && (
                 <>
-                  <Check on={electSbr} label={t("rpt.sbr")} onChange={() => set("sbr", electSbr ? "" : "1")} />
-                  <Check on={electQfzp} label={t("rpt.qfzp")} onChange={() => set("qfzp", electQfzp ? "" : "1")} />
+                  <div className="lm-frow">
+                    <Field label={t("rpt.from")}>
+                      <input className="ctl" type="date" value={fromDate} onChange={(e) => set("from", e.target.value)} />
+                    </Field>
+                  </div>
+                  <div className="lm-frow">
+                    <Field label={t("rpt.to")}>
+                      <input className="ctl" type="date" value={toDate} onChange={(e) => set("to", e.target.value)} />
+                    </Field>
+                  </div>
                 </>
               )}
+              {caps.costCenter && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.costCenter")}>
+                    <LinkFilter
+                      doctype={DT.costCenter}
+                      value={costCenter}
+                      placeholder={t("rpt.costCenter")}
+                      filters={companyFilters}
+                      onChange={(v) => set("cc", v)}
+                    />
+                  </Field>
+                </div>
+              )}
+              {caps.account && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.account")}>
+                    <LinkFilter
+                      doctype={DT.account}
+                      value={account}
+                      placeholder={t("rpt.account")}
+                      filters={companyFilters}
+                      onChange={(v) => set("account", v)}
+                    />
+                  </Field>
+                </div>
+              )}
+              {caps.warehouse && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.warehouse")}>
+                    <LinkFilter
+                      doctype={DT.warehouse}
+                      value={warehouse}
+                      placeholder={t("rpt.warehouse")}
+                      filters={companyFilters}
+                      onChange={(v) => set("wh", v)}
+                    />
+                  </Field>
+                </div>
+              )}
+              {caps.itemCode && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.item")}>
+                    <LinkFilter
+                      doctype={DT.item}
+                      value={itemCode}
+                      placeholder={t("rpt.item")}
+                      onChange={(v) => set("item", v)}
+                    />
+                  </Field>
+                </div>
+              )}
+              {caps.party === "typed" && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.partyType")}>
+                    <select className="ctl" value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
+                      <option value="">{t("rpt.any")}</option>
+                      <option value="Customer">{t("nav.customers")}</option>
+                      <option value="Supplier">{t("nav.suppliers")}</option>
+                    </select>
+                  </Field>
+                </div>
+              )}
+              {caps.party && (caps.party !== "typed" || partyType) && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.party")}>
+                    <LinkFilter
+                      doctype={caps.party === "typed" ? partyType : caps.party}
+                      value={party}
+                      placeholder={t("rpt.party")}
+                      onChange={(v) => set("party", v)}
+                    />
+                  </Field>
+                </div>
+              )}
+              {caps.voucher && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.voucher")}>
+                    <input className="ctl" value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
+                  </Field>
+                </div>
+              )}
+              {caps.categorize && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.categorize")}>
+                    <select className="ctl" value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
+                      {GL_CATEGORIES.map((c) => <option key={c} value={c}>{t(CAT_LABEL[c] ?? c)}</option>)}
+                    </select>
+                  </Field>
+                </div>
+              )}
+              {caps.status.length > 0 && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.status")}>
+                    <select className="ctl" value={status} onChange={(e) => set("status", e.target.value)}>
+                      <option value="">{t("rpt.any")}</option>
+                      {caps.status.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </Field>
+                </div>
+              )}
+              {caps.sla.length > 0 && (
+                <div className="lm-frow">
+                  <Field label={t("rpt.sla")}>
+                    <select className="ctl" value={sla} onChange={(e) => set("sla", e.target.value)}>
+                      <option value="">{t("rpt.any")}</option>
+                      {caps.sla.map((s) => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </Field>
+                </div>
+              )}
+              {hasToggles && (
+                <div className="lm-frow rpt-checks">
+                  {caps.accumulated && (
+                    <Check
+                      on={(accumulated ?? name === "Balance Sheet") === true}
+                      label={t("rpt.accumulated")}
+                      onChange={() => set("acc", (accumulated ?? name === "Balance Sheet") ? "0" : "1")}
+                    />
+                  )}
+                  {caps.zeros && (
+                    <Check on={showZeros} label={t("rpt.zeros")} onChange={() => set("zeros", showZeros ? "" : "1")} />
+                  )}
+                  {caps.groups && (
+                    <Check on={showGroups} label={t("rpt.groups")} onChange={() => set("groups", showGroups ? "0" : "1")} />
+                  )}
+                  {caps.ctElections && (
+                    <>
+                      <Check on={electSbr} label={t("rpt.sbr")} onChange={() => set("sbr", electSbr ? "" : "1")} />
+                      <Check on={electQfzp} label={t("rpt.qfzp")} onChange={() => set("qfzp", electQfzp ? "" : "1")} />
+                    </>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      </div>
+            <div className="lm-sfoot">
+              <button type="button" className="btn ghost" onClick={clearSheetFilters}>{t("m.filters.clear")}</button>
+              <button type="button" className="btn" onClick={closeSheet}>{t("m.filters.show")}</button>
+            </div>
+          </div>
+        </>
+      )}
 
       {run.error && <ErrorBox error={run.error} onRetry={() => run.mutate()} />}
 
