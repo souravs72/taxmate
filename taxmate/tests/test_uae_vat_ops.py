@@ -9,14 +9,48 @@ from taxmate.uae_vat.utils.place_of_supply import (
 	is_simplified_tax_invoice,
 )
 from taxmate.uae_vat.utils.recoverability import (
+	_line_uae_vat,
 	line_vat_in_aed,
 	recoverable_vat_from_items,
 	recovery_percent_for_template,
+	standard_rated_vat,
 )
 from taxmate.uae_vat.utils.vat_201 import include_in_box_9
 
 
 class TestRecoverability(unittest.TestCase):
+	def test_standard_rated_vat_ignores_item_tax_amount(self):
+		from inspect import getsource
+
+		from taxmate.uae_vat.utils.recoverability import apply_box_9_recoverable
+
+		src = getsource(apply_box_9_recoverable)
+		self.assertNotIn('get("tax_amount")', src)
+		self.assertIn("_line_uae_vat", src)
+
+	def test_excise_is_not_standard_rated_vat(self):
+		doc = {
+			"items": [{"name": "ROW-1"}],
+			"taxes": [
+				{"name": "TAX-EX", "account_head": "Excise 100% - CO"},
+				{"name": "TAX-VAT", "account_head": "VAT 5% - CO"},
+			],
+			"item_wise_tax_details": [
+				{"item_row": "ROW-1", "tax_row": "TAX-EX", "amount": 3120},
+				{"item_row": "ROW-1", "tax_row": "TAX-VAT", "amount": 156},
+			],
+		}
+		self.assertEqual(_line_uae_vat(doc, {"VAT 5% - CO"}), [156.0])
+		self.assertEqual(recoverable_vat_from_items([156.0], [100.0]), 156.0)
+		# Stored recoverable still holds the old excise figure.
+		self.assertEqual(standard_rated_vat(3120, 156), 156)
+		# A stored figure at or under the VAT account total is kept.
+		self.assertEqual(standard_rated_vat(78, 156), 78)
+		# No VAT account tax, so an excise-only invoice stays out of box 9.
+		self.assertEqual(standard_rated_vat(3120, 0), 0)
+		# A manual figure is the operator's number.
+		self.assertEqual(standard_rated_vat(3120, 156, manual=True), 3120)
+
 	def test_default_full_recovery(self):
 		self.assertEqual(recovery_percent_for_template(None), 100.0)
 		self.assertEqual(recovery_percent_for_template({}), 100.0)
@@ -85,7 +119,7 @@ class TestSimplifiedInvoice(unittest.TestCase):
 
 
 class TestBox9Filter(unittest.TestCase):
-	def test_include_negatives_and_drop_zero(self):
-		self.assertTrue(include_in_box_9(-12.5))
+	def test_desk_includes_only_positive_recoverable(self):
+		self.assertFalse(include_in_box_9(-12.5))
 		self.assertTrue(include_in_box_9(8))
 		self.assertFalse(include_in_box_9(0))

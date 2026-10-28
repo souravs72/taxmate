@@ -2,6 +2,21 @@
 
 import { getLocale } from "./i18n";
 
+/**
+ * Amount from a Desk currency string (`د.إ 74,410.00`, `د.إ 50,73,088.51`).
+ * Grouping commas are removed before the number is read. A minus anywhere
+ * in the string makes the amount negative. Callers: ReportRunner and the
+ * VAT 201 draft, which show Desk's UAE VAT 201 amount column.
+ */
+export function parseDeskMoney(s: string): number | null {
+  const negative = s.includes("-");
+  const digits = s.replace(/,/g, "").match(/\d+(?:\.\d+)?/);
+  if (!digits) return null;
+  const n = parseFloat(digits[0]);
+  if (!Number.isFinite(n)) return null;
+  return negative ? -n : n;
+}
+
 export function money(n: number | string | undefined | null): string {
   const v = typeof n === "string" ? parseFloat(n.replace(/,/g, "")) : (n ?? 0);
   return (Number.isFinite(v) ? v : 0).toLocaleString(getLocale(), {

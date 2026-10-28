@@ -70,6 +70,26 @@ class TestBox1Sql(FrappeTestCase):
 		self.assertIn("is_exempt", sql)
 		self.assertIn("is_zero_rated", sql)
 		self.assertIn("uae_is_margin_scheme", sql)
+		self.assertNotIn("uae_vat_category", sql)
+
+	def test_box_9_amount_is_desk_base_total(self):
+		from taxmate.uae_vat.utils import vat_201
+
+		src = getsource(vat_201._standard_rated_expenses)
+		self.assertIn("base_total", src)
+		self.assertIn("UAE VAT Account", src)
+		self.assertIn("standard_rated_vat", src)
+		self.assertNotIn("uae_box_9_taxable_amount", src)
+		self.assertNotIn("sync_standard_rated_recoverable", src)
+		self.assertNotIn("update `tab", src.lower())
+
+	def test_report_does_not_rewrite_purchase_invoices(self):
+		from taxmate.api.reports import run_report
+
+		src = getsource(run_report)
+		self.assertIn("stamp_box_9", src)
+		self.assertNotIn("sync_standard_rated_recoverable", src)
+		self.assertNotIn("update `tab", src.lower())
 
 	def test_pack_invoice_tax_uses_uae_vat_accounts(self):
 		from taxmate.uae_vat.utils import vat_201

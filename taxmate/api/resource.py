@@ -269,16 +269,65 @@ def get(doctype, name=None, filters=None, parent=None):
 	return client_get(doctype, name=name, filters=filters, parent=parent)
 
 
+def _apply_tax_template_rows(doc: dict) -> dict:
+	"""Copy Purchase/Sales tax rows from the template before insert or save.
+
+	Desk does this in the form controller when ``taxes_and_charges`` changes.
+	ERPNext repeats it on validate only when Accounts Settings
+	``add_taxes_from_taxes_and_charges_template`` is enabled. The SPA sends the
+	template name and previews VAT from it; without these rows
+	``calculate_taxes_and_totals`` stores a zero tax.
+	"""
+	doctype = doc.get("doctype")
+	template = doc.get("taxes_and_charges")
+	if not doctype or not template or doc.get("taxes") or cint(doc.get("is_pos")):
+		return doc
+
+	meta = frappe.get_meta(doctype)
+	field = meta.get_field("taxes_and_charges")
+	if not field or not field.options or not meta.get_field("taxes"):
+		return doc
+	# Validate already appends the template, then item-tax rows, when this is on.
+	if cint(frappe.db.get_single_value("Accounts Settings", "add_taxes_from_taxes_and_charges_template")):
+		return doc
+
+	from erpnext.controllers.accounts_controller import get_taxes_and_charges
+
+	rows = get_taxes_and_charges(field.options, template) or []
+	cost_center = doc.get("cost_center")
+	if cost_center:
+		for row in rows:
+			if isinstance(row, dict) and not row.get("cost_center"):
+				row["cost_center"] = cost_center
+	doc["taxes"] = rows
+
+	# Same second step as AccountsController.set_taxes_and_charges. Rows are
+	# already on the doc, so validate will not run that step itself.
+	if rows and cint(frappe.db.get_single_value("Accounts Settings", "add_taxes_from_item_tax_template")):
+		staged = frappe.get_doc(doc)
+		staged.append_taxes_from_item_tax_template()
+		from frappe.model import child_table_fields, default_fields
+
+		cleaned: list[dict] = []
+		for tax in staged.get("taxes") or []:
+			row = tax.as_dict()
+			for fieldname in (*default_fields, *child_table_fields):
+				row.pop(fieldname, None)
+			cleaned.append(row)
+		doc["taxes"] = cleaned
+	return doc
+
+
 @frappe.whitelist(methods=["POST", "PUT"])
 def insert(doc=None):
 	require_login()
-	return client_insert(_require_doc(doc))
+	return client_insert(_apply_tax_template_rows(_require_doc(doc)))
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def save(doc):
 	require_login()
-	return client_save(_require_doc(doc))
+	return client_save(_apply_tax_template_rows(_require_doc(doc)))
 
 
 # Desk list bulk delete runs sync for ≤10 names; TaxMate SPA stays sync with a

@@ -412,8 +412,8 @@ BOX_1_EXCLUDED_CATEGORIES = (
 def _standard_rated_emiratewise(filters: dict) -> list[dict[str, Any]]:
 	"""Box 1a-g: standard-rated supplies by Emirate (FTA print order).
 
-	Consideration is item net (excluding exempt / zero / out-of-scope / RCM /
-	margin). VAT is taken only from Sales Taxes whose account is listed on
+	Amount matches Desk: item net where the line is not exempt or zero-rated.
+	VAT is taken only from Sales Taxes whose account is listed on
 	UAE VAT Settings — extra invoice taxes must not inflate Box 1.
 	"""
 	amount_rows = frappe.db.sql(_box_1_amount_sql(), filters, as_dict=True)
@@ -458,18 +458,25 @@ def _box_1_item_predicates() -> tuple[str, str]:
 
 
 def _box_1_amount_sql() -> str:
-	category_join, category_filter = _box_1_item_predicates()
+	"""Desk's emirate amount: item net where the line is not exempt or zero-rated.
+
+	Margin-scheme lines stay out of this sum. ``apply_box_1_special_regimes``
+	adds the margin afterwards, which Desk's report does not do.
+	Called by ``_standard_rated_emiratewise`` from ``compute_vat_201``.
+	"""
+	margin = ""
+	if frappe.db.has_column("Sales Invoice Item", "uae_is_margin_scheme"):
+		margin = "and ifnull(i.uae_is_margin_scheme, 0) != 1"
 	return f"""
 		select s.vat_emirate as emirate, sum(i.base_net_amount) as amount
 		from `tabSales Invoice Item` i
 		inner join `tabSales Invoice` s on i.parent = s.name
-		{category_join}
 		where
 			s.docstatus = 1 and s.company = %(company)s
 			and s.posting_date between %(from_date)s and %(to_date)s
-			and ifnull(i.is_exempt, 0) != 1
-			and ifnull(i.is_zero_rated, 0) != 1
-			{category_filter}
+			and i.is_exempt != 1
+			and i.is_zero_rated != 1
+			{margin}
 		group by s.vat_emirate
 	"""
 
@@ -726,36 +733,78 @@ def _reverse_charge_recoverable_input(filters: dict) -> dict[str, float]:
 
 
 def include_in_box_9(recoverable: float) -> bool:
-	"""Purchase invoices with non-zero recoverable VAT enter Box 9 (including credit notes)."""
-	return flt(recoverable) != 0
+	"""Desk includes a purchase invoice when recoverable standard-rated VAT is positive."""
+	return flt(recoverable) > 0
 
 
 def _standard_rated_expenses(filters: dict) -> dict[str, float]:
-	"""Box 9: recoverable standard-rated expenses (FTA worksheet).
+	"""Box 9 amount and VAT, read only.
 
-	VAT amount comes from Purchase Invoice.recoverable_standard_rated_expenses
-	(ERPNext UAE regional field — operators / TaxMate auto-fill set this).
-	Amount uses uae_box_9_taxable_amount (recoverable lines only), else base_net_total.
-	Includes negatives so purchase credit notes net Box 9 (``!= 0``, not ``> 0``).
+	Desk's amount is ``base_total`` of purchase invoices whose recoverable
+	standard-rated VAT is positive, and Desk's VAT column is that field.
+	The field on older invoices can still hold excise. This reads the tax
+	posted to UAE VAT accounts and does not update the invoices.
 	"""
-	amount_col = (
-		"uae_box_9_taxable_amount"
-		if frappe.db.has_column("Purchase Invoice", "uae_box_9_taxable_amount")
-		else "base_net_total"
-	)
-	row = frappe.db.sql(
+	from taxmate.uae_vat.utils.recoverability import standard_rated_vat
+
+	company = filters.get("company")
+	if not company or not filters.get("from_date") or not filters.get("to_date"):
+		return {"amount": 0.0, "vat_amount": 0.0}
+	manual = "0 as manual"
+	if frappe.db.has_column("Purchase Invoice", "uae_box_9_manual"):
+		manual = "ifnull(p.uae_box_9_manual, 0) as manual"
+	rows = frappe.db.sql(
 		f"""
-		select sum(`{amount_col}`) as amount, sum(recoverable_standard_rated_expenses) as vat_amount
-		from `tabPurchase Invoice`
-		where docstatus = 1 and recoverable_standard_rated_expenses != 0
-			and company = %(company)s
-			and posting_date between %(from_date)s and %(to_date)s
+		select p.base_total as amount,
+			ifnull(p.recoverable_standard_rated_expenses, 0) as stored,
+			{manual},
+			ifnull(v.vat, 0) as account_vat
+		from `tabPurchase Invoice` p
+		left join (
+			select parent, sum(base_tax_amount) as vat
+			from `tabPurchase Taxes and Charges`
+			where parenttype = 'Purchase Invoice'
+				and account_head in (
+					select account from `tabUAE VAT Account` where parent = %(company)s
+				)
+			group by parent
+		) v on v.parent = p.name
+		where p.docstatus = 1
+			and p.company = %(company)s
+			and p.posting_date between %(from_date)s and %(to_date)s
 		""",
 		filters,
 		as_dict=True,
 	)
-	data = row[0] if row else {}
-	return {"amount": r2(data.get("amount") or 0), "vat_amount": r2(data.get("vat_amount") or 0)}
+	amount = 0.0
+	vat_amount = 0.0
+	for row in rows:
+		vat = standard_rated_vat(row.stored, row.account_vat, manual=bool(cint(row.manual)))
+		if not include_in_box_9(vat):
+			continue
+		amount += flt(row.amount)
+		vat_amount += vat
+	return {"amount": r2(amount), "vat_amount": r2(vat_amount)}
+
+
+def stamp_box_9(result: dict, filters: dict) -> None:
+	"""Replace Desk's box 9 row with the read-only standard-rate total.
+
+	Desk's report still prints ``recoverable_standard_rated_expenses``. The
+	SPA shows the UAE VAT account total instead, and does not write it back.
+	"""
+	rows = result.get("result") if isinstance(result, dict) else None
+	if not isinstance(rows, list):
+		return
+	box = _standard_rated_expenses(filters)
+	formatted_amount = frappe.format(box["amount"], "Currency")
+	formatted_vat = frappe.format(box["vat_amount"], "Currency")
+	for row in rows:
+		if isinstance(row, dict) and str(row.get("no")) == "9":
+			row["raw_amount"] = box["amount"]
+			row["raw_vat_amount"] = box["vat_amount"]
+			row["amount"] = formatted_amount
+			row["vat_amount"] = formatted_vat
 
 
 def _zero_rated_total(filters: dict) -> float:

@@ -66,6 +66,7 @@ export default function Vat201Detail() {
   const nav = useNavigate();
   const session = useSession();
   const { data, error, isLoading, mutate } = useDoc<Doc>(DT.vat201, name);
+  const draft = data?.docstatus === 0;
   const generate = useFrappePostCall(METHOD.generateVat201);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
@@ -76,7 +77,6 @@ export default function Vat201Detail() {
   if (!data) return null;
 
   const cur = data.tax_currency || session.currency || "";
-  const draft = data.docstatus === 0;
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
   const boxes = data.boxes ?? [];
@@ -114,8 +114,11 @@ export default function Vat201Detail() {
               </button>
             )}
             {draft && canSubmit && (
-              <button type="button" className="btn" disabled={submitCall.loading}
-                onClick={() => void submitCall.call({ doc: { doctype: DT.vat201, name } }).then(() => mutate()).catch(() => undefined)}>
+              <button type="button" className="btn" disabled={submitCall.loading || generate.loading}
+                onClick={() => void generate.call({ name })
+                  .then(() => submitCall.call({ doc: { doctype: DT.vat201, name } }))
+                  .then(() => mutate())
+                  .catch(() => undefined)}>
                 {t("inv.submit")}
               </button>
             )}

@@ -24,7 +24,7 @@ import {
 import { useSession } from "../../lib/session";
 import { useDoc } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
-import { money, toIsoDate } from "../../lib/format";
+import { money, parseDeskMoney, toIsoDate } from "../../lib/format";
 import { useLang } from "../../lib/i18n";
 import { useIsPhone } from "../../lib/useMedia";
 import { t } from "../../i18n/strings";
@@ -62,14 +62,6 @@ function yearStart(iso?: string): string {
 
 function isMoney(col: Col): boolean {
   return col.fieldtype === "Currency" || col.fieldtype === "Float" || col.fieldtype === "Int";
-}
-
-/** Pull a finite amount from Frappe-formatted currency text (`د.إ 1,234.50`, `AED 9.00`). */
-function parseFormattedMoney(s: string): number | null {
-  const m = s.match(/-?[\d]{1,3}(?:,\d{3})*(?:\.\d+)?|-?\d+(?:\.\d+)?/);
-  if (!m) return null;
-  const n = parseFloat(m[0].replace(/,/g, ""));
-  return Number.isFinite(n) ? n : null;
 }
 
 /**
@@ -116,7 +108,7 @@ function cell(row: Row, col: Col): string {
     const trimmed = v.trim();
     if (trimmed === "-" || trimmed === "—") return "—";
     if (/^[-\d.,\s]+$/.test(trimmed)) return money(trimmed);
-    const parsed = parseFormattedMoney(trimmed);
+    const parsed = parseDeskMoney(trimmed);
     if (parsed != null) return money(parsed);
     return trimmed;
   }

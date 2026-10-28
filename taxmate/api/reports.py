@@ -50,6 +50,11 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 	# Report id stays English for the route. The heading and account labels follow User.language.
 	if isinstance(result, dict):
 		localize_report(report_name, result)
+	# Box 9 on the SPA is the UAE VAT account total. This does not update invoices.
+	if report_name == "UAE VAT 201" and isinstance(result, dict):
+		from taxmate.uae_vat.utils.vat_201 import stamp_box_9
+
+		stamp_box_9(result, filters)
 	return result
 
 
