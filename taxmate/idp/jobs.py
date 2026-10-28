@@ -145,7 +145,7 @@ def run_scan_job(
 		except Exception:
 			frappe.log_error(title="TaxMate idp_after_extract failed")
 		doc.status = scan_mod.REVIEW
-		doc.save(ignore_permissions=False)
+		doc.save(ignore_permissions=True)
 		frappe.db.commit()
 		stage("review")
 		_publish(scan_id, "review", "done", timings=dict(timings))

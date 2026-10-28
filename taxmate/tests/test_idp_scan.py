@@ -47,6 +47,8 @@ class TestFrozenExtractUsedOnSave(unittest.TestCase):
 		scan_doc.cancel_requested = 0
 		scan_doc.file_url = "/private/files/x.png"
 		scan_doc.extraction_data = frozen
+		scan_doc.created_document = None
+		scan_doc.created_doctype = None
 
 		planned = {
 			"ok": True,
@@ -186,6 +188,191 @@ class TestGetScanFailedDetail(unittest.TestCase):
 		self.assertFalse(out.get("ok"))
 		self.assertEqual(out.get("error_key"), "idp.denied")
 		self.assertNotIn("review", out)
+
+
+class TestOcrAmountParsing(unittest.TestCase):
+	def test_arabic_dirham_suffix(self):
+		from taxmate.idp.masters import _money, _parse_ocr_amount
+
+		self.assertEqual(_parse_ocr_amount("15.00 إ.د"), 15.0)
+		self.assertEqual(_parse_ocr_amount("15.00 ا.د"), 15.0)
+		self.assertEqual(_parse_ocr_amount("15.00."), 15.0)
+		self.assertEqual(_parse_ocr_amount("١٥.٠٠"), 15.0)
+		self.assertEqual(_parse_ocr_amount("د.إ 1,194.37"), 1194.37)
+		self.assertEqual(_parse_ocr_amount("AED 15.00"), 15.0)
+		self.assertEqual(_money("15.00 إ.د"), 15.0)
+		self.assertEqual(_parse_ocr_amount("TBD"), None)
+		self.assertEqual(_money("TBD"), 0.0)
+
+	def test_arabic_amount_does_not_fail_normalize(self):
+		from taxmate.idp.masters import normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"grand_total": "15.00 إ.د", "net_total": "15.00 إ.د"},
+				"items": [
+					{
+						"item_name": "Gold",
+						"qty": "1",
+						"rate": "15.00 إ.د",
+						"amount": "15.00 إ.د",
+					}
+				],
+			},
+		}
+		normalize_extract(extracted)
+		header = extracted["extracted_data"]["header"]
+		row = extracted["extracted_data"]["items"][0]
+		self.assertEqual(header["grand_total"], 15.0)
+		self.assertEqual(row["rate"], 15.0)
+		self.assertEqual(row["amount"], 15.0)
+
+	def test_unparseable_header_amount_becomes_zero(self):
+		from taxmate.idp.masters import normalize_extract
+
+		extracted = {
+			"success": True,
+			"extracted_data": {
+				"doctype": "Purchase Invoice",
+				"header": {"grand_total": "TBD"},
+				"items": [{"item_name": "Gold", "qty": "1", "rate": "see invoice"}],
+			},
+		}
+		normalize_extract(extracted)
+		header = extracted["extracted_data"]["header"]
+		row = extracted["extracted_data"]["items"][0]
+		self.assertEqual(header["grand_total"], 0.0)
+		self.assertEqual(row["rate"], 0.0)
+
+
+class TestMarkScanStatus(unittest.TestCase):
+	def test_created_goes_review_saving_saved(self):
+		from taxmate.idp import scan as scan_mod
+
+		class FakeScan:
+			def __init__(self):
+				self.status = scan_mod.REVIEW
+				self.created_doctype = None
+				self.created_document = None
+				self.saves = []
+
+			def save(self, ignore_permissions=False):
+				self.saves.append((self.status, self.created_document, ignore_permissions))
+
+			def reload(self):
+				return None
+
+		doc = FakeScan()
+		with patch.object(scan_mod, "assert_scan_access", return_value=doc):
+			scan_mod.mark_scan(
+				"IDPLOG-1",
+				status="Created",
+				created_doctype="Purchase Invoice",
+				created_document="PINV-1",
+			)
+		self.assertEqual([s[0] for s in doc.saves], ["Saving", "Saved"])
+		self.assertEqual([s[1] for s in doc.saves], ["PINV-1", "PINV-1"])
+		self.assertTrue(all(s[2] for s in doc.saves))
+		self.assertEqual(doc.created_document, "PINV-1")
+		self.assertEqual(doc.status, "Saved")
+
+	def test_created_from_saving_goes_saved(self):
+		from taxmate.idp import scan as scan_mod
+
+		class FakeScan:
+			def __init__(self):
+				self.status = "Saving"
+				self.created_doctype = None
+				self.created_document = None
+				self.saves = []
+
+			def save(self, ignore_permissions=False):
+				self.saves.append((self.status, self.created_document, ignore_permissions))
+
+			def reload(self):
+				return None
+
+		doc = FakeScan()
+		with patch.object(scan_mod, "assert_scan_access", return_value=doc):
+			scan_mod.mark_scan(
+				"IDPLOG-1",
+				status="Created",
+				created_doctype="Purchase Invoice",
+				created_document="PINV-1",
+			)
+		self.assertEqual([s[0] for s in doc.saves], ["Saved"])
+		self.assertEqual(doc.saves[0][1], "PINV-1")
+		self.assertEqual(doc.created_document, "PINV-1")
+		self.assertEqual(doc.status, "Saved")
+
+	def test_created_stays_on_saving_if_saved_save_fails(self):
+		from taxmate.idp import scan as scan_mod
+
+		class FakeScan:
+			def __init__(self):
+				self.status = scan_mod.REVIEW
+				self.created_doctype = None
+				self.created_document = None
+				self.saves = []
+
+			def save(self, ignore_permissions=False):
+				self.saves.append((self.status, self.created_document, ignore_permissions))
+				if self.status == "Saved":
+					raise RuntimeError("saved hop failed")
+
+			def reload(self):
+				return None
+
+		doc = FakeScan()
+		with patch.object(scan_mod, "assert_scan_access", return_value=doc):
+			with self.assertRaises(RuntimeError):
+				scan_mod.mark_scan(
+					"IDPLOG-1",
+					status="Created",
+					created_doctype="Purchase Invoice",
+					created_document="PINV-1",
+				)
+		self.assertEqual(doc.saves[0][0], "Saving")
+		self.assertEqual(doc.saves[0][1], "PINV-1")
+		self.assertEqual(doc.created_document, "PINV-1")
+
+
+class TestSaveCreateLinkedScan(unittest.TestCase):
+	def test_saving_with_created_document_does_not_make_a_second_draft(self):
+		import taxmate.api.idp_desk as desk
+		from taxmate.idp import scan as scan_mod
+
+		scan_doc = MagicMock()
+		scan_doc.status = "Saving"
+		scan_doc.cancel_requested = 0
+		scan_doc.created_document = "PINV-1"
+		scan_doc.created_doctype = "Purchase Invoice"
+		planned = {
+			"ok": True,
+			"doctype": "Purchase Invoice",
+			"route": "/purchase-invoices",
+		}
+
+		with (
+			patch.object(scan_mod, "assert_scan_access", return_value=scan_doc),
+			patch.object(scan_mod, "mark_scan") as mark,
+			patch("idp.tools.create_document.create_document") as create_mock,
+		):
+			out = desk._save_create(
+				planned,
+				"/private/files/x.png",
+				fills="{}",
+				submit="",
+				scan_id="IDPLOG-1",
+			)
+
+		create_mock.assert_not_called()
+		mark.assert_called_once()
+		self.assertTrue(out.get("ok"))
+		self.assertEqual(out.get("name"), "PINV-1")
+		self.assertEqual(out.get("scan_id"), "IDPLOG-1")
 
 
 if __name__ == "__main__":

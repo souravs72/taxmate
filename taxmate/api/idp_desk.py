@@ -707,6 +707,28 @@ def _save_create(
 		return {"ok": False, "error_key": "cancelled"}
 	if scan_doc.status == scan_mod.FAILED:
 		return {"ok": False, "error_key": scan_doc.error_key or "idp.readFailed"}
+	linked = str(scan_doc.created_document or "").strip()
+	if linked:
+		doctype = str(scan_doc.created_doctype or planned.get("doctype") or "").strip()
+		if scan_doc.status in scan_mod.REVIEW_READY | {"Saving"}:
+			try:
+				scan_mod.mark_scan(
+					scan_id,
+					status="Saved",
+					created_doctype=doctype,
+					created_document=linked,
+				)
+			except Exception:
+				frappe.log_error(title="TaxMate IDP scan link failed", message=frappe.get_traceback())
+		route = planned.get("route")
+		return {
+			"ok": True,
+			"step": "saved",
+			"doctype": doctype,
+			"name": linked,
+			"route": f"{route}/{linked}" if route and linked else None,
+			"scan_id": scan_id,
+		}
 	if scan_doc.status not in scan_mod.REVIEW_READY:
 		return {"ok": False, "error_key": "idp.pending"}
 	extracted = scan_mod.frozen_extracted(scan_doc)
