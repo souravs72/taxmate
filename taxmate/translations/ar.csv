@@ -321,3 +321,32 @@ Mandatory e-invoicing for the {0} cohort goes live on {1} ({2} day(s) left).,ت�
 E-invoice {0} for {1} is past the {2}-day transmission SLA (due {3}).,تجاوزت الفاتورة الإلكترونية {0} لـ {1} مهلة الإرسال البالغة {2} يوماً (الاستحقاق {3}).
 E-invoice downtime for {0} must be reported to the FTA (due {1}).,يجب إبلاغ الهيئة بانقطاع الفوترة الإلكترونية لدى {0} (الاستحقاق {1}).
 "Dates follow Ministerial Decision 244/2025 as amended by Resolution 66/2026 (Large ASP appointment 30 Oct 2026). Confirm this company's cohort with the ASP or FTA — this is not legal or tax advice. Classification uses the revenue band you enter from the last accounting-period financial statements, not TaxMate's general ledger.",التواريخ وفق القرار الوزاري 244 لسنة 2025 المعدّل بالقرار 66 لسنة 2026 (موعد تعيين مزود الفوترة للمنشآت الكبيرة 30 أكتوبر 2026). أكّد فئة هذه الشركة مع مزود الفوترة أو الهيئة. هذا ليس استشارة قانونية أو ضريبية. التصنيف يعتمد شريحة الإيراد التي تدخلها من آخر قوائم مالية، لا من دفتر الأستاذ في تاكس ميت.
+"UAE tax, handled.",الضريبة في الإمارات، مرتبة.
+"Invoicing, VAT 201 and e-invoicing in one place, for businesses filing in the UAE.",الفوترة وضريبة القيمة المضافة 201 والفوترة الإلكترونية في مكان واحد للشركات الملزمة بالإقرار في الإمارات.
+E-invoicing to the FTA,الفوترة الإلكترونية إلى الهيئة
+"sent through your accredited provider, with retries",تُرسل عبر مزودك المعتمد، مع إعادة المحاولة
+Every deadline tracked,كل موعد استحقاق متابع
+"VAT, Corporate Tax, ESR and UBO, with reminders",ضريبة القيمة المضافة وضريبة الشركات والجوهر الاقتصادي والمالك المستفيد، مع تذكيرات
+Books that agree,دفاتر متوافقة
+"bank, stock and party ledgers checked daily",تُراجع دفاتر البنك والمخزون والأطراف يومياً
+VAT 201 · Q3,ضريبة القيمة المضافة 201 · الربع الثالث
+Example,مثال
+Standard rated · Dubai,النسبة الأساسية · دبي
+Output VAT,ضريبة المخرجات
+Recoverable input VAT,ضريبة المدخلات القابلة للاسترداد
+Payable to the FTA,المستحق للهيئة
+Matches the ledger,يطابق دفتر الأستاذ
+Arabic and English,العربية والإنجليزية
+Amounts in AED,المبالغ بالدرهم
+Need help?,تحتاج مساعدة؟
+Welcome back. Use your work email.,مرحباً بعودتك. استخدم بريد العمل.
+Work email,بريد العمل
+Forgot?,نسيت؟
+Email me a sign-in link,أرسل لي رابط دخول
+Back to sign in,العودة إلى تسجيل الدخول
+or continue with,أو تابع عبر
+New to TaxMate?,جديد على تاكس ميت؟
+See plans and start a trial,اطلع على الخطط وابدأ تجربة
+Plans and pricing,الخطط والأسعار
+Your company directory (LDAP) sign-in also works with the form above.,تسجيل الدخول عبر دليل الشركة (LDAP) يعمل أيضاً من النموذج أعلاه.
+Signing in with a password is switched off. Use a sign-in link or a provider below.,تسجيل الدخول بكلمة المرور متوقف. استخدم رابط الدخول أو أحد المزودين أدناه.

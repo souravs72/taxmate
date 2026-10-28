@@ -1,0 +1,480 @@
+{% extends "templates/web.html" %}
+{# TaxMate sign-in. Design: the "Login" board in the TaxMate screens canvas.
+   Everything posts to Frappe's own guest endpoints — see login.py. #}
+
+{% block title %}{{ _("Sign in") }}{% endblock %}
+{% block banner %}{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block head_include %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="/assets/taxmate/css/login.css?v=4">
+{% endblock %}
+
+{% block page_container %}
+<div class="tm-login" dir="{{ 'rtl' if tm_is_rtl else 'ltr' }}">
+
+  <!-- ── Brand panel ───────────────────────────────────────────────── -->
+  <aside class="tm-panel">
+    <svg class="tm-panel-art" viewBox="0 0 620 900" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <radialGradient id="tmGlowA" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#6fb0ff" stop-opacity=".55"></stop>
+          <stop offset="100%" stop-color="#6fb0ff" stop-opacity="0"></stop>
+        </radialGradient>
+        <radialGradient id="tmGlowB" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#26e0c0" stop-opacity=".4"></stop>
+          <stop offset="100%" stop-color="#26e0c0" stop-opacity="0"></stop>
+        </radialGradient>
+        <linearGradient id="tmArc" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity=".5"></stop>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+        </linearGradient>
+        <pattern id="tmGrid" width="46" height="46" patternUnits="userSpaceOnUse">
+          <path d="M46 0H0V46" fill="none" stroke="rgba(255,255,255,.055)" stroke-width="1"></path>
+        </pattern>
+      </defs>
+      <rect x="0" y="0" width="620" height="900" fill="url(#tmGrid)"></rect>
+      <circle cx="600" cy="90" r="300" fill="url(#tmGlowA)"></circle>
+      <circle cx="40" cy="760" r="290" fill="url(#tmGlowB)"></circle>
+      <circle cx="470" cy="300" r="250" fill="none" stroke="url(#tmArc)" stroke-width="1.2"></circle>
+      <circle cx="470" cy="300" r="330" fill="none" stroke="url(#tmArc)" stroke-width="1" opacity=".6"></circle>
+      <path d="M0 742 C 150 686, 280 806, 420 758 C 520 724, 576 748, 620 738 L620 900 L0 900 Z" fill="rgba(255,255,255,.05)"></path>
+    </svg>
+
+    <div class="tm-brand">
+      {% if tm_logo %}
+        <img class="tm-brand-logo" src="{{ tm_logo }}" alt="{{ tm_app_name }}">
+      {% else %}
+        <span class="tm-brand-tile" aria-hidden="true">T</span>
+      {% endif %}
+      <span class="tm-brand-name">
+        <span class="tm-word">{{ tm_app_name }}</span>
+        <span class="tm-rule" aria-hidden="true"></span>
+        <span class="tm-gulf">GULF</span>
+      </span>
+    </div>
+
+    <div class="tm-hero">
+      <h2>{{ tm_hero_title }}</h2>
+      <p>{{ tm_hero_sub }}</p>
+    </div>
+
+    <div class="tm-card" aria-hidden="true">
+      <div class="tm-card-h">
+        <span class="tm-card-t">{{ tm_card.title }}</span>
+        <span class="tm-card-chip">{{ tm_card.chip }}</span>
+      </div>
+      {% for row in tm_card.rows %}
+      <div class="tm-card-r"><span>{{ row.k }}</span><b>{{ row.v }}</b></div>
+      {% endfor %}
+      <div class="tm-card-f">
+        <span>
+          <span class="tm-card-nl">{{ tm_card.net_label }}</span>
+          <span class="tm-card-n">{{ tm_card.net }}</span>
+        </span>
+        <span class="tm-card-ok">
+          <svg class="tm-ic" viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+          {{ tm_card.check }}
+        </span>
+      </div>
+    </div>
+
+    <ul class="tm-feats">
+      {% for f in tm_features %}
+      <li>
+        <span class="tm-tick" aria-hidden="true">
+          <svg class="tm-ic" viewBox="0 0 24 24" width="12" height="12"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+        </span>
+        <span><b>{{ f.title }}</b> — {{ f.body }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+
+    <div class="tm-trust">
+      {% for t in tm_trust %}<span>{{ t }}</span>{% endfor %}
+    </div>
+  </aside>
+
+  <!-- ── Form panel ────────────────────────────────────────────────── -->
+  <main class="tm-form-side">
+    <div class="tm-top">
+      <div class="tm-seg" role="group" aria-label="{{ _('Language') }}">
+        <a href="?_lang=en{{ tm_redirect_qs }}" aria-pressed="{{ 'false' if tm_is_rtl else 'true' }}">English</a>
+        <a href="?_lang=ar{{ tm_redirect_qs }}" aria-pressed="{{ 'true' if tm_is_rtl else 'false' }}">العربية</a>
+      </div>
+      {% if tm_support_email %}
+      <a class="tm-help" href="mailto:{{ tm_support_email }}">{{ _("Need help?") }}</a>
+      {% endif %}
+    </div>
+
+    <div class="tm-form-wrap">
+      <form class="tm-form" id="tm-form" novalidate>
+        <div>
+          <h1 id="tm-title">{{ _("Sign in") }}</h1>
+          <p class="tm-sub" id="tm-subtitle">{{ _("Welcome back. Use your work email.") }}</p>
+        </div>
+
+        <div class="tm-alert" id="tm-alert" role="alert" hidden>
+          {# Two icons; CSS shows the one that matches tm-alert-bad / tm-alert-ok. #}
+          <svg class="tm-ic tm-ic-bad" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 8v5M12 16.5v.2M12 3.5 21 20H3z"></path></svg>
+          <svg class="tm-ic tm-ic-ok" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"></path></svg>
+          <span><b id="tm-alert-title"></b><span id="tm-alert-body"></span></span>
+        </div>
+
+        {% if tm_disable_user_pass_login %}
+        <p class="tm-sub">{{ _("Signing in with a password is switched off. Use a sign-in link or a provider below.") }}</p>
+        {% endif %}
+
+        <div class="tm-field" id="tm-email-field">
+          <label for="tm-email">{{ login_label or _("Work email") }}</label>
+          <input class="tm-input" id="tm-email" name="usr" type="email" autocomplete="username"
+                 placeholder="{{ _('you@company.ae') }}" autofocus>
+        </div>
+
+        {# "Forgot?" comes after the input in source order so Tab goes
+           email → password → forgot; CSS puts it back on the label row. #}
+        <div class="tm-field tm-field-pass" id="tm-pass-field"{% if tm_disable_user_pass_login %} hidden{% endif %}>
+          <label for="tm-pass">{{ _("Password") }}</label>
+          <div class="tm-input-wrap">
+            <input class="tm-input" id="tm-pass" name="pwd" type="password" autocomplete="current-password"
+                   placeholder="{{ _('Your password') }}">
+            <button class="tm-eye" type="button" id="tm-eye" aria-label="{{ _('Show password') }}" aria-pressed="false">
+              <svg class="tm-ic" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z"></path><circle cx="12" cy="12" r="3.1"></circle></svg>
+            </button>
+          </div>
+          <button class="tm-link" type="button" id="tm-forgot">{{ _("Forgot?") }}</button>
+        </div>
+
+        <div class="tm-field" id="tm-otp-field" hidden>
+          <label for="tm-otp">{{ _("Verification code") }}</label>
+          <input class="tm-input tm-otp" id="tm-otp" name="otp" type="text" inputmode="numeric"
+                 autocomplete="one-time-code" maxlength="8" placeholder="123456">
+          <p class="tm-hint" id="tm-otp-hint"></p>
+        </div>
+
+        <button class="tm-btn tm-btn-p" type="submit" id="tm-submit">
+          <span class="tm-spin" id="tm-spin" hidden aria-hidden="true"></span>
+          <span id="tm-submit-label">{{ _("Sign in") }}</span>
+        </button>
+
+        {% if tm_login_with_email_link %}
+        <div class="tm-alt" id="tm-alt">
+          <div class="tm-divider"><span>{{ _("or") }}</span></div>
+          <button class="tm-btn" type="button" id="tm-link-btn">
+            <svg class="tm-ic" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M3.5 6.5h17v11h-17z"></path><path d="m3.5 7.5 8.5 6 8.5-6"></path></svg>
+            {{ _("Email me a sign-in link") }}
+          </button>
+        </div>
+        {% endif %}
+
+        <button class="tm-btn" type="button" id="tm-back" hidden>{{ _("Back to sign in") }}</button>
+
+        {% if social_login %}
+        <div class="tm-providers">
+          <div class="tm-divider"><span>{{ _("or continue with") }}</span></div>
+          {% for provider in provider_logins %}
+          <a class="tm-btn" href="{{ provider.auth_url }}">
+            {% if provider.icon %}{{ provider.icon }}{% endif %}
+            {{ provider.provider_name }}
+          </a>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if ldap_settings and ldap_settings.enabled %}
+        <p class="tm-hint">{{ _("Your company directory (LDAP) sign-in also works with the form above.") }}</p>
+        {% endif %}
+
+        {% if not disable_signup %}
+        <p class="tm-foot">{{ _("New to TaxMate?") }}
+          <a class="tm-link" href="{{ tm_pricing_url }}">{{ _("See plans and start a trial") }}</a>
+        </p>
+        {% endif %}
+      </form>
+    </div>
+
+    <div class="tm-legal">
+      <span>© {{ tm_year }} {{ tm_app_name }}</span>
+      <span class="tm-legal-links">
+        <a href="{{ tm_pricing_url }}">{{ _("Plans and pricing") }}</a>
+        <a href="{{ tm_terms_url }}">{{ _("Terms") }}</a>
+        <a href="{{ tm_privacy_url }}">{{ _("Privacy") }}</a>
+        {% if tm_support_email %}<a href="mailto:{{ tm_support_email }}">{{ _("Support") }}</a>{% endif %}
+      </span>
+    </div>
+  </main>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // Translated strings, rendered by Jinja so they follow the page language.
+  var T = {
+    signIn: {{ _("Sign in") | tojson }},
+    signInSub: {{ _("Welcome back. Use your work email.") | tojson }},
+    signingIn: {{ _("Signing in…") | tojson }},
+    verify: {{ _("Verify and sign in") | tojson }},
+    twoStep: {{ _("Two-step verification") | tojson }},
+    twoStepSub: {{ _("Enter the code from your authenticator app.") | tojson }},
+    reset: {{ _("Reset your password") | tojson }},
+    resetSub: {{ _("We will email you a link to set a new one.") | tojson }},
+    resetSend: {{ _("Send the reset link") | tojson }},
+    sentTitle: {{ _("Check your email") | tojson }},
+    resetSent: {{ _("If that email is registered, we have sent a link to set a new password.") | tojson }},
+    linkSent: {{ _("If that email is registered, we have sent a sign-in link. It works once and expires shortly.") | tojson }},
+    sendAgain: {{ _("Send it again") | tojson }},
+    needEmail: {{ _("Enter your work email.") | tojson }},
+    needPass: {{ _("Enter your password.") | tojson }},
+    needOtp: {{ _("Enter the code.") | tojson }},
+    failedTitle: {{ _("We could not sign you in") | tojson }},
+    noticeTitle: {{ _("Please note") | tojson }},
+    badCreds: {{ _("Check the email and password, or reset the password.") | tojson }},
+    tooMany: {{ _("Too many attempts. Wait a few minutes and try again.") | tojson }},
+    wrong: {{ _("Something went wrong. Try again.") | tojson }},
+    offline: {{ _("No connection. Check your network and try again.") | tojson }}
+  };
+
+  var form = document.getElementById("tm-form");
+  var email = document.getElementById("tm-email");
+  var pass = document.getElementById("tm-pass");
+  var otp = document.getElementById("tm-otp");
+  var emailField = document.getElementById("tm-email-field");
+  var passField = document.getElementById("tm-pass-field");
+  var otpField = document.getElementById("tm-otp-field");
+  var otpHint = document.getElementById("tm-otp-hint");
+  var alt = document.getElementById("tm-alt");
+  var back = document.getElementById("tm-back");
+  var submit = document.getElementById("tm-submit");
+  var submitLabel = document.getElementById("tm-submit-label");
+  var spin = document.getElementById("tm-spin");
+  var title = document.getElementById("tm-title");
+  var subtitle = document.getElementById("tm-subtitle");
+  var alert = document.getElementById("tm-alert");
+  var alertTitle = document.getElementById("tm-alert-title");
+  var alertBody = document.getElementById("tm-alert-body");
+
+  var mode = "signin";      // signin | otp | forgot | sent
+  var tmpId = null;         // two-factor continuation id
+  var busy = false;
+
+  /* ── helpers ───────────────────────────────────────────────────── */
+
+  function show(el, on) { if (el) el.hidden = !on; }
+
+  function notice(kind, head, body) {
+    if (!body) { alert.hidden = true; return; }
+    alert.className = "tm-alert " + (kind === "ok" ? "tm-alert-ok" : "tm-alert-bad");
+    alertTitle.textContent = head || "";
+    alertBody.textContent = body;
+    alert.hidden = false;
+  }
+
+  function setBusy(on, label) {
+    busy = on;
+    submit.disabled = on;
+    show(spin, on);
+    submitLabel.textContent = label || submitLabel.textContent;
+  }
+
+  /** Only same-origin paths, so ?redirect-to= cannot send anyone off-site. */
+  function safePath(value) {
+    if (!value) return null;
+    try {
+      var u = new URL(value, window.location.origin);
+      if (u.origin !== window.location.origin) return null;
+      if (u.username || u.password) return null;
+      return u.pathname + u.search + u.hash;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function redirectTarget(data) {
+    var param = new URLSearchParams(window.location.search).get("redirect-to");
+    var home = (data && data.home_page) || "";
+    // Prefer explicit SPA route; never leave Website Users on `/` (blank SPA basename).
+    if (home === "taxmate" || home === "/taxmate") home = "/taxmate";
+    return safePath(param) || safePath(data && data.redirect_to) || safePath(home) || "/taxmate";
+  }
+
+  /** Frappe puts human-readable errors in _server_messages, not in `message`. */
+  function serverMessage(payload) {
+    try {
+      var list = JSON.parse(payload._server_messages || "[]");
+      for (var i = 0; i < list.length; i++) {
+        var item = JSON.parse(list[i]);
+        var text = (item && (item.message || item)) + "";
+        text = text.replace(/<[^>]*>/g, "").trim();
+        if (text) return text;
+      }
+    } catch (e) { /* no server messages */ }
+    return null;
+  }
+
+  function post(method, body) {
+    var headers = { "Content-Type": "application/json", "Accept": "application/json" };
+    // A guest session has no CSRF token and Frappe does not ask for one; this
+    // only matters if someone opens the page while already signed in.
+    if (window.frappe && frappe.csrf_token && frappe.csrf_token !== "None") {
+      headers["X-Frappe-CSRF-Token"] = frappe.csrf_token;
+    }
+    return fetch("/api/method/" + method, {
+      method: "POST", headers: headers, credentials: "same-origin", body: JSON.stringify(body)
+    }).then(function (res) {
+      return res.text().then(function (text) {
+        var data = {};
+        try { data = text ? JSON.parse(text) : {}; } catch (e) { data = {}; }
+        return { ok: res.ok, status: res.status, data: data };
+      });
+    });
+  }
+
+  function failed(res) {
+    var text = serverMessage(res.data);
+    if (!text) {
+      if (res.status === 401) text = T.badCreds;
+      else if (res.status === 429) text = T.tooMany;
+      else text = (res.data && res.data.message) || T.wrong;
+    }
+    notice("bad", res.status === 429 ? T.noticeTitle : T.failedTitle, text);
+  }
+
+  /* ── views ─────────────────────────────────────────────────────── */
+
+  function toSignin() {
+    mode = "signin"; tmpId = null;
+    title.textContent = T.signIn;
+    subtitle.textContent = T.signInSub;
+    submitLabel.textContent = T.signIn;
+    show(emailField, true); show(passField, {{ 0 if tm_disable_user_pass_login else 1 }} === 1);
+    show(otpField, false); show(alt, true); show(back, false);
+    notice(null);
+    submit.hidden = false;
+    email.focus();
+  }
+
+  function toOtp(verification) {
+    mode = "otp";
+    title.textContent = T.twoStep;
+    subtitle.textContent = (verification && verification.prompt) || T.twoStepSub;
+    submitLabel.textContent = T.verify;
+    otpHint.textContent = (verification && verification.method)
+      ? verification.method : "";
+    show(emailField, false); show(passField, false); show(otpField, true);
+    show(alt, false); show(back, true);
+    submit.hidden = false;
+    notice(null);
+    otp.value = "";
+    otp.focus();
+  }
+
+  function toForgot() {
+    mode = "forgot";
+    title.textContent = T.reset;
+    subtitle.textContent = T.resetSub;
+    submitLabel.textContent = T.resetSend;
+    show(emailField, true); show(passField, false); show(otpField, false);
+    show(alt, false); show(back, true);
+    submit.hidden = false;
+    notice(null);
+    email.focus();
+  }
+
+  function toSent(body) {
+    mode = "sent";
+    title.textContent = T.sentTitle;
+    subtitle.textContent = "";
+    show(emailField, false); show(passField, false); show(otpField, false);
+    show(alt, false); show(back, true);
+    submit.hidden = true;
+    notice("ok", T.sentTitle, body);
+  }
+
+  /* ── actions ───────────────────────────────────────────────────── */
+
+  function signIn() {
+    if (!email.value.trim()) { notice("bad", T.failedTitle, T.needEmail); return; }
+    if (!pass.value) { notice("bad", T.failedTitle, T.needPass); return; }
+    setBusy(true, T.signingIn);
+    post("login", { usr: email.value.trim(), pwd: pass.value })
+      .then(function (res) {
+        setBusy(false, T.signIn);
+        if (!res.ok) { failed(res); return; }
+        var data = res.data || {};
+        if (data.verification) { tmpId = data.tmp_id; toOtp(data.verification); return; }
+        window.location.href = redirectTarget(data);
+      })
+      .catch(function () { setBusy(false, T.signIn); notice("bad", T.failedTitle, T.offline); });
+  }
+
+  function verifyOtp() {
+    if (!otp.value.trim()) { notice("bad", T.failedTitle, T.needOtp); return; }
+    setBusy(true, T.signingIn);
+    post("login", { otp: otp.value.trim(), tmp_id: tmpId })
+      .then(function (res) {
+        setBusy(false, T.verify);
+        if (!res.ok) { failed(res); return; }
+        window.location.href = redirectTarget(res.data || {});
+      })
+      .catch(function () { setBusy(false, T.verify); notice("bad", T.failedTitle, T.offline); });
+  }
+
+  function sendReset() {
+    if (!email.value.trim()) { notice("bad", T.failedTitle, T.needEmail); return; }
+    setBusy(true, T.signingIn);
+    post("frappe.core.doctype.user.user.reset_password", { user: email.value.trim() })
+      .then(function (res) {
+        setBusy(false, T.resetSend);
+        // Frappe answers the same way whether or not the address exists, on
+        // purpose: a different answer would tell a stranger who has an account.
+        if (res.status === 429) { failed(res); return; }
+        toSent(T.resetSent);
+      })
+      .catch(function () { setBusy(false, T.resetSend); notice("bad", T.failedTitle, T.offline); });
+  }
+
+  function sendLoginLink() {
+    if (!email.value.trim()) { notice("bad", T.failedTitle, T.needEmail); return; }
+    setBusy(true, T.signingIn);
+    post("frappe.www.login.send_login_link", { email: email.value.trim() })
+      .then(function (res) {
+        setBusy(false, T.signIn);
+        if (res.status === 429) { failed(res); return; }
+        toSent(T.linkSent);
+      })
+      .catch(function () { setBusy(false, T.signIn); notice("bad", T.failedTitle, T.offline); });
+  }
+
+  /* ── wiring ────────────────────────────────────────────────────── */
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    if (busy) return;
+    if (mode === "otp") verifyOtp();
+    else if (mode === "forgot") sendReset();
+    else signIn();
+  });
+
+  document.getElementById("tm-forgot").addEventListener("click", toForgot);
+  back.addEventListener("click", toSignin);
+
+  var linkBtn = document.getElementById("tm-link-btn");
+  if (linkBtn) linkBtn.addEventListener("click", function () { if (!busy) sendLoginLink(); });
+
+  var eye = document.getElementById("tm-eye");
+  eye.addEventListener("click", function () {
+    var showing = pass.type === "text";
+    pass.type = showing ? "password" : "text";
+    eye.setAttribute("aria-pressed", showing ? "false" : "true");
+    pass.focus();
+  });
+})();
+</script>
+{% endblock %}
