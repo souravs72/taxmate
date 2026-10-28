@@ -54,6 +54,32 @@ def recoverable_vat_from_items(
 	return flt(header_vat * pct / 100.0, 2)
 
 
+def _line_uae_vat(doc, vat_accounts: set[str]) -> list[float]:
+	"""Per-line VAT from Item Wise Tax Detail rows on UAE VAT accounts.
+
+	An empty list means the breakup is not on the document yet; the caller
+	then uses the header VAT on those same accounts.
+	"""
+	items = list(doc.get("items") or [])
+	details = doc.get("item_wise_tax_details") or []
+	if not items or not details or not vat_accounts:
+		return []
+	taxes = {row.get("name"): row for row in (doc.get("taxes") or []) if row.get("name")}
+	index = {item.get("name"): i for i, item in enumerate(items) if item.get("name")}
+	if not taxes or not index:
+		return []
+	totals = [0.0] * len(items)
+	for detail in details:
+		tax = taxes.get(detail.get("tax_row"))
+		if not tax or tax.get("account_head") not in vat_accounts:
+			continue
+		idx = index.get(detail.get("item_row"))
+		if idx is None:
+			continue
+		totals[idx] += flt(detail.get("amount"))
+	return totals
+
+
 def line_vat_in_aed(tax_amount: float, conversion_rate: float) -> float:
 	"""Convert item tax_amount (document currency) to AED."""
 	return flt(tax_amount) * (flt(conversion_rate) or 1.0)
@@ -77,6 +103,25 @@ def recovery_map_for_templates(template_names: list[str]) -> dict[str, float]:
 		fields=fields,
 	)
 	return {row.name: recovery_percent_for_template(row) for row in rows}
+
+
+def standard_rated_vat(stored: float, account_vat: float, manual: bool = False) -> float:
+	"""VAT that belongs in box 9 for one purchase invoice.
+
+	A manual figure is kept. A stored recoverable amount is kept when it is
+	positive and not larger than the tax posted to UAE VAT accounts (that is
+	the figure ``apply_box_9_recoverable`` stores, including a recovery
+	percent below 100). A larger stored figure is excise or another non-VAT
+	tax and is replaced by the UAE VAT account total. Nothing is written back
+	to the invoice.
+	"""
+	stored = flt(stored)
+	account_vat = flt(account_vat)
+	if manual:
+		return stored
+	if stored > 0 and stored <= account_vat + 0.009:
+		return stored
+	return account_vat
 
 
 def apply_box_9_recoverable(doc) -> None:
@@ -121,18 +166,24 @@ def apply_box_9_recoverable(doc) -> None:
 			if row.get("account_head") in vat_accounts
 		)
 
-	rate = flt(doc.get("conversion_rate")) or 1.0
-	item_vats = [line_vat_in_aed(item.get("tax_amount"), rate) for item in items]
+	# Item.tax_amount is every tax on the line, including excise. Desk's
+	# recoverable standard-rated field is the VAT on UAE VAT accounts.
+	item_vats = _line_uae_vat(doc, vat_accounts)
+	if len(item_vats) != len(items):
+		item_vats = [0.0] * len(items)
 
 	doc.recoverable_standard_rated_expenses = recoverable_vat_from_items(
 		item_vats, item_percents, header_vat=header_vat
 	)
 	if hasattr(doc, "uae_box_9_taxable_amount"):
-		doc.uae_box_9_taxable_amount = flt(
-			sum(
-				flt(item.get("base_net_amount"))
-				for item, pct in zip(items, item_percents, strict=True)
-				if flt(pct) > 0
-			),
-			2,
-		)
+		if not flt(doc.recoverable_standard_rated_expenses):
+			doc.uae_box_9_taxable_amount = 0
+		else:
+			doc.uae_box_9_taxable_amount = flt(
+				sum(
+					flt(item.get("base_net_amount"))
+					for item, pct in zip(items, item_percents, strict=True)
+					if flt(pct) > 0
+				),
+				2,
+			)

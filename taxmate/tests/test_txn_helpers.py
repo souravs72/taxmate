@@ -197,6 +197,52 @@ class TestTxnHelpers(FrappeTestCase):
 			self.assertEqual(party.get("taxes_and_charges"), fallback)
 			self.assertTrue(party.get("taxes"))
 
+	def test_explicit_tax_rows_are_not_replaced(self):
+		from taxmate.api.resource import _apply_tax_template_rows
+
+		doc = {
+			"doctype": "Purchase Order",
+			"taxes_and_charges": "UAE VAT 5%",
+			"taxes": [{"charge_type": "Actual", "tax_amount": 3, "account_head": "VAT"}],
+		}
+		out = _apply_tax_template_rows(doc)
+		self.assertEqual(len(out["taxes"]), 1)
+		self.assertEqual(out["taxes"][0]["tax_amount"], 3)
+
+	def test_purchase_order_template_rows_keep_vat(self):
+		"""A template name alone must still produce the VAT Desk calculates from its rows."""
+		from taxmate.api.resource import _apply_tax_template_rows
+
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1}, "name")
+		tax = frappe.db.get_value(
+			"Purchase Taxes and Charges Template",
+			{"company": company, "disabled": 0},
+			"name",
+		)
+		if not company or not item or not tax:
+			self.skipTest("Need company, purchase item, purchase tax template")
+		if int(frappe.db.get_single_value("Accounts Settings", "add_taxes_from_taxes_and_charges_template") or 0):
+			self.skipTest("Accounts Settings already copies the template during validate")
+
+		today = frappe.utils.today()
+		payload = {
+			"doctype": "Purchase Order",
+			"company": company,
+			"transaction_date": today,
+			"schedule_date": today,
+			"currency": frappe.get_cached_value("Company", company, "default_currency") or "AED",
+			"conversion_rate": 1,
+			"taxes_and_charges": tax,
+			"items": [{"item_code": item, "qty": 2, "rate": 100, "schedule_date": today}],
+		}
+		out = _apply_tax_template_rows(payload)
+		self.assertTrue(out.get("taxes"), "tax template rows must be copied before save")
+		doc = frappe.get_doc(out)
+		doc.calculate_taxes_and_totals()
+		self.assertGreater(float(doc.total_taxes_and_charges or 0), 0)
+		self.assertGreater(float(doc.grand_total or 0), float(doc.net_total or 0))
+
 	def test_purchase_order_preview_taxes_without_supplier(self):
 		"""VAT preview must run from the tax template before the supplier is chosen."""
 		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")

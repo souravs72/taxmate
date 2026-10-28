@@ -46,6 +46,7 @@ export default function LinkField({
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [box, setBox] = useState<MenuBox | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const suppressClear = useRef(false);
   const search = useFrappePostCall<{ message: Hit[] }>(METHOD.searchLink);
   const filterKey = JSON.stringify(filters ?? null);
 
@@ -96,8 +97,27 @@ export default function LinkField({
         aria-label={placeholder ?? t("search.placeholder")}
         aria-expanded={showMenu}
         onFocus={() => { setQ(value); setOpen(true); }}
-        onChange={(e) => { setQ(e.target.value); setOpen(true); }}
-        onBlur={() => window.setTimeout(() => setOpen(false), 180)}
+        onChange={(e) => {
+          const next = e.target.value;
+          setQ(next);
+          setOpen(true);
+          // An emptied link is written through, the same as Desk on blur.
+          // Otherwise closing the menu paints the previous name again.
+          if (!next.trim() && value) onChange("");
+        }}
+        onBlur={(e) => {
+          const typed = e.currentTarget.value.trim();
+          window.setTimeout(() => {
+            setOpen(false);
+            // A suggestion's mousedown sets this so the timeout cannot
+            // clear a customer chosen after the field was emptied.
+            if (suppressClear.current) {
+              suppressClear.current = false;
+              return;
+            }
+            if (!typed) onChange("");
+          }, 180);
+        }}
         autoComplete="off"
       />
       {showMenu && box && createPortal(
@@ -114,7 +134,10 @@ export default function LinkField({
               <button
                 type="button"
                 className="linkhit"
-                onMouseDown={(e) => e.preventDefault()}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  suppressClear.current = true;
+                }}
                 onClick={() => { onChange(h.value); setQ(h.value); setOpen(false); }}
               >
                 <b>{h.value}</b>
