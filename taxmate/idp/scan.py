@@ -190,12 +190,28 @@ def persist_scan(
 
 
 def mark_scan(scan_id: str, **fields: Any) -> None:
-	"""Update Scan fields (status, error_key, cancel_requested, …)."""
+	"""Update Scan fields (status, error_key, cancel_requested, …).
+
+	IDP only allows Review → Saving → Saved. Passing Created used to throw
+	and leave the draft unlinked. The clerk who can insert the scan may
+	still lack DocType write, so save ignores permissions after access check.
+	"""
 	doc = assert_scan_access(scan_id)
+	wanted = fields.get("status")
+	if wanted in {"Created", "Saved"} and doc.status in REVIEW_READY | {"Saving"}:
+		payload = {key: value for key, value in fields.items() if key != "status"}
+		if doc.status in REVIEW_READY:
+			for key, value in payload.items():
+				if hasattr(doc, key):
+					setattr(doc, key, value)
+			doc.status = "Saving"
+			doc.save(ignore_permissions=True)
+			doc.reload()
+		fields = {**payload, "status": "Saved"}
 	for key, value in fields.items():
 		if hasattr(doc, key):
 			setattr(doc, key, value)
-	doc.save(ignore_permissions=False)
+	doc.save(ignore_permissions=True)
 
 
 def scan_payload(doc: Any) -> dict[str, Any]:

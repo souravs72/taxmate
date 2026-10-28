@@ -311,9 +311,9 @@ def _price_stored_as_qty(items: list[dict[str, Any]]) -> bool:
 		return False
 	hits = 0
 	for row in rows:
-		qty = float(row.get("qty") or 0)
-		rate = float(row.get("rate") or 0)
-		amount = float(row.get("amount") or 0)
+		qty = _ocr_number(row.get("qty"))
+		rate = _ocr_number(row.get("rate"))
+		amount = _ocr_number(row.get("amount"))
 		if abs(rate - 1) < 0.02 and qty > 1 and abs(amount - qty) < 0.05:
 			hits += 1
 	return hits == len(rows)
@@ -397,20 +397,20 @@ def _apply_printed_vat(
 	header["tax_total"] = vat["vat"]
 	header["total_taxes_and_charges"] = vat["vat"]
 	priced = [row for row in items if isinstance(row, dict)]
-	total = round(sum(float(row.get("amount") or 0) for row in priced), 2)
+	total = round(sum(_ocr_number(row.get("amount")) for row in priced), 2)
 	if not priced or abs(total - vat["gross"]) > 0.05 or abs(total - vat["net"]) <= 0.02:
 		return
 	running = 0.0
 	for row in priced[:-1]:
-		amount = round(float(row.get("amount") or 0) * vat["net"] / vat["gross"], 2)
-		qty = float(row.get("qty") or 1) or 1
+		amount = round(_ocr_number(row.get("amount")) * vat["net"] / vat["gross"], 2)
+		qty = _ocr_number(row.get("qty"), 1.0) or 1
 		row["amount"] = amount
 		row["rate"] = round(amount / qty, 2)
 		row["unit_price"] = row["rate"]
 		running += amount
 	last = priced[-1]
 	amount = round(vat["net"] - running, 2)
-	qty = float(last.get("qty") or 1) or 1
+	qty = _ocr_number(last.get("qty"), 1.0) or 1
 	last["amount"] = amount
 	last["rate"] = round(amount / qty, 2)
 	last["unit_price"] = last["rate"]
@@ -499,10 +499,8 @@ def _rows_are_units(items: list[Any]) -> bool:
 
 
 def _money(token: str) -> float:
-	text = str(token or "").strip()
-	if text in {"", "-", "—"}:
-		return 0.0
-	return float(text.replace(",", ""))
+	parsed = _parse_ocr_amount(token)
+	return 0.0 if parsed is None else parsed
 
 
 def _parse_tax_invoice_lines(body: str) -> list[dict[str, Any]]:
@@ -743,7 +741,7 @@ def _line_money(body: str, pattern: str) -> float | None:
 def _rows_match_footer(rows: list[dict[str, Any]], footer: dict[str, float] | None) -> bool:
 	if not footer:
 		return False
-	total = round(sum(float(row.get("amount") or 0) for row in rows), 2)
+	total = round(sum(_ocr_number(row.get("amount")) for row in rows), 2)
 	return abs(total - footer["net"]) <= 0.05
 
 
@@ -1633,6 +1631,8 @@ def _sanitize_header_values(header: dict[str, Any]) -> None:
 		num = _parse_ocr_amount(header.get(key))
 		if num is not None:
 			header[key] = num
+		elif isinstance(header.get(key), str):
+			header[key] = 0.0
 	if header.get("currency") in (None, ""):
 		# common OCR miss on receipts
 		pass
@@ -1651,6 +1651,8 @@ def _sanitize_item_values(data: dict[str, Any]) -> None:
 			num = _parse_ocr_amount(row.get(key))
 			if num is not None:
 				row[key] = num
+			elif isinstance(row.get(key), str):
+				row[key] = 0.0
 		# Align qty aliases for purchase receipt validators.
 		qty = row.get("qty")
 		if qty in (None, "") and row.get("quantity") not in (None, ""):
@@ -1675,10 +1677,10 @@ def _fill_zero_rates_from_total(data: dict[str, Any]) -> None:
 	total = _parse_ocr_amount(header.get("grand_total") or header.get("net_total") or header.get("total"))
 	if total is None or total <= 0:
 		return
-	if any(float(row.get("rate") or 0) > 0 or float(row.get("amount") or 0) > 0 for row in items):
+	if any(_ocr_number(row.get("rate")) > 0 or _ocr_number(row.get("amount")) > 0 for row in items):
 		return
 	if len(items) == 1:
-		qty = float(items[0].get("qty") or items[0].get("quantity") or 1) or 1
+		qty = _ocr_number(items[0].get("qty") or items[0].get("quantity"), 1.0) or 1
 		items[0]["qty"] = qty
 		items[0]["rate"] = total / qty
 		items[0]["amount"] = total
@@ -1686,50 +1688,61 @@ def _fill_zero_rates_from_total(data: dict[str, Any]) -> None:
 		return
 	share = total / len(items)
 	for row in items:
-		qty = float(row.get("qty") or row.get("quantity") or 1) or 1
+		qty = _ocr_number(row.get("qty") or row.get("quantity"), 1.0) or 1
 		row["qty"] = qty
 		row["rate"] = share / qty
 		row["amount"] = share
 		row["unit_price"] = row["rate"]
-	_fill_zero_rates_from_total(data)
 
 
-def _fill_zero_rates_from_total(data: dict[str, Any]) -> None:
-	"""Purchase OCR often leaves rate=0 while the header still has the bill total."""
-	items = [row for row in (data.get("items") or []) if isinstance(row, dict)]
-	if not items:
-		return
-	header = data.get("header") if isinstance(data.get("header"), dict) else {}
-	total = _parse_ocr_amount(header.get("grand_total") or header.get("net_total") or header.get("total"))
-	if total is None or total <= 0:
-		return
-	if any(float(row.get("rate") or 0) > 0 or float(row.get("amount") or 0) > 0 for row in items):
-		return
-	if len(items) == 1:
-		qty = float(items[0].get("qty") or items[0].get("quantity") or 1) or 1
-		items[0]["qty"] = qty
-		items[0]["rate"] = total / qty
-		items[0]["amount"] = total
-		items[0]["unit_price"] = items[0]["rate"]
-		return
-	share = total / len(items)
-	for row in items:
-		qty = float(row.get("qty") or row.get("quantity") or 1) or 1
-		row["qty"] = qty
-		row["rate"] = share / qty
-		row["amount"] = share
-		row["unit_price"] = row["rate"]
+_ARABIC_DIGITS = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹", "01234567890123456789")
+
+_CURRENCY_NOISE = re.compile(
+	r"(AED|USD|EUR|GBP|INR|SAR|QAR|OMR|KWD|BHD|DHS?|FILS|"
+	r"[\u200e\u200f]*(?:د\.?\s*[إا]\.?|[إا]\.?\s*د\.?)[\u200e\u200f]*)",
+	re.IGNORECASE,
+)
 
 
 def _parse_ocr_amount(value: Any) -> float | None:
-	text = str(value or "").strip()
-	if not text:
+	"""Read a printed amount. Arabic dirham marks must not fail the scan job."""
+	if value is None or value == "":
 		return None
-	cleaned = text.replace(",", "").replace("AED", "").replace(" ", "")
+	if isinstance(value, bool):
+		return None
+	if isinstance(value, (int, float)):
+		return float(value)
+	text = (
+		str(value)
+		.replace("\u00a0", " ")
+		.replace("\u200e", "")
+		.replace("\u200f", "")
+		.translate(_ARABIC_DIGITS)
+		.replace("٫", ".")
+		.strip()
+	)
+	if text in {"", "-", "—"}:
+		return None
+	text = text.replace(",", "")
+	text = _CURRENCY_NOISE.sub("", text)
+	text = re.sub(r"[^0-9.\-]", "", text)
+	text = text.rstrip(".")
+	if "-" in text[1:]:
+		return None
+	if text.count(".") > 1:
+		head, _, tail = text.rpartition(".")
+		text = head.replace(".", "") + (("." + tail) if tail else "")
+	if text in {"", "-", ".", "-."}:
+		return None
 	try:
-		return float(cleaned)
+		return float(text)
 	except ValueError:
 		return None
+
+
+def _ocr_number(value: Any, default: float = 0.0) -> float:
+	parsed = _parse_ocr_amount(value)
+	return default if parsed is None else parsed
 
 
 def _parse_ocr_date(value: str) -> str:
@@ -2214,9 +2227,9 @@ def fold_printed_discounts(header: dict[str, Any], items: list[Any]) -> None:
 	for row in items:
 		if not isinstance(row, dict):
 			continue
-		disc = float(row.get("discount_amount") or 0)
-		rate = float(row.get("rate") or 0)
-		qty = float(row.get("qty") or 0)
+		disc = _ocr_number(row.get("discount_amount"))
+		rate = _ocr_number(row.get("rate"))
+		qty = _ocr_number(row.get("qty"))
 		if disc <= 0 or qty <= 0:
 			continue
 		total += disc if disc > rate else disc * qty
@@ -2225,7 +2238,7 @@ def fold_printed_discounts(header: dict[str, Any], items: list[Any]) -> None:
 		return
 	if not str(header.get("apply_discount_on") or "").strip():
 		header["apply_discount_on"] = "Net Total"
-	header["discount_amount"] = round(float(header.get("discount_amount") or 0) + total, 2)
+	header["discount_amount"] = round(_ocr_number(header.get("discount_amount")) + total, 2)
 
 
 def bind_typed_customer(header: dict[str, Any], doctype: str) -> None:
