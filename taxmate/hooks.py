@@ -265,6 +265,7 @@ scheduler_events = {
 # chooses the VAT credit. Setting the flag earlier is cleared before then.
 extend_doctype_class = {
 	"Purchase Invoice": "taxmate.uae_vat.overrides.purchase_invoice.PurchaseInvoiceReverseCharge",
+	"Sales Invoice": "taxmate.uae_vat.overrides.sales_invoice.SalesInvoiceMappedTaxes",
 }
 
 # Overriding Methods

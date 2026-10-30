@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 import { DT, METHOD } from "../../lib/frappe";
+import { isValidUaeTrn } from "../../lib/trn";
 import { useOpenMapped } from "../../lib/openMapped";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
@@ -53,6 +54,7 @@ type AddressDoc = {
 export default function CustomerForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
+  const location = useLocation();
   const isNew = name === "new";
 
   const existing = useDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
@@ -76,6 +78,7 @@ export default function CustomerForm() {
   });
   const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
   const create = useInsert();
+  const remove = useFrappePostCall(METHOD.delete);
   const makeQuote = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeCustomerQuotation);
   const makeOpp = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeOpportunityFromCustomer);
   const opportunity = useOpenMapped("/opportunities");
@@ -106,6 +109,7 @@ export default function CustomerForm() {
   const [creditLimits, setCreditLimits] = useState<CreditLimitRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
+  const [savedNotice, setSavedNotice] = useState(!!(location.state as { saved?: boolean } | null)?.saved);
 
   let _clKey = 0;
   const newClKey = () => `cl${++_clKey}`;
@@ -164,7 +168,12 @@ export default function CustomerForm() {
   async function save() {
     setBusy(true);
     setSaveError(null);
+    setSavedNotice(false);
+    let createdName: string | undefined;
     try {
+      if (form.tax_id && !isValidUaeTrn(form.tax_id)) {
+        throw new Error(t("cust.trnInvalid"));
+      }
       const group = form.customer_group || settings.data?.customer_group;
       const territory = settings.data?.territory;
       const payload = {
@@ -191,6 +200,7 @@ export default function CustomerForm() {
         ? await create.createDoc(DT.customer, payload)
         : await update.updateDoc(DT.customer, name, payload);
       const custName = (cust as { name: string }).name;
+      if (isNew) createdName = custName;
 
       const addrPayload = {
         address_title: form.customer_name,
@@ -232,8 +242,15 @@ export default function CustomerForm() {
         customer_primary_address: primaryAddress,
         customer_primary_contact: primaryContact,
       });
-      nav(`/customers/${encodeURIComponent(custName)}`);
+      if (isNew) {
+        nav(`/customers/${encodeURIComponent(custName)}`, { state: { saved: true } });
+      } else {
+        setSavedNotice(true);
+      }
     } catch (err) {
+      if (createdName) {
+        await remove.call({ doctype: DT.customer, name: createdName }).catch(() => undefined);
+      }
       setSaveError(err);
     } finally {
       setBusy(false);
@@ -269,11 +286,16 @@ export default function CustomerForm() {
 
             <button className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
-              {busy ? t("soc.saving") : t("soc.save")}
+              {busy ? t("soc.saving") : t("form.save")}
             </button>
           </>
         }
       />
+      {savedNotice && (
+        <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>
+          <b>{t("form.saved")}</b>
+        </div>
+      )}
       {(saveError || opportunity.error) && <ErrorBox error={saveError || opportunity.error} />}
 
       <Card num={1} title={t("cust.identity")}>
@@ -300,8 +322,15 @@ export default function CustomerForm() {
               {(groups.data ?? []).map((g) => <option key={g.name} value={g.name}>{g.name}</option>)}
             </select>
           </Field>
-          <Field label={t("cust.col.trn")}>
-            <input className="ctl" value={form.tax_id} onChange={(e) => set("tax_id", e.target.value)} />
+          <Field label={t("cust.col.trn")} hint={t("cust.trnHint")}>
+            <input
+              className="ctl"
+              value={form.tax_id}
+              inputMode="numeric"
+              autoComplete="off"
+              aria-invalid={!!form.tax_id && !isValidUaeTrn(form.tax_id)}
+              onChange={(e) => set("tax_id", e.target.value)}
+            />
           </Field>
           <Field label={t("f.paymentTerms")}>
             <select className="ctl" value={form.payment_terms} onChange={(e) => set("payment_terms", e.target.value)}>

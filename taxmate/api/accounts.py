@@ -283,10 +283,6 @@ def _stamp_default_taxes(
 	defaults = get_default_taxes_and_charges(master, company=company) or {}
 	template = defaults.get("taxes_and_charges")
 	if not template:
-		# TaxMate UAE books ship titled templates; install sometimes leaves
-		# is_default unset after manual template edits.
-		template = frappe.db.get_value(master, {"company": company, "title": "UAE VAT 5%"}, "name")
-	if not template:
 		return
 	details["taxes_and_charges"] = template
 	if not details.get("taxes"):

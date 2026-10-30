@@ -116,14 +116,22 @@ def _party_is_uae(doc) -> bool:
 
 
 def validate_party_trn(doc, method=None):
-	"""Validate Customer / Supplier tax_id when TaxMate enforces TRN for UAE parties."""
+	"""Validate Customer / Supplier tax_id when TaxMate enforces TRN.
+
+	A filled tax_id is always checked, including on a new Customer. New
+	Customers have no Address yet, so ``_party_is_uae`` used to skip them and
+	the invalid TRN was stored before the address insert could fail.
+	"""
 	if not should_enforce_trn():
-		return
-	if not _party_is_uae(doc):
 		return
 
 	_normalize_tax_id_on_doc(doc)
 	label = _("Customer Tax ID (TRN)") if doc.doctype == "Customer" else _("Supplier Tax ID (TRN)")
+	if doc.get("tax_id"):
+		validate_trn(doc.tax_id, label)
+		return
+	if not _party_is_uae(doc):
+		return
 	validate_trn(doc.tax_id, label)
 
 

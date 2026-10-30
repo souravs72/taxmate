@@ -9,6 +9,16 @@ from frappe.utils import cint, flt
 from taxmate.uae_vat.utils.period_lock import validate_period_lock
 from taxmate.uae_vat.utils.place_of_supply import validate_sales_invoice
 from taxmate.uae_vat.utils.special_regime_ledger import apply_margin_on_item
+from taxmate.utils.mapped_taxes import skip_default_taxes_after_mapping
+
+
+class SalesInvoiceMappedTaxes:
+	"""Desk Create → Sales Invoice sets load_after_mapping; skip default stamp only."""
+
+	def set_taxes(self):
+		if skip_default_taxes_after_mapping(self):
+			return
+		return super().set_taxes()
 
 
 def validate(doc, method=None):

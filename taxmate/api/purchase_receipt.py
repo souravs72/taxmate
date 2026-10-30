@@ -53,8 +53,11 @@ def make_purchase_invoice(source_name: str) -> dict[str, Any]:
 	from erpnext.stock.doctype.purchase_receipt.purchase_receipt import (
 		make_purchase_invoice as erp_make_purchase_invoice,
 	)
+	from taxmate.utils.mapped_taxes import keep_source_tax
 
-	return _as_data(erp_make_purchase_invoice(name, target_doc=None, args=None))
+	mapped = erp_make_purchase_invoice(name, target_doc=None, args=None)
+	keep_source_tax(doc, mapped)
+	return _as_data(mapped)
 
 
 @frappe.whitelist(methods=["POST"])

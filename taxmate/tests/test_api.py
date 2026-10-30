@@ -1137,6 +1137,184 @@ class TestApiVoucherHappyPath(FrappeTestCase):
 		frappe.delete_doc("UAE Incoming Invoice", incoming["name"], force=True)
 
 
+class TestPurchaseInvoiceFromOrder(FrappeTestCase):
+	def test_pi_from_po_without_vat_keeps_po_total(self):
+		"""A PI made from a PO with no tax must not pick up company-default VAT."""
+		from taxmate.api.purchase_order import make_purchase_invoice
+		from taxmate.api.workflow import submit
+
+		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
+		supplier = frappe.db.get_value("Supplier", {"disabled": 0})
+		item = frappe.db.get_value("Item", {"disabled": 0, "is_purchase_item": 1})
+		if not company or not supplier or not item:
+			self.skipTest("Need company, supplier, and purchase item")
+		today = frappe.utils.today()
+		price_list = frappe.db.get_single_value("Buying Settings", "buying_price_list") or "Standard Buying"
+		currency = frappe.get_cached_value("Company", company, "default_currency") or "AED"
+		doc = insert(
+			{
+				"doctype": "Purchase Order",
+				"company": company,
+				"supplier": supplier,
+				"transaction_date": today,
+				"schedule_date": today,
+				"currency": currency,
+				"conversion_rate": 1,
+				"buying_price_list": price_list,
+				"price_list_currency": currency,
+				"plc_conversion_rate": 1,
+				"items": [{"item_code": item, "qty": 1, "rate": 80, "schedule_date": today}],
+			}
+		)
+		po = frappe.get_doc("Purchase Order", doc["name"])
+		po.taxes_and_charges = ""
+		po.set("taxes", [])
+		po.calculate_taxes_and_totals()
+		po.save()
+		self.assertEqual(float(po.total_taxes_and_charges or 0), 0)
+		po_total = float(po.grand_total)
+		submitted = submit({"doctype": "Purchase Order", "name": po.name})
+		self.assertEqual(submitted["docstatus"], 1)
+
+		mapped = make_purchase_invoice(po.name)
+		self.assertEqual(mapped.get("doctype"), "Purchase Invoice")
+		self.assertFalse(mapped.get("taxes_and_charges"))
+		self.assertFalse(mapped.get("taxes"))
+		self.assertAlmostEqual(float(mapped.get("grand_total") or 0), po_total)
+
+		body = dict(mapped)
+		body["doctype"] = "Purchase Invoice"
+		body.pop("name", None)
+		body.pop("__islocal", None)
+		body.pop("__unsaved", None)
+		body.setdefault("vat_emirate", "Dubai")
+		pi = insert(body)
+		self.assertEqual(float(pi.get("total_taxes_and_charges") or 0), 0)
+		self.assertAlmostEqual(float(pi.get("grand_total") or 0), po_total)
+		self.assertFalse(pi.get("taxes_and_charges"))
+
+
+class TestPartyTrnOnInsert(FrappeTestCase):
+	def test_new_customer_invalid_trn_is_rejected(self):
+		"""Invalid TRN must fail on first Customer insert, not after the Address exists."""
+		group = frappe.db.get_single_value("Selling Settings", "customer_group") or frappe.db.get_value(
+			"Customer Group", {"is_group": 0}
+		)
+		territory = frappe.db.get_single_value("Selling Settings", "territory") or frappe.db.get_value(
+			"Territory", {"is_group": 0}
+		)
+		if not group or not territory:
+			self.skipTest("Customer Group / Territory not set up")
+		if not frappe.db.exists("DocType", "TaxMate Settings"):
+			self.skipTest("TaxMate Settings missing")
+
+		settings = frappe.get_single("TaxMate Settings")
+		previous = settings.enforce_trn_validation
+		settings.enforce_trn_validation = 1
+		settings.save()
+		name = f"TM TRN {uuid.uuid4().hex[:8]}"
+		try:
+			with self.assertRaises(frappe.ValidationError):
+				insert(
+					{
+						"doctype": "Customer",
+						"customer_name": name,
+						"customer_type": "Company",
+						"customer_group": group,
+						"territory": territory,
+						"tax_id": "100123456789012",
+					}
+				)
+			self.assertFalse(frappe.db.exists("Customer", {"customer_name": name}))
+		finally:
+			settings.enforce_trn_validation = previous
+			settings.save()
+			for leftover in frappe.get_all("Customer", filters={"customer_name": name}, pluck="name"):
+				frappe.delete_doc("Customer", leftover, force=True)
+
+	def test_new_customer_valid_trn_inserts(self):
+		group = frappe.db.get_single_value("Selling Settings", "customer_group") or frappe.db.get_value(
+			"Customer Group", {"is_group": 0}
+		)
+		territory = frappe.db.get_single_value("Selling Settings", "territory") or frappe.db.get_value(
+			"Territory", {"is_group": 0}
+		)
+		if not group or not territory:
+			self.skipTest("Customer Group / Territory not set up")
+
+		name = f"TM TRN OK {uuid.uuid4().hex[:8]}"
+		created = insert(
+			{
+				"doctype": "Customer",
+				"customer_name": name,
+				"customer_type": "Company",
+				"customer_group": group,
+				"territory": territory,
+				"tax_id": "100123456780003",
+			}
+		)
+		self.assertTrue(frappe.db.exists("Customer", created["name"]))
+		self.assertEqual(frappe.db.get_value("Customer", created["name"], "tax_id"), "100123456780003")
+		frappe.delete_doc("Customer", created["name"], force=True)
+
+	def test_new_supplier_invalid_trn_is_rejected(self):
+		group = frappe.db.get_single_value("Buying Settings", "supplier_group") or frappe.db.get_value(
+			"Supplier Group", {"is_group": 0}
+		)
+		if not group:
+			self.skipTest("Supplier Group not set up")
+		if not frappe.db.exists("DocType", "TaxMate Settings"):
+			self.skipTest("TaxMate Settings missing")
+
+		settings = frappe.get_single("TaxMate Settings")
+		previous = settings.enforce_trn_validation
+		settings.enforce_trn_validation = 1
+		settings.save()
+		name = f"TM TRN SUP {uuid.uuid4().hex[:8]}"
+		try:
+			with self.assertRaises(frappe.ValidationError):
+				insert(
+					{
+						"doctype": "Supplier",
+						"supplier_name": name,
+						"supplier_type": "Company",
+						"supplier_group": group,
+						"country": "United Arab Emirates",
+						"tax_id": "100123456789012",
+					}
+				)
+			self.assertFalse(frappe.db.exists("Supplier", {"supplier_name": name}))
+		finally:
+			settings.enforce_trn_validation = previous
+			settings.save()
+			for leftover in frappe.get_all("Supplier", filters={"supplier_name": name}, pluck="name"):
+				frappe.delete_doc("Supplier", leftover, force=True)
+
+
+class TestMappedTaxes(FrappeTestCase):
+	def test_skip_false_when_template_already_set(self):
+		from taxmate.utils.mapped_taxes import skip_default_taxes_after_mapping
+
+		doc = frappe._dict(
+			doctype="Purchase Invoice",
+			taxes=[],
+			taxes_and_charges="UAE VAT 5%",
+			items=[],
+		)
+		self.assertFalse(skip_default_taxes_after_mapping(doc))
+
+	def test_skip_false_for_standalone_invoice(self):
+		from taxmate.utils.mapped_taxes import skip_default_taxes_after_mapping
+
+		doc = frappe._dict(
+			doctype="Purchase Invoice",
+			taxes=[],
+			taxes_and_charges="",
+			items=[{"item_code": "X"}],
+		)
+		self.assertFalse(skip_default_taxes_after_mapping(doc))
+
+
 class TestApiSearch(FrappeTestCase):
 	def test_awesome_search_returns_wave1_pages(self):
 		from taxmate.api.search import awesome

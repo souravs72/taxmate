@@ -298,6 +298,19 @@ export function partyTypeFor(side: TxnSide): "Customer" | "Supplier" {
   return side === "buying" ? "Supplier" : "Customer";
 }
 
+/** Closed item Link, same as ERPNext `frappe.form.link_formatters.Item`. */
+export function itemDisplayLabel(code: string, name?: string): string {
+  if (!code) return "";
+  const label = (name || "").trim();
+  if (!label || label === code) return code;
+  return `${code}: ${label}`;
+}
+
+/** Copy mapped taxes_and_charges, including none (Desk load_after_mapping). */
+export function mappedTaxTemplate(mapped: Record<string, unknown>): string {
+  return mapped.taxes_and_charges ? String(mapped.taxes_and_charges) : "";
+}
+
 /** Merge get_item_details response into a line. */
 export function stampItemDetails(line: TxnLine, m: Record<string, unknown>): TxnLine {
   return {

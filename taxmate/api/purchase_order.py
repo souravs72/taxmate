@@ -84,7 +84,11 @@ def make_purchase_invoice(source_name: str) -> dict[str, Any]:
 		make_purchase_invoice as erp_make_purchase_invoice,
 	)
 
-	return _as_data(erp_make_purchase_invoice(name, target_doc=None))
+	from taxmate.utils.mapped_taxes import keep_source_tax
+
+	mapped = erp_make_purchase_invoice(name, target_doc=None)
+	keep_source_tax(doc, mapped)
+	return _as_data(mapped)
 
 
 # Desk passes these four values to erpnext.buying.doctype.purchase_order.purchase_order.update_status.

@@ -12,7 +12,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { linePayload, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { itemDisplayLabel, linePayload, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { ExchangeRateField, LineTrack, PartyFields } from "../../components/txnFields";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, PageHead, SumRow } from "../../components/ui";
@@ -305,6 +305,7 @@ export default function SupplierQuotationForm() {
                     <LinkField
                       doctype={DT.item}
                       value={l.item_code}
+                      displayValue={itemDisplayLabel(l.item_code, l.item_name)}
                       onChange={(v) => void pickItem(i, v)}
                       placeholder={t("sq.itemPh")}
                     />

@@ -32,6 +32,7 @@ export default function LinkField({
   placeholder,
   disabled,
   filters,
+  displayValue,
 }: {
   doctype: string;
   value: string;
@@ -39,6 +40,8 @@ export default function LinkField({
   placeholder?: string;
   disabled?: boolean;
   filters?: unknown;
+  /** Closed-field label. The stored value is still ``value``. */
+  displayValue?: string;
 }) {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
@@ -92,7 +95,7 @@ export default function LinkField({
         ref={inputRef}
         className="ctl"
         disabled={disabled}
-        value={open ? q : value}
+        value={open ? q : (displayValue || value)}
         placeholder={placeholder ?? t("search.placeholder")}
         aria-label={placeholder ?? t("search.placeholder")}
         aria-expanded={showMenu}

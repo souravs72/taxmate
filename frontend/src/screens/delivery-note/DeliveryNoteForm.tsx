@@ -11,7 +11,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales, canWrite } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { applyLineRate, linePayload, mappedItem, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, useItemQtyCheck, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { applyLineRate, itemDisplayLabel, linePayload, mappedItem, mappedTaxTemplate, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, useItemQtyCheck, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { ExchangeRateField, LineDiscountInput, LineTrack, OrderDiscountFields, PartyFields, TxnTotals } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
@@ -137,7 +137,7 @@ export default function DeliveryNoteForm() {
     if (mapped.posting_date) setPostingDate(String(mapped.posting_date));
     if (mapped.set_warehouse) setWarehouse(String(mapped.set_warehouse));
     if (mapped.vat_emirate) setEmirate(String(mapped.vat_emirate));
-    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    setTaxTemplate(mappedTaxTemplate(mapped));
     const items = (mapped.items as Line[] | undefined) ?? [];
     setLines(items.map((l) => mappedItem(l, String(mapped.set_warehouse || ""))));
   }
@@ -367,7 +367,7 @@ export default function DeliveryNoteForm() {
                 key: "item", label: t("dn.item"), slot: "title", td: { minWidth: 220 },
                 render: (l, i) => (
                   <>
-                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LinkField doctype={DT.item} value={l.item_code} displayValue={itemDisplayLabel(l.item_code, l.item_name)} onChange={(v) => void pickItem(i, v)} />
                     <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                     {stock.hints[i] ? (
                       <div style={{ fontSize: 11, color: "var(--warn, #b45309)", marginTop: 4 }}>
