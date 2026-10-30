@@ -12,7 +12,7 @@ import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
 import { INV_PILL_CLASS, invoiceUiStatus } from "../../lib/status";
-import { applyLineRate, linePayload, mappedItem, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, useCreditBalance, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { applyLineRate, itemDisplayLabel, linePayload, mappedItem, mappedTaxTemplate, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, useCreditBalance, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { CreditLimitNotice, LineDiscountInput, LineTrack, OrderDiscountFields, PartyFields, PaymentScheduleTable, TxnTotals } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
@@ -323,7 +323,7 @@ export default function InvoiceForm() {
     if (mapped.posting_date) setPostingDate(String(mapped.posting_date));
     if (mapped.due_date) setDueDate(String(mapped.due_date));
     if (mapped.vat_emirate) setEmirate(String(mapped.vat_emirate));
-    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    setTaxTemplate(mappedTaxTemplate(mapped));
     if (mapped.payment_terms_template) setPaymentTerms(String(mapped.payment_terms_template));
     if (mapped.po_no) setPoNo(String(mapped.po_no));
     if (mapped.update_stock != null) setUpdateStock(mapped.update_stock ? 1 : 0);
@@ -546,8 +546,8 @@ export default function InvoiceForm() {
                   key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 220 },
                   render: (l, i) => (
                     <>
-                      {locked ? (l.item_name || l.item_code) : (
-                        <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                      {locked ? itemDisplayLabel(l.item_code, l.item_name) : (
+                        <LinkField doctype={DT.item} value={l.item_code} displayValue={itemDisplayLabel(l.item_code, l.item_name)} onChange={(v) => void pickItem(i, v)} />
                       )}
                       <LineTrack
                         line={l}

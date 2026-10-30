@@ -10,7 +10,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales, canWrite } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { linePayload, mappedItem, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { itemDisplayLabel, linePayload, mappedItem, mappedTaxTemplate, stampItemDetails, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { ExchangeRateField, LineTrack, PartyFields } from "../../components/txnFields";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, SumRow } from "../../components/ui";
@@ -112,7 +112,7 @@ export default function PurchaseReceiptForm() {
     if (mapped.supplier) setSupplier(String(mapped.supplier));
     if (mapped.posting_date) setPostingDate(String(mapped.posting_date));
     if (mapped.set_warehouse) setWarehouse(String(mapped.set_warehouse));
-    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    setTaxTemplate(mappedTaxTemplate(mapped));
     const items = (mapped.items as Line[] | undefined) ?? [];
     setLines(items.map((l) => mappedItem(l, String(mapped.set_warehouse || ""))));
   }
@@ -311,7 +311,7 @@ export default function PurchaseReceiptForm() {
                 key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 220 },
                 render: (l, i) => (
                   <>
-                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LinkField doctype={DT.item} value={l.item_code} displayValue={itemDisplayLabel(l.item_code, l.item_name)} onChange={(v) => void pickItem(i, v)} />
                     <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                   </>
                 ),

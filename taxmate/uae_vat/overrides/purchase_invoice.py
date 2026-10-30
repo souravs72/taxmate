@@ -54,6 +54,15 @@ def _bind_reverse_charge_region() -> None:
 class PurchaseInvoiceReverseCharge:
 	"""Install the reverse-charge region binding before ERPNext builds the ledger."""
 
+	def set_taxes(self):
+		# Desk Create → Purchase Invoice sets load_after_mapping, so the form
+		# does not apply_default_taxes. Skip only that company-default stamp.
+		from taxmate.utils.mapped_taxes import skip_default_taxes_after_mapping
+
+		if skip_default_taxes_after_mapping(self):
+			return
+		return super().set_taxes()
+
 	def get_gl_entries(self, inventory_account_map=None):
 		_bind_reverse_charge_region()
 		return super().get_gl_entries(inventory_account_map)

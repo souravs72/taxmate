@@ -58,8 +58,11 @@ def make_sales_invoice(source_name: str) -> dict[str, Any]:
 	from erpnext.stock.doctype.delivery_note.delivery_note import (
 		make_sales_invoice as erp_make_sales_invoice,
 	)
+	from taxmate.utils.mapped_taxes import keep_source_tax
 
-	return _as_data(erp_make_sales_invoice(name, target_doc=None, args=None))
+	mapped = erp_make_sales_invoice(name, target_doc=None, args=None)
+	keep_source_tax(doc, mapped)
+	return _as_data(mapped)
 
 
 @frappe.whitelist(methods=["POST"])

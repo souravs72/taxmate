@@ -10,7 +10,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { applyLineRate, linePayload, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { applyLineRate, itemDisplayLabel, linePayload, mappedTaxTemplate, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { ExchangeRateField, LineDiscountInput, LineTrack, OrderDiscountFields, PartyFields, PaymentScheduleTable, TxnTotals } from "../../components/txnFields";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, PageHead } from "../../components/ui";
@@ -125,7 +125,7 @@ export default function PurchaseOrderForm() {
     const lineDate = items.find((l) => l.schedule_date)?.schedule_date;
     if (mapped.schedule_date) setRequiredBy(String(mapped.schedule_date).slice(0, 10));
     else if (lineDate) setRequiredBy(String(lineDate).slice(0, 10));
-    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    setTaxTemplate(mappedTaxTemplate(mapped));
     if (mapped.set_warehouse) setWarehouse(String(mapped.set_warehouse));
     setLines(items.map((l) => ({
       item_code: String(l.item_code || ""),
@@ -364,7 +364,7 @@ export default function PurchaseOrderForm() {
                 key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 220 },
                 render: (l, i) => (
                   <>
-                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LinkField doctype={DT.item} value={l.item_code} displayValue={itemDisplayLabel(l.item_code, l.item_name)} onChange={(v) => void pickItem(i, v)} />
                     <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                   </>
                 ),

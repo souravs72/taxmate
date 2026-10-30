@@ -174,7 +174,7 @@ class TestTxnHelpers(FrappeTestCase):
 			self.assertEqual(party.get("selling_price_list"), selling)
 
 	def test_party_details_stamps_default_taxes_when_no_tax_rule(self):
-		"""Desk apply_default_taxes: company default / UAE VAT 5% when Tax Rule empty."""
+		"""Desk apply_default_taxes: company default (is_default=1) when Tax Rule empty."""
 		company = frappe.defaults.get_user_default("Company") or frappe.db.get_value("Company", {}, "name")
 		customer = frappe.db.get_value("Customer", {"disabled": 0}, "name")
 		if not company or not customer:
@@ -182,10 +182,8 @@ class TestTxnHelpers(FrappeTestCase):
 
 		master = "Sales Taxes and Charges Template"
 		default_tax = frappe.db.get_value(master, {"is_default": 1, "company": company}, "name")
-		uae_5 = frappe.db.get_value(master, {"company": company, "title": "UAE VAT 5%"}, "name")
-		fallback = default_tax or uae_5
-		if not fallback:
-			self.skipTest("Need a default or UAE VAT 5% sales tax template")
+		if not default_tax:
+			self.skipTest("Need a default sales tax template")
 
 		from taxmate.api.accounts import get_party_details
 
@@ -194,7 +192,7 @@ class TestTxnHelpers(FrappeTestCase):
 		)
 		self.assertTrue(party.get("taxes_and_charges"), "party must resolve a tax template")
 		if not frappe.db.exists("Tax Rule", {"company": company}):
-			self.assertEqual(party.get("taxes_and_charges"), fallback)
+			self.assertEqual(party.get("taxes_and_charges"), default_tax)
 			self.assertTrue(party.get("taxes"))
 
 	def test_explicit_tax_rows_are_not_replaced(self):

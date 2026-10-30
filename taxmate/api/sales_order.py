@@ -202,8 +202,11 @@ def make_sales_invoice(source_name: str):
 	from erpnext.selling.doctype.sales_order.sales_order import (
 		make_sales_invoice as erp_make_sales_invoice,
 	)
+	from taxmate.utils.mapped_taxes import keep_source_tax
 
-	return _as_data(erp_make_sales_invoice(name, target_doc=None, ignore_permissions=False))
+	mapped = erp_make_sales_invoice(name, target_doc=None, ignore_permissions=False)
+	keep_source_tax(doc, mapped)
+	return _as_data(mapped)
 
 
 @frappe.whitelist(methods=["POST"])

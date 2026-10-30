@@ -10,7 +10,7 @@ import { DT, METHOD } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { linePayload, stampItemDetails, useCreditBalance, useItemQtyCheck, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { itemDisplayLabel, linePayload, mappedTaxTemplate, stampItemDetails, useCreditBalance, useItemQtyCheck, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { CreditLimitNotice, ExchangeRateField, LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
@@ -167,7 +167,7 @@ export default function SalesOrderCreate() {
     // unsaved SO via open_mapped_doc; we prefill so validate_delivery_date passes.
     setDeliveryDate(mapped.delivery_date ? String(mapped.delivery_date).slice(0, 10) : plus(21));
     if (mapped.vat_emirate) setEmirate(String(mapped.vat_emirate));
-    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    setTaxTemplate(mappedTaxTemplate(mapped));
     if (mapped.po_no) setPoNo(String(mapped.po_no));
     if (mapped.payment_terms_template) setPaymentTerms(String(mapped.payment_terms_template));
     if (mapped.conversion_rate != null && mapped.conversion_rate !== "") {
@@ -429,7 +429,7 @@ export default function SalesOrderCreate() {
                 key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 220 },
                 render: (l, i) => (
                   <>
-                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LinkField doctype={DT.item} value={l.item_code} displayValue={itemDisplayLabel(l.item_code, l.item_name)} onChange={(v) => void pickItem(i, v)} />
                     <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                     {stock.hints[i] ? (
                       <div style={{ fontSize: 11, color: "var(--warn, #b45309)", marginTop: 4 }}>

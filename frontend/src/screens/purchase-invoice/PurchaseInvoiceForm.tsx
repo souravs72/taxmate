@@ -10,7 +10,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales } from "../../lib/roles";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { applyLineRate, linePayload, mappedItem, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { applyLineRate, itemDisplayLabel, linePayload, mappedItem, mappedTaxTemplate, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
 import { LineDiscountInput, LineTrack, OrderDiscountFields, PartyFields, PaymentScheduleTable, TxnTotals } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
@@ -183,7 +183,7 @@ export default function PurchaseInvoiceForm() {
     if (mapped.posting_date) setPostingDate(String(mapped.posting_date));
     if (mapped.due_date) setDueDate(String(mapped.due_date));
     if (mapped.vat_emirate) setEmirate(String(mapped.vat_emirate));
-    if (mapped.taxes_and_charges) setTaxTemplate(String(mapped.taxes_and_charges));
+    setTaxTemplate(mappedTaxTemplate(mapped));
     if (mapped.bill_no) setBillNo(String(mapped.bill_no));
     if (mapped.bill_date) setBillDate(String(mapped.bill_date));
     if (mapped.update_stock != null) setUpdateStock(!!mapped.update_stock);
@@ -231,7 +231,7 @@ export default function PurchaseInvoiceForm() {
   const schedule = usePaymentSchedule(paymentTerms || undefined, postingDate, scheduleGrand, scheduleGrand * (conversionRate || 1));
   const doc = existing.data;
   const canSubmit = canSubmitSales(session.roles);
-  const ready = !!supplier && !!postingDate && !!emirate && !!taxTemplate && lines.length > 0 && lines.every((l) => l.item_code)
+  const ready = !!supplier && !!postingDate && !!emirate && lines.length > 0 && lines.every((l) => l.item_code)
     && (!currency || currency === companyCurrency || conversionRate > 0);
   const displayCurrency = currency || doc?.currency || party.currency || companyDefaults.currency || session.currency || undefined;
   const showNet = preview?.net_total ?? doc?.net_total ?? net;
@@ -410,7 +410,7 @@ export default function PurchaseInvoiceForm() {
                 {UAE_EMIRATES.map((e) => <option key={e} value={e}>{e}</option>)}
               </select>
             </Field>
-            <Field label={t("f.taxTemplate")} required>
+            <Field label={t("f.taxTemplate")}>
               <select className="ctl" value={taxTemplate} onChange={(e) => setTaxTemplate(e.target.value)}>
                 <option value="" />
                 {(templates.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
@@ -467,7 +467,7 @@ export default function PurchaseInvoiceForm() {
                 key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 180 },
                 render: (l, i) => (
                   <>
-                    <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                    <LinkField doctype={DT.item} value={l.item_code} displayValue={itemDisplayLabel(l.item_code, l.item_name)} onChange={(v) => void pickItem(i, v)} />
                     <LineTrack line={l} onChange={(patch) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, ...patch } : x))} />
                   </>
                 ),
