@@ -558,6 +558,7 @@ _ERP_FILLED: frozenset[str] = _SYSTEM_GAPS | frozenset(
 		"net_total",
 		"grand_total",
 		"total",
+		"posting_date",
 		"posting_time",
 		"charge_type",
 		"account_head",
@@ -606,6 +607,25 @@ CURRENCIES: tuple[str, ...] = (
 )
 
 
+def _proposal_fields(proposals: list[dict[str, Any]] | None) -> set[str]:
+	fields: set[str] = set()
+	for p in proposals or []:
+		if not isinstance(p, dict):
+			continue
+		link = str(p.get("link_field") or "").strip()
+		if link:
+			fields.add(link)
+		dt = str(p.get("doctype") or "").strip().lower()
+		if dt in ("supplier", "customer"):
+			fields.add(dt)
+		elif dt == "item":
+			fields.add("item_code")
+		elif dt == "uom":
+			fields.add("uom")
+			fields.add("stock_uom")
+	return fields
+
+
 def _open_fields(doctype: str | None) -> frozenset[str]:
 	"""Fields the clerk can type, plus an item code that becomes a create card."""
 	fields = set(_WRITABLE)
@@ -615,11 +635,15 @@ def _open_fields(doctype: str | None) -> frozenset[str]:
 	return frozenset(fields)
 
 
-def gaps_from_validation(validation: dict[str, Any], doctype: str | None = None) -> list[str]:
+def gaps_from_validation(
+	validation: dict[str, Any],
+	doctype: str | None = None,
+	proposals: list[dict[str, Any]] | None = None,
+) -> list[str]:
 	"""Plain labels for what the clerk still has to fix. System defaults stay off the list."""
 	keys: list[str] = []
 	seen: set[str] = set()
-	open_fields = _open_fields(doctype)
+	open_fields = _open_fields(doctype) | _proposal_fields(proposals)
 
 	def add(key: str) -> None:
 		if key not in seen:
@@ -675,9 +699,13 @@ def writes_from_extract(
 	return rows
 
 
-def _unexplained(validation: dict[str, Any], doctype: str | None = None) -> bool:
+def _unexplained(
+	validation: dict[str, Any],
+	doctype: str | None = None,
+	proposals: list[dict[str, Any]] | None = None,
+) -> bool:
 	"""True when a schema error is neither a labeled gap nor a field the clerk can type."""
-	open_fields = _open_fields(doctype)
+	open_fields = _open_fields(doctype) | _proposal_fields(proposals)
 	for row in validation.get("errors") or []:
 		field = ""
 		message = ""
@@ -729,8 +757,10 @@ def apply_writes(
 		if text:
 			out[field] = text.strip().upper()[:3] if field == "currency" else text[:140]
 	tax = str(out.get("taxes_and_charges") or "").strip()
-	if tax and re.fullmatch(r"[\d,.]+", tax):
-		out.pop("taxes_and_charges", None)
+	if tax:
+		import frappe
+		if not frappe.db.exists("Purchase Taxes and Charges Template", tax) and not frappe.db.exists("Sales Taxes and Charges Template", tax):
+			out.pop("taxes_and_charges", None)
 	cost = str(out.get("cost_center") or default_cost_center or "").strip()
 	if cost:
 		out["cost_center"] = cost
@@ -825,7 +855,16 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 			"detail_key": "idp.readHint",
 			"can_save": False,
 		}
-	release_currency_company(extracted)
+	import frappe
+
+	data = extracted.get("extracted_data") or {}
+	raw_hdr = data.get("header") if isinstance(data, dict) else {}
+	company = raw_hdr.get("company") if isinstance(raw_hdr, dict) else None
+	if not company or not frappe.db.exists("Company", company):
+		from taxmate.utils.company import get_default_company
+
+		company = get_default_company()
+	release_currency_company(extracted, valid_company=company)
 	release_address_links(extracted)
 	scope_extract_to_company(extracted)
 	data = extracted.get("extracted_data") or {}
@@ -850,10 +889,10 @@ def review_from_extract(extracted: dict[str, Any], *, route: str | None) -> dict
 	raw_header = data.get("header") or {}
 	# Gaps and typed fields stay available when the only missing Links are creatable.
 	doctype = str(data.get("doctype") or "")
-	gaps = gaps_from_validation(validation, doctype) if not blocked else []
+	gaps = gaps_from_validation(validation, doctype, proposals=proposals) if not blocked else []
 	writes = writes_from_extract(raw_header, validation, doctype=doctype) if not blocked else []
 	has_blockers = bool(blocked)
-	can_save = not has_blockers and bool(header) and not gaps and not _unexplained(validation, doctype)
+	can_save = not has_blockers and bool(header) and not gaps and not _unexplained(validation, doctype, proposals=proposals)
 	error_key = None
 	detail = None
 	if has_blockers:

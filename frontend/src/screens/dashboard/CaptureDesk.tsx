@@ -71,6 +71,9 @@ type Proposal = {
 type Review = {
   ok?: boolean;
   step?: string;
+  duplicate?: boolean;
+  duplicate_warning?: string | null;
+  existing_document?: string | null;
   error_key?: string | null;
   detail_key?: string | null;
   detail?: string | null;
@@ -377,6 +380,16 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
         setReview({
           ...result,
           detail: distinctDetail(result),
+          can_save: false,
+        });
+        setWrites([]);
+        setProposals([]);
+        setStageIdx(stages.length - 1);
+        return;
+      }
+      if (result.duplicate && result.route) {
+        setReview({
+          ...result,
           can_save: false,
         });
         setWrites([]);
@@ -750,7 +763,10 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
                 setWrites((rows) => rows.map((row) => (row.field === field ? { ...row, value } : row)))
               }
               onProposal={setProposals}
-              onOpen={nav}
+              onOpen={(route) => {
+                onClose();
+                nav(route);
+              }}
             />
           ) : null}
         </div>
@@ -781,6 +797,18 @@ function CapturePanel({ onClose }: { onClose: () => void }) {
             ) : null}
             {blockHint && !canSave && !review.detail ? (
               <p className="idp-foot-hint">{t(blockHint)}</p>
+            ) : null}
+            {review.route && (review.duplicate || review.error_key === "idp.duplicateInvoice") ? (
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  onClose();
+                  nav(review.route as string);
+                }}
+              >
+                {t("idp.openDoc")}{review.existing_document || review.name ? `: ${review.existing_document || review.name}` : ""}
+              </button>
             ) : null}
             <div className="idp-jobs">
               <button
@@ -867,15 +895,31 @@ function ReviewBlock({
         ) : null}
       </div>
 
+      {review.duplicate_warning ? (
+        <section className="idp-callout idp-callout--warn" role="alert" aria-label={review.duplicate_warning}>
+          <p className="idp-callout-title">{review.duplicate_warning}</p>
+          {review.route ? (
+            <button
+              type="button"
+              className="btn ghost sm"
+              style={{ marginTop: "0.5rem" }}
+              onClick={() => onOpen(review.route as string)}
+            >
+              {t("idp.openDoc")}{review.existing_document || review.name ? `: ${review.existing_document || review.name}` : ""}
+            </button>
+          ) : null}
+        </section>
+      ) : null}
+
       {review.error_key && !review.ok && !hasContent ? (
         <p className="idp-err idp-err--block" role="alert">
           {formatScanError(review)}
         </p>
       ) : null}
 
-      {review.route && review.error_key && review.name ? (
+      {review.route && (review.duplicate || (review.error_key && review.name)) ? (
         <button type="button" className="btn ghost sm" onClick={() => onOpen(review.route as string)}>
-          {review.name}
+          {t("idp.openDoc")}: {review.name || review.existing_document}
         </button>
       ) : null}
 
