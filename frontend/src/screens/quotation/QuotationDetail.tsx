@@ -30,6 +30,7 @@ type Doc = {
   valid_till?: string; status?: string; total?: number; grand_total?: number; net_total?: number;
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
   total_taxes_and_charges?: number; vat_emirate?: string; docstatus?: number; items?: Line[];
+  rounding_adjustment?: number; rounded_total?: number;
 };
 
 function quotPill(status?: string): string {
@@ -168,6 +169,8 @@ export default function QuotationDetail() {
             net={data.net_total}
             vat={data.total_taxes_and_charges}
             grand={data.grand_total}
+            roundingAdjustment={data.rounding_adjustment}
+            roundedTotal={data.rounded_total}
             netLabel={t("sod.net")}
             vatLabel={t("sod.vat")}
             grandLabel={t("sod.grand")}

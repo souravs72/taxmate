@@ -33,6 +33,7 @@ type Doc = {
   valid_till?: string; status?: string; total?: number; grand_total?: number; net_total?: number;
   total_taxes_and_charges?: number; currency?: string; docstatus?: number; items?: Line[];
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
+  rounding_adjustment?: number; rounded_total?: number;
 };
 
 function sqPill(status?: string): string {
@@ -211,6 +212,8 @@ export default function SupplierQuotationDetail() {
           net={data.net_total}
           vat={data.total_taxes_and_charges}
           grand={data.grand_total}
+          roundingAdjustment={data.rounding_adjustment}
+          roundedTotal={data.rounded_total}
           netLabel={t("sod.net")}
           vatLabel={t("sq.taxes")}
           grandLabel={t("sq.total")}

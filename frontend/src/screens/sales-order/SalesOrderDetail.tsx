@@ -366,6 +366,8 @@ export default function SalesOrderDetail() {
               net={net}
               vat={vat}
               grand={grand}
+              roundingAdjustment={data.rounding_adjustment}
+              roundedTotal={data.rounded_total}
               netLabel={t("sod.net")}
               vatLabel={t("sod.vat")}
               grandLabel={t("sod.grand")}

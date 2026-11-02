@@ -28,6 +28,7 @@ type Doc = {
   name: string; customer?: string; customer_name?: string; posting_date?: string;
   company?: string; status?: string; docstatus?: number; currency?: string;
   total?: number; grand_total?: number; net_total?: number; total_taxes_and_charges?: number;
+  rounding_adjustment?: number; rounded_total?: number;
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
   per_billed?: number; per_returned?: number; per_installed?: number; is_return?: number; set_warehouse?: string; items?: Line[];
 };
@@ -230,7 +231,7 @@ export default function DeliveryNoteDetail() {
             <ReadRow k={t("dn.status")} v={data.status} />
             <ReadRow k={t("nav.warehouses")} v={data.set_warehouse || "—"} />
             <TxnTotals
-            currency={cur}
+              currency={cur}
               itemsTotal={data.total}
               productDiscount={productDiscountTotal(data.items ?? [])}
               orderDiscount={data.discount_amount}
@@ -239,6 +240,8 @@ export default function DeliveryNoteDetail() {
               net={data.net_total}
               vat={data.total_taxes_and_charges}
               grand={data.grand_total}
+              roundingAdjustment={data.rounding_adjustment}
+              roundedTotal={data.rounded_total}
               netLabel={t("dn.net")}
               vatLabel={t("dn.tax")}
               grandLabel={t("dn.grand")}

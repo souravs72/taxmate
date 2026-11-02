@@ -31,6 +31,7 @@ type Doc = {
   company?: string; status?: string; currency?: string; docstatus?: number;
   total?: number; grand_total?: number; net_total?: number; total_taxes_and_charges?: number;
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
+  rounding_adjustment?: number; rounded_total?: number;
   per_billed?: number; is_return?: number; set_warehouse?: string; items?: Line[];
 };
 
@@ -212,7 +213,7 @@ export default function PurchaseReceiptDetail() {
             <ReadRow k={t("inv.col.date")} v={date(data.posting_date)} />
             <ReadRow k={t("nav.warehouses")} v={data.set_warehouse || "—"} />
             <TxnTotals
-            currency={cur}
+              currency={cur}
               itemsTotal={data.total}
               productDiscount={productDiscountTotal(data.items ?? [])}
               orderDiscount={data.discount_amount}
@@ -221,6 +222,8 @@ export default function PurchaseReceiptDetail() {
               net={data.net_total}
               vat={data.total_taxes_and_charges}
               grand={data.grand_total}
+              roundingAdjustment={data.rounding_adjustment}
+              roundedTotal={data.rounded_total}
               netLabel={t("sod.net")}
               vatLabel={t("sod.vat")}
               grandLabel={t("sod.grand")}

@@ -32,6 +32,7 @@ type Doc = {
   schedule_date?: string; company?: string; status?: string; currency?: string;
   total?: number; grand_total?: number; net_total?: number; total_taxes_and_charges?: number;
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
+  rounding_adjustment?: number; rounded_total?: number;
   docstatus?: number; per_received?: number; per_billed?: number;
   is_subcontracted?: number; is_old_subcontracting_flow?: number;
   items?: Line[];
@@ -290,6 +291,8 @@ export default function PurchaseOrderDetail() {
               net={data.net_total}
               vat={data.total_taxes_and_charges}
               grand={data.grand_total}
+              roundingAdjustment={data.rounding_adjustment}
+              roundedTotal={data.rounded_total}
               netLabel={t("sod.net")}
               vatLabel={t("sod.vat")}
               grandLabel={t("sod.grand")}
