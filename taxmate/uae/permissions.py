@@ -50,7 +50,26 @@ def has_permission(doc=None, ptype=None, user=None, debug=False):
 	companies = _user_companies(user)
 	if companies is None:
 		return True
-	return cstr(company) in _companies_for_query(user, companies)
+	if cstr(company) in _companies_for_query(user, companies):
+		return True
+
+	# If reading/selecting a Customer/Supplier that has transactions in the user's company:
+	doctype = getattr(doc, "doctype", None)
+	if doctype in ("Customer", "Supplier") and ptype in ("read", "select", None):
+		party_name = getattr(doc, "name", None)
+		if party_name:
+			voucher_dt = "Sales Invoice" if doctype == "Customer" else "Purchase Invoice"
+			party_fld = "customer" if doctype == "Customer" else "supplier"
+			if frappe.db.exists(voucher_dt, {party_fld: party_name, "company": ["in", companies]}):
+				return True
+			sec_dt = "Delivery Note" if doctype == "Customer" else "Purchase Receipt"
+			if frappe.db.exists(sec_dt, {party_fld: party_name, "company": ["in", companies]}):
+				return True
+			order_dt = "Sales Order" if doctype == "Customer" else "Purchase Order"
+			if frappe.db.exists(order_dt, {party_fld: party_name, "company": ["in", companies]}):
+				return True
+
+	return False
 
 
 def _user_companies(user: str) -> list[str] | None:

@@ -191,10 +191,25 @@
       <td>{% if is_ar %}ضريبة القيمة المضافة{% else %}VAT / ضريبة القيمة المضافة{% endif %}</td>
       <td class="num">{{ uae_money(doc.total_taxes_and_charges, doc.currency) }}</td>
     </tr>
-    <tr class="grand">
+    {% if doc.rounding_adjustment and not doc.disable_rounded_total %}
+    <tr>
       <td>{% if is_ar %}الإجمالي شامل الضريبة{% else %}Grand Total / الإجمالي شامل الضريبة{% endif %}</td>
       <td class="num">{{ uae_money(doc.grand_total, doc.currency) }}</td>
     </tr>
+    <tr>
+      <td>{% if is_ar %}التقريب{% else %}Round Off / التقريب{% endif %}</td>
+      <td class="num">{{ uae_money(doc.rounding_adjustment, doc.currency) }}</td>
+    </tr>
+    <tr class="grand">
+      <td>{% if is_ar %}الإجمالي المقرّب{% else %}Rounded Total / الإجمالي المقرّب{% endif %}</td>
+      <td class="num">{{ uae_money(doc.rounded_total or (doc.grand_total + doc.rounding_adjustment), doc.currency) }}</td>
+    </tr>
+    {% else %}
+    <tr class="grand">
+      <td>{% if is_ar %}الإجمالي شامل الضريبة{% else %}Grand Total / الإجمالي شامل الضريبة{% endif %}</td>
+      <td class="num">{{ uae_money(doc.rounded_total if (doc.rounded_total and not doc.disable_rounded_total) else doc.grand_total, doc.currency) }}</td>
+    </tr>
+    {% endif %}
   </table>
 
   {% if doc.uae_credit_note_reason %}

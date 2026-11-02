@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
-import { METHOD } from "../../lib/frappe";
+import { DT, METHOD } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
 import { date, money, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { BarRow, Card, Donut, Empty, ErrorBox, Field, Legend, Loading, PageHead, StatTile } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type ReportRow = Record<string, unknown>;
 
@@ -42,7 +43,7 @@ export default function Payables() {
     range2: 60,
     range3: 90,
     range4: 120,
-    ...(partyFilter ? { party: partyFilter } : {}),
+    ...(partyFilter.trim() ? { party: [partyFilter.trim()] } : {}),
     ...(fromDate ? { from_date: fromDate } : {}),
   }), [session.company, today, partyFilter, fromDate, toDate]);
 
@@ -93,9 +94,14 @@ export default function Payables() {
       <Card>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
           <Field label={t("ap.filterParty")}>
-            <input className="ctl" value={partyFilter}
-              onChange={(e) => setPartyFilter(e.target.value)}
-              placeholder={t("ap.filterParty")} />
+            <div style={{ minWidth: 220 }}>
+              <LinkField
+                doctype={DT.supplier}
+                value={partyFilter}
+                onChange={setPartyFilter}
+                placeholder={t("ap.filterParty")}
+              />
+            </div>
           </Field>
           <Field label={t("ap.filterFrom")}>
             <input className="ctl" type="date" value={fromDate}

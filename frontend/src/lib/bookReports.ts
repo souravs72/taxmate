@@ -221,7 +221,7 @@ export function bookFilters(report: string, ctx: FilterCtx): Record<string, unkn
   }
   if (report === "Customer Ledger Summary" || report === "Supplier Ledger Summary") {
     const out: Record<string, unknown> = { company, from_date: fromDate, to_date: toDate };
-    if (ctx.party) out.party = ctx.party;
+    if (ctx.party) out.party = Array.isArray(ctx.party) ? ctx.party : [ctx.party];
     return out;
   }
   if (report === "Accounts Receivable" || report === "Accounts Payable") {
@@ -231,7 +231,7 @@ export function bookFilters(report: string, ctx: FilterCtx): Record<string, unkn
       ageing_based_on: "Due Date",
       range1: 30, range2: 60, range3: 90, range4: 120,
     };
-    if (ctx.party) out.party = ctx.party;
+    if (ctx.party) out.party = Array.isArray(ctx.party) ? ctx.party : [ctx.party];
     return out;
   }
   if (report === "UAE Corporate Tax Worksheet") {

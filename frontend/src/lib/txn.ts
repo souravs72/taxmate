@@ -80,6 +80,7 @@ export function useItemQtyCheck(company?: string | null) {
 }
 
 export type TxnLine = {
+  name?: string;
   item_code: string;
   item_name?: string;
   description?: string;
@@ -407,6 +408,7 @@ function freeLinesFrom(rule: Record<string, unknown>): TxnLine[] {
 /** Fields the server expects on a sales or purchase item row. */
 export function linePayload(l: TxnLine): Record<string, unknown> {
   return {
+    ...(l.name ? { name: l.name } : {}),
     item_code: l.item_code,
     item_name: l.item_name,
     qty: l.qty,
@@ -466,6 +468,7 @@ export function mappedItem(row: object, warehouse?: string): TxnLine {
     if (_ROW_META.has(key) || value == null || value === "") continue;
     line[key] = value;
   }
+  if (src.name) line.name = String(src.name);
   line.item_code = String(src.item_code || "");
   line.qty = Number(src.qty) || 1;
   line.rate = Number(src.rate) || 0;

@@ -2,11 +2,12 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
-import { METHOD } from "../../lib/frappe";
+import { DT, METHOD } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
 import { date, money, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import LinkField from "../../components/LinkField";
 
 type ReportRow = Record<string, unknown>;
 
@@ -25,7 +26,7 @@ export default function Receivables() {
     range2: 60,
     range3: 90,
     range4: 120,
-    ...(partyFilter ? { party: partyFilter } : {}),
+    ...(partyFilter.trim() ? { party: [partyFilter.trim()] } : {}),
     ...(fromDate ? { from_date: fromDate } : {}),
   }), [session.company, today, partyFilter, fromDate, toDate]);
 
@@ -45,9 +46,14 @@ export default function Receivables() {
       <Card>
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end" }}>
           <Field label={t("ar.filterParty")}>
-            <input className="ctl" value={partyFilter}
-              onChange={(e) => setPartyFilter(e.target.value)}
-              placeholder={t("ar.filterParty")} />
+            <div style={{ minWidth: 220 }}>
+              <LinkField
+                doctype={DT.customer}
+                value={partyFilter}
+                onChange={setPartyFilter}
+                placeholder={t("ar.filterParty")}
+              />
+            </div>
           </Field>
           <Field label={t("ar.filterFrom")}>
             <input className="ctl" type="date" value={fromDate}

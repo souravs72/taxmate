@@ -37,6 +37,7 @@ export default function DeliveryNoteForm() {
   const existing = useDoc<{
     name: string;
     customer?: string;
+    company?: string;
     posting_date?: string;
     set_warehouse?: string;
     taxes_and_charges?: string;
@@ -48,6 +49,8 @@ export default function DeliveryNoteForm() {
     docstatus?: number;
     items?: Line[];
   }>(DT.deliveryNote, isNew ? undefined : name, isNew ? null : name);
+
+  const activeCompany = existing.data?.company || company;
 
   const [customer, setCustomer] = useState("");
   const [postingDate, setPostingDate] = useState(today);
@@ -213,7 +216,11 @@ export default function DeliveryNoteForm() {
       conversion_rate: conversionRate,
       shipping_address_name: party.shipping_address_name,
       contact_person: party.contact_person,
-      items: lines.map((l) => ({ ...linePayload(l), warehouse: l.warehouse || warehouse || undefined })),
+      items: lines.map((l) => ({
+        ...linePayload(l),
+        ...(l.name ? { name: l.name } : {}),
+        warehouse: l.warehouse || warehouse || undefined,
+      })),
     };
   }
 
@@ -313,8 +320,12 @@ export default function DeliveryNoteForm() {
                 value={postingDate} onChange={(e) => setPostingDate(e.target.value)} />
             </Field>
             <Field label={t("dn.warehouse")} required>
-              <LinkField doctype={DT.warehouse} value={warehouse} onChange={setWarehouse}
-                filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+              <LinkField doctype={DT.warehouse} value={warehouse}
+                onChange={(wh) => {
+                  setWarehouse(wh);
+                  setLines((ls) => ls.map((l) => ({ ...l, warehouse: wh })));
+                }}
+                filters={activeCompany ? [["company", "=", activeCompany], ["is_group", "=", 0]] : undefined} />
             </Field>
             <Field label={t("f.emirate")} required>
               <select className="ctl" value={emirate} onChange={(e) => setEmirate(e.target.value)}>
@@ -387,7 +398,7 @@ export default function DeliveryNoteForm() {
                       setLines((ls) => ls.map((x, j) => (j === i ? { ...x, warehouse: v } : x)));
                       if (l.item_code) void stock.checkLine(i, l.item_code, l.qty, v || warehouse);
                     }}
-                    filters={company ? [["company", "=", company], ["is_group", "=", 0]] : undefined} />
+                    filters={activeCompany ? [["company", "=", activeCompany], ["is_group", "=", 0]] : undefined} />
                 ),
               },
               {

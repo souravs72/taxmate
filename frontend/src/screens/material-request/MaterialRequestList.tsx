@@ -54,7 +54,7 @@ export default function MaterialRequestList() {
   const list = useDocList<Row>(DT.materialRequest, {
     fields: ["name", "material_request_type", "transaction_date", "status", "docstatus"],
     filters: filters as never,
-    orderBy: { field: "transaction_date", order: "desc" },
+    orderBy: { field: "creation", order: "desc" },
     limit: PAGE,
     limit_start: start,
   }, paused ? null : undefined);
