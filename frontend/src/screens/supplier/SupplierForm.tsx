@@ -10,9 +10,11 @@ import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
+import { useSession } from "../../lib/session";
 
 type SupplierDoc = {
   name: string;
+  custom_company?: string;
   supplier_name?: string;
   supplier_type?: string;
   supplier_group?: string;
@@ -45,6 +47,7 @@ type AddressDoc = {
 };
 
 export default function SupplierForm() {
+  const session = useSession();
   const { name = "new" } = useParams();
   const nav = useNavigate();
   const location = useLocation();
@@ -72,6 +75,7 @@ export default function SupplierForm() {
   const rfq = useOpenMapped("/request-for-quotations");
 
   const [form, setForm] = useState({
+    custom_company: session.company || "",
     supplier_name: "",
     supplier_type: "Company",
     supplier_group: "",
@@ -103,6 +107,7 @@ export default function SupplierForm() {
     if (!d) return;
     setForm((f) => ({
       ...f,
+      custom_company: d.custom_company || session.company || "",
       supplier_name: d.supplier_name || "",
       supplier_type: d.supplier_type || "Company",
       supplier_group: d.supplier_group || "",
@@ -153,6 +158,7 @@ export default function SupplierForm() {
       }
       const group = form.supplier_group || settings.data?.supplier_group;
       const payload = {
+        custom_company: form.custom_company || session.company || undefined,
         supplier_name: form.supplier_name,
         territory: form.territory || undefined,
         country: form.country || "United Arab Emirates",

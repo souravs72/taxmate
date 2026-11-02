@@ -39,11 +39,43 @@ def after_install():
 	ensure_spa_roles()
 	ensure_company_owner_field()
 	ensure_taxmate_desktop_icon()
+	_backfill_party_custom_companies()
 
 
 def after_migrate():
 	"""Re-apply UAE fixtures after migrate so SaaS sites stay current."""
 	after_install()
+
+
+def _backfill_party_custom_companies():
+	"""Ensure Customer and Supplier rows are stamped with their owning company."""
+	for doctype, voucher_dt, party_fld in (
+		("Customer", "Sales Invoice", "customer"),
+		("Supplier", "Purchase Invoice", "supplier"),
+	):
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		meta = frappe.get_meta(doctype)
+		if not meta.has_field("custom_company"):
+			continue
+		untagged = frappe.get_all(
+			doctype,
+			filters={"custom_company": ["in", ["", None]]},
+			fields=["name", "owner"],
+			limit=1000,
+		)
+		for row in untagged:
+			name = row["name"]
+			owner = row.get("owner")
+			company = frappe.db.get_value(voucher_dt, {party_fld: name}, "company")
+			if not company and owner:
+				company = frappe.db.get_value(
+					"User Permission",
+					{"user": owner, "allow": "Company"},
+					"for_value",
+				)
+			if company and frappe.db.exists("Company", company):
+				frappe.db.set_value(doctype, name, "custom_company", company, update_modified=False)
 
 
 def _setup_vat_uae():

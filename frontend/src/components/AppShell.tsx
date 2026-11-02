@@ -4,7 +4,7 @@ import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { useLang } from "../lib/i18n";
 import { useSession } from "../lib/session";
-import { canOpenPosNext, canViewTeam } from "../lib/roles";
+import { canOpenPosNext, canViewCompany, canViewTeam } from "../lib/roles";
 import { buildNav, groupedNav, groupForPath, FeatureFlags, type NavLinkItem } from "../lib/nav";
 import { t } from "../i18n/strings";
 import GlobalSearch from "./GlobalSearch";
@@ -111,13 +111,18 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (n.key === "nav.posNext") return canOpenPosNext(session);
     return true;
   });
-  const nav = canViewTeam(session)
-    ? baseNav
-    : baseNav.filter((n) => {
-      if (n.type === "section") return n.key !== "nav.company";
-      if (n.type === "external") return true;
-      return n.to !== "/team";
-    });
+  const showTeam = canViewTeam(session);
+  const showCompany = canViewCompany(session);
+  const nav = baseNav.filter((n) => {
+    if (n.type === "section") {
+      if (n.key === "nav.company") return showCompany || showTeam;
+      return true;
+    }
+    if (n.type === "external") return true;
+    if (n.to === "/company") return showCompany;
+    if (n.to === "/team") return showTeam;
+    return true;
+  });
   const { top, groups } = useMemo(() => groupedNav(nav), [nav]);
   const activeGroup = groupForPath(groups, location.pathname);
   const [fly, setFly] = useState<FlyPlace | null>(null);

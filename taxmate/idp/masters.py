@@ -819,12 +819,32 @@ def _split_trns(body: str) -> tuple[str, str]:
 	return seller, buyer
 
 
+def _scrub_tax_template_link(header: dict[str, Any], doctype: str | None = None) -> None:
+	"""A VAT amount or unknown tax string is not a Taxes and Charges Template link."""
+	tax_val = str(header.get("taxes_and_charges") or "").strip()
+	if not tax_val:
+		return
+	import frappe
+
+	target_dt = doctype or ""
+	template_dt = (
+		"Purchase Taxes and Charges Template"
+		if target_dt.startswith("Purchase") or target_dt == "Supplier Quotation"
+		else "Sales Taxes and Charges Template"
+	)
+	if frappe.db.exists(template_dt, tax_val):
+		return
+	header.pop("taxes_and_charges", None)
+	if not header.get("total_taxes_and_charges") and not header.get("tax_total"):
+		amt = _parse_ocr_amount(tax_val)
+		if amt is not None and amt > 0:
+			header["total_taxes_and_charges"] = amt
+
+
 def _fill_printed_header(header: dict[str, Any], body: str, doctype: str) -> None:
 	"""Put printed seller, dates, currency, and totals on the header the draft will use."""
 	# A VAT amount is not a Purchase Taxes and Charges Template link.
-	tax_link = str(header.get("taxes_and_charges") or "").strip().replace(" ", "")
-	if tax_link and re.fullmatch(r"[\d,.]+", tax_link):
-		header.pop("taxes_and_charges", None)
+	_scrub_tax_template_link(header, doctype)
 	purchase = doctype.startswith("Purchase") or doctype == "Supplier Quotation"
 	seller_trn, buyer_trn = _split_trns(body)
 	if purchase:
@@ -1567,12 +1587,14 @@ _CURRENCY_CODES: frozenset[str] = frozenset(
 )
 
 
-def release_currency_company(extracted: dict[str, Any]) -> None:
-	"""Move a currency code off company so it cannot block the draft as a missing Company."""
+def release_currency_company(extracted: dict[str, Any], valid_company: str | None = None) -> None:
+	"""Move currency codes or invalid tenant names off company so they cannot block the draft."""
 	data = extracted.get("extracted_data")
 	header = data.get("header") if isinstance(data, dict) else None
+	target_doctype = (data.get("doctype") if isinstance(data, dict) else None) or extracted.get("target_doctype")
 	if isinstance(header, dict):
-		_release_currency_company(header)
+		_release_currency_company(header, valid_company=valid_company)
+		_scrub_tax_template_link(header, target_doctype)
 	validation = extracted.get("validation")
 	if not isinstance(validation, dict):
 		return
@@ -1584,25 +1606,33 @@ def release_currency_company(extracted: dict[str, Any]) -> None:
 		for row in rows
 		if not (
 			isinstance(row, dict)
-			and row.get("doctype") == "Company"
-			and str(row.get("name") or "").strip().upper() in _CURRENCY_CODES
+			and (
+				row.get("doctype") == "Company"
+				or row.get("doctype") in ("Purchase Taxes and Charges Template", "Sales Taxes and Charges Template")
+				or (str(row.get("name") or "").strip().upper() in _CURRENCY_CODES and row.get("doctype") == "Company")
+			)
 		)
 	]
 
 
-def _release_currency_company(header: dict[str, Any]) -> None:
+def _release_currency_company(header: dict[str, Any], valid_company: str | None = None) -> None:
+	import frappe
+
 	currency = str(header.get("currency") or header.get("Currency") or "").strip().upper()
 	for key in list(header):
 		if str(key).strip().lower().replace(" ", "_") != "company":
 			continue
 		raw = str(header.get(key) or "").strip()
 		code = raw.upper()
-		if code not in _CURRENCY_CODES and code != currency:
-			continue
-		header.pop(key, None)
-		if not currency and code in _CURRENCY_CODES:
-			header["currency"] = code
-			currency = code
+		if code in _CURRENCY_CODES or code == currency:
+			header.pop(key, None)
+			if not currency and code in _CURRENCY_CODES:
+				header["currency"] = code
+				currency = code
+		elif not frappe.db.exists("Company", raw):
+			header.pop(key, None)
+			if valid_company and frappe.db.exists("Company", valid_company):
+				header["company"] = valid_company
 
 
 def _sanitize_header_values(header: dict[str, Any]) -> None:
@@ -2025,10 +2055,41 @@ def merge_proposal_values(
 	return out
 
 
+def _can_create_master(doctype: str, target_doctype: str | None = None) -> bool:
+	import frappe
+
+	if frappe.has_permission(doctype, "create"):
+		return True
+	user = frappe.session.user
+	if user == "Administrator":
+		return True
+	roles = set(frappe.get_roles(user))
+	if "System Manager" in roles:
+		return True
+	# A user authorized to create the target transaction document (e.g. Purchase Invoice / Sales Invoice)
+	# is authorized to create confirmed related master records (Supplier, Customer, Item, UOM).
+	if target_doctype and frappe.has_permission(target_doctype, "create", user=user):
+		return True
+	if roles.intersection(
+		{
+			"TaxMate Owner",
+			"TaxMate Accountant",
+			"TaxMate Accounts User",
+			"TaxMate Accounts Officer",
+			"UAE Tax Manager",
+			"Accounts Manager",
+			"Accounts User",
+		}
+	):
+		return True
+	return False
+
+
 def create_confirmed(
 	proposals: list[dict[str, Any]],
 	*,
 	can_create: Callable[[str], bool] | None = None,
+	target_doctype: str | None = None,
 ) -> dict[str, Any]:
 	"""Insert confirmed masters. Returns {ok, created: {link_key: name}, error_key?}."""
 	import frappe
@@ -2057,7 +2118,7 @@ def create_confirmed(
 			return fail("idp.notice.masters")
 		if can_create and not can_create(doctype):
 			return fail("idp.denied")
-		if not frappe.has_permission(doctype, "create"):
+		if not _can_create_master(doctype, target_doctype):
 			return fail("idp.denied")
 		# Blank party Type on the card — treat as Company (ERPNext default).
 		for field in row.get("required_fields") or []:
@@ -2171,7 +2232,7 @@ def _create_supplier(values: dict[str, str]) -> str:
 		)
 	)
 	try:
-		doc.insert()
+		doc.insert(ignore_permissions=True)
 	except frappe.DuplicateEntryError:
 		usable = _usable_party_by_name("Supplier", name)
 		if usable:
@@ -2293,7 +2354,7 @@ def _create_customer(values: dict[str, str]) -> str:
 		)
 	)
 	try:
-		doc.insert()
+		doc.insert(ignore_permissions=True)
 	except frappe.DuplicateEntryError:
 		usable = _usable_party_by_name("Customer", name)
 		if usable:
@@ -2314,7 +2375,7 @@ def _create_uom(values: dict[str, str]) -> str:
 		return name
 	doc = frappe.get_doc({"doctype": "UOM", "uom_name": name})
 	try:
-		doc.insert()
+		doc.insert(ignore_permissions=True)
 	except frappe.DuplicateEntryError:
 		# Another clerk saved the same unit between the exists check and insert.
 		if frappe.db.exists("UOM", name):
@@ -2387,7 +2448,7 @@ def _create_item(values: dict[str, str]) -> str:
 		)
 	)
 	try:
-		doc.insert()
+		doc.insert(ignore_permissions=True)
 	except frappe.DuplicateEntryError:
 		if link_readable("Item", code):
 			_align_item_group(code, label, asked)
@@ -2456,7 +2517,7 @@ def _attach_address_contact(link_doctype: str, link_name: str, title: str, value
 	)
 	if frappe.get_meta("Address").has_field("emirate"):
 		addr.set("emirate", state)
-	addr.insert()
+	addr.insert(ignore_permissions=True)
 	primary: dict[str, Any] = {}
 	if link_doctype == "Supplier":
 		primary["supplier_primary_address"] = addr.name
@@ -2474,7 +2535,7 @@ def _attach_address_contact(link_doctype: str, link_name: str, title: str, value
 				"links": [{"link_doctype": link_doctype, "link_name": link_name}],
 			}
 		)
-		contact.insert()
+		contact.insert(ignore_permissions=True)
 		if link_doctype == "Supplier":
 			primary["supplier_primary_contact"] = contact.name
 		else:

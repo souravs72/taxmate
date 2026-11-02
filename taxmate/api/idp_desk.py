@@ -588,6 +588,51 @@ def _preview_delete(planned: dict) -> dict:
 	}
 
 
+def find_duplicate_invoice(
+	doctype: str,
+	header: dict[str, Any],
+	company: str | None = None,
+) -> str | None:
+	"""Return the name of an existing active draft/submitted document matching this invoice."""
+	import frappe
+
+	if not isinstance(header, dict) or not doctype:
+		return None
+	from taxmate.utils.company import get_default_company
+
+	company = company or header.get("company") or get_default_company()
+	if doctype == "Purchase Invoice":
+		bill_no = str(header.get("bill_no") or "").strip()
+		supplier = str(header.get("supplier") or "").strip()
+		if not bill_no or not supplier:
+			return None
+		filters: dict[str, Any] = {
+			"bill_no": bill_no,
+			"supplier": supplier,
+			"docstatus": ["<", 2],
+		}
+		if company:
+			filters["company"] = company
+		match = frappe.db.get_value("Purchase Invoice", filters, "name")
+		return str(match) if match else None
+
+	if doctype == "Sales Invoice":
+		po_no = str(header.get("po_no") or "").strip()
+		customer = str(header.get("customer") or "").strip()
+		if po_no and customer:
+			filters = {
+				"po_no": po_no,
+				"customer": customer,
+				"docstatus": ["<", 2],
+			}
+			if company:
+				filters["company"] = company
+			match = frappe.db.get_value("Sales Invoice", filters, "name")
+			return str(match) if match else None
+
+	return None
+
+
 def _review_from_scan(scan_id: str, planned: dict, file_url: str | None = None) -> dict:
 	from taxmate.idp import scan as scan_mod
 
@@ -600,6 +645,15 @@ def _review_from_scan(scan_id: str, planned: dict, file_url: str | None = None) 
 	review["used_llm"] = bool(extracted.get("used_llm"))
 	review["status"] = doc.status
 	_prefill_writes(review)
+
+	target_dt = str(planned.get("doctype") or doc.target_doctype or "").strip()
+	raw_hdr = (extracted.get("extracted_data") or {}).get("header") or {}
+	dup = find_duplicate_invoice(target_dt, raw_hdr, doc.company)
+	if dup:
+		review["existing_document"] = dup
+		review["is_duplicate"] = True
+		bill = raw_hdr.get("bill_no") or raw_hdr.get("po_no") or ""
+		review["duplicate_warning"] = f"A {target_dt} ({dup}) with reference '{bill}' already exists."
 	return review
 
 
@@ -612,6 +666,23 @@ def _run_create(planned: dict, file_url: str) -> dict:
 		return {"ok": False, "error_key": "idp.file"}
 	digest = scan_mod.file_sha256(file_url)
 	if digest:
+		saved = scan_mod.find_saved_scan(
+			file_sha256_hex=digest, target_doctype=planned["doctype"]
+		)
+		if saved:
+			doc_name = str(saved.get("created_document") or "").strip()
+			doctype = str(saved.get("created_doctype") or planned["doctype"]).strip()
+			route = planned.get("route")
+			return {
+				"ok": True,
+				"step": "saved",
+				"doctype": doctype,
+				"name": doc_name,
+				"route": f"{route}/{doc_name}" if route and doc_name else None,
+				"scan_id": saved.get("name"),
+				"duplicate": True,
+				"detail": f"This document was already scanned and saved as {doc_name}.",
+			}
 		existing = scan_mod.find_ready_scan(
 			file_sha256_hex=digest, target_doctype=planned["doctype"]
 		)
@@ -736,7 +807,8 @@ def _save_create(
 		return {"ok": False, "error_key": (extracted or {}).get("error_key") or "idp.readFailed"}
 	# Prefer Scan file_url when client omitted it.
 	file_url = file_url or scan_doc.file_url or ""
-	release_currency_company(extracted)
+	valid_company = getattr(scan_doc, "company", None) or get_default_company()
+	release_currency_company(extracted, valid_company=valid_company)
 	release_address_links(extracted)
 	# Another company's supplier/item must not ride into this draft.
 	scope_extract_to_company(extracted)
@@ -761,8 +833,9 @@ def _save_create(
 		pending = client_props
 	else:
 		pending = merge_proposal_values(build_proposals(extracted), client_props)
+	target_doctype = planned.get("doctype")
 	if pending:
-		made = create_confirmed(pending)
+		made = create_confirmed(pending, target_doctype=target_doctype)
 		if not made.get("ok"):
 			return {
 				"ok": False,
@@ -776,7 +849,7 @@ def _save_create(
 	scope_extract_to_company(extracted)
 	extras = party_proposals_for_company(extracted)
 	if extras:
-		made = create_confirmed(extras)
+		made = create_confirmed(extras, target_doctype=target_doctype)
 		if not made.get("ok"):
 			return {
 				"ok": False,
@@ -819,6 +892,23 @@ def _save_create(
 	instructions["header"] = header
 	instructions["items"] = items
 	instructions["submit"] = False
+
+	# Prevent duplicate draft/submitted invoices for the same bill number and supplier
+	company = header.get("company") or scan_doc.company or get_default_company()
+	duplicate = find_duplicate_invoice(doctype, header, company=company)
+	if duplicate:
+		route = planned.get("route")
+		ref_label = header.get("bill_no") or header.get("po_no") or ""
+		party_label = header.get("supplier") or header.get("customer") or ""
+		return {
+			"ok": False,
+			"error_key": "idp.duplicateInvoice",
+			"detail": f"{doctype} {duplicate} already exists for {party_label} with reference '{ref_label}'.",
+			"route": f"{route}/{duplicate}" if route else None,
+			"name": duplicate,
+			"duplicate": True,
+		}
+
 	from idp.tools.create_document import create_document
 
 	ctx = _context(doctype, extracted.get("ocr_language") or "en")

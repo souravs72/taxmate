@@ -598,13 +598,39 @@ def _ensure_books_perms() -> None:
 		for role, spa in _DESK_SPA.items():
 			if not frappe.db.exists("Role", role):
 				continue
-			if _role_can_read(doctype, role):
-				continue
 			flags = _perm_values(spa, doctype)
 			existing = frappe.db.get_value(
 				"Custom DocPerm",
 				{"parent": doctype, "role": role, "permlevel": 0, "if_owner": 0},
 			)
+			if _role_can_read(doctype, role):
+				# For core masters, desk accounting roles still need create/write permissions so scanning and book actions work.
+				if doctype in ("Supplier", "Customer", "Item", "UOM") and (flags.get("create") or flags.get("write")):
+					if existing:
+						cur = frappe.db.get_value("Custom DocPerm", existing, ["create", "write"], as_dict=True) or {}
+						if not cur.get("create") or not cur.get("write"):
+							frappe.db.set_value(
+								"Custom DocPerm",
+								existing,
+								{"create": flags.get("create", 1), "write": flags.get("write", 1)},
+								update_modified=False,
+							)
+							changed = True
+					else:
+						frappe.get_doc(
+							{
+								"doctype": "Custom DocPerm",
+								"parent": doctype,
+								"parenttype": "DocType",
+								"parentfield": "permissions",
+								"role": role,
+								"permlevel": 0,
+								"if_owner": 0,
+								**flags,
+							}
+						).insert(ignore_permissions=True)
+						changed = True
+				continue
 			try:
 				if existing:
 					frappe.db.set_value("Custom DocPerm", existing, flags, update_modified=False)

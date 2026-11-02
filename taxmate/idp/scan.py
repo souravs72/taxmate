@@ -70,6 +70,39 @@ def find_ready_scan(
 	return str(name) if name else None
 
 
+def find_saved_scan(
+	*,
+	file_sha256_hex: str,
+	target_doctype: str,
+) -> dict[str, Any] | None:
+	"""Return an existing scan for the same file bytes that was already saved to a document."""
+	try:
+		filters: dict[str, Any] = {
+			"file_sha256": file_sha256_hex,
+			"target_doctype": target_doctype,
+			"status": ["in", ["Created", "Saved"]],
+		}
+		company = get_default_company()
+		if company:
+			filters["company"] = company
+		rows = frappe.get_all(
+			SCAN_DOCTYPE,
+			filters=filters,
+			fields=["name", "created_doctype", "created_document", "company", "user"],
+			order_by="modified desc",
+			limit=5,
+		)
+		for row in rows:
+			created_doc = str(row.get("created_document") or "").strip()
+			created_dt = str(row.get("created_doctype") or target_doctype).strip()
+			if created_doc and frappe.db.exists(created_dt, created_doc):
+				return row
+	except Exception:
+		frappe.clear_last_message()
+		return None
+	return None
+
+
 def assert_scan_access(scan_id: str) -> Any:
 	"""Load Scan; enforce owner + company."""
 	if not scan_id or not frappe.db.exists(SCAN_DOCTYPE, scan_id):

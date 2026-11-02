@@ -192,7 +192,24 @@ export function canOpenDesk(session: { user?: string } | undefined): boolean {
   return session?.user === "Administrator";
 }
 
-export function canViewTeam(session: { spa_role?: string | null; spa_roles?: string[]; roles?: string[] } | undefined): boolean {
+export function canViewCompany(session: {
+  spa_role?: string | null;
+  spa_roles?: string[];
+  roles?: string[];
+  user?: string;
+  is_app_provider?: boolean;
+} | undefined): boolean {
+  return canManageCompany(session) || canEditCompanyAccounts(session);
+}
+
+export function canViewTeam(session: {
+  spa_role?: string | null;
+  spa_roles?: string[];
+  roles?: string[];
+  user?: string;
+  is_app_provider?: boolean;
+} | undefined): boolean {
+  if (isAppProvider(session)) return true;
   const spa = spaRoleOf(session);
   return spa === "owner" || spa === "accountant";
 }

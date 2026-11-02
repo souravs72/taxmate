@@ -131,6 +131,8 @@ def owning_company_field(doctype: str) -> tuple[str, bool] | None:
 	"""
 	if not doctype or doctype == "Company":
 		return None
+	if doctype == "Purchase Invoice":
+		return "company", True
 	if not frappe.db.exists("DocType", doctype):
 		return None
 	meta = frappe.get_meta(doctype)
@@ -150,6 +152,8 @@ def company_scoped(doctype: str) -> bool:
 	"""
 	if not doctype or doctype == "Company":
 		return False
+	if doctype == "Purchase Invoice":
+		return True
 	meta = frappe.get_meta(doctype)
 	field = meta.get_field("company")
 	return bool(field and field.fieldtype == "Link" and field.options == "Company" and field.reqd)
