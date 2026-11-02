@@ -388,7 +388,10 @@ def _stamp_party_address(details: dict, party_type: str, party: str) -> None:
 		# Shipping address
 		ship_addr = details.get("shipping_address_name")
 		if not ship_addr:
-			ship_addr = get_default_address("Customer", party, is_shipping_address=True)
+			try:
+				ship_addr = get_default_address("Customer", party, sort_key="is_shipping_address")
+			except Exception:
+				ship_addr = None
 			if not ship_addr:
 				ship_links = frappe.get_all(
 					"Address",
