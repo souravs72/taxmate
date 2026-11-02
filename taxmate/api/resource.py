@@ -121,14 +121,12 @@ def assert_company_filters(filters=None, or_filters=None) -> None:
 
 
 def scope_to_active_company(doctype: str, filters=None, or_filters=None):
-	"""Add ``company = <active company>`` to ``filters`` for single-company doctypes.
+	"""Add company filter to ``filters`` for company-scoped doctypes.
 
 	The header company switcher picks ONE company; every list and count follows
 	it without each screen having to remember a filter. A screen that passes its
 	own company filter (in ``filters`` or ``or_filters``) keeps it, still
-	permission-checked. Link search is NOT scoped here: forms whose company can
-	differ from the active one (Item defaults, Bank Account, POS Profile) pass
-	their own company filter to the picker.
+	permission-checked.
 	"""
 	assert_company_filters(filters, or_filters)
 	if not company_scoped(doctype):
@@ -139,15 +137,17 @@ def scope_to_active_company(doctype: str, filters=None, or_filters=None):
 	company = get_default_company()
 	if not company:
 		return filters
+	owning = owning_company_field(doctype)
+	company_field = owning[0] if owning else "company"
 	parsed = _parse(filters)
 	if not parsed:
-		return [["company", "=", company]]
+		return [[company_field, "=", company]]
 	if _pinned_companies(parsed):
 		return parsed
 	if isinstance(parsed, dict):
-		return {**parsed, "company": company}
+		return {**parsed, company_field: company}
 	if isinstance(parsed, list | tuple):
-		return [*parsed, ["company", "=", company]]
+		return [*parsed, [company_field, "=", company]]
 	return filters
 
 
@@ -517,6 +517,8 @@ def search_link(
 	require_login()
 	assert_allowed_doctype(doctype)
 	assert_company_filters(filters)
+	if doctype in ("Customer", "Supplier"):
+		filters = scope_to_active_company(doctype, filters)
 	from frappe.desk.search import search_link as desk_search_link
 
 	return desk_search_link(

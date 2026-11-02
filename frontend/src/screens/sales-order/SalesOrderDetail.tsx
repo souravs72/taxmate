@@ -358,6 +358,7 @@ export default function SalesOrderDetail() {
           <Card bodyClass="cbody">
             <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("sod.value")}</h2>
             <TxnTotals
+              currency={data.currency || session.currency || "AED"}
               itemsTotal={data.total}
               productDiscount={productDiscountTotal(data.items ?? [])}
               orderDiscount={data.discount_amount}
@@ -372,7 +373,7 @@ export default function SalesOrderDetail() {
               vatLabel={t("sod.vat")}
               grandLabel={t("sod.grand")}
             />
-            {advance > 0 && <SumRow k={t("sod.advance")} v={money(advance)} cls="rule" />}
+            {advance > 0 && <SumRow k={t("sod.advance")} v={money(advance)} cls="rule" currency={data.currency || session.currency || "AED"} />}
           </Card>
 
           <Card title={t("sod.linked")} bodyClass="cbody">
@@ -460,12 +461,12 @@ export default function SalesOrderDetail() {
                 },
                 {
                   key: "rate", label: t("sod.col.rate"), numeric: true,
-                  render: (l) => money(l.rate),
+                  render: (l) => <><span className="cur">{data.currency || session.currency || "AED"}</span> {money(l.rate)}</>,
                 },
                 {
                   key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
                   td: { fontWeight: 600 },
-                  render: (l) => money(l.amount),
+                  render: (l) => <><span className="cur">{data.currency || session.currency || "AED"}</span> {money(l.amount)}</>,
                 },
                 {
                   key: "delivered", label: t("so.bar.delivered"),

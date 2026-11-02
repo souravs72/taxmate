@@ -444,7 +444,15 @@ export default function InvoiceForm() {
           <Card num={1} title={t("inv.who")}>
             <div className="grid2">
               <Field label={t("f.customer")} required>
-                <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} disabled={locked} />
+                <LinkField
+                  doctype={DT.customer}
+                  value={customer}
+                  onChange={(val) => {
+                    setCustomer(val);
+                    setParty({});
+                  }}
+                  disabled={locked}
+                />
               </Field>
               <Field label={t("inv.date")} required>
                 <input className="ctl" type="date" value={postingDate} disabled={locked}

@@ -392,7 +392,14 @@ export default function SalesOrderCreate() {
         <Card num={1} title={t("soc.b1")}>
           <div className="grid2">
             <Field label={t("f.customer")} required>
-              <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} />
+              <LinkField
+                doctype={DT.customer}
+                value={customer}
+                onChange={(val) => {
+                  setCustomer(val);
+                  setParty({});
+                }}
+              />
             </Field>
             <Field label={t("f.currency")}>
               <span className="ctl readonly">{party.currency || session.currency || "—"}</span>

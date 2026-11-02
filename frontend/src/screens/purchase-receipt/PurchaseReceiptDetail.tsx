@@ -252,7 +252,7 @@ export default function PurchaseReceiptDetail() {
               },
               {
                 key: "amount", label: t("dn.amount"), slot: "primary", numeric: true, tdClass: "tot",
-                render: (row) => money(row.amount),
+                render: (row) => <><span className="cur">{cur}</span> {money(row.amount)}</>,
               },
             ] as LineField<Line>[]}
           />

@@ -426,22 +426,22 @@ export default function InvoiceDetail() {
                 },
                 {
                   key: "rate", label: t("sod.col.rate"), numeric: true,
-                  render: (l) => <>{money(l.rate)}</>,
+                  render: (l) => <><span className="cur">{cur}</span> {money(l.rate)}</>,
                 },
                 {
                   key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
                   td: { fontWeight: 600 },
-                  render: (l) => <>{money(l.amount)}</>,
+                  render: (l) => <><span className="cur">{cur}</span> {money(l.amount)}</>,
                 },
               ] as LineField<Line>[]}
               /* The net total the table carried in its own <tfoot>. */
               footer={
                 <tr>
                   <td colSpan={4} className="n">{t("sod.net")}</td>
-                  <td className="n">{money(data.net_total)}</td>
+                  <td className="n"><span className="cur">{cur}</span> {money(data.net_total)}</td>
                 </tr>
               }
-              footerCard={<><span>{t("sod.net")}</span><span>{money(data.net_total)}</span></>}
+              footerCard={<><span>{t("sod.net")}</span><span><span className="cur">{cur}</span> {money(data.net_total)}</span></>}
             />
           </Card>
       </FormLayout>

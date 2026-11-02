@@ -30,7 +30,7 @@ type Doc = {
   valid_till?: string; status?: string; total?: number; grand_total?: number; net_total?: number;
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
   total_taxes_and_charges?: number; vat_emirate?: string; docstatus?: number; items?: Line[];
-  rounding_adjustment?: number; rounded_total?: number;
+  rounding_adjustment?: number; rounded_total?: number; currency?: string;
 };
 
 function quotPill(status?: string): string {
@@ -161,6 +161,7 @@ export default function QuotationDetail() {
         <Card bodyClass="cbody">
           <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("quot.summary")}</h2>
           <TxnTotals
+            currency={data.currency || session.currency || "AED"}
             itemsTotal={data.total}
             productDiscount={productDiscountTotal(data.items ?? [])}
             orderDiscount={data.discount_amount}
@@ -206,12 +207,12 @@ export default function QuotationDetail() {
               },
               {
                 key: "rate", label: t("sod.col.rate"), numeric: true,
-                render: (l) => money(l.rate),
+                render: (l) => <><span className="cur">{data.currency || session.currency || "AED"}</span> {money(l.rate)}</>,
               },
               {
                 key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
                 td: { fontWeight: 600 },
-                render: (l) => money(l.amount),
+                render: (l) => <><span className="cur">{data.currency || session.currency || "AED"}</span> {money(l.amount)}</>,
               },
             ] as LineField<Line>[]}
           />

@@ -32,7 +32,7 @@ def get_permission_query_conditions(user=None, doctype=None):
 		return "1=0"
 	quoted = ", ".join(frappe.db.escape(name) for name in _companies_for_query(user, companies))
 	column = f"`tab{doctype}`.`{fieldname}`"
-	if required:
+	if required or doctype in ("Customer", "Supplier"):
 		return f"{column} in ({quoted})"
 	# Optional link: this company's rows, plus rows that were never tagged.
 	return f"({column} in ({quoted}) OR {column} IS NULL OR {column} = '')"
@@ -43,6 +43,8 @@ def has_permission(doc=None, ptype=None, user=None, debug=False):
 		return True
 	company = _document_company(doc)
 	if not company:
+		if getattr(doc, "doctype", None) in ("Customer", "Supplier"):
+			return False
 		return True
 	user = user or frappe.session.user
 	if not user or user == "Administrator" or "System Manager" in frappe.get_roles(user):

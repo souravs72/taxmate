@@ -379,7 +379,14 @@ export default function PurchaseInvoiceForm() {
         <Card num={1} title={t("pi.who")}>
           <div className="grid2">
             <Field label={t("nav.suppliers")} required>
-              <LinkField doctype={DT.supplier} value={supplier} onChange={setSupplier} />
+              <LinkField
+                doctype={DT.supplier}
+                value={supplier}
+                onChange={(val) => {
+                  setSupplier(val);
+                  setParty({});
+                }}
+              />
             </Field>
             <Field label={t("inv.date")} required>
               <input className="ctl" type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} />

@@ -144,15 +144,14 @@ def owning_company_field(doctype: str) -> tuple[str, bool] | None:
 
 
 def company_scoped(doctype: str) -> bool:
-	"""True when every row of ``doctype`` belongs to exactly one company.
+	"""True when every row of ``doctype`` belongs to a company.
 
-	Only a *mandatory* Link-to-Company field counts. Doctypes where company is
-	optional (Lead, some templates) keep rows with a blank company that are
-	shared across companies; filtering them on ``company =`` would hide those.
+	Includes standard transactional doctypes with a mandatory company field,
+	as well as party masters (Customer, Supplier) which are company-isolated in TaxMate.
 	"""
 	if not doctype or doctype == "Company":
 		return False
-	if doctype == "Purchase Invoice":
+	if doctype in ("Purchase Invoice", "Customer", "Supplier"):
 		return True
 	meta = frappe.get_meta(doctype)
 	field = meta.get_field("company")

@@ -12,6 +12,7 @@ import {
 } from "../lib/pageActions";
 import { t } from "../i18n/strings";
 import { useIsPhone } from "../lib/useMedia";
+import { useSession } from "../lib/session";
 
 import "../styles/form-mobile.css";
 
@@ -416,10 +417,12 @@ export function ReadRow({ k, v, sub, link }: {
 }
 
 export function SumRow({ k, v, cls, currency }: { k: string; v: React.ReactNode; cls?: string; currency?: string }) {
+  const session = useSession();
+  const cur = currency !== undefined ? currency : (session?.currency || "AED");
   return (
     <div className={`srow${cls ? ` ${cls}` : ""}`}>
       <span className="k">{k}</span>
-      <span className="v">{currency ? <span className="cur">{currency}</span> : null}{v}</span>
+      <span className="v">{cur ? <span className="cur">{cur}</span> : null}{v}</span>
     </div>
   );
 }

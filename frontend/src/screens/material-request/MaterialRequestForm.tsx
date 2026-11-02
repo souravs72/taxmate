@@ -24,17 +24,17 @@ const MR_TYPES = ["Purchase", "Material Transfer", "Material Issue", "Manufactur
 type MRType = (typeof MR_TYPES)[number];
 
 type Line = {
-  item_code: string; qty: number; warehouse: string; from_warehouse?: string; uom?: string; schedule_date?: string;
+  item_code: string; item_name?: string; qty: number; warehouse?: string; from_warehouse?: string; uom?: string; schedule_date?: string;
 };
 type Doc = {
   name: string; material_request_type?: string; transaction_date?: string; schedule_date?: string;
   docstatus?: number; set_warehouse?: string; from_warehouse?: string; customer?: string;
-  items?: { item_code?: string; qty?: number; warehouse?: string; from_warehouse?: string; uom?: string; schedule_date?: string; }[];
+  items?: { item_code?: string; item_name?: string; qty?: number; warehouse?: string; from_warehouse?: string; uom?: string; schedule_date?: string; }[];
 };
 
 const today = toIsoDate(new Date());
 const plus = (d: number) => { const dt = new Date(); dt.setDate(dt.getDate() + d); return toIsoDate(dt); };
-const blank = (scheduleDate = ""): Line => ({ item_code: "", qty: 1, warehouse: "", schedule_date: scheduleDate });
+const blank = (scheduleDate = ""): Line => ({ item_code: "", item_name: "", qty: 1, warehouse: "", schedule_date: scheduleDate });
 
 function mrTypeLabel(p: MRType): string {
   if (p === "Purchase") return t("mr.purpose.purchase");
@@ -79,6 +79,7 @@ export default function MaterialRequestForm() {
     setCustomer(d.customer || "");
     const ls = (d.items ?? []).map((it) => ({
       item_code: it.item_code || "",
+      item_name: it.item_name || "",
       qty: Number(it.qty) || 1,
       warehouse: it.warehouse || "",
       from_warehouse: it.from_warehouse || "",
@@ -117,6 +118,7 @@ export default function MaterialRequestForm() {
       const m = r?.message ?? {};
       setLine(idx, {
         item_code,
+        item_name: m.item_name ? String(m.item_name) : lines[idx]?.item_name,
         uom: m.uom ? String(m.uom) : lines[idx]?.uom,
       });
     } catch { /* itemCall.error */ }
@@ -224,9 +226,17 @@ export default function MaterialRequestForm() {
             onAdd={() => setLines((ls) => [...ls, blank(scheduleDate)])}
             fields={([
               {
-                key: "item", label: t("soc.pickItem"), slot: "title", td: { minWidth: 200 },
+                key: "item", label: t("f.itemCode"), slot: "title", td: { minWidth: 180 },
                 render: (l, i) => (
                   <LinkField doctype={DT.item} value={l.item_code} onChange={(v) => void pickItem(i, v)} />
+                ),
+              },
+              {
+                key: "itemName", label: t("f.itemName"), slot: "primary", td: { minWidth: 180 },
+                render: (l) => (
+                  <span className="iname" style={{ fontSize: 13, color: "var(--text)", fontWeight: 500 }}>
+                    {l.item_name || "—"}
+                  </span>
                 ),
               },
               {
@@ -239,13 +249,6 @@ export default function MaterialRequestForm() {
               {
                 key: "uom", label: t("mr.uom"),
                 render: (l) => <>{l.uom || "—"}</>,
-              },
-              {
-                key: "warehouse", label: t("mr.warehouse"), td: { minWidth: 180 },
-                render: (l, i) => (
-                  <LinkField doctype={DT.warehouse} filters={whFilters as never}
-                    value={l.warehouse} onChange={(v) => setLine(i, { warehouse: v })} />
-                ),
               },
               {
                 /* Per-line required-by date — the reason a line exists on a

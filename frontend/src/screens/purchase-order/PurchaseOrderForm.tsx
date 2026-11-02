@@ -330,7 +330,14 @@ export default function PurchaseOrderForm() {
         <Card num={1} title={t("pi.who")}>
           <div className="grid2">
             <Field label={t("nav.suppliers")} required>
-              <LinkField doctype={DT.supplier} value={supplier} onChange={setSupplier} />
+              <LinkField
+                doctype={DT.supplier}
+                value={supplier}
+                onChange={(val) => {
+                  setSupplier(val);
+                  setParty({});
+                }}
+              />
             </Field>
             <Field label={t("pi.supplierTrn")}>
               <input className="ctl readonly" readOnly value={party.tax_id || ""} />

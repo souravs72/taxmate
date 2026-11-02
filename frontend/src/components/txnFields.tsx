@@ -5,6 +5,7 @@ import { Field, SumRow } from "./ui";
 import { DT } from "../lib/frappe";
 import { money, parseNum } from "../lib/format";
 import { t } from "../i18n/strings";
+import { useSession } from "../lib/session";
 import {
   applyLineDiscountPct,
   type DiscountBasis,
@@ -336,6 +337,8 @@ export function TxnTotals({
   roundedTotal?: number;
   children?: ReactNode;
 }) {
+  const session = useSession();
+  const cur = currency !== undefined ? currency : (session?.currency || "AED");
   const product = Number(productDiscount) || 0;
   const order = Math.abs(Number(orderDiscount) || 0);
   const showProduct = product > 0.004;
@@ -358,17 +361,17 @@ export function TxnTotals({
     <>
       {showProduct && (
         <>
-          <SumRow k={t("txn.listTotal")} v={money(items + product)} currency={currency} />
-          <SumRow k={t("txn.productDiscounts")} v={`−${money(product)}`} currency={currency} cls="discount" />
+          <SumRow k={t("txn.listTotal")} v={money(items + product)} currency={cur} />
+          <SumRow k={t("txn.productDiscounts")} v={`−${money(product)}`} currency={cur} cls="discount" />
         </>
       )}
       {showOrder && (
         <>
-          <SumRow k={t("txn.itemsTotal")} v={money(items)} currency={currency} />
+          <SumRow k={t("txn.itemsTotal")} v={money(items)} currency={cur} />
           <SumRow
             k={orderDiscountLabel(orderDiscountPercent, discountOn)}
             v={`−${money(rowAmount)}`}
-            currency={currency}
+            currency={cur}
             cls="discount"
           />
           {billSaving > 0.004 && (
@@ -376,32 +379,32 @@ export function TxnTotals({
               <span className="k">
                 {t("txn.lessOnBill").replace(
                   "{amount}",
-                  `${currency ? `${currency} ` : ""}${money(billSaving)}`,
+                  `${cur ? `${cur} ` : ""}${money(billSaving)}`,
                 )}
               </span>
             </div>
           )}
         </>
       )}
-      <SumRow k={netLabel} v={money(net)} currency={currency} />
-      <SumRow k={vatLabel} v={money(vat)} currency={currency} />
+      <SumRow k={netLabel} v={money(net)} currency={cur} />
+      <SumRow k={vatLabel} v={money(vat)} currency={cur} />
       {roundingAdjustment && Math.abs(roundingAdjustment) > 0.0001 ? (
         <>
-          <SumRow k={grandLabel} v={money(grand)} currency={currency} cls="rule" />
+          <SumRow k={grandLabel} v={money(grand)} currency={cur} cls="rule" />
           <SumRow
             k={t("txn.roundOff")}
             v={roundingAdjustment > 0 ? `+${money(roundingAdjustment)}` : money(roundingAdjustment)}
-            currency={currency}
+            currency={cur}
           />
           <SumRow
             k={t("txn.roundedTotal")}
             v={money(roundedTotal ?? (Number(grand || 0) + roundingAdjustment))}
-            currency={currency}
+            currency={cur}
             cls="rule total"
           />
         </>
       ) : (
-        <SumRow k={grandLabel} v={money(grand)} currency={currency} cls="rule total" />
+        <SumRow k={grandLabel} v={money(grand)} currency={cur} cls="rule total" />
       )}
       {children}
     </>

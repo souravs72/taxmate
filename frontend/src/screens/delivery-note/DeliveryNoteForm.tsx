@@ -310,7 +310,14 @@ export default function DeliveryNoteForm() {
         <Card num={1} title={t("dn.header")}>
           <div className="grid2">
             <Field label={t("dn.customer")} required>
-              <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} />
+              <LinkField
+                doctype={DT.customer}
+                value={customer}
+                onChange={(val) => {
+                  setCustomer(val);
+                  setParty({});
+                }}
+              />
             </Field>
             <Field label={t("dn.customerTrn")}>
               <input className="ctl readonly" readOnly value={party.tax_id || ""} />

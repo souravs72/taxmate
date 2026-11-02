@@ -342,7 +342,7 @@ export default function PurchaseOrderDetail() {
               },
               {
                 key: "rate", label: t("sod.col.rate"), numeric: true,
-                render: (row) => money(row.rate),
+                render: (row) => <><span className="cur">{cur}</span> {money(row.rate)}</>,
               },
               {
                 key: "received", label: t("po.received"), numeric: true,
@@ -354,7 +354,7 @@ export default function PurchaseOrderDetail() {
               },
               {
                 key: "billed", label: t("po.billed"), numeric: true,
-                render: (row) => money(row.billed_amt),
+                render: (row) => <><span className="cur">{cur}</span> {money(row.billed_amt)}</>,
               },
               ...(showLineDiscount ? [{
                 key: "discount", label: t("txn.lineDiscount"), numeric: true,
@@ -362,7 +362,7 @@ export default function PurchaseOrderDetail() {
               }] : []),
               {
                 key: "amount", label: t("dn.amount"), slot: "primary", numeric: true, tdClass: "tot",
-                render: (row) => money(row.amount),
+                render: (row) => <><span className="cur">{cur}</span> {money(row.amount)}</>,
               },
             ] as LineField<Line>[]}
           />

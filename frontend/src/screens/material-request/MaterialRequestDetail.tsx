@@ -383,10 +383,12 @@ export default function MaterialRequestDetail() {
                 collapse={false}
                 fields={[
                   {
-                    key: "item", label: t("soc.pickItem"), slot: "title",
-                    render: (l) => (
-                      <><div className="icode">{l.item_code}</div><div className="iname">{l.item_name}</div></>
-                    ),
+                    key: "item", label: t("f.itemCode"), slot: "title",
+                    render: (l) => <div className="icode">{l.item_code}</div>,
+                  },
+                  {
+                    key: "itemName", label: t("f.itemName"), slot: "primary",
+                    render: (l) => <div className="iname" style={{ fontWeight: 500 }}>{l.item_name || "—"}</div>,
                   },
                   {
                     key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
@@ -397,16 +399,8 @@ export default function MaterialRequestDetail() {
                     render: (l) => <>{l.uom || "—"}</>,
                   },
                   {
-                    key: "warehouse", label: t("mr.targetWarehouse"),
-                    render: (l) => <>{l.warehouse || "—"}</>,
-                  },
-                  {
                     key: "requiredBy", label: t("mr.requiredBy"),
                     render: (l) => <>{date(l.schedule_date || data.schedule_date)}</>,
-                  },
-                  {
-                    key: "completedQty", label: t("mr.completedQty"), slot: "primary", numeric: true,
-                    render: (l) => <>{qty(l.ordered_qty)}</>,
                   },
                 ] as LineField<Line>[]}
               />

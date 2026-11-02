@@ -297,7 +297,14 @@ export default function QuotationForm() {
         <Card num={1} title={t("soc.b1")}>
           <div className="grid2">
             <Field label={t("quot.customer")} required>
-              <LinkField doctype={DT.customer} value={customer} onChange={setCustomer} />
+              <LinkField
+                doctype={DT.customer}
+                value={customer}
+                onChange={(val) => {
+                  setCustomer(val);
+                  setParty({});
+                }}
+              />
             </Field>
             <Field label={t("f.customerTrn")}>
               <input className="ctl readonly" readOnly value={party.tax_id || ""} />
