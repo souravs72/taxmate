@@ -102,8 +102,8 @@ export function PageHead({
     getFormActionVersion,
     getFormActionVersion,
   );
-  const hosted = actions ? null : (hostedVersion ? getFormActionNode() : null);
-  const bar = actions ?? hosted;
+  const hosted = hostedVersion ? getFormActionNode() : null;
+  const bar = actions && hosted ? <>{actions}{hosted}</> : (actions ?? hosted);
   const pinActions = phone && stickyActions && bar;
   // Desktop (and non-pinned phone): pack switcher + buttons on the right.
   // CSS orders the switcher just before the last .btn (Sale / Export).

@@ -119,8 +119,28 @@ export default function PurchaseOrderForm() {
 
   function applyMapped(mapped: Record<string, unknown>) {
     setSkipReprice(true);
-    if (mapped.supplier) setSupplier(String(mapped.supplier));
+    const sup = mapped.supplier ? String(mapped.supplier) : supplier;
+    if (sup) {
+      if (mapped.supplier) setSupplier(sup);
+      void txn.fetchParty(sup, mapped.transaction_date ? String(mapped.transaction_date) : orderDate).then((m) => {
+        if (m) {
+          setParty(m);
+          if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
+          if (m.payment_terms_template) setPaymentTerms(m.payment_terms_template);
+        }
+      });
+    }
+    if (mapped.supplier_address || mapped.contact_person || mapped.tax_id) {
+      setParty((p) => ({
+        ...p,
+        supplier_address: mapped.supplier_address ? String(mapped.supplier_address) : p.supplier_address,
+        contact_person: mapped.contact_person ? String(mapped.contact_person) : p.contact_person,
+        tax_id: mapped.tax_id ? String(mapped.tax_id) : p.tax_id,
+      }));
+    }
     if (mapped.transaction_date) setOrderDate(String(mapped.transaction_date));
+    if (mapped.additional_discount_percentage != null) setDiscountPct(Number(mapped.additional_discount_percentage) || 0);
+    if (mapped.apply_discount_on) setDiscountOn(readDiscountBasis(String(mapped.apply_discount_on), Number(mapped.additional_discount_percentage || 0) > 0));
     const items = (mapped.items as Record<string, unknown>[] | undefined) ?? [];
     const lineDate = items.find((l) => l.schedule_date)?.schedule_date;
     if (mapped.schedule_date) setRequiredBy(String(mapped.schedule_date).slice(0, 10));

@@ -10,11 +10,11 @@ import { DT, METHOD } from "../../lib/frappe";
 import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { money, parseNum, toIsoDate } from "../../lib/format";
-import { itemDisplayLabel, linePayload, mappedTaxTemplate, stampItemDetails, useCreditBalance, useItemQtyCheck, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type PartyDetails, type TxnLine } from "../../lib/txn";
-import { CreditLimitNotice, ExchangeRateField, LineTrack, PartyFields, PaymentScheduleTable } from "../../components/txnFields";
+import { applyLineRate, itemDisplayLabel, linePayload, mappedTaxTemplate, orderDiscountFields, productDiscountTotal, readDiscountBasis, stampItemDetails, useCreditBalance, useItemQtyCheck, usePaymentSchedule, useTotalsPreview, useTransactionRpc, type DiscountBasis, type PartyDetails, type TxnLine } from "../../lib/txn";
+import { CreditLimitNotice, ExchangeRateField, LineDiscountInput, LineTrack, OrderDiscountFields, PartyFields, PaymentScheduleTable, TxnTotals } from "../../components/txnFields";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, PageHead, SumRow } from "../../components/ui";
+import { Card, ErrorBox, Field, PageHead } from "../../components/ui";
 import { FormActions, FormLayout, ReadinessCard } from "../../components/form";
 import LinkField from "../../components/LinkField";
 import LineItems, { type LineField } from "../../components/LineItems";
@@ -37,6 +37,9 @@ type SoDoc = {
   vat_emirate?: string;
   conversion_rate?: number;
   docstatus?: number;
+  additional_discount_percentage?: number;
+  discount_amount?: number;
+  apply_discount_on?: string;
   items?: TxnLine[];
 };
 
@@ -57,6 +60,8 @@ export default function SalesOrderCreate() {
   const [lines, setLines] = useState<TxnLine[]>([]);
   const [conversionRate, setConversionRate] = useState(1);
   const [paymentTerms, setPaymentTerms] = useState("");
+  const [discountPct, setDiscountPct] = useState(0);
+  const [discountOn, setDiscountOn] = useState<DiscountBasis>("Net Total");
   const [skipReprice, setSkipReprice] = useState(false);
 
   const existing = useDoc<SoDoc>(DT.salesOrder, isEdit ? editName : undefined, isEdit ? editName : null);
@@ -75,6 +80,8 @@ export default function SalesOrderCreate() {
       setTaxTemplate(d.taxes_and_charges ?? "");
       setEmirate(d.vat_emirate ?? "");
       setConversionRate(Number(d.conversion_rate) || 1);
+      setDiscountPct(Number(d.additional_discount_percentage) || 0);
+      setDiscountOn(readDiscountBasis(d.apply_discount_on, Number(d.additional_discount_percentage) > 0));
       setLines(
         (d.items ?? []).map((l) => ({
           item_code: l.item_code ?? "",
@@ -82,6 +89,9 @@ export default function SalesOrderCreate() {
           uom: l.uom,
           qty: l.qty ?? 1,
           rate: l.rate ?? 0,
+          price_list_rate: l.price_list_rate,
+          discount_percentage: l.discount_percentage,
+          discount_amount: l.discount_amount,
         })),
       );
       setSkipReprice(true);
@@ -173,6 +183,12 @@ export default function SalesOrderCreate() {
     if (mapped.conversion_rate != null && mapped.conversion_rate !== "") {
       setConversionRate(Number(mapped.conversion_rate) || 1);
     }
+    if (mapped.additional_discount_percentage != null) {
+      setDiscountPct(Number(mapped.additional_discount_percentage) || 0);
+    }
+    if (mapped.apply_discount_on) {
+      setDiscountOn(readDiscountBasis(String(mapped.apply_discount_on), Number(mapped.additional_discount_percentage) > 0));
+    }
     setParty({
       customer_address: mapped.customer_address ? String(mapped.customer_address) : undefined,
       shipping_address_name: mapped.shipping_address_name ? String(mapped.shipping_address_name) : undefined,
@@ -189,6 +205,9 @@ export default function SalesOrderCreate() {
         item_name: l.item_name,
         qty: Number(l.qty) || 1,
         rate: Number(l.rate) || 0,
+        price_list_rate: l.price_list_rate != null ? Number(l.price_list_rate) : undefined,
+        discount_percentage: l.discount_percentage != null ? Number(l.discount_percentage) : undefined,
+        discount_amount: l.discount_amount != null ? Number(l.discount_amount) : undefined,
         uom: l.uom,
       })),
     );
@@ -221,13 +240,14 @@ export default function SalesOrderCreate() {
       conversion_rate: conversionRate,
       shipping_address_name: party.shipping_address_name,
       contact_person: party.contact_person,
+      ...orderDiscountFields(discountPct, discountOn),
       items: lines.filter((l) => l.item_code).map((l) => ({ ...linePayload(l), delivery_date: deliveryDate })),
     };
-  }, [customer, orderDate, deliveryDate, company, emirate, taxTemplate, party, session.currency, lines]);
+  }, [customer, orderDate, deliveryDate, company, emirate, taxTemplate, party, session.currency, lines, conversionRate, discountPct, discountOn]);
 
   const { preview, previewing } = useTotalsPreview(
     buildPreviewDoc,
-    [customer, orderDate, taxTemplate, emirate, lines],
+    [customer, orderDate, taxTemplate, emirate, lines, discountPct, discountOn, conversionRate],
     txn.previewTotals,
   );
 
@@ -265,6 +285,7 @@ export default function SalesOrderCreate() {
       conversion_rate: conversionRate,
       shipping_address_name: party.shipping_address_name,
       contact_person: party.contact_person,
+      ...orderDiscountFields(discountPct, discountOn),
       payment_schedule: schedule.length
         ? schedule.map((r) => ({
             payment_term: r.payment_term,
@@ -325,9 +346,20 @@ export default function SalesOrderCreate() {
               <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>
                 {t("soc.summary")}{previewing ? "…" : ""}
               </h2>
-              <SumRow k={t("sod.net")} v={money(showNet)} />
-              <SumRow k={t("sod.vat")} v={money(showVat)} />
-              <SumRow k={t("sod.grand")} v={money(showGrand)} cls="rule total" />
+              <TxnTotals
+                itemsTotal={preview?.total ?? net}
+                productDiscount={productDiscountTotal(lines)}
+                orderDiscount={preview?.discount_amount}
+                orderDiscountPercent={discountPct}
+                discountOn={discountOn}
+                net={showNet}
+                vat={showVat}
+                grand={showGrand}
+                currency={party.currency || session.currency || undefined}
+                netLabel={t("sod.net")}
+                vatLabel={t("sod.vat")}
+                grandLabel={t("sod.grand")}
+              />
             </Card>
 
             <ReadinessCard
@@ -413,6 +445,12 @@ export default function SalesOrderCreate() {
               </select>
             </Field>
           </div>
+          <OrderDiscountFields
+            percent={discountPct}
+            basis={discountOn}
+            onPercent={setDiscountPct}
+            onBasis={setDiscountOn}
+          />
           <PaymentScheduleTable rows={schedule} />
           <CreditLimitNotice balance={credit} />
         </Card>
@@ -456,7 +494,13 @@ export default function SalesOrderCreate() {
                 key: "rate", label: t("sod.col.rate"), numeric: true,
                 render: (l, i) => (
                   <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
-                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? { ...x, rate: parseNum(e.target.value) } : x))} />
+                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? applyLineRate(x, parseNum(e.target.value)) : x))} />
+                ),
+              },
+              {
+                key: "discount", label: t("txn.lineDiscount"), numeric: true,
+                render: (l, i) => (
+                  <LineDiscountInput line={l} onChange={(next) => setLines((ls) => ls.map((x, j) => j === i ? next : x))} />
                 ),
               },
               {

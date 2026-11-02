@@ -97,6 +97,8 @@ def get_party_details(
 	# when the party and party group have none. Tax Rules may leave
 	# taxes_and_charges empty; Desk then applies the company default template.
 	if isinstance(details, dict):
+		_stamp_party_tax_id(details, party_type, party)
+		_stamp_party_contact(details, party_type, party)
 		_stamp_default_price_list(details, party_type)
 		_stamp_default_taxes(details, doctype, company, party_type)
 		_stamp_vat_emirate(details, company)
@@ -306,6 +308,31 @@ def _stamp_vat_emirate(details: dict, company: str | None) -> None:
 	emirate = resolve_company_emirate(company, details.get("company_address"))
 	if emirate:
 		details["vat_emirate"] = emirate
+
+
+def _stamp_party_tax_id(details: dict, party_type: str, party: str) -> None:
+	"""Stamp party tax_id (TRN) when ERPNext party details leaves it blank."""
+	if not details.get("tax_id") and frappe.get_meta(party_type).has_field("tax_id"):
+		details["tax_id"] = frappe.db.get_value(party_type, party, "tax_id") or ""
+
+
+def _stamp_party_contact(details: dict, party_type: str, party: str) -> None:
+	"""Ensure contact_person and details are populated when a contact exists for the party."""
+	if details.get("contact_person"):
+		return
+	contact_field = "customer_primary_contact" if party_type == "Customer" else "supplier_primary_contact"
+	contact = None
+	if frappe.get_meta(party_type).has_field(contact_field):
+		contact = frappe.db.get_value(party_type, party, contact_field)
+	if not contact:
+		from frappe.contacts.doctype.contact.contact import get_default_contact as frappe_get_default_contact
+
+		contact = frappe_get_default_contact(party_type, party)
+	if contact:
+		details["contact_person"] = contact
+		from erpnext.accounts.party import complete_contact_details
+
+		complete_contact_details(details)
 
 
 @frappe.whitelist()

@@ -130,7 +130,6 @@ export default function SourceDocPicker({ sources, onMapped, disabled }: Props) 
           disabled={disabled}
           onMapped={(doc) => {
             onMapped(doc);
-            setName("");
           }}
           onDone={setErr}
         />

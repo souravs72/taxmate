@@ -14,7 +14,7 @@ import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
-import { FormActions, FormLayout } from "../../components/form";
+import { FormLayout } from "../../components/form";
 
 const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Personal", "Other"];
 const LINK_DOCTYPES = ["Customer", "Supplier", "Company"];
@@ -146,7 +146,24 @@ export default function AddressForm() {
         }
         title={isNew ? t("addr.new") : form.address_title || name}
         actions={
-          !isNew ? (<DocHistory doctype="Address" name={name} />) : null
+          <>
+            {!isNew ? (<DocHistory doctype="Address" name={name} />) : null}
+            <button
+              type="button"
+              className="btn ghost"
+              onClick={() => nav(isNew ? "/addresses" : `/addresses/${encodeURIComponent(name)}`)}
+            >
+              {t("soc.discard")}
+            </button>
+            <button
+              type="button"
+              className="btn"
+              disabled={busy || !ready}
+              onClick={() => void saveFn()}
+            >
+              {busy ? t("soc.saving") : t("form.save")}
+            </button>
+          </>
         }
       />
       {saveError && <ErrorBox error={saveError} />}
@@ -291,12 +308,6 @@ export default function AddressForm() {
             {t("addr.addLink")}
           </button>
         </Card>
-        <FormActions
-          onSave={() => void saveFn()}
-          onDiscard={() => nav(isNew ? "/addresses" : `/addresses/${encodeURIComponent(name)}`)}
-          busy={busy}
-          ready={ready}
-        />
       </FormLayout>
     </>
   );
