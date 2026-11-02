@@ -115,6 +115,23 @@ def _party_is_uae(doc) -> bool:
 	return False
 
 
+def assign_party_company(doc, method=None) -> None:
+	"""Stamp active company onto Customer/Supplier if not set."""
+	if not getattr(doc, "meta", None) or not doc.meta.has_field("custom_company"):
+		return
+	if doc.get("custom_company"):
+		return
+	from taxmate.utils.company import get_default_company
+
+	company = (
+		get_default_company()
+		or frappe.defaults.get_user_default("company")
+		or frappe.defaults.get_global_default("Company")
+	)
+	if company and frappe.db.exists("Company", company):
+		doc.custom_company = company
+
+
 def validate_party_trn(doc, method=None):
 	"""Validate Customer / Supplier tax_id when TaxMate enforces TRN.
 

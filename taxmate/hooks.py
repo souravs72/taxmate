@@ -167,10 +167,16 @@ doc_events = {
 		"on_update": "taxmate.uae.company.on_update",
 	},
 	"Customer": {
-		"validate": "taxmate.uae.validation.validate_party_trn",
+		"validate": [
+			"taxmate.uae.validation.assign_party_company",
+			"taxmate.uae.validation.validate_party_trn",
+		],
 	},
 	"Supplier": {
-		"validate": "taxmate.uae.validation.validate_party_trn",
+		"validate": [
+			"taxmate.uae.validation.assign_party_company",
+			"taxmate.uae.validation.validate_party_trn",
+		],
 	},
 	"Address": {
 		"validate": "taxmate.uae.validation.validate_address_emirate",

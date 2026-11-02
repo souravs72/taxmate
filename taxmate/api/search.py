@@ -429,7 +429,10 @@ def _global_results(text: str, limit: int) -> list[dict[str, Any]]:
 	if not allowed:
 		return []
 
-	raw = frappe_global_search(text=text, start=0, limit=limit, doctype="")
+	try:
+		raw = frappe_global_search(text=text, start=0, limit=limit, doctype="")
+	except Exception:
+		raw = []
 	out: list[dict[str, Any]] = []
 	seen: set[tuple[str, str]] = set()
 	for row in raw or []:

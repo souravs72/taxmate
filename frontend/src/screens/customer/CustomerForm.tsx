@@ -10,6 +10,7 @@ import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
+import { useSession } from "../../lib/session";
 
 type CreditLimitRow = {
   _key: string;
@@ -20,6 +21,7 @@ type CreditLimitRow = {
 
 type CustomerDoc = {
   name: string;
+  custom_company?: string;
   customer_name?: string;
   customer_type?: string;
   customer_group?: string;
@@ -52,6 +54,7 @@ type AddressDoc = {
 };
 
 export default function CustomerForm() {
+  const session = useSession();
   const { name = "new" } = useParams();
   const nav = useNavigate();
   const location = useLocation();
@@ -85,6 +88,7 @@ export default function CustomerForm() {
   const update = useSave();
 
   const [form, setForm] = useState({
+    custom_company: session.company || "",
     customer_name: "",
     customer_type: "Company",
     customer_group: "",
@@ -119,6 +123,7 @@ export default function CustomerForm() {
     if (!d) return;
     setForm((f) => ({
       ...f,
+      custom_company: d.custom_company || session.company || "",
       customer_name: d.customer_name || "",
       customer_type: d.customer_type || "Company",
       customer_group: d.customer_group || "",
@@ -177,6 +182,7 @@ export default function CustomerForm() {
       const group = form.customer_group || settings.data?.customer_group;
       const territory = settings.data?.territory;
       const payload = {
+        custom_company: form.custom_company || session.company || undefined,
         customer_name: form.customer_name,
         customer_type: form.customer_type,
         customer_group: group,

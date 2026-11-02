@@ -318,16 +318,31 @@ def _apply_tax_template_rows(doc: dict) -> dict:
 	return doc
 
 
+def _stamp_company_if_missing(doc: dict) -> dict:
+	doctype = doc.get("doctype")
+	if not doctype or not frappe.db.exists("DocType", doctype):
+		return doc
+	meta = frappe.get_meta(doctype)
+	active = get_default_company()
+	if not active:
+		return doc
+	if meta.has_field("company") and not doc.get("company") and company_scoped(doctype):
+		doc["company"] = active
+	elif meta.has_field("custom_company") and not doc.get("custom_company"):
+		doc["custom_company"] = active
+	return doc
+
+
 @frappe.whitelist(methods=["POST", "PUT"])
 def insert(doc=None):
 	require_login()
-	return client_insert(_apply_tax_template_rows(_require_doc(doc)))
+	return client_insert(_apply_tax_template_rows(_stamp_company_if_missing(_require_doc(doc))))
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def save(doc):
 	require_login()
-	return client_save(_apply_tax_template_rows(_require_doc(doc)))
+	return client_save(_apply_tax_template_rows(_stamp_company_if_missing(_require_doc(doc))))
 
 
 # Desk list bulk delete runs sync for ≤10 names; TaxMate SPA stays sync with a
