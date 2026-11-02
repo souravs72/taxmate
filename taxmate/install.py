@@ -39,7 +39,18 @@ def after_install():
 	ensure_spa_roles()
 	ensure_company_owner_field()
 	ensure_taxmate_desktop_icon()
+	_ensure_custom_company_ignore_user_permissions()
 	_backfill_party_custom_companies()
+
+
+def _ensure_custom_company_ignore_user_permissions():
+	"""Ensure custom_company fields ignore raw Frappe User Permissions so tenancy hook governs access."""
+	for doctype in ("Customer", "Supplier", "Item"):
+		cf_name = f"{doctype}-custom_company"
+		if frappe.db.exists("Custom Field", cf_name):
+			if not frappe.db.get_value("Custom Field", cf_name, "ignore_user_permissions"):
+				frappe.db.set_value("Custom Field", cf_name, "ignore_user_permissions", 1)
+				frappe.clear_cache(doctype=doctype)
 
 
 def after_migrate():
