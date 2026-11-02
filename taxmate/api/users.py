@@ -60,10 +60,10 @@ def _require_owner() -> None:
 
 
 def _require_team_read() -> None:
-	"""Owner or accountant of the active company. Providers use onboard, not Team list."""
+	"""Owner, accountant, or app provider of the active company."""
 	user = frappe.session.user
-	if is_app_provider(user):
-		frappe.throw(_("Not permitted"), frappe.PermissionError)
+	if is_app_provider(user) or _caller_unrestricted():
+		return
 	role = spa_role_of(user)
 	if role not in ("owner", "accountant"):
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
