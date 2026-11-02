@@ -39,6 +39,15 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 	if active:
 		filters["company"] = active
 	assert_company_read(filters.get("company"))
+
+	# ERPNext Receivable/Payable reports expect party to be a list/tuple for pypika criteria
+	if report_name in ("Accounts Payable", "Accounts Receivable") and "party" in filters:
+		party_val = filters["party"]
+		if isinstance(party_val, str):
+			filters["party"] = [p.strip() for p in party_val.split(",") if p.strip()]
+		elif not isinstance(party_val, (list, tuple)) and party_val:
+			filters["party"] = [party_val]
+
 	from frappe.desk.query_report import run
 
 	result = run(

@@ -14,15 +14,18 @@ import { useLang } from "../lib/i18n";
 import { clearFormActions, publishFormActions } from "../lib/pageActions";
 import { Card, InPageHead } from "./ui";
 
-/** Main column plus a sticky aside. The `stack` spaces the main column. */
+/** Main column plus a sticky aside. When aside is absent, children use the full width. */
 export function FormLayout({ children, aside }: {
   children: React.ReactNode;
   aside?: React.ReactNode;
 }) {
+  if (!aside) {
+    return <div className="stack">{children}</div>;
+  }
   return (
     <div className="body2">
       <div className="stack">{children}</div>
-      {aside && <aside className="side">{aside}</aside>}
+      <aside className="side">{aside}</aside>
     </div>
   );
 }

@@ -316,6 +316,8 @@ export function TxnTotals({
   netLabel,
   vatLabel,
   grandLabel,
+  roundingAdjustment,
+  roundedTotal,
   children,
 }: {
   currency?: string;
@@ -330,6 +332,8 @@ export function TxnTotals({
   netLabel: string;
   vatLabel: string;
   grandLabel: string;
+  roundingAdjustment?: number;
+  roundedTotal?: number;
   children?: ReactNode;
 }) {
   const product = Number(productDiscount) || 0;
@@ -381,7 +385,24 @@ export function TxnTotals({
       )}
       <SumRow k={netLabel} v={money(net)} currency={currency} />
       <SumRow k={vatLabel} v={money(vat)} currency={currency} />
-      <SumRow k={grandLabel} v={money(grand)} currency={currency} cls="rule total" />
+      {roundingAdjustment && Math.abs(roundingAdjustment) > 0.0001 ? (
+        <>
+          <SumRow k={grandLabel} v={money(grand)} currency={currency} cls="rule" />
+          <SumRow
+            k={t("txn.roundOff")}
+            v={roundingAdjustment > 0 ? `+${money(roundingAdjustment)}` : money(roundingAdjustment)}
+            currency={currency}
+          />
+          <SumRow
+            k={t("txn.roundedTotal")}
+            v={money(roundedTotal ?? (Number(grand || 0) + roundingAdjustment))}
+            currency={currency}
+            cls="rule total"
+          />
+        </>
+      ) : (
+        <SumRow k={grandLabel} v={money(grand)} currency={currency} cls="rule total" />
+      )}
       {children}
     </>
   );

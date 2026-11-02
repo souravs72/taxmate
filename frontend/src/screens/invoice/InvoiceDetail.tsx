@@ -38,6 +38,7 @@ type Doc = {
   vat_emirate?: string; taxes_and_charges?: string; tax_id?: string; company_trn?: string;
   payment_terms_template?: string; selling_price_list?: string;
   total?: number; net_total?: number; total_taxes_and_charges?: number; grand_total?: number;
+  rounding_adjustment?: number; rounded_total?: number; disable_rounded_total?: 0 | 1;
   discount_amount?: number; additional_discount_percentage?: number; apply_discount_on?: string;
   outstanding_amount?: number; currency?: string; total_advance?: number;
   allocate_advances_automatically?: number; advances?: unknown[];
@@ -324,7 +325,7 @@ export default function InvoiceDetail() {
           <Card bodyClass="cbody">
             <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("inv.totals")}</h2>
             <TxnTotals
-            currency={cur}
+              currency={cur}
               itemsTotal={data.total}
               productDiscount={productDiscountTotal(data.items ?? [])}
               orderDiscount={data.discount_amount}
@@ -333,6 +334,8 @@ export default function InvoiceDetail() {
               net={data.net_total}
               vat={data.total_taxes_and_charges}
               grand={grand}
+              roundingAdjustment={!data.disable_rounded_total ? data.rounding_adjustment : undefined}
+              roundedTotal={!data.disable_rounded_total ? data.rounded_total : undefined}
               netLabel={t("sod.net")}
               vatLabel={t("sod.vat")}
               grandLabel={t("sod.grand")}
