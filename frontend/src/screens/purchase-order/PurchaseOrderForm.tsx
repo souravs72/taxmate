@@ -398,10 +398,23 @@ export default function PurchaseOrderForm() {
               },
               {
                 key: "rate", label: t("sod.col.rate"), numeric: true,
-                render: (l, i) => (
-                  <input className="ctl mini nn" style={{ width: 104 }} value={l.rate}
-                    onChange={(e) => setLines((ls) => ls.map((x, j) => j === i ? applyLineRate(x, parseNum(e.target.value)) : x))} />
-                ),
+                render: (l, i) => {
+                  const hasPriceListRate = Boolean(l.price_list_rate && Number(l.price_list_rate) > 0);
+                  return (
+                    <input
+                      className={`ctl mini nn${hasPriceListRate ? " readonly" : ""}`}
+                      style={{ width: 104, ...(hasPriceListRate ? { cursor: "not-allowed", opacity: 0.85 } : {}) }}
+                      value={l.rate}
+                      readOnly={hasPriceListRate}
+                      tabIndex={hasPriceListRate ? -1 : undefined}
+                      title={hasPriceListRate ? t("txn.rateFromPriceList") : undefined}
+                      onChange={(e) => {
+                        if (hasPriceListRate) return;
+                        setLines((ls) => ls.map((x, j) => j === i ? applyLineRate(x, parseNum(e.target.value)) : x));
+                      }}
+                    />
+                  );
+                },
               },
               {
                 key: "discount", label: t("txn.lineDiscount"), numeric: true,
