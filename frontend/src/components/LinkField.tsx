@@ -118,7 +118,11 @@ export default function LinkField({
               suppressClear.current = false;
               return;
             }
-            if (!typed) onChange("");
+            if (!typed) {
+              onChange("");
+            } else if (typed !== value) {
+              onChange(typed);
+            }
           }, 180);
         }}
         autoComplete="off"

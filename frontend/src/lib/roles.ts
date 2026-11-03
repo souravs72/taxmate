@@ -120,7 +120,14 @@ export function allowedDashModes(session: {
   return ["accountant"];
 }
 
-export function canWrite(session: { spa_role?: string | null; spa_roles?: string[]; roles?: string[] } | undefined): boolean {
+export function canWrite(session: {
+  spa_role?: string | null;
+  spa_roles?: string[];
+  roles?: string[];
+  user?: string;
+  is_app_provider?: boolean;
+} | undefined): boolean {
+  if (isAppProvider(session)) return true;
   return spaRoleOf(session) !== "viewer";
 }
 

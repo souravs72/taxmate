@@ -195,3 +195,158 @@ def reconciliation_balance(
 		"serial_nos": balance.get("serial_nos") or "",
 	})
 	return out
+
+
+@frappe.whitelist()
+def get_warehouse_stock(warehouse: str) -> dict[str, Any]:
+	"""Return inventory items, summary metrics, low-stock items, and recent movements for a warehouse."""
+	require_login()
+	warehouse = (warehouse or "").strip()
+	if not warehouse:
+		frappe.throw(_("Warehouse is required"))
+	assert_allowed_doctype("Warehouse")
+	if not frappe.has_permission("Warehouse", "read", warehouse):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
+
+	wh_doc = frappe.get_doc("Warehouse", warehouse)
+	assert_company_read(wh_doc.company)
+
+	bins = frappe.db.sql(
+		"""
+		SELECT
+			b.item_code,
+			i.item_name,
+			i.item_group,
+			i.stock_uom,
+			i.weight_per_unit,
+			i.weight_uom,
+			b.actual_qty,
+			b.valuation_rate,
+			b.stock_value,
+			r.warehouse_reorder_level
+		FROM `tabBin` b
+		JOIN `tabItem` i ON i.name = b.item_code
+		LEFT JOIN `tabItem Reorder` r ON r.parent = b.item_code AND r.warehouse = b.warehouse
+		WHERE b.warehouse = %s AND b.actual_qty != 0
+		ORDER BY b.stock_value DESC, b.item_code ASC
+		""",
+		(warehouse,),
+		as_dict=True,
+	)
+
+	import re
+
+	items_list: list[dict[str, Any]] = []
+	total_qty = 0.0
+	total_value = 0.0
+	total_weight = 0.0
+	purity_weights_map: dict[str, float] = {}
+	low_stock_items: list[dict[str, Any]] = []
+
+	purity_pattern = re.compile(r"\b(24K|22K|21K|18K|14K|10K|9K|925|999|Silver|Platinum|Diamond)\b", re.IGNORECASE)
+
+	for b in bins:
+		qty = flt(b.actual_qty)
+		rate = flt(b.valuation_rate)
+		val = flt(b.stock_value) or (qty * rate)
+		weight_unit = flt(b.weight_per_unit)
+		line_weight = qty * weight_unit if weight_unit else 0.0
+		reorder_level = flt(b.warehouse_reorder_level) if b.warehouse_reorder_level is not None else None
+
+		purity_match = purity_pattern.search(b.item_name or "") or purity_pattern.search(b.item_code or "")
+		purity = purity_match.group(1).upper() if purity_match else "—"
+
+		is_low = reorder_level is not None and reorder_level > 0 and qty <= reorder_level
+
+		items_list.append({
+			"item_code": b.item_code,
+			"item_name": b.item_name or b.item_code,
+			"item_group": b.item_group or "",
+			"stock_uom": b.stock_uom or "Nos",
+			"actual_qty": qty,
+			"valuation_rate": rate,
+			"stock_value": val,
+			"weight_per_unit": weight_unit,
+			"weight": line_weight,
+			"purity": purity,
+			"reorder_level": reorder_level,
+			"is_low_stock": is_low,
+		})
+
+		total_qty += qty
+		total_value += val
+		total_weight += line_weight
+
+		if purity != "—" and line_weight > 0:
+			purity_weights_map[purity] = purity_weights_map.get(purity, 0.0) + line_weight
+
+		if is_low:
+			low_stock_items.append({
+				"item_code": b.item_code,
+				"item_name": b.item_name or b.item_code,
+				"actual_qty": qty,
+				"reorder_level": reorder_level,
+				"uom": b.stock_uom or "Nos",
+			})
+
+	low_stock_items.sort(key=lambda x: (x["reorder_level"] - x["actual_qty"]), reverse=True)
+
+	purity_breakdown = [
+		{"purity": k, "weight": round(v, 2)}
+		for k, v in sorted(purity_weights_map.items(), key=lambda x: x[0], reverse=True)
+	]
+
+	movements = frappe.db.sql(
+		"""
+		SELECT
+			sle.posting_date,
+			sle.voucher_type,
+			sle.voucher_no,
+			sle.item_code,
+			i.item_name,
+			sle.actual_qty,
+			sle.qty_after_transaction
+		FROM `tabStock Ledger Entry` sle
+		JOIN `tabItem` i ON i.name = sle.item_code
+		WHERE sle.warehouse = %s AND sle.is_cancelled = 0
+		ORDER BY sle.posting_date DESC, sle.posting_time DESC, sle.creation DESC
+		LIMIT 10
+		""",
+		(warehouse,),
+		as_dict=True,
+	)
+
+	recent_movements = []
+	for m in movements:
+		recent_movements.append({
+			"posting_date": str(m.posting_date),
+			"voucher_type": m.voucher_type,
+			"voucher_no": m.voucher_no,
+			"item_code": m.item_code,
+			"item_name": m.item_name or m.item_code,
+			"actual_qty": flt(m.actual_qty),
+			"qty_after_transaction": flt(m.qty_after_transaction),
+		})
+
+	return {
+		"warehouse": {
+			"name": wh_doc.name,
+			"warehouse_name": wh_doc.warehouse_name,
+			"company": wh_doc.company,
+			"parent_warehouse": wh_doc.parent_warehouse,
+			"account": wh_doc.account,
+			"is_group": wh_doc.is_group,
+			"disabled": wh_doc.disabled,
+		},
+		"summary": {
+			"items_count": len(items_list),
+			"total_qty": total_qty,
+			"total_value": total_value,
+			"total_weight": total_weight,
+			"purity_breakdown": purity_breakdown,
+		},
+		"items": items_list,
+		"low_stock_items": low_stock_items,
+		"recent_movements": recent_movements,
+	}
+

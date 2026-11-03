@@ -68,7 +68,6 @@ export default function MaterialRequestDetail() {
   const cancelCall = useFrappePostCall(METHOD.cancel);
   const amendCall = useFrappePostCall<{ message?: { name?: string } }>(METHOD.amend);
   const makePO = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeMrPO);
-  const suppliersCall = useFrappePostCall<{ message: Omit<PendingRow, "qty">[] }>(METHOD.mrDefaultSuppliers);
   const makeMany = useFrappePostCall<{ message: string[] }>(METHOD.makeMrPOs);
   const makeSE = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeMrSE);
   const makeSq = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeMrSupplierQuotation);
@@ -117,22 +116,7 @@ export default function MaterialRequestDetail() {
     setBusy("po");
     setMapError(null);
     try {
-      const res = await suppliersCall.call({ source_name: name });
-      const items = res?.message ?? [];
-      if (!items.length) {
-        setMapError(new Error(t("mr.nothingToOrder")));
-        return;
-      }
-      const suppliers = new Set(items.map((row) => row.supplier || ""));
-      if (suppliers.size > 1) {
-        setPoRows(items.map((row) => ({
-          ...row,
-          supplier: row.supplier || "",
-          qty: Number(row.pending_qty) || 0,
-        })));
-        return;
-      }
-      await openPurchaseOrder(items[0]?.supplier || undefined);
+      await openPurchaseOrder();
     } catch (err) {
       setMapError(err);
     } finally {

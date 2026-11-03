@@ -6,7 +6,7 @@
  * User: "Implement the plan as specified… complete all the to-dos."
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Navigate, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
@@ -89,6 +89,23 @@ export default function StockEntryForm() {
   const submitCall = useFrappePostCall(METHOD.submit);
   const itemCall = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.stockEntryItemDetails);
   const lineTicket = useRef<number[]>([]);
+
+  const location = useLocation();
+  const initRef = useRef(false);
+  useEffect(() => {
+    if (!isNew || initRef.current) return;
+    initRef.current = true;
+    const st = location.state as { purpose?: Purpose; from_warehouse?: string; to_warehouse?: string } | null;
+    if (st?.purpose) setPurpose(st.purpose);
+    if (st?.from_warehouse) {
+      setFromWarehouse(st.from_warehouse);
+      setLines((ls) => ls.map((l) => ({ ...l, s_warehouse: st.from_warehouse! })));
+    }
+    if (st?.to_warehouse) {
+      setToWarehouse(st.to_warehouse);
+      setLines((ls) => ls.map((l) => ({ ...l, t_warehouse: st.to_warehouse! })));
+    }
+  }, [isNew, location.state]);
 
   const [purpose, setPurpose] = useState<Purpose>("Material Receipt");
   const [postingDate, setPostingDate] = useState(today);

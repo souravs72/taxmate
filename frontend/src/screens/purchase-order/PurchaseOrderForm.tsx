@@ -124,7 +124,12 @@ export default function PurchaseOrderForm() {
       if (mapped.supplier) setSupplier(sup);
       void txn.fetchParty(sup, mapped.transaction_date ? String(mapped.transaction_date) : orderDate).then((m) => {
         if (m) {
-          setParty(m);
+          setParty((prev) => ({
+            ...m,
+            ...(mapped.supplier_address ? { supplier_address: String(mapped.supplier_address) } : prev.supplier_address ? { supplier_address: prev.supplier_address } : {}),
+            ...(mapped.contact_person ? { contact_person: String(mapped.contact_person) } : prev.contact_person ? { contact_person: prev.contact_person } : {}),
+            ...(mapped.tax_id ? { tax_id: String(mapped.tax_id) } : prev.tax_id ? { tax_id: prev.tax_id } : {}),
+          }));
           if (m.taxes_and_charges) setTaxTemplate(m.taxes_and_charges);
           if (m.payment_terms_template) setPaymentTerms(m.payment_terms_template);
         }
@@ -313,16 +318,17 @@ export default function PurchaseOrderForm() {
             <SourceDocPicker
               sources={[
                 {
-                  label: t("nav.supplierQuotations"), doctype: DT.supplierQuotation,
-                  method: METHOD.makeSupplierQuotationPO, arg: "source_name",
-                  filters: [["docstatus", "=", 1], ["status", "not in", ["Stopped", "Expired"]]],
-                },
-                {
                   label: t("nav.materialRequests"), doctype: DT.materialRequest,
                   method: METHOD.makeMrPO, arg: "source_name",
                   filters: [["docstatus", "=", 1], ["material_request_type", "=", "Purchase"], ["status", "!=", "Stopped"], ["per_ordered", "<", 100]],
                 },
+                {
+                  label: t("nav.supplierQuotations"), doctype: DT.supplierQuotation,
+                  method: METHOD.makeSupplierQuotationPO, arg: "source_name",
+                  filters: [["docstatus", "=", 1], ["status", "not in", ["Stopped", "Expired"]]],
+                },
               ]}
+              extraArgs={{ supplier: supplier || undefined }}
               onMapped={applyMapped}
             />
           </Card>
