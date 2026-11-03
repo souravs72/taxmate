@@ -119,6 +119,16 @@ export default function CustomerForm() {
   const newClKey = () => `cl${++_clKey}`;
 
   useEffect(() => {
+    if (!isNew || !settings.data) return;
+    setForm((f) => ({
+      ...f,
+      customer_group: f.customer_group || settings.data?.customer_group || "",
+      territory: f.territory || settings.data?.territory || "",
+      selling_price_list: f.selling_price_list || settings.data?.selling_price_list || "",
+    }));
+  }, [isNew, settings.data]);
+
+  useEffect(() => {
     const d = existing.data;
     if (!d) return;
     setForm((f) => ({
@@ -168,7 +178,7 @@ export default function CustomerForm() {
   }, [address.data]);
 
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
-  const ready = !!form.customer_name && !!form.customer_type && !!form.address_line1 && !!form.city && !!form.state;
+  const ready = !!form.customer_name && !!form.customer_type && !!(form.customer_group || settings.data?.customer_group) && !!(form.territory || settings.data?.territory) && !!form.address_line1 && !!form.city && !!form.state;
 
   async function save() {
     setBusy(true);
@@ -322,7 +332,7 @@ export default function CustomerForm() {
               <option value="Partnership">{t("cust.type.partnership")}</option>
             </select>
           </Field>
-          <Field label={t("cust.col.group")}>
+          <Field label={t("cust.col.group")} required>
             <select className="ctl" value={form.customer_group} onChange={(e) => set("customer_group", e.target.value)}>
               <option value="" />
               {(groups.data ?? []).map((g) => <option key={g.name} value={g.name}>{g.name}</option>)}
@@ -344,7 +354,7 @@ export default function CustomerForm() {
               {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
             </select>
           </Field>
-          <Field label={t("f.territory")}>
+          <Field label={t("f.territory")} required>
             <select className="ctl" value={form.territory} onChange={(e) => set("territory", e.target.value)}>
               <option value="" />
               {(territories.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}

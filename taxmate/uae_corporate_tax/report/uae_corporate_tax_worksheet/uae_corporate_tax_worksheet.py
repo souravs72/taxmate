@@ -39,12 +39,15 @@ def execute(filters=None):
 		("Accounting profit", result["accounting_profit"], _("From posted GL")),
 		("Taxable profit", result["taxable_profit"], _("After add-backs / deductions on a Filing Log")),
 		("Tax payable", result["tax_payable"], _("AED")),
-		("Qualifying revenue", result["qualifying_revenue"], _("QFZP")),
-		("Non-qualifying revenue", result["non_qualifying_revenue"], _("Includes unclassified")),
-		("De minimis limit", result["de_minimis_limit"], _("Lower of 5% and AED 5m")),
-		("De minimis passed", _("Yes") if result["de_minimis_passed"] else _("No"), ""),
-		("Filing due", result["filing_due_date"], _("Period end + 9 months")),
 	]
+	if result.get("qfzp_elected"):
+		rows.extend([
+			("Qualifying revenue", result["qualifying_revenue"], _("QFZP")),
+			("Non-qualifying revenue", result["non_qualifying_revenue"], _("Includes unclassified")),
+			("De minimis limit", result["de_minimis_limit"], _("Lower of 5% and AED 5m")),
+			("De minimis passed", _("Yes") if result["de_minimis_passed"] else _("No"), ""),
+		])
+	rows.append(("Filing due", result["filing_due_date"], _("Fiscal year end + 9 months")))
 	data = [{"line": label, "amount": amount, "note": note} for label, amount, note in rows]
 	return columns, data
 

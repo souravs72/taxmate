@@ -26,10 +26,21 @@ def r2(value) -> float:
 	return flt(value, 2)
 
 
-def filing_due_date(period_end):
+def filing_due_date(period_end, company: str | None = None):
 	if not period_end:
 		return None
-	return add_months(getdate(period_end), FILING_MONTHS_AFTER_PERIOD)
+	year_end = None
+	if company:
+		try:
+			from erpnext.accounts.utils import get_fiscal_year
+
+			fiscal = get_fiscal_year(date=period_end, company=company, as_dict=True)
+			if fiscal and fiscal.get("year_end_date"):
+				year_end = fiscal["year_end_date"]
+		except Exception:
+			year_end = None
+	target_end = year_end or period_end
+	return add_months(getdate(target_end), FILING_MONTHS_AFTER_PERIOD)
 
 
 def filing_deadline_status(due, docstatus, today=None, lead_days: int = 30) -> str:
@@ -159,7 +170,12 @@ def compute_ct(
 	regime = "Standard"
 	tax = 0.0
 	sbr_ok = False
-	de_minimis_passed = True
+	de_minimis_passed = de_minimis_ok(
+		split["non_qualifying_revenue"],
+		revenue,
+		percent=de_pct,
+		cap=de_cap,
+	)
 
 	if elect_sbr and elect_qfzp:
 		frappe.throw(_("Small Business Relief and QFZP cannot be elected in the same tax period."))
@@ -192,7 +208,7 @@ def compute_ct(
 		"company": company,
 		"period_start": period_start,
 		"period_end": period_end,
-		"filing_due_date": filing_due_date(period_end),
+		"filing_due_date": filing_due_date(period_end, company),
 		"regime": regime,
 		"revenue": r2(revenue),
 		"expenses": r2(gl["expenses"]),

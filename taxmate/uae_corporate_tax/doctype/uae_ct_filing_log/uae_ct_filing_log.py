@@ -31,7 +31,7 @@ class UAECTFilingLog(Document):
 		for row in self.adjustments or []:
 			if flt(row.amount) < 0:
 				frappe.throw(_("Adjustment amounts cannot be negative."))
-		self.filing_due_date = filing_due_date(self.period_end)
+		self.filing_due_date = filing_due_date(self.period_end, self.company)
 		self._set_company_trn()
 		settings = get_ct_settings(self.company)
 		lead_days = cint(settings.get("reminder_days") or 30)

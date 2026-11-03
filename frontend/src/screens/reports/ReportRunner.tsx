@@ -77,6 +77,16 @@ function unquote(s: string): string {
   return t;
 }
 
+function isClickableAccount(row: Row, reportName: string, hasTree: boolean): boolean {
+  if (!hasTree || reportName === "General Ledger") return false;
+  const acct = typeof row.account === "string" ? row.account.trim() : "";
+  if (!acct) return false;
+  // Exclude synthetic calculated / summary total rows in financial statements (e.g. 'Profit for the year', 'Total Expense')
+  if (acct.startsWith("'") || acct.endsWith("'") || acct.startsWith('"') || acct.endsWith('"')) return false;
+  if (/^(Total\b|Profit\b|Net Profit|Gross Profit)/i.test(acct)) return false;
+  return true;
+}
+
 /**
  * `account` stays the document id (`Revenue - XSm`) so a row can still
  * open General Ledger. `account_label` is that id's translated heading.
@@ -192,7 +202,8 @@ export default function ReportRunner() {
     ? (get("p") as Periodicity)
     : "Monthly";
   const costCenter = get("cc");
-  const account = get("account");
+  const rawAccount = get("account");
+  const account = rawAccount && (rawAccount.startsWith("'") || rawAccount.endsWith("'") || rawAccount.startsWith('"') || rawAccount.endsWith('"')) ? "" : rawAccount;
   const warehouse = get("wh");
   const itemCode = get("item");
   const partyType = get("ptype") || (caps.party === "typed" ? "" : caps.party || "");
@@ -340,8 +351,8 @@ export default function ReportRunner() {
       nav(voucherRoute);
       return;
     }
-    const acct = String(row.account || "");
-    if (!acct || name === "General Ledger" || !caps.tree) return;
+    if (!isClickableAccount(row, name, !!caps.tree)) return;
+    const acct = unquote(String(row.account || ""));
     const params = new URLSearchParams({ account: acct, from: fromDate, to: toDate });
     nav(`/reports/${encodeURIComponent("General Ledger")}?${params}`);
   };
@@ -759,7 +770,7 @@ export default function ReportRunner() {
           regionLabel={t("rpt.resultsRegion")}
           isRowActive={(row) => {
             if (spaRouteForVoucher(row.voucher_type, row.voucher_no)) return true;
-            return Boolean(caps.tree && row.account && name !== "General Ledger");
+            return isClickableAccount(row, name, !!caps.tree);
           }}
           rowLabel={(row) => {
             const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
@@ -769,10 +780,13 @@ export default function ReportRunner() {
                 n: String(row.voucher_no || ""),
               });
             }
-            return fill(t("rpt.openAccount"), { a: String(row.account || "") });
+            if (isClickableAccount(row, name, !!caps.tree)) {
+              return fill(t("rpt.openAccount"), { a: unquote(String(row.account || "")) });
+            }
+            return "";
           }}
           rowClassName={(row) => {
-            const clickable = Boolean(caps.tree && row.account && name !== "General Ledger");
+            const clickable = isClickableAccount(row, name, !!caps.tree);
             const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
             return [
               row.bold ? "rpt-bold" : "",

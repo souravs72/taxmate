@@ -381,7 +381,7 @@ export default function CompanySettings() {
                   <Field label={t("cs.companyName")} required>
                     <input className="ctl" value={val("company_name")} onChange={setText("company_name")} disabled={!canFull} required={canFull} />
                   </Field>
-                  <Field label={t("cs.abbr")} hint={abbr ? t("cs.abbrLocked") : undefined}>
+                  <Field label={t("cs.abbr")} required hint={abbr ? t("cs.abbrLocked") : undefined}>
                     <input className={`ctl${abbr ? " readonly" : ""}`} value={val("abbr")} onChange={setText("abbr")} disabled={!canFull || !!abbr} readOnly={!!abbr} />
                   </Field>
                   <Field label={t("cs.logo")}>
@@ -404,10 +404,10 @@ export default function CompanySettings() {
                   <Field label={t("cs.taxId")}>
                     <input className="ctl" value={val("tax_id")} onChange={setText("tax_id")} disabled={!canFull} placeholder="100XXXXXXXXX0003" />
                   </Field>
-                  <Field label={t("cs.country")}>
+                  <Field label={t("cs.country")} required>
                     <LinkField doctype="Country" value={val("country")} disabled={!canFull} onChange={(v) => setLink("country", v)} />
                   </Field>
-                  <Field label={t("cs.currency")}>
+                  <Field label={t("cs.currency")} required>
                     <LinkField doctype="Currency" value={val("default_currency")} disabled={!canFull} onChange={(v) => setLink("default_currency", v)} />
                   </Field>
                   <Field label={t("cs.domain")}>
@@ -531,7 +531,7 @@ export default function CompanySettings() {
                   <Field label={t("cs.perpetualInventory")}>
                     <input className="check" type="checkbox" checked={checked("enable_perpetual_inventory")} onChange={setCheck("enable_perpetual_inventory")} disabled={!canAccounts} />
                   </Field>
-                  <Field label={t("cs.valuationMethod")}>
+                  <Field label={t("cs.valuationMethod")} required>
                     <select className="ctl" value={val("valuation_method") || "FIFO"} onChange={setText("valuation_method")} disabled={!canAccounts}>
                       <option value="FIFO">FIFO</option>
                       <option value="Moving Average">{t("item.valuation.moving")}</option>
