@@ -15,7 +15,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -63,9 +63,9 @@ export default function MaterialRequestList() {
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("mr.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "type", header: t("mr.col.purpose"), cell: (r) => r.material_request_type || "—" },
+    { key: "type", header: t("mr.col.purpose"), cell: (r) => tStatus(r.material_request_type) },
     { key: "date", header: t("mr.col.date"), cell: (r) => date(r.transaction_date) },
-    { key: "status", header: t("mr.col.status"), cell: (r) => <Pill cls={mrPill(r.status)}>{r.status || t("pay.status.Draft")}</Pill> },
+    { key: "status", header: t("mr.col.status"), cell: (r) => <Pill cls={mrPill(r.status)}>{tStatus(r.status || "Draft")}</Pill> },
   ];
 
   const types = [

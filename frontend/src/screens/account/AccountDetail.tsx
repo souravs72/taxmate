@@ -4,7 +4,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 
@@ -59,7 +59,7 @@ export default function AccountDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          {data.root_type && <Pill cls="p-flat">{data.root_type}</Pill>}
+          {data.root_type && <Pill cls="p-flat">{tStatus(data.root_type)}</Pill>}
           <Pill cls={data.is_group ? "p-flat" : "p-done"}>
             {data.is_group ? t("coa.group") : t("coa.leaf")}
           </Pill>
@@ -70,7 +70,7 @@ export default function AccountDetail() {
         <div className="fg">
           <ReadRow k={t("coa.company")} v={data.company || "—"} />
           <ReadRow k={t("coa.parent")} v={data.parent_account || "—"} />
-          <ReadRow k={t("coa.root")} v={data.root_type || "—"} />
+          <ReadRow k={t("coa.root")} v={tStatus(data.root_type)} />
           <ReadRow k={t("coa.report")} v={data.report_type || "—"} />
           <ReadRow k={t("coa.type")} v={data.account_type || "—"} />
           <ReadRow k={t("coa.currency")} v={data.account_currency || "—"} />

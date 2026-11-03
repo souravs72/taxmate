@@ -13,7 +13,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -88,7 +88,7 @@ export default function CtFilingList() {
     { key: "due", header: t("v201.col.due"), className: "dt", cell: (r) => date(r.filing_due_date) },
     { key: "profit", header: t("ct.col.profit"), className: "n", cell: (r) => money(r.taxable_profit) },
     { key: "tax", header: t("ct.col.tax"), className: "n tot", cell: (r) => money(r.tax_payable) },
-    { key: "deadline", header: t("v201.col.deadline"), cell: (r) => <Pill cls={deadlinePill(r.deadline_status)}>{r.deadline_status || "—"}</Pill> },
+    { key: "deadline", header: t("v201.col.deadline"), cell: (r) => <Pill cls={deadlinePill(r.deadline_status)}>{tStatus(r.deadline_status)}</Pill> },
   ];
 
 
@@ -121,7 +121,7 @@ export default function CtFilingList() {
           <Card title={t("ct.chartTax")} bodyClass="bars">
             {DEADLINES.map((d) => {
               const n = Number(pick(byDeadline.rows, d)?.amount) || 0;
-              return <BarRow key={d} label={d} currency={cur} value={payable ? (n / payable) * 100 : 0} amount={n} colour={d === "Overdue" ? "var(--bad)" : "var(--c-confirmed)"} />;
+              return <BarRow key={d} label={tStatus(d)} currency={cur} value={payable ? (n / payable) * 100 : 0} amount={n} colour={d === "Overdue" ? "var(--bad)" : "var(--c-confirmed)"} />;
             })}
           </Card>
         )}
@@ -130,7 +130,7 @@ export default function CtFilingList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("ct.search")} />
           <SelectFilter value={deadline} onChange={(v) => set("deadline", v)} allLabel={t("v201.allDeadline")}
-            options={DEADLINES.map((d) => ({ value: d, label: d }))} />
+            options={DEADLINES.map((d) => ({ value: d, label: tStatus(d) }))} />
         </FilterBar>
         <BulkDraftBar drafts={draftDelete} />
 

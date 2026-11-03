@@ -12,7 +12,7 @@ import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
@@ -218,7 +218,7 @@ export default function DeliveryNoteDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          <Pill cls={dnPill(data.status)}>{data.status || "—"}</Pill>
+          <Pill cls={dnPill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
 
@@ -228,7 +228,7 @@ export default function DeliveryNoteDetail() {
         aside={
           <Card title={t("dn.summary")}>
             <ReadRow k={t("dn.date")} v={date(data.posting_date)} />
-            <ReadRow k={t("dn.status")} v={data.status} />
+            <ReadRow k={t("dn.status")} v={tStatus(data.status)} />
             <ReadRow k={t("nav.warehouses")} v={data.set_warehouse || "—"} />
             <TxnTotals
               currency={cur}

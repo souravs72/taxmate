@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useSave } from "../../lib/resource";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
@@ -75,7 +75,7 @@ export default function EsrFilingDetail() {
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
-          <Pill cls={esrPill(data.status)}>{data.status || "—"}</Pill>
+          <Pill cls={esrPill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
       {saveError ? <ErrorBox error={saveError} /> : null}

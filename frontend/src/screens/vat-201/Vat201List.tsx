@@ -13,7 +13,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -150,7 +150,7 @@ export default function Vat201List() {
     },
     {
       key: "deadline", header: t("v201.col.deadline"),
-      cell: (r) => <Pill cls={deadlinePill(r.deadline_status)}>{r.deadline_status || "—"}</Pill>,
+      cell: (r) => <Pill cls={deadlinePill(r.deadline_status)}>{tStatus(r.deadline_status)}</Pill>,
     },
   ];
 
@@ -218,7 +218,7 @@ export default function Vat201List() {
           <SelectFilter value={status} onChange={(v) => set("status", v)} allLabel={t("v201.allStatus")}
             options={STATUSES.map((s) => ({ value: s, label: t(`v201.status.${s}`) }))} />
           <SelectFilter value={deadline} onChange={(v) => set("deadline", v)} allLabel={t("v201.allDeadline")}
-            options={DEADLINES.map((d) => ({ value: d, label: d }))} />
+            options={DEADLINES.map((d) => ({ value: d, label: tStatus(d) }))} />
         </FilterBar>
         <BulkDraftBar drafts={draftDelete} />
 

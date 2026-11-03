@@ -15,7 +15,7 @@ import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
@@ -201,7 +201,7 @@ export default function PurchaseReceiptDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          <Pill cls={prPill(data.status)}>{data.status || "—"}</Pill>
+          <Pill cls={prPill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
 

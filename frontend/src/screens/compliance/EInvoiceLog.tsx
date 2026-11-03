@@ -17,7 +17,7 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { useListParams, type FilterTuple } from "../../lib/list";
 import { datetime } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -139,7 +139,7 @@ export default function EInvoiceLog() {
     {
       key: "status",
       header: t("elog.col.status"),
-      cell: (r) => <Pill cls={elogPill(r.status)}>{r.status ?? "—"}</Pill>,
+      cell: (r) => <Pill cls={elogPill(r.status)}>{tStatus(r.status)}</Pill>,
     },
     { key: "modified", header: t("elog.col.updated"), cell: (r) => datetime(r.modified) },
     { key: "asp_document_id", header: t("einv.col.aspId"), cell: (r) => r.asp_document_id ? r.asp_document_id.slice(0, 12) + "…" : "—" },

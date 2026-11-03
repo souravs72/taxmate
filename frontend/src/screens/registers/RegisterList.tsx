@@ -15,7 +15,7 @@ import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList, useDocCount } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Pill } from "../../components/ui";
 import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
@@ -85,7 +85,7 @@ export default function RegisterList({ specKey }: { specKey: string }) {
         const value = row[col.field];
         if (col.date) return date(typeof value === "string" ? value : "");
         if (col.money) return money(typeof value === "number" || typeof value === "string" ? value : 0);
-        if (col.field === "status") return <Pill cls={statusPill(row.status)}>{row.status || "—"}</Pill>;
+        if (col.field === "status") return <Pill cls={statusPill(row.status)}>{tStatus(row.status)}</Pill>;
         return value == null || value === "" ? "—" : String(value);
       },
     })),

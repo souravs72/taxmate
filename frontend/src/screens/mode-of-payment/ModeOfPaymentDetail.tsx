@@ -10,7 +10,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import LineItems, { type LineField } from "../../components/LineItems";
@@ -65,12 +65,12 @@ export default function ModeOfPaymentDetail() {
           ) : (
             <Pill cls="p-cxl">{t("mop.disabled")}</Pill>
           )}
-          {data.type && <Pill cls="p-flat">{data.type}</Pill>}
+          {data.type && <Pill cls="p-flat">{tStatus(data.type)}</Pill>}
         </p>
       </PageHead>
       <Card>
         <div className="fg">
-          <ReadRow k={t("mop.col.type")} v={data.type || "—"} />
+          <ReadRow k={t("mop.col.type")} v={data.type ? tStatus(data.type) : "—"} />
           <ReadRow k={t("mop.col.enabled")} v={data.enabled ? t("yes") : t("no")} />
         </div>
       </Card>

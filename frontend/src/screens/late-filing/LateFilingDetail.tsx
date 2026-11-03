@@ -6,7 +6,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 
@@ -37,7 +37,7 @@ export default function LateFilingDetail() {
         actions={<DocHistory doctype={DT.lateFiling} name={name} />}
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
-          <Pill cls={latePill(data.status)}>{data.status || "—"}</Pill>
+          <Pill cls={latePill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
       <Card>

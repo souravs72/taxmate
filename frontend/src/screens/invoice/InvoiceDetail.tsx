@@ -10,7 +10,7 @@ import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite, eInvoiceLocked } from "../../lib/roles";
 import { date, datetime, money, qty } from "../../lib/format";
 import { EINVOICE_CHIP, INV_PILL_CLASS, invoiceUiStatus, isInvoiceOverdue } from "../../lib/status";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { CREDIT_NOTE_REASON_LABELS, creditNoteReasonCode } from "../../lib/creditNoteReason";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
@@ -358,7 +358,7 @@ export default function InvoiceDetail() {
 
           {log && (
             <Card title={t("inv.einv.log")} bodyClass="cbody">
-              <ReadRow k={t("inv.einv.logStatus")} v={log.status || "—"} />
+              <ReadRow k={t("inv.einv.logStatus")} v={tStatus(log.status)} />
               <ReadRow k={t("inv.einv.aspId")} v={<span className="mono">{log.asp_document_id || "—"}</span>} />
               <ReadRow k={t("inv.einv.updated")} v={datetime(log.modified)} />
             </Card>

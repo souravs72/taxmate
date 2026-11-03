@@ -10,7 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
@@ -189,7 +189,7 @@ export default function PurchaseInvoiceList() {
     { key: "outstanding", header: t("inv.col.outstanding"), className: "n", cell: (r) => money(r.outstanding_amount) },
     {
       key: "status", header: t("so.col.status"),
-      cell: (r) => <Pill cls={piPill(r.status)}>{r.status || "—"}</Pill>,
+      cell: (r) => <Pill cls={piPill(r.status)}>{tStatus(r.status)}</Pill>,
     },
   ];
 
@@ -266,7 +266,7 @@ export default function PurchaseInvoiceList() {
             value={status}
             onChange={(v) => set("status", v)}
             allLabel={t("filter.allStatuses")}
-            options={PI_STATUSES.map((s) => ({ value: s, label: s }))}
+            options={PI_STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
           />
         </FilterBar>
 

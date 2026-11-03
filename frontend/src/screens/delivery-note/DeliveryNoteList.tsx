@@ -10,7 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useFilteredCount, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money, pct } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, MiniBar, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
@@ -115,7 +115,7 @@ export default function DeliveryNoteList() {
     },
     {
       key: "status", header: t("dn.status"),
-      cell: (r) => <Pill cls={dnPill(r.status)}>{r.status || "—"}</Pill>,
+      cell: (r) => <Pill cls={dnPill(r.status)}>{tStatus(r.status)}</Pill>,
     },
   ];
 
@@ -145,7 +145,7 @@ export default function DeliveryNoteList() {
             value={status}
             onChange={(v) => set("status", v)}
             allLabel={t("filter.allStatuses")}
-            options={DN_STATUSES.map((s) => ({ value: s, label: s }))}
+            options={DN_STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
           />
         </FilterBar>
 

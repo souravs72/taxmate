@@ -11,7 +11,7 @@ import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { confirmCancel } from "../../lib/workflow";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { PrintLangButtons } from "../../components/PrintLangButtons";
 import DocHistory from "../../components/DocHistory";
@@ -146,7 +146,7 @@ export default function Vat201Detail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <Pill cls={statusPill(data.status)}>{data.status ? t(`v201.status.${data.status}`) : "—"}</Pill>
-          <Pill cls={deadlinePill(data.deadline_status)}>{data.deadline_status || "—"}</Pill>
+          <Pill cls={deadlinePill(data.deadline_status)}>{tStatus(data.deadline_status)}</Pill>
         </p>
       </PageHead>
       {busyError && <ErrorBox error={busyError} />}

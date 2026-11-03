@@ -64,7 +64,7 @@ export default function LandedCostVoucherDetail() {
   const items = (d.items as unknown[]) ?? [];
 
   const statusCls = docstatus === 1 ? "p-submitted" : docstatus === 2 ? "p-cancelled" : "p-draft";
-  const statusLabel = docstatus === 1 ? "Submitted" : docstatus === 2 ? "Cancelled" : "Draft";
+  const statusLabel = docstatus === 1 ? t("status.Submitted") : docstatus === 2 ? t("status.Cancelled") : t("status.Draft");
 
   return (
     <>

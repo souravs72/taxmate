@@ -8,7 +8,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { PrintLangButtons } from "../../components/PrintLangButtons";
 import DocHistory from "../../components/DocHistory";
@@ -65,7 +65,7 @@ export default function CtFilingDetail() {
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
-          <Pill cls={deadlinePill(data.deadline_status)}>{data.deadline_status || "—"}</Pill>
+          <Pill cls={deadlinePill(data.deadline_status)}>{tStatus(data.deadline_status)}</Pill>
         </p>
       </PageHead>
       {saveError ? <ErrorBox error={saveError} /> : null}

@@ -8,7 +8,7 @@ import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { formatLineDiscount, TxnTotals } from "../../components/txnFields";
 import { lineHasProductDiscount, productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
@@ -265,7 +265,7 @@ export default function PurchaseOrderDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          <Pill cls={poPill(data.status)}>{data.status || "—"}</Pill>
+          <Pill cls={poPill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
 

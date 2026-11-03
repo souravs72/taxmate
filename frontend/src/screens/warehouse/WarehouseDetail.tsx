@@ -6,7 +6,7 @@ import { DT, METHOD } from "../../lib/frappe";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 
@@ -136,7 +136,7 @@ export default function WarehouseDetail() {
                     })
                   }
                 >
-                  Stock Transfer
+                  {t("wh.action.transfer")}
                 </button>
                 <button
                   type="button"
@@ -147,14 +147,14 @@ export default function WarehouseDetail() {
                     })
                   }
                 >
-                  Stock Adjustment
+                  {t("wh.action.adjustment")}
                 </button>
                 <button
                   type="button"
                   className="btn ghost"
                   onClick={() => nav(`/warehouses/${encodeURIComponent(name)}/edit`)}
                 >
-                  Edit warehouse
+                  {t("wh.action.edit")}
                 </button>
               </>
             ) : null}
@@ -168,9 +168,9 @@ export default function WarehouseDetail() {
           </Pill>
           <span>{wh.company || "—"}</span>
           <span>·</span>
-          <span>Parent: {wh.parent_warehouse || "—"}</span>
+          <span>{t("wh.col.parent")}: {wh.parent_warehouse || "—"}</span>
           <span>·</span>
-          <span>Stock account: {wh.account || "—"}</span>
+          <span>{t("wh.account")}: {wh.account || "—"}</span>
         </div>
       </PageHead>
 
@@ -186,43 +186,43 @@ export default function WarehouseDetail() {
       >
         <Card bodyClass="cbody">
           <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}>
-            Items in stock
+            {t("wh.stat.itemsInStock")}
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>
             {summary?.items_count ?? 0}
           </div>
           <div style={{ fontSize: 12, color: "var(--sub)", marginTop: 6 }}>
-            distinct items
+            {t("wh.stat.distinctItems")}
           </div>
         </Card>
 
         <Card bodyClass="cbody">
           <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}>
-            Total quantity
+            {t("wh.stat.totalQty")}
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>
             {summary?.total_qty ? Math.round(summary.total_qty) : 0}
           </div>
           <div style={{ fontSize: 12, color: "var(--sub)", marginTop: 6 }}>
-            pieces
+            {t("wh.stat.pieces")}
           </div>
         </Card>
 
         <Card bodyClass="cbody">
           <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}>
-            Stock value
+            {t("wh.stat.stockValue")}
           </div>
           <div style={{ fontSize: 26, fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>
             {cur} {money(summary?.total_value ?? 0)}
           </div>
           <div style={{ fontSize: 12, color: "var(--sub)", marginTop: 6 }}>
-            at valuation rate
+            {t("wh.stat.atValuationRate")}
           </div>
         </Card>
 
         <Card bodyClass="cbody">
           <div style={{ fontSize: 12.5, fontWeight: 500, color: "var(--sub)", marginBottom: 6 }}>
-            Gold weight
+            {t("wh.stat.goldWeight")}
           </div>
           <div style={{ fontSize: 28, fontWeight: 700, color: "var(--text)", lineHeight: 1.1 }}>
             {summary?.total_weight ? Math.round(summary.total_weight) : 0} g
@@ -272,14 +272,14 @@ export default function WarehouseDetail() {
             }}
           >
             <h2 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>
-              Stock in this warehouse
+              {t("wh.section.stockInWarehouse")}
             </h2>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12.5, color: "var(--sub)" }}>Search</span>
+              <span style={{ fontSize: 12.5, color: "var(--sub)" }}>{t("reg.ui.search")}</span>
               <input
                 className="ctl"
                 style={{ width: 190, padding: "4px 8px", fontSize: 12.5 }}
-                placeholder="Item name or code"
+                placeholder={t("wh.searchPlaceholder")}
                 value={query}
                 onChange={(e) => {
                   setQuery(e.target.value);
@@ -293,19 +293,19 @@ export default function WarehouseDetail() {
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)", color: "var(--sub)", fontSize: 11.5, textTransform: "uppercase" }}>
-                  <th style={{ textAlign: "left", padding: "8px 10px", fontWeight: 600 }}>ITEM</th>
-                  <th style={{ textAlign: "left", padding: "8px 10px", fontWeight: 600 }}>PURITY</th>
-                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>QTY</th>
-                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>WEIGHT (G)</th>
-                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>RATE ({cur})</th>
-                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>VALUE ({cur})</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", fontWeight: 600 }}>{t("wh.col.name")}</th>
+                  <th style={{ textAlign: "left", padding: "8px 10px", fontWeight: 600 }}>{t("wh.col.purity")}</th>
+                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>{t("wh.col.qty")}</th>
+                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>{t("wh.col.weight")}</th>
+                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>{t("wh.col.rate")} ({cur})</th>
+                  <th style={{ textAlign: "right", padding: "8px 10px", fontWeight: 600 }}>{t("wh.col.value")} ({cur})</th>
                 </tr>
               </thead>
               <tbody>
                 {pagedItems.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: "center", padding: "30px 10px", color: "var(--sub)" }}>
-                      {query ? "No items match your search." : "No stock items in this warehouse."}
+                      {query ? t("wh.noItemsFound") : t("wh.noStockItems")}
                     </td>
                   </tr>
                 ) : (
@@ -329,7 +329,7 @@ export default function WarehouseDetail() {
                                 whiteSpace: "nowrap",
                               }}
                             >
-                              Low stock
+                              {t("wh.lowStock")}
                             </span>
                           )}
                         </div>
@@ -372,8 +372,10 @@ export default function WarehouseDetail() {
             }}
           >
             <div>
-              Showing {filteredItems.length ? (page - 1) * PAGE_SIZE + 1 : 0} to{" "}
-              {Math.min(page * PAGE_SIZE, filteredItems.length)} of {filteredItems.length} items · 25 per page
+              {t("wh.showingRange")
+                .replace("{from}", String(filteredItems.length ? (page - 1) * PAGE_SIZE + 1 : 0))
+                .replace("{to}", String(Math.min(page * PAGE_SIZE, filteredItems.length)))
+                .replace("{total}", String(filteredItems.length))}
             </div>
             <button
               type="button"
@@ -381,7 +383,7 @@ export default function WarehouseDetail() {
               style={{ color: "var(--brand)", fontSize: 12.5, fontWeight: 500, padding: 0 }}
               onClick={() => nav(`/reports/Stock%20Balance?warehouse=${encodeURIComponent(name)}`)}
             >
-              Open full Stock Balance report
+              {t("wh.openStockBalance")}
             </button>
           </div>
         </Card>
@@ -389,10 +391,10 @@ export default function WarehouseDetail() {
         {/* Right Column: Low Stock + Recent Movements */}
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Low Stock Card */}
-          <Card title="Low stock" bodyClass="cbody">
+          <Card title={t("wh.lowStock")} bodyClass="cbody">
             {lowStock.length === 0 ? (
               <p style={{ margin: "6px 0", fontSize: 12.5, color: "var(--sub)" }}>
-                No items below reorder level.
+                {t("wh.noLowStock")}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -414,7 +416,7 @@ export default function WarehouseDetail() {
                         {row.item_name}
                       </div>
                       <div style={{ fontSize: 11.5, color: "var(--sub)", marginTop: 2 }}>
-                        Reorder level {row.reorder_level}
+                        {t("wh.reorderLevel")} {row.reorder_level}
                       </div>
                     </div>
                     <div
@@ -441,10 +443,10 @@ export default function WarehouseDetail() {
           </Card>
 
           {/* Recent movements Card */}
-          <Card title="Recent movements" bodyClass="cbody">
+          <Card title={t("wh.recentMovements")} bodyClass="cbody">
             {movements.length === 0 ? (
               <p style={{ margin: "6px 0", fontSize: 12.5, color: "var(--sub)" }}>
-                No recent stock movements recorded.
+                {t("wh.noMovements")}
               </p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -463,7 +465,7 @@ export default function WarehouseDetail() {
                     >
                       <div style={{ minWidth: 0, paddingRight: 8 }}>
                         <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text)" }}>
-                          {m.voucher_type}
+                          {tStatus(m.voucher_type)}
                         </div>
                         <div
                           style={{
@@ -500,7 +502,7 @@ export default function WarehouseDetail() {
                 style={{ color: "var(--brand)", fontSize: 12.5, fontWeight: 500, padding: 0 }}
                 onClick={() => nav(`/reports/Stock%20Ledger?warehouse=${encodeURIComponent(name)}`)}
               >
-                Open Stock Ledger
+                {t("wh.openStockLedger")}
               </button>
             </div>
           </Card>

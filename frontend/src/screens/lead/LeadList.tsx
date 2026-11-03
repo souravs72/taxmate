@@ -15,7 +15,7 @@ import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocList, useDocCount } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Pill } from "../../components/ui";
 import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
@@ -57,7 +57,7 @@ export default function LeadList() {
     { key: "name", header: t("lead.col.name"), cell: (r) => <span className="ordno">{r.lead_name || r.name}</span> },
     { key: "company", header: t("lead.col.company"), cell: (r) => r.company_name || "—" },
     { key: "date", header: t("lead.col.date"), cell: (r) => date(r.creation) },
-    { key: "status", header: t("lead.col.status"), cell: (r) => <Pill cls={leadPill(r.status)}>{r.status || "Open"}</Pill> },
+    { key: "status", header: t("lead.col.status"), cell: (r) => <Pill cls={leadPill(r.status)}>{tStatus(r.status || "Open")}</Pill> },
   ];
 
   const rows = list.data ?? [];

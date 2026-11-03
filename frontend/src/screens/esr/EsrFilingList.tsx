@@ -13,7 +13,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -76,7 +76,7 @@ export default function EsrFilingList() {
     { key: "auth", header: t("esr.col.auth"), cell: (r) => r.licence_authority || "—" },
     { key: "ndue", header: t("esr.col.notify"), className: "dt", cell: (r) => date(r.notification_due_date) },
     { key: "rdue", header: t("esr.col.report"), className: "dt", cell: (r) => date(r.report_due_date) },
-    { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={esrPill(r.status)}>{r.status || "—"}</Pill> },
+    { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={esrPill(r.status)}>{tStatus(r.status)}</Pill> },
   ];
 
   const rows = list.data ?? [];
@@ -106,7 +106,7 @@ export default function EsrFilingList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("esr.search")} />
           <SelectFilter value={status} onChange={(v) => set("status", v)} allLabel={t("v201.allStatus")}
-            options={STATUSES.map((s) => ({ value: s, label: s }))} />
+            options={STATUSES.map((s) => ({ value: s, label: tStatus(s) }))} />
         </FilterBar>
         <BulkDraftBar drafts={draftDelete} />
 

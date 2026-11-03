@@ -13,7 +13,7 @@ import { useFrappePostCall } from "frappe-react-sdk";
 import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { date, money } from "../../lib/format";
 import { DT, METHOD } from "../../lib/frappe";
 import { useInsertMapped, useOpenMapped } from "../../lib/openMapped";
@@ -195,7 +195,7 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>
         <div className="grid2">
-          <ReadRow k={t("reg.col.status")} v={<Pill cls={statusPill(data.status)}>{data.status || "—"}</Pill>} />
+          <ReadRow k={t("reg.col.status")} v={<Pill cls={statusPill(data.status)}>{tStatus(data.status)}</Pill>} />
           {spec.facts.map((fact) => {
             const value = data[fact.field];
             const shown = fact.date

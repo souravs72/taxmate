@@ -16,7 +16,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -77,9 +77,9 @@ export default function PickListList() {
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("picklist.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "purpose", header: t("picklist.col.purpose"), cell: (r) => r.purpose || "—" },
+    { key: "purpose", header: t("picklist.col.purpose"), cell: (r) => tStatus(r.purpose) },
     { key: "customer", header: t("picklist.col.customer"), cell: (r) => r.customer || "—" },
-    { key: "status", header: t("picklist.col.status"), cell: (r) => <Pill cls={pillCls(r.status)}>{r.status || "Open"}</Pill> },
+    { key: "status", header: t("picklist.col.status"), cell: (r) => <Pill cls={pillCls(r.status)}>{tStatus(r.status || "Open")}</Pill> },
     { key: "creation", header: t("picklist.col.date"), cell: (r) => date(r.creation) },
   ];
 

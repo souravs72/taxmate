@@ -6,7 +6,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
@@ -74,7 +74,7 @@ export default function JournalEntryDetail() {
             {t("nav.journals")}
           </button>
         }
-        title={data.voucher_type || data.name}
+        title={data.voucher_type ? tStatus(data.voucher_type) : data.name}
         actions={
           <DetailActions
             doctype={DT.journalEntry}
@@ -121,7 +121,7 @@ export default function JournalEntryDetail() {
         <Card>
           <div className="fg">
             <ReadRow k={t("inv.col.date")} v={date(data.posting_date)} />
-            <ReadRow k={t("je.col.type")} v={data.voucher_type || "—"} />
+            <ReadRow k={t("je.col.type")} v={data.voucher_type ? tStatus(data.voucher_type) : "—"} />
             <ReadRow k={t("je.col.remark")} v={data.user_remark || "—"} />
           </div>
         </Card>

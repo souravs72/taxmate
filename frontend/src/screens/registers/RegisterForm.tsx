@@ -11,7 +11,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import LinkField from "../../components/LinkField";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { METHOD } from "../../lib/frappe";
 import { stripForInsert } from "../../lib/openMapped";
 import { useInsert, useSave, useDoc } from "../../lib/resource";
@@ -373,7 +373,7 @@ function fieldControl(
     return (
       <select className="ctl" value={value} aria-label={t(field.label)} onChange={(event) => onChange(event.target.value)}>
         <option value="">—</option>
-        {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
+        {(field.options || []).map((option) => <option key={option} value={option}>{tStatus(option)}</option>)}
       </select>
     );
   }

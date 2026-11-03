@@ -7,7 +7,7 @@ import { DT, METHOD } from "../../lib/frappe";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, ErrorBox, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
@@ -112,7 +112,7 @@ function AccountNode({
         >
           <span className={group ? "" : "ordno"}>{row.value}</span>
         </button>
-        {row.root_type && <Pill cls="p-flat">{row.root_type}</Pill>}
+        {row.root_type && <Pill cls="p-flat">{tStatus(row.root_type)}</Pill>}
         {row.account_currency && (
           <span className="sub" style={{ margin: 0 }}>{row.account_currency}</span>
         )}

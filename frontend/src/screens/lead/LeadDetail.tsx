@@ -11,7 +11,7 @@ import { useOpenMapped } from "../../lib/openMapped";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 
@@ -77,7 +77,7 @@ export default function LeadDetail() {
         title={data.lead_name || data.name}
         actions={<DocHistory doctype={DT.lead} name={name} />}
       >
-        <Pill cls={leadPill(data.status)}>{data.status || "Open"}</Pill>
+        <Pill cls={leadPill(data.status)}>{tStatus(data.status || "Open")}</Pill>
         {writable && data.status !== "Converted" && (
           <>
             <button className="btn ghost" onClick={() => nav(`/leads/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>

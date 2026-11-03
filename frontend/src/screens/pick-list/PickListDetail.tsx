@@ -16,7 +16,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales, canCancelSales } from "../../lib/roles";
 import { qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
@@ -134,7 +134,7 @@ export default function PickListDetail() {
         <ReadRow k={t("picklist.col.customer")} v={data.customer || "—"} />
         {data.delivery_note && <ReadRow k={t("picklist.col.dn")} v={data.delivery_note} />}
         {data.work_order && <ReadRow k={t("picklist.col.wo")} v={data.work_order} />}
-        <ReadRow k={t("picklist.col.status")} v={<Pill cls={pillCls(data.status)}>{data.status || "Open"}</Pill>} />
+        <ReadRow k={t("picklist.col.status")} v={<Pill cls={pillCls(data.status)}>{tStatus(data.status || "Open")}</Pill>} />
       </Card>
       {draft && (
         <div className="mt-2">

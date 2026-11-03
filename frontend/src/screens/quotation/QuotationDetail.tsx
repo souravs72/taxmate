@@ -11,7 +11,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
@@ -149,7 +149,7 @@ export default function QuotationDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          <Pill cls={quotPill(data.status)}>{data.status || t("pay.status.Draft")}</Pill>
+          <Pill cls={quotPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
         </p>
       </PageHead>
 

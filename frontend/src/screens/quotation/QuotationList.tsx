@@ -12,7 +12,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
@@ -58,7 +58,7 @@ export default function QuotationList() {
     /* No `n` class, so the card inference had no money column and dropped the
        total off the card entirely. */
     { key: "total", header: t("quot.col.total"), role: "amount", cell: (r) => money(r.grand_total) },
-    { key: "status", header: t("quot.col.status"), cell: (r) => <Pill cls={quotPill(r.status)}>{r.status || t("pay.status.Draft")}</Pill> },
+    { key: "status", header: t("quot.col.status"), cell: (r) => <Pill cls={quotPill(r.status)}>{tStatus(r.status || "Draft")}</Pill> },
   ];
 
 

@@ -13,7 +13,7 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -71,7 +71,7 @@ export default function UboRegisterList() {
     { key: "name", header: t("ubo.col.name"), cell: (r) => <span className="ordno">{r.company || r.name}</span> },
     { key: "auth", header: t("esr.col.auth"), cell: (r) => r.licence_authority || "—" },
     { key: "reviewed", header: t("ubo.col.reviewed"), className: "dt", cell: (r) => date(r.last_reviewed_on) },
-    { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={uboPill(r.status)}>{r.status || "—"}</Pill> },
+    { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={uboPill(r.status)}>{tStatus(r.status)}</Pill> },
   ];
   const rows = list.data ?? [];
 
@@ -102,7 +102,7 @@ export default function UboRegisterList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("ubo.search")} />
           <SelectFilter value={status} onChange={(v) => set("status", v)} allLabel={t("v201.allStatus")}
-            options={STATUSES.map((s) => ({ value: s, label: s }))} />
+            options={STATUSES.map((s) => ({ value: s, label: tStatus(s) }))} />
         </FilterBar>
         <BulkDraftBar drafts={draftDelete} />
 

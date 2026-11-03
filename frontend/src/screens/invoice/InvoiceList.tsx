@@ -15,7 +15,7 @@ import {
   type InvStage, type InvUiStatus,
 } from "../../lib/status";
 import { UAE_EMIRATES } from "../../types/uae";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, ErrorBox, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
@@ -200,7 +200,7 @@ export default function InvoiceList() {
       key: "einvoice", header: t("inv.col.einvoice"),
       cell: (r) => (
         <span className={`echip ${r.uae_e_invoice_status ? EINVOICE_CHIP[r.uae_e_invoice_status] ?? "e-none" : "e-none"}`}>
-          {r.uae_e_invoice_status || "—"}
+          {r.uae_e_invoice_status ? tStatus(r.uae_e_invoice_status) : "—"}
         </span>
       ),
     },
@@ -292,11 +292,11 @@ export default function InvoiceList() {
           <SelectFilter
             value={einvoice} onChange={(v) => set("einvoice", v)}
             allLabel={t("inv.allEinvoice")}
-            options={E_STATES.map((x) => ({ value: x, label: x }))} />
+            options={E_STATES.map((x) => ({ value: x, label: tStatus(x) }))} />
           <SelectFilter
             value={emirate} onChange={(v) => set("emirate", v)}
             allLabel={t("inv.allEmirates")}
-            options={UAE_EMIRATES.map((x) => ({ value: x, label: x }))} />
+            options={UAE_EMIRATES.map((x) => ({ value: x, label: tStatus(x) }))} />
         </FilterBar>
 
         <BulkDraftBar

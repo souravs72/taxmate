@@ -13,7 +13,7 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -87,7 +87,7 @@ export default function LateFilingList() {
     { key: "src", header: t("lf.col.source"), role: "meta", cell: (r) => r.source_name || "—" },
     { key: "due", header: t("v201.col.due"), className: "dt", role: "subtitle", cell: (r) => date(r.due_date) },
     { key: "late", header: t("lf.col.days"), className: "n", role: "amount", cell: (r) => r.days_late ?? 0 },
-    { key: "status", header: t("so.col.status"), role: "status", cell: (r) => <Pill cls={latePill(r.status)}>{r.status || "—"}</Pill> },
+    { key: "status", header: t("so.col.status"), role: "status", cell: (r) => <Pill cls={latePill(r.status)}>{tStatus(r.status)}</Pill> },
   ];
   const rows = list.data ?? [];
 
@@ -129,9 +129,9 @@ export default function LateFilingList() {
         <FilterBar>
           <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("lf.search")} />
           <SelectFilter value={status} onChange={(v) => set("status", v)} allLabel={t("v201.allStatus")}
-            options={STATUSES.map((s) => ({ value: s, label: s }))} />
+            options={STATUSES.map((s) => ({ value: s, label: tStatus(s) }))} />
           <SelectFilter value={obligation} onChange={(v) => set("obligation", v)} allLabel={t("lf.allObl")}
-            options={OBLIGATIONS.map((s) => ({ value: s, label: s }))} />
+            options={OBLIGATIONS.map((s) => ({ value: s, label: tStatus(s) }))} />
         </FilterBar>
         <BulkDraftBar drafts={draftDelete} />
 

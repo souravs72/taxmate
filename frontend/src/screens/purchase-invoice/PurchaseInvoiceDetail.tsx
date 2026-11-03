@@ -8,7 +8,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite, eInvoiceLocked } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
@@ -163,7 +163,7 @@ export default function PurchaseInvoiceDetail() {
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
-          <Pill cls={piPill(data.status)}>{data.status || "—"}</Pill>
+          <Pill cls={piPill(data.status)}>{tStatus(data.status)}</Pill>
           {data.bill_no && <span className="pill p-flat">{data.bill_no}</span>}
         </p>
       </PageHead>

@@ -9,7 +9,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import LinkField from "../../components/LinkField";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
@@ -120,7 +120,7 @@ export default function LeadForm() {
             </Field>
             <Field label={t("lead.col.status")}>
               <select className="ctl" value={form.status} onChange={(e) => setField("status", e.target.value)}>
-                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                {STATUSES.map((s) => <option key={s} value={s}>{tStatus(s)}</option>)}
               </select>
             </Field>
             <Field label={t("lead.col.city")}>

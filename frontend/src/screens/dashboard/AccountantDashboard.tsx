@@ -22,7 +22,7 @@ import { canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
 import { getLocale } from "../../lib/i18n";
 import { useIsPhone } from "../../lib/useMedia";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { whole } from "../../components/charts";
 import { DashSwitch } from "./DashSwitch";
@@ -905,7 +905,7 @@ function CalendarCard({ items, cur }: { items: Payload["calendar"]; cur: string 
         if (f.kind === "ubo") {
           return (
             <button key={f.name} type="button" className="od-cmp-i" onClick={() => nav(`/ubo/${encodeURIComponent(f.name)}`)}>
-              <Pill cls={f.status === "Compliant" ? "p-done" : f.status === "Overdue" ? "p-overdue" : "p-warn"}>{f.status || "—"}</Pill>
+              <Pill cls={f.status === "Compliant" ? "p-done" : f.status === "Overdue" ? "p-overdue" : "p-warn"}>{tStatus(f.status)}</Pill>
               <b>{t("ad.ubo")}</b>
               <span className="od-muted">{f.last_reviewed ? fill(t("ad.ubo.reviewed"), { d: date(f.last_reviewed) }) : t("ad.ubo.never")}</span>
               <span>{fill(t("ad.ubo.owners"), { n: f.owners })}</span>

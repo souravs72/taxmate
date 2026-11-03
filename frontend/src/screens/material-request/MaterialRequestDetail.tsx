@@ -18,7 +18,7 @@ import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
@@ -319,7 +319,7 @@ export default function MaterialRequestDetail() {
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
           <span className="ordno">{data.name}</span>
-          <Pill cls={mrPill(data.status)}>{data.status || t("pay.status.Draft")}</Pill>
+          <Pill cls={mrPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
         </p>
       </PageHead>
 
@@ -402,7 +402,7 @@ export default function MaterialRequestDetail() {
         {tab === "more" && (
           <Card title={t("mr.tab.more")}>
             <div className="fg">
-              <ReadRow k={t("mr.col.status")} v={data.status || "—"} />
+              <ReadRow k={t("mr.col.status")} v={tStatus(data.status)} />
               <ReadRow k={t("mr.ordered")} v={`${Number(data.per_ordered || 0)}%`} />
               <ReadRow k={t("mr.received")} v={`${Number(data.per_received || 0)}%`} />
               <ReadRow k={t("mr.priceList")} v={data.buying_price_list || "—"} />

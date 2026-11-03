@@ -13,7 +13,7 @@ import { useDocCount, useDocList } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Loading, PageHead } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
@@ -48,7 +48,7 @@ export default function ModeOfPaymentList() {
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("mop.col.name"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "type", header: t("mop.col.type"), cell: (r) => r.type || "—" },
+    { key: "type", header: t("mop.col.type"), cell: (r) => r.type ? tStatus(r.type) : "—" },
     { key: "enabled", header: t("mop.col.enabled"), cell: (r) => r.enabled ? t("yes") : t("no") },
   ];
 

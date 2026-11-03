@@ -57,7 +57,7 @@ export default function LandedCostVoucherList() {
     },
     { key: "docstatus", header: t("lcv.col.status"), cell: (r) => {
       const cls = r.docstatus === 1 ? "p-submitted" : r.docstatus === 2 ? "p-cancelled" : "p-draft";
-      const lbl = r.docstatus === 1 ? "Submitted" : r.docstatus === 2 ? "Cancelled" : "Draft";
+      const lbl = r.docstatus === 1 ? t("status.Submitted") : r.docstatus === 2 ? t("status.Cancelled") : t("status.Draft");
       return <Pill cls={cls}>{lbl}</Pill>;
     }},
   ];

@@ -15,7 +15,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Pill } from "../../components/ui";
 import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
@@ -64,7 +64,7 @@ export default function SupplierQuotationList() {
     { key: "date", header: t("sq.col.date"), cell: (r) => date(r.transaction_date) },
     {
       key: "status", header: t("sq.col.status"),
-      cell: (r) => <Pill cls={sqPill(r.status)}>{r.status || "Draft"}</Pill>,
+      cell: (r) => <Pill cls={sqPill(r.status)}>{tStatus(r.status || "Draft")}</Pill>,
     },
     { key: "total", header: t("sq.col.total"), role: "amount", cell: (r) => `${r.currency || ""} ${money(r.grand_total)}`.trim() },
   ];

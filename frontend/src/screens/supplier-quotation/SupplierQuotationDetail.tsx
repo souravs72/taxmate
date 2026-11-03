@@ -15,7 +15,7 @@ import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { confirmCancel } from "../../lib/workflow";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
@@ -129,7 +129,7 @@ export default function SupplierQuotationDetail() {
         title={data.name}
         actions={<DocHistory doctype={DT.supplierQuotation} name={name} />}
       >
-        <Pill cls={sqPill(data.status)}>{data.status || "Draft"}</Pill>
+        <Pill cls={sqPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
         {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
         {!isNative() && (
         <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.supplierQuotation, name), "_blank", "noopener")}>

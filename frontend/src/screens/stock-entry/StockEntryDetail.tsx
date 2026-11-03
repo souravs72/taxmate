@@ -13,7 +13,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
@@ -82,7 +82,7 @@ export default function StockEntryDetail() {
             {t("nav.stockEntries")}
           </button>
         }
-        title={data.stock_entry_type || data.name}
+        title={data.stock_entry_type ? tStatus(data.stock_entry_type) : data.name}
         actions={
           <DetailActions
             doctype={DT.stockEntry}
@@ -133,7 +133,7 @@ export default function StockEntryDetail() {
       }>
         <Card>
           <div className="fg">
-            <ReadRow k={t("se.purpose")} v={data.stock_entry_type || "—"} />
+            <ReadRow k={t("se.purpose")} v={data.stock_entry_type ? tStatus(data.stock_entry_type) : "—"} />
             <ReadRow k={t("se.check.date")} v={date(data.posting_date)} />
             <ReadRow k={t("coa.company")} v={data.company || "—"} />
           </div>

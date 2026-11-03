@@ -15,7 +15,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -73,7 +73,7 @@ export default function StockEntryList() {
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("se.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "type", header: t("se.col.type"), cell: (r) => r.stock_entry_type || "—" },
+    { key: "type", header: t("se.col.type"), cell: (r) => r.stock_entry_type ? tStatus(r.stock_entry_type) : "—" },
     { key: "date", header: t("se.col.date"), cell: (r) => date(r.posting_date) },
     { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={sePill(r.docstatus)}>{seStatus(r.docstatus)}</Pill> },
   ];

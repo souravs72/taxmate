@@ -13,7 +13,7 @@ import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { confirmCancel } from "../../lib/workflow";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 
@@ -102,7 +102,7 @@ export default function WorkOrderDetail() {
         }
       >
         <p className="sub" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 7 }}>
-          <Pill cls={woPill(data.status)}>{data.status || "Draft"}</Pill>
+          <Pill cls={woPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
         </p>
       </PageHead>
       {actionError ? <ErrorBox error={actionError} /> : null}

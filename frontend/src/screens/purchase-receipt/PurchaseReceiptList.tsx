@@ -10,7 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money, pct } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, Legend, Loading, MiniBar, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, LinkFilter, SearchFilter, SelectFilter } from "../../components/filters";
@@ -172,7 +172,7 @@ export default function PurchaseReceiptList() {
     },
     {
       key: "status", header: t("so.col.status"),
-      cell: (r) => <Pill cls={prPill(r.status)}>{r.status || "—"}</Pill>,
+      cell: (r) => <Pill cls={prPill(r.status)}>{tStatus(r.status)}</Pill>,
     },
   ];
 
@@ -249,7 +249,7 @@ export default function PurchaseReceiptList() {
             value={status}
             onChange={(v) => set("status", v)}
             allLabel={t("filter.allStatuses")}
-            options={PR_STATUSES.map((s) => ({ value: s, label: s }))}
+            options={PR_STATUSES.map((s) => ({ value: s, label: tStatus(s) }))}
           />
         </FilterBar>
 

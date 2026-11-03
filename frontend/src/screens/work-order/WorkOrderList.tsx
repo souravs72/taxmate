@@ -14,7 +14,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Pill } from "../../components/ui";
 import { ListScreen } from "../../components/screen";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
@@ -60,7 +60,7 @@ export default function WorkOrderList() {
     { key: "item", header: t("wo.col.item"), cell: (r) => r.item_name || "—" },
     { key: "qty", header: t("wo.col.qty"), cell: (r) => `${r.produced_qty ?? 0} / ${r.qty ?? 0}` },
     { key: "start", header: t("wo.col.start"), cell: (r) => date(r.planned_start_date) },
-    { key: "status", header: t("wo.col.status"), cell: (r) => <Pill cls={woPill(r.status)}>{r.status || "Draft"}</Pill> },
+    { key: "status", header: t("wo.col.status"), cell: (r) => <Pill cls={woPill(r.status)}>{tStatus(r.status || "Draft")}</Pill> },
   ];
 
 

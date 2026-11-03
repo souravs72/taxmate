@@ -13,7 +13,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, money, qty } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
@@ -51,7 +51,7 @@ export default function StockReconciliationDetail() {
             {t("nav.stockReconciliations")}
           </button>
         }
-        title={data.purpose || data.name}
+        title={data.purpose ? tStatus(data.purpose) : data.name}
         actions={
           <>
             <DocHistory doctype={DT.stockReconciliation} name={name} />
@@ -109,7 +109,7 @@ export default function StockReconciliationDetail() {
       <FormLayout>
         <Card>
           <div className="fg">
-            <ReadRow k={t("sr.purpose")} v={data.purpose || "—"} />
+            <ReadRow k={t("sr.purpose")} v={data.purpose ? tStatus(data.purpose) : "—"} />
             <ReadRow k={t("sr.check.date")} v={date(data.posting_date)} />
             {data.difference_account && (
               <ReadRow k={t("sr.differenceAccount")} v={data.difference_account} />

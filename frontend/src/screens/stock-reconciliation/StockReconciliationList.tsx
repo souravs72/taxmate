@@ -15,7 +15,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { useListParams } from "../../lib/list";
 import { date } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, PageHead, Pill } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -67,7 +67,7 @@ export default function StockReconciliationList() {
 
   const columns: Column<Row>[] = [
     { key: "name", header: t("sr.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "purpose", header: t("sr.col.purpose"), cell: (r) => r.purpose || "—" },
+    { key: "purpose", header: t("sr.col.purpose"), cell: (r) => r.purpose ? tStatus(r.purpose) : "—" },
     { key: "date", header: t("sr.col.date"), cell: (r) => date(r.posting_date) },
     { key: "status", header: t("so.col.status"), cell: (r) => <Pill cls={srPill(r.docstatus)}>{srStatus(r.docstatus)}</Pill> },
   ];

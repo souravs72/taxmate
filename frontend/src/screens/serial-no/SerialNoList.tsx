@@ -11,7 +11,7 @@ import { canWrite } from "../../lib/roles";
 import BulkDraftBar from "../../components/BulkDraftBar";
 import { useDocCount, useDocList } from "../../lib/resource";
 import { useListParams } from "../../lib/list";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, Loading, PageHead } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter } from "../../components/filters";
@@ -44,7 +44,7 @@ export default function SerialNoList() {
     { key: "item_code", header: t("sn.col.item"), cell: (r) => r.item_code ?? "" },
     { key: "batch_no", header: t("sn.col.batch"), cell: (r) => r.batch_no ?? "" },
     { key: "warehouse", header: t("sn.col.warehouse"), cell: (r) => r.warehouse ?? "" },
-    { key: "status", header: t("sn.col.status"), cell: (r) => r.status ?? "" },
+    { key: "status", header: t("sn.col.status"), cell: (r) => tStatus(r.status) },
   ];
 
   const rows = list.data ?? [];

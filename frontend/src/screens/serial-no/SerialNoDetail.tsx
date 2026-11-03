@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc, useSave } from "../../lib/resource";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 
@@ -78,7 +78,7 @@ export default function SerialNoDetail() {
           </Field>
           <Field label={t("sn.batch")}><span>{d.batch_no || "—"}</span></Field>
           <Field label={t("sn.warehouse")}><span>{d.warehouse || "—"}</span></Field>
-          <Field label={t("sn.status")}><span>{d.status || "—"}</span></Field>
+          <Field label={t("sn.status")}><span>{tStatus(d.status)}</span></Field>
           <Field label={t("sn.warranty")}>
             <input className="ctl" type="date" value={warranty} onChange={(e) => setWarranty(e.target.value)} />
           </Field>

@@ -10,7 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { groupRow, useGroupedAggregate, useListParams, type FilterTuple } from "../../lib/list";
 import { date, money } from "../../lib/format";
-import { t } from "../../i18n/strings";
+import { t, tStatus } from "../../i18n/strings";
 import { BarRow, Card, Donut, Legend, Loading, PageHead, Pill, StatTile } from "../../components/ui";
 import { DataTable, ListFooter, type Column } from "../../components/DataTable";
 import { FilterBar, SearchFilter, SelectFilter } from "../../components/filters";
@@ -132,7 +132,7 @@ export default function JournalEntryList() {
   const columns: Column<Row>[] = [
     { key: "name", header: t("je.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
     { key: "date", header: t("inv.col.date"), className: "dt", cell: (r) => date(r.posting_date) },
-    { key: "type", header: t("je.col.type"), cell: (r) => r.voucher_type || "—" },
+    { key: "type", header: t("je.col.type"), cell: (r) => r.voucher_type ? tStatus(r.voucher_type) : "—" },
     {
       key: "debit", header: t("je.col.debit"), className: "n tot",
       cell: (r) => money(r.total_debit),
@@ -214,7 +214,7 @@ export default function JournalEntryList() {
             value={type}
             onChange={(v) => set("type", v)}
             allLabel={t("je.allTypes")}
-            options={TYPES.map((s) => ({ value: s, label: s }))}
+            options={TYPES.map((s) => ({ value: s, label: tStatus(s) }))}
           />
           <SelectFilter
             value={status}
