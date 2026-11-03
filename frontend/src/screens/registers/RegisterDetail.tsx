@@ -6,7 +6,7 @@
  * User: build Opportunity, Request for Quotation, Shipment, Installation Note,
  * Delivery Trip, Payment Request, and the two subcontracting documents.
  */
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
@@ -52,17 +52,17 @@ function statusPill(status?: string): string {
   return "p-flat";
 }
 
-const lineFields: LineField<Line>[] = [
-  { key: "item", label: "Item", slot: "title", render: (row) => row.item_code || row.item_name || row.delivery_note || row.customer || row.address || "—" },
-  { key: "qty", label: "Qty", slot: "primary", render: (row) => row.qty ?? "—" },
-];
-
 export default function RegisterDetail({ specKey }: { specKey: string }) {
   const spec = REGISTERS[specKey];
   const { name = "" } = useParams();
   const nav = useNavigate();
   const session = useSession();
   const doc = useDoc<Doc>(spec.doctype, name);
+
+  const lineFields = useMemo<LineField<Line>[]>(() => [
+    { key: "item", label: t("reg.ui.item"), slot: "title", render: (row) => row.item_code || row.item_name || row.delivery_note || row.customer || row.address || "—" },
+    { key: "qty", label: t("reg.ui.qty"), slot: "primary", render: (row) => row.qty ?? "—" },
+  ], []);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
   const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
@@ -143,16 +143,16 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
               <>
                 {spec.doctype === "Opportunity" && !lost && (
                   <button type="button" className="btn ghost" disabled={busy} onClick={() => void quote.open(() => makeQuote.call({ source_name: name }))}>
-                    Quotation
+                    {t("reg.ui.quotation")}
                   </button>
                 )}
                 {spec.doctype === "Opportunity" && !lost && hasItems && (
                   <>
                     <button type="button" className="btn ghost" disabled={busy} onClick={() => void rfq.open(() => makeRfq.call({ source_name: name }))}>
-                      Request for Quotation
+                      {t("reg.ui.rfqOne")}
                     </button>
                     <button type="button" className="btn ghost" disabled={busy} onClick={() => void supplierQuote.open(() => makeSq.call({ source_name: name }))}>
-                      Supplier Quotation
+                      {t("reg.ui.supplierQuotation")}
                     </button>
                   </>
                 )}
@@ -160,12 +160,12 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
                   <button type="button" className="btn ghost" disabled={busy} onClick={() => void setOpportunityStatus("Closed")}>{t("hist.close")}</button>
                 )}
                 {spec.doctype === "Opportunity" && writable && data.status && data.status !== "Open" && (
-                  <button type="button" className="btn ghost" disabled={busy} onClick={() => void setOpportunityStatus("Open")}>Reopen</button>
+                  <button type="button" className="btn ghost" disabled={busy} onClick={() => void setOpportunityStatus("Open")}>{t("reg.ui.reopen")}</button>
                 )}
                 {spec.doctype === "Request for Quotation" && data.docstatus === 1 && suppliers.length > 0 && (
                   <>
-                    <Field label="Supplier">
-                      <select className="ctl" aria-label="Supplier" value={supplier} onChange={(event) => setSupplier(event.target.value)}>
+                    <Field label={t("reg.ui.supplier")}>
+                      <select className="ctl" aria-label={t("reg.ui.supplier")} value={supplier} onChange={(event) => setSupplier(event.target.value)}>
                         <option value="">—</option>
                         {suppliers.map((row) => (
                           <option key={row.supplier} value={row.supplier}>{row.supplier}</option>
@@ -178,7 +178,7 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
                       disabled={busy || !supplier}
                       onClick={() => void supplierQuote.open(() => makeSqFromRfq.call({ source_name: name, for_supplier: supplier }))}
                     >
-                      Supplier Quotation
+                      {t("reg.ui.supplierQuotation")}
                     </button>
                   </>
                 )}
@@ -195,7 +195,7 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>
         <div className="grid2">
-          <ReadRow k="Status" v={<Pill cls={statusPill(data.status)}>{data.status || "—"}</Pill>} />
+          <ReadRow k={t("reg.col.status")} v={<Pill cls={statusPill(data.status)}>{data.status || "—"}</Pill>} />
           {spec.facts.map((fact) => {
             const value = data[fact.field];
             const shown = fact.date
@@ -203,7 +203,7 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
               : fact.money
                 ? money(typeof value === "number" || typeof value === "string" ? value : 0)
                 : (value == null || value === "" ? "—" : String(value));
-            return <ReadRow key={fact.key} k={fact.label} v={shown} />;
+            return <ReadRow key={fact.key} k={t(fact.label)} v={shown} />;
           })}
         </div>
       </Card>

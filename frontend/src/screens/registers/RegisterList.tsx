@@ -75,12 +75,12 @@ export default function RegisterList({ specKey }: { specKey: string }) {
   const columns: Column<Row>[] = [
     {
       key: "name",
-      header: "Name",
+      header: t("reg.col.name"),
       cell: (row) => <span className="ordno">{row.name}</span>,
     },
     ...spec.columns.filter((col) => col.field !== "name").map((col) => ({
       key: col.key,
-      header: col.label,
+      header: t(col.label),
       cell: (row: Row) => {
         const value = row[col.field];
         if (col.date) return date(typeof value === "string" ? value : "");
@@ -96,13 +96,13 @@ export default function RegisterList({ specKey }: { specKey: string }) {
       title={title}
       primary={spec.standalone ? (
         <IfCanWrite>
-          <button type="button" className="btn" onClick={() => nav(`${spec.path}/new`)}>New</button>
+          <button type="button" className="btn" onClick={() => nav(`${spec.path}/new`)}>{t("reg.ui.new")}</button>
         </IfCanWrite>
       ) : undefined}
     >
       <Card bodyClass={null as unknown as string}>
         <FilterBar>
-          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder="Search" />
+          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("reg.ui.search")} />
         </FilterBar>
         <BulkDraftBar drafts={draftDelete} />
         <DataTable<Row>
@@ -110,7 +110,7 @@ export default function RegisterList({ specKey }: { specKey: string }) {
           rowKey={(row) => row.name}
           onOpen={(row) => nav(`${spec.path}/${encodeURIComponent(row.name)}`)}
           state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-          emptyLabel={spec.empty}
+          emptyLabel={t(spec.empty)}
           columns={columns}
           selection={draftDelete.selection(rows)}
         />

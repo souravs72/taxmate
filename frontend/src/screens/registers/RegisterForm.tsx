@@ -103,11 +103,11 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
     if (!draft) return;
     const missing = spec.fields.find((field) => field.required && !textOf(draft, field.key).trim());
     if (missing) {
-      setSaveError(new Error(`${missing.label} is required`));
+      setSaveError(new Error(t("reg.err.required").replace("{field}", t(missing.label))));
       return;
     }
     if (spec.suppliers && !suppliers.some((row) => row.supplier)) {
-      setSaveError(new Error("Supplier is required"));
+      setSaveError(new Error(t("reg.err.required").replace("{field}", t("reg.ui.supplier"))));
       return;
     }
     if (spec.doctype === "Opportunity" && lines.some((row) => row.item_code && !(Number(row.qty) > 0))) {
@@ -162,17 +162,17 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
       <Card title={t(spec.titleKey)}>
         <div className="grid2">
           {spec.fields.map((field) => (
-            <Field key={field.key} label={field.label} required={field.required}>
+            <Field key={field.key} label={t(field.label)} required={field.required}>
               {fieldControl(field, textOf(draft, field.key), partyDoctype, (value) => setField(field.key, value))}
             </Field>
           ))}
         </div>
       </Card>
       {spec.suppliers ? (
-        <Card title="Suppliers">
+        <Card title={t("reg.ui.suppliers")}>
           {suppliers.map((row, index) => (
             <div className="grid2" key={row.name || index}>
-              <Field label="Supplier" required>
+              <Field label={t("reg.ui.supplier")} required>
                 <LinkField
                   doctype="Supplier"
                   value={row.supplier || ""}
@@ -226,13 +226,13 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
         </Card>
       ) : null}
       {spec.linesKey === "delivery_stops" ? (
-        <Card title="Stops">
+        <Card title={t("reg.ui.stops")}>
           {((draft?.delivery_stops as StopRow[] | undefined) ?? []).map((row, index) => (
             <div className="grid2" key={row.name || index}>
-              <Field label="Customer">
-                <input className="ctl" value={row.customer || ""} readOnly aria-label="Customer" />
+              <Field label={t("reg.col.customer")}>
+                <input className="ctl" value={row.customer || ""} readOnly aria-label={t("reg.col.customer")} />
               </Field>
-              <Field label="Address" required>
+              <Field label={t("reg.ui.address")} required>
                 <LinkField
                   doctype="Address"
                   value={row.address || ""}
@@ -248,15 +248,15 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
         </Card>
       ) : null}
       {spec.doctype === "Shipment" ? (
-        <Card title="Parcels">
+        <Card title={t("reg.ui.parcels")}>
           {((draft?.shipment_parcel as ParcelRow[] | undefined) ?? []).map((row, index) => (
             <div className="grid2" key={row.name || index}>
-              <Field label="Weight (kg)" required>
+              <Field label={t("reg.ui.weightKg")} required>
                 <input
                   className="ctl"
                   type="number"
                   min="0"
-                  aria-label="Weight (kg)"
+                  aria-label={t("reg.ui.weightKg")}
                   value={row.weight ?? ""}
                   onChange={(event) => setDraft((current) => {
                     const next = [...((current?.shipment_parcel as ParcelRow[] | undefined) ?? [])];
@@ -265,12 +265,12 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
                   })}
                 />
               </Field>
-              <Field label="Count" required>
+              <Field label={t("reg.ui.count")} required>
                 <input
                   className="ctl"
                   type="number"
                   min="1"
-                  aria-label="Count"
+                  aria-label={t("reg.ui.count")}
                   value={row.count ?? ""}
                   onChange={(event) => setDraft((current) => {
                     const next = [...((current?.shipment_parcel as ParcelRow[] | undefined) ?? [])];
@@ -294,15 +294,15 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
         </Card>
       ) : null}
       {spec.linesKey && !spec.editLines && spec.linesKey !== "delivery_stops" ? (
-        <Card title={spec.linesKey === "shipment_delivery_note" ? "Delivery notes" : "Items"}>
+        <Card title={spec.linesKey === "shipment_delivery_note" ? t("reg.ui.deliveryNotes") : t("reg.ui.items")}>
           {((draft?.[spec.linesKey] as Line[] | undefined) ?? []).map((row, index) => (
             <div className="grid2" key={row.name || index}>
-              <Field label={spec.linesKey === "shipment_delivery_note" ? "Delivery note" : "Item"}>
-                <input className="ctl" readOnly aria-label="Line" value={row.delivery_note || row.item_code || row.item_name || ""} />
+              <Field label={spec.linesKey === "shipment_delivery_note" ? t("reg.ui.deliveryNote") : t("reg.ui.item")}>
+                <input className="ctl" readOnly aria-label={t("reg.ui.line")} value={row.delivery_note || row.item_code || row.item_name || ""} />
               </Field>
               {row.qty != null ? (
-                <Field label="Qty">
-                  <input className="ctl" readOnly aria-label="Qty" value={String(row.qty)} />
+                <Field label={t("reg.ui.qty")}>
+                  <input className="ctl" readOnly aria-label={t("reg.ui.qty")} value={String(row.qty)} />
                 </Field>
               ) : null}
             </div>
@@ -310,10 +310,10 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
         </Card>
       ) : null}
       {spec.editLines ? (
-        <Card title="Items">
+        <Card title={t("reg.ui.items")}>
           {lines.map((row, index) => (
             <div className="grid2" key={row.name || index}>
-              <Field label="Item" required>
+              <Field label={t("reg.ui.item")} required>
                 <LinkField
                   doctype="Item"
                   value={row.item_code || ""}
@@ -324,7 +324,7 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
                   }}
                 />
               </Field>
-              <Field label="Qty" required>
+              <Field label={t("reg.ui.qty")} required>
                 <input
                   className="ctl"
                   type="number"
@@ -358,20 +358,20 @@ function fieldControl(
   partyDoctype: string,
   onChange: (value: string) => void,
 ) {
-  if (field.readOnly) return <input className="ctl" value={value} readOnly aria-label={field.label} />;
+  if (field.readOnly) return <input className="ctl" value={value} readOnly aria-label={t(field.label)} />;
   if (field.kind === "link") {
     return (
       <LinkField
         doctype={field.key === "party_name" ? partyDoctype : (field.link || "")}
         value={value}
         onChange={onChange}
-        placeholder={field.label}
+        placeholder={t(field.label)}
       />
     );
   }
   if (field.kind === "select") {
     return (
-      <select className="ctl" value={value} aria-label={field.label} onChange={(event) => onChange(event.target.value)}>
+      <select className="ctl" value={value} aria-label={t(field.label)} onChange={(event) => onChange(event.target.value)}>
         <option value="">—</option>
         {(field.options || []).map((option) => <option key={option} value={option}>{option}</option>)}
       </select>
@@ -382,7 +382,7 @@ function fieldControl(
       <input
         className="ctl"
         type="datetime-local"
-        aria-label={field.label}
+        aria-label={t(field.label)}
         value={localDateTime(value)}
         onChange={(event) => onChange(frappeDateTime(event.target.value))}
       />
@@ -392,7 +392,7 @@ function fieldControl(
     <input
       className="ctl"
       type={field.kind === "date" ? "date" : field.kind === "number" ? "number" : "text"}
-      aria-label={field.label}
+      aria-label={t(field.label)}
       value={value}
       onChange={(event) => onChange(event.target.value)}
     />
