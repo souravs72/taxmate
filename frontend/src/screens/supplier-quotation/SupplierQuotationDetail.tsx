@@ -8,7 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
@@ -132,9 +132,7 @@ export default function SupplierQuotationDetail() {
         <Pill cls={sqPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
         {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
         {!isNative() && (
-        <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.supplierQuotation, name), "_blank", "noopener")}>
-          {t("inv.print")}
-        </button>
+          <PrintLangButtons doctype={DT.supplierQuotation} name={name} />
         )}
         {writable && data.docstatus === 0 && (
           <>

@@ -17,7 +17,7 @@ import DetailActions from "../../components/DetailActions";
 import UpdateItems from "../../components/UpdateItems";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { isNative } from "../../mobile/platform";
 
 type Line = {
@@ -183,9 +183,7 @@ export default function PurchaseOrderDetail() {
                 <>
                   {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                   {!isNative() && (
-                  <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseOrder, name), "_blank", "noopener")}>
-                    {t("inv.print")}
-                  </button>
+                    <PrintLangButtons doctype={DT.purchaseOrder} name={name} />
                   )}
                   {canReceive && (
                   <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void createDownstream("pr")}>
@@ -202,7 +200,7 @@ export default function PurchaseOrderDetail() {
                       <input
                         className="ctl"
                         value={holdReason}
-                        aria-label="Reason for hold"
+                        aria-label={t("act.holdReason")}
                         onChange={(event) => setHoldReason(event.target.value)}
                       />
                       <button type="button" className="btn ghost" disabled={setStatus.loading || !holdReason.trim()} onClick={() => void changeStatus("On Hold", holdReason)}>
@@ -212,7 +210,7 @@ export default function PurchaseOrderDetail() {
                   )}
                   {canChange && held && (
                     <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Draft")}>
-                      Resume
+                      {t("act.resume")}
                     </button>
                   )}
                   {canChange && (
@@ -229,7 +227,7 @@ export default function PurchaseOrderDetail() {
                       qty_change: Number(row.qty || 0) - Number(row.received_qty || 0),
                       selected: Number(row.qty || 0) > Number(row.received_qty || 0),
                     })))}>
-                      Deliver
+                      {t("act.deliver")}
                     </button>
                   )}
                   {data.docstatus === 1 && data.status !== "Closed" && (data.per_billed ?? 0) < 100 && (
@@ -241,7 +239,7 @@ export default function PurchaseOrderDetail() {
                   {data.docstatus === 1 && !held && data.status !== "Closed" && (data.per_billed ?? 0) < 100 && (
                     <button type="button" className="btn ghost" disabled={paymentRequest.busy}
                       onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.purchaseOrder, reference_name: name }))}>
-                      Payment Request
+                      {t("doc.paymentRequest")}
                     </button>
                   )}
                   {data.docstatus === 1 && !held && data.status !== "Closed" && !!data.is_subcontracted && !data.is_old_subcontracting_flow
@@ -249,12 +247,12 @@ export default function PurchaseOrderDetail() {
                     && (data.items ?? []).some((row) => Number(row.qty) !== Number(row.subcontracted_qty || 0)) && (
                     <button type="button" className="btn ghost" disabled={subcontract.busy}
                       onClick={() => void subcontract.open(() => makeSub.call({ source_name: name }))}>
-                      Subcontracting Order
+                      {t("doc.subOrder")}
                     </button>
                   )}
                   {writable && data.docstatus === 1 && stopped && (
                     <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Submitted")}>
-                      Re-open
+                      {t("act.reopen")}
                     </button>
                   )}
                 </>
@@ -306,7 +304,7 @@ export default function PurchaseOrderDetail() {
           <UpdateItems doctype={DT.purchaseOrder} name={name} items={lines} onSaved={() => void mutate()} />
         )}
         {dropRows && (
-          <Card title="Deliver">
+          <Card title={t("act.deliver")}>
             {dropRows.map((row, index) => (
               <div key={row.name} className="grid3" style={{ marginBottom: 8 }}>
                 <label className="ctl">
@@ -315,7 +313,7 @@ export default function PurchaseOrderDetail() {
                   {" "}{row.item_code}
                 </label>
                 <span className="ctl readonly">{row.received_qty ?? 0} / {row.qty ?? 0}</span>
-                <input className="ctl" type="number" aria-label="Quantity" value={row.qty_change}
+                <input className="ctl" type="number" aria-label={t("common.quantity")} value={row.qty_change}
                   onChange={(event) => setDropRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, qty_change: Number(event.target.value) } : item))} />
               </div>
             ))}

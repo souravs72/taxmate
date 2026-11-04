@@ -10,7 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
@@ -164,9 +164,7 @@ export default function PurchaseReceiptDetail() {
               <>
                 {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                 {!isNative() && (
-                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.purchaseReceipt, name), "_blank", "noopener")}>
-                  {t("inv.print")}
-                </button>
+                  <PrintLangButtons doctype={DT.purchaseReceipt} name={name} />
                 )}
                 {canBill && (
                   <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
@@ -191,7 +189,7 @@ export default function PurchaseReceiptDetail() {
                 )}
                 {canReopen && (
                   <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Submitted")}>
-                    Re-open
+                    {t("act.reopen")}
                   </button>
                 )}
               </>

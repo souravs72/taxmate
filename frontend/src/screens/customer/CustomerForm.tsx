@@ -295,7 +295,7 @@ export default function CustomerForm() {
                   nav(`/quotations/${encodeURIComponent(created.name)}/edit`);
                 }).catch((err) => setSaveError(err))}>{t("nav.quotations")}</button>
                 <button type="button" className="btn ghost" onClick={() => nav("/orders/new", { state: { mapped: { customer: name } } })}>{t("nav.salesOrders")}</button>
-                <button type="button" className="btn ghost" disabled={opportunity.busy} onClick={() => void opportunity.open(() => makeOpp.call({ source_name: name }))}>Opportunity</button>
+                <button type="button" className="btn ghost" disabled={opportunity.busy} onClick={() => void opportunity.open(() => makeOpp.call({ source_name: name }))}>{t("doc.opportunity")}</button>
                 <button type="button" className="btn ghost" onClick={() => nav(`/payments/new?type=Receive&party=${encodeURIComponent(name)}`)}>{t("sod.createPayment")}</button>
               </>
             ) : null}

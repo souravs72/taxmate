@@ -270,7 +270,7 @@ export default function MaterialRequestDetail() {
               </button>
               <button type="button" className="btn ghost" disabled={!!busy || rfq.busy}
                 onClick={() => void rfq.open(() => makeRfq.call({ source_name: name }))}>
-                Request for Quotation
+                {t("reg.ui.rfqOne")}
               </button>
               </>
             )}
@@ -286,7 +286,7 @@ export default function MaterialRequestDetail() {
             )}
             {canStop && (
               <button type="button" className="btn quiet" disabled={stopCall.loading} onClick={() => void stopRequest()}>
-                Stop
+                {t("act.stop")}
               </button>
             )}
             {submitted && isTransferOrIssue && (

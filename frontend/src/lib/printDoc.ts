@@ -1,18 +1,26 @@
-/** Desk print view. The server checks print permission; the SPA does not add an endpoint.
- * Callers: quotation, sales order, delivery note, invoice, and payment detail screens.
- * API: none. Opens /printview. `_lang` is Frappe's print language (form_dict._lang).
+/** The PDF link used by the print preview screen.
+ * Callers: screens/print/PrintPreview.tsx.
+ * Printing itself happens in the preview's iframe; nothing opens /printview
+ * directly any more, so nothing auto-triggers the browser print dialog.
  */
 
 import { getLang, type Lang } from "./i18n";
 
-export function printDocUrl(doctype: string, name: string, format?: string, lang?: Lang): string {
+/** Frappe's PDF endpoint for one document, in one language. */
+export function printPdfUrl(
+  doctype: string,
+  name: string,
+  format?: string,
+  lang?: Lang,
+  letterhead = true,
+): string {
+  // download_pdf takes `language`, not printview's `_lang`.
   const p = new URLSearchParams({
     doctype,
     name,
-    trigger_print: "1",
-    no_letterhead: "0",
-    _lang: lang ?? getLang(),
+    no_letterhead: letterhead ? "0" : "1",
+    language: lang ?? getLang(),
   });
   if (format) p.set("format", format);
-  return `/printview?${p.toString()}`;
+  return `/api/method/frappe.utils.print_format.download_pdf?${p.toString()}`;
 }

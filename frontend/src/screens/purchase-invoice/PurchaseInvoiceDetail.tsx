@@ -147,7 +147,7 @@ export default function PurchaseInvoiceDetail() {
                 {submitted && !data.is_return && !data.on_hold && outstanding > 0 && (
                   <button type="button" className="btn ghost" disabled={paymentRequest.busy}
                     onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.purchaseInvoice, reference_name: name }))}>
-                    Payment Request
+                    {t("doc.paymentRequest")}
                   </button>
                 )}
                 {submitted && !data.is_return && (outstanding >= 0 || Math.abs(outstanding) < grand) && (

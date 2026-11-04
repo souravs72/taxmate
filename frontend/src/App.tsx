@@ -203,6 +203,7 @@ import UaeCapitalGoodsList from "./screens/uae-capital-goods/UaeCapitalGoodsList
 import UaeCapitalGoodsForm from "./screens/uae-capital-goods/UaeCapitalGoodsForm";
 import NotFound from "./screens/NotFound";
 import CompanySettings from "./screens/company/CompanySettings";
+import PrintPreview from "./screens/print/PrintPreview";
 
 export default function App() {
   const { currentUser, isLoading, error } = useFrappeAuth();
@@ -510,6 +511,7 @@ export default function App() {
           <Route path="/assets/:name/edit" element={<AssetForm />} />
           <Route path="/assets/:name" element={<AssetDetail />} />
           <Route path="/company" element={<CompanySettings />} />
+          <Route path="/print/:doctype/:name" element={<PrintPreview />} />
           <Route path="/period-closing" element={<PeriodClosingList />} />
           <Route path="/period-closing/:name" element={<PeriodClosingDetail />} />
           <Route path="*" element={<NotFound />} />

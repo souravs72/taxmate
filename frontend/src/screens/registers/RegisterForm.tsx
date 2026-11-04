@@ -111,17 +111,17 @@ export default function RegisterForm({ specKey }: { specKey: string }) {
       return;
     }
     if (spec.doctype === "Opportunity" && lines.some((row) => row.item_code && !(Number(row.qty) > 0))) {
-      setSaveError(new Error("Quantity must be greater than 0"));
+      setSaveError(new Error(t("reg.err.qtyPositive")));
       return;
     }
     const stops = (draft.delivery_stops as StopRow[] | undefined) ?? [];
     if (spec.linesKey === "delivery_stops" && stops.some((row) => !String(row.address || "").trim())) {
-      setSaveError(new Error("Address is required"));
+      setSaveError(new Error(t("reg.err.required").replace("{field}", t("reg.ui.address"))));
       return;
     }
     const parcels = (draft.shipment_parcel as ParcelRow[] | undefined) ?? [];
     if (spec.doctype === "Shipment" && parcels.some((row) => !(Number(row.weight) > 0) || !(Number(row.count) > 0))) {
-      setSaveError(new Error("Parcel weight and count are required"));
+      setSaveError(new Error(t("reg.err.parcelRequired")));
       return;
     }
     setSaveError(null);

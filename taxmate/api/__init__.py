@@ -373,6 +373,8 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "idp_scan_save_edits", "method": "taxmate.api.idp_scan.save_edits"},
 			{"name": "idp_scan_make_draft", "method": "taxmate.api.idp_scan.make_draft"},
 			{"name": "idp_scan_cancel", "method": "taxmate.api.idp_scan.cancel_scan"},
+			{"name": "print_formats", "method": "taxmate.api.printing.print_formats"},
+			{"name": "print_render", "method": "taxmate.api.printing.render"},
 			*_EXISTING_ACTIONS,
 		],
 	}

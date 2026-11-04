@@ -20,7 +20,7 @@ import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { isNative } from "../../mobile/platform";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; warehouse?: string; price_list_rate?: number; discount_percentage?: number; discount_amount?: number; against_sales_invoice?: string };
@@ -170,9 +170,7 @@ export default function DeliveryNoteDetail() {
               <>
                 {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                 {!isNative() && (
-                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.deliveryNote, name), "_blank", "noopener")}>
-                  {t("inv.print")}
-                </button>
+                  <PrintLangButtons doctype={DT.deliveryNote} name={name} />
                 )}
                 {canBill && (
                   <button type="button" className="btn" disabled={busySi} onClick={() => void createInvoice()}>
@@ -186,12 +184,12 @@ export default function DeliveryNoteDetail() {
                 )}
                 {submitted && !data.is_return && !closed && (
                   <>
-                    <button type="button" className="btn ghost" disabled={shipment.busy} onClick={() => void shipment.open(() => makeShipment.call({ source_name: name }))}>Shipment</button>
+                    <button type="button" className="btn ghost" disabled={shipment.busy} onClick={() => void shipment.open(() => makeShipment.call({ source_name: name }))}>{t("doc.shipment")}</button>
                     {(data.per_installed ?? 0) < 100 && (
-                      <button type="button" className="btn ghost" disabled={installation.busy} onClick={() => void installation.open(() => makeInstall.call({ source_name: name }))}>Installation Note</button>
+                      <button type="button" className="btn ghost" disabled={installation.busy} onClick={() => void installation.open(() => makeInstall.call({ source_name: name }))}>{t("doc.installationNote")}</button>
                     )}
                     {data.status !== "Completed" && (
-                      <button type="button" className="btn ghost" disabled={trip.busy} onClick={() => void trip.open(() => makeTrip.call({ source_name: name }))}>Delivery Trip</button>
+                      <button type="button" className="btn ghost" disabled={trip.busy} onClick={() => void trip.open(() => makeTrip.call({ source_name: name }))}>{t("doc.deliveryTrip")}</button>
                     )}
                   </>
                 )}
@@ -208,7 +206,7 @@ export default function DeliveryNoteDetail() {
                 )}
                 {canReopen && (
                   <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Submitted")}>
-                    Re-open
+                    {t("act.reopen")}
                   </button>
                 )}
               </>

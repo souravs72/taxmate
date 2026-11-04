@@ -2,7 +2,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import { DT, METHOD } from "../../lib/frappe";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { confirmCancel } from "../../lib/workflow";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
@@ -85,10 +85,7 @@ export default function PaymentDetail() {
             <DocHistory doctype={DT.paymentEntry} name={name} />
             {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
             {!isNative() && (
-            <button type="button" className="btn ghost"
-              onClick={() => window.open(printUrl(data.name), "_blank", "noopener")}>
-              {t("pay.print")}
-            </button>
+              <PrintLangButtons doctype={DT.paymentEntry} name={name} format="UAE Bilingual Payment" />
             )}
             {data.docstatus === 0 && (
               <button className="btn ghost" onClick={() => nav(`/payments/${encodeURIComponent(name)}/edit`)}>
@@ -235,9 +232,4 @@ export default function PaymentDetail() {
     </>
   );
 }
-
-/** Desk's Bank and Cash voucher hardcodes English and prints raw numbers.
-    This format is the same voucher, bilingual, with the currency on every amount. */
-function printUrl(name: string): string {
-  return printDocUrl(DT.paymentEntry, name, "UAE Bilingual Payment");
-}
+/* The bilingual voucher is chosen in the print preview (screens/print). */

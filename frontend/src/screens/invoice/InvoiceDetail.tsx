@@ -222,7 +222,7 @@ export default function InvoiceDetail() {
                 {submitted && !data.is_return && outstanding > 0 && (
                   <button type="button" className="btn ghost" disabled={paymentRequest.busy}
                     onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.salesInvoice, reference_name: name }))}>
-                    Payment Request
+                    {t("doc.paymentRequest")}
                   </button>
                 )}
                 {submitted && !data.is_return && !data.update_stock && !(data.items ?? []).some((row) => row.is_delivered_by_supplier)

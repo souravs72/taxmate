@@ -78,7 +78,7 @@ export default function CreditNoteForm() {
       <Card title={t("inv.reason")}>
         <Field label={t("inv.reason")} required hint={t("inv.reasonHint")}>
           <select className="ctl" value={creditNoteReasonCode(reason)} onChange={(e) => setReason(e.target.value)}>
-            <option value="">Choose a reason</option>
+            <option value="">{t("txn.chooseReason")}</option>
             {CREDIT_NOTE_REASONS.map((code) => (
               <option key={code} value={code}>{CREDIT_NOTE_REASON_LABELS[code]}</option>
             ))}

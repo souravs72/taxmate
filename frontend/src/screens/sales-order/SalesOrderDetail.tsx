@@ -22,7 +22,7 @@ import UpdateItems from "../../components/UpdateItems";
 import LinkField from "../../components/LinkField";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { isNative } from "../../mobile/platform";
 
 type Doc = SalesOrder & { items: SalesOrderItem[] };
@@ -249,9 +249,7 @@ export default function SalesOrderDetail() {
               <>
                 {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                 {!isNative() && (
-                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.salesOrder, name), "_blank", "noopener")}>
-                  {t("inv.print")}
-                </button>
+                  <PrintLangButtons doctype={DT.salesOrder} name={name} />
                 )}
                 {canDeliver && (
                 <button type="button" className="btn ghost" disabled={!!busy}
@@ -289,19 +287,19 @@ export default function SalesOrderDetail() {
                 {data.docstatus === 1 && !closed && (data.per_billed ?? 0) < 100 && (
                   <button type="button" className="btn ghost" disabled={paymentRequest.busy}
                     onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.salesOrder, reference_name: name }))}>
-                    Payment Request
+                    {t("doc.paymentRequest")}
                   </button>
                 )}
                 {data.docstatus === 1 && !held && !closed && !!data.is_subcontracted
                   && (data.items ?? []).some((row) => Number(row.qty) !== Number(row.subcontracted_qty || 0)) && (
                   <button type="button" className="btn ghost" disabled={inward.busy}
                     onClick={() => void inward.open(() => makeInward.call({ source_name: name }))}>
-                    Subcontracting Inward Order
+                    {t("doc.subInward")}
                   </button>
                 )}
                 {canHoldOrClose && !held && (
                   <>
-                    <input className="ctl" value={holdReason} aria-label="Reason for hold"
+                    <input className="ctl" value={holdReason} aria-label={t("act.holdReason")}
                       onChange={(event) => setHoldReason(event.target.value)} />
                     <button type="button" className="btn ghost" disabled={setStatus.loading || !holdReason.trim()}
                       onClick={() => void changeStatus("On Hold", holdReason)}>
@@ -312,7 +310,7 @@ export default function SalesOrderDetail() {
                 {canResume && (
                   <button type="button" className="btn ghost" disabled={setStatus.loading}
                     onClick={() => void changeStatus("Draft")}>
-                    Resume
+                    {t("act.resume")}
                   </button>
                 )}
                 {canHoldOrClose && (
@@ -324,7 +322,7 @@ export default function SalesOrderDetail() {
                 {canReopen && (
                   <button type="button" className="btn ghost" disabled={setStatus.loading}
                     onClick={() => void changeStatus("Draft")}>
-                    Re-open
+                    {t("act.reopen")}
                   </button>
                 )}
               </>
@@ -429,7 +427,7 @@ export default function SalesOrderDetail() {
                   </label>
                   <LinkField doctype="BOM" value={row.bom || ""} filters={row.item_code ? [["item", "=", row.item_code], ["is_active", "=", 1]] : undefined}
                     onChange={(bom) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, bom } : item))} />
-                  <input className="ctl" type="number" aria-label="Quantity" value={row.pending_qty ?? ""}
+                  <input className="ctl" type="number" aria-label={t("common.quantity")} value={row.pending_qty ?? ""}
                     onChange={(event) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, pending_qty: Number(event.target.value) } : item))} />
                 </div>
               ))}

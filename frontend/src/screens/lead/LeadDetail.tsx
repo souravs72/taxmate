@@ -83,7 +83,7 @@ export default function LeadDetail() {
             <button className="btn ghost" onClick={() => nav(`/leads/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
             <button className="btn" onClick={() => void convertToCustomer()} disabled={busy}>{t("lead.convert")}</button>
             <button className="btn ghost" onClick={() => void createQuotation()} disabled={busy}>{t("nav.quotations")}</button>
-            <button className="btn ghost" onClick={() => void opportunity.open(() => makeOpp.call({ source_name: name }))} disabled={busy || opportunity.busy}>Opportunity</button>
+            <button className="btn ghost" onClick={() => void opportunity.open(() => makeOpp.call({ source_name: name }))} disabled={busy || opportunity.busy}>{t("doc.opportunity")}</button>
           </>
         )}
       </PageHead>

@@ -3106,6 +3106,38 @@ const en: Record<string, string> = {
   "reg.ui.deliveryNote": "Delivery note",
   "reg.ui.deliveryNotes": "Delivery notes",
   "reg.err.required": "{field} is required",
+
+  /* ── Print preview screen ── */
+  "print.options": "Print options",
+  "print.format": "Format",
+  "print.language": "Language",
+  "print.letterhead": "Show letterhead",
+  "print.print": "Print",
+  "print.pdf": "Download PDF",
+  "print.previewTitle": "Document preview",
+  "print.missingDoc": "No document to print.",
+
+  /* ── Downstream-document buttons, workflow actions, and the strings
+     the Jira round added to the detail screens. ── */
+  "doc.opportunity": "Opportunity",
+  "doc.shipment": "Shipment",
+  "doc.installationNote": "Installation Note",
+  "doc.deliveryTrip": "Delivery Trip",
+  "doc.paymentRequest": "Payment Request",
+  "doc.subOrder": "Subcontracting Order",
+  "doc.subInward": "Subcontracting Inward Order",
+  "act.reopen": "Re-open",
+  "act.resume": "Resume",
+  "act.deliver": "Deliver",
+  "act.stop": "Stop",
+  "act.setLost": "Set as Lost",
+  "act.holdReason": "Reason for hold",
+  "common.quantity": "Quantity",
+  "upd.title": "Update items",
+  "upd.rate": "Rate",
+  "txn.chooseReason": "Choose a reason",
+  "reg.err.qtyPositive": "Quantity must be greater than 0",
+  "reg.err.parcelRequired": "Parcel weight and count are required",
 };
 
 const ar: Record<string, string> = {
@@ -6205,6 +6237,38 @@ const ar: Record<string, string> = {
   "reg.ui.deliveryNote": "إشعار التسليم",
   "reg.ui.deliveryNotes": "إشعارات التسليم",
   "reg.err.required": "{field} مطلوب",
+
+  /* ── Print preview screen ── */
+  "print.options": "خيارات الطباعة",
+  "print.format": "النموذج",
+  "print.language": "اللغة",
+  "print.letterhead": "إظهار ترويسة الشركة",
+  "print.print": "طباعة",
+  "print.pdf": "تنزيل PDF",
+  "print.previewTitle": "معاينة المستند",
+  "print.missingDoc": "لا يوجد مستند للطباعة.",
+
+  /* ── Downstream-document buttons, workflow actions, and the strings
+     the Jira round added to the detail screens. ── */
+  "doc.opportunity": "فرصة",
+  "doc.shipment": "شحنة",
+  "doc.installationNote": "إشعار تركيب",
+  "doc.deliveryTrip": "رحلة تسليم",
+  "doc.paymentRequest": "طلب دفع",
+  "doc.subOrder": "أمر تعاقد من الباطن",
+  "doc.subInward": "أمر تعاقد وارد",
+  "act.reopen": "إعادة فتح",
+  "act.resume": "استئناف",
+  "act.deliver": "تسليم",
+  "act.stop": "إيقاف",
+  "act.setLost": "تعيين كمفقود",
+  "act.holdReason": "سبب التعليق",
+  "common.quantity": "الكمية",
+  "upd.title": "تحديث البنود",
+  "upd.rate": "السعر",
+  "txn.chooseReason": "اختر سبباً",
+  "reg.err.qtyPositive": "يجب أن تكون الكمية أكبر من 0",
+  "reg.err.parcelRequired": "وزن الطرد وعدده مطلوبان",
 };
 
 export const t = makeT(en, ar);

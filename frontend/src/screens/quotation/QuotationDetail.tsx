@@ -21,7 +21,7 @@ import UpdateItems from "../../components/UpdateItems";
 import LinkField from "../../components/LinkField";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
-import { printDocUrl } from "../../lib/printDoc";
+import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { isNative } from "../../mobile/platform";
 
 type Line = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number; price_list_rate?: number; discount_percentage?: number; discount_amount?: number; };
@@ -123,16 +123,14 @@ export default function QuotationDetail() {
               <>
                 {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                 {!isNative() && (
-                <button type="button" className="btn ghost" onClick={() => window.open(printDocUrl(DT.quotation, name), "_blank", "noopener")}>
-                  {t("inv.print")}
-                </button>
+                  <PrintLangButtons doctype={DT.quotation} name={name} />
                 )}
                 {canOrder && canWrite(session) ? (
                   <>
                     <LinkField doctype="Quotation Lost Reason" value={lostReason} onChange={setLostReason} />
                     <button type="button" className="btn ghost" disabled={!lostReason || declareLost.loading}
                       onClick={() => void declareLost.call({ name, lost_reason: lostReason }).then(() => mutate()).catch(() => undefined)}>
-                      Set as Lost
+                      {t("act.setLost")}
                     </button>
                   </>
                 ) : null}

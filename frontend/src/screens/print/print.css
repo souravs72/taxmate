@@ -1,0 +1,47 @@
+/* Print preview. Paper on the left, options on the right; stacked on a
+   phone with the options first, because that is what you came to change. */
+
+.pv-wrap{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 300px;
+  gap:16px;
+  align-items:start;
+}
+
+.pv-paper{
+  background:var(--surface);
+  border:1px solid var(--border-2);
+  border-radius:var(--r-sm);
+  min-height:420px;
+  overflow:hidden;
+}
+
+/* The document sets its own background; the frame must not tint it. */
+.pv-frame{
+  display:block;
+  width:100%;
+  height:78vh;
+  min-height:420px;
+  border:0;
+  background:#fff;
+}
+
+.pv-rail{display:flex; flex-direction:column; gap:14px; padding:14px}
+
+.pv-field{display:flex; flex-direction:column; gap:6px}
+.pv-field > span{font-size:12px; font-weight:600; color:var(--muted)}
+
+.pv-check{display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px}
+.pv-check input{width:16px; height:16px; cursor:pointer}
+
+.pv-actions{display:flex; flex-wrap:wrap; gap:8px; margin-top:2px}
+.pv-actions .btn{flex:1 1 auto; justify-content:center; text-align:center}
+
+@media (max-width:900px){
+  .pv-wrap{grid-template-columns:minmax(0,1fr)}
+  /* Options above the paper on a phone: the preview is tall, and scrolling
+     past a page of document to reach the language toggle is the wrong way
+     round. */
+  .pv-wrap > .card{order:-1}
+  .pv-frame{height:62vh}
+}

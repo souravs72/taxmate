@@ -94,7 +94,7 @@ export default function UpdateItems({ doctype, name, items, onSaved }: Props) {
   }
 
   return (
-    <Card title="Update items">
+    <Card title={t("upd.title")}>
       {error ? <ErrorBox error={error} /> : null}
       {allowed.error ? <ErrorBox error={allowed.error} /> : null}
       {rows.map((row, index) => (
@@ -104,11 +104,11 @@ export default function UpdateItems({ doctype, name, items, onSaved }: Props) {
           ) : (
             <LinkField doctype="Item" value={row.item_code || ""} onChange={(item) => patch(index, { item_code: item })} />
           )}
-          <input className="ctl" type="number" aria-label="Quantity" value={row.qty ?? ""}
+          <input className="ctl" type="number" aria-label={t("common.quantity")} value={row.qty ?? ""}
             onChange={(event) => patch(index, { qty: Number(event.target.value) })} />
-          <input className="ctl" type="number" aria-label="Rate" value={row.rate ?? ""}
+          <input className="ctl" type="number" aria-label={t("upd.rate")} value={row.rate ?? ""}
             onChange={(event) => patch(index, { rate: Number(event.target.value) })} />
-          <button type="button" className="btn quiet" aria-label="Remove" onClick={() => setRows((current) => current.filter((_, i) => i !== index))}>
+          <button type="button" className="btn quiet" aria-label={t("common.remove")} onClick={() => setRows((current) => current.filter((_, i) => i !== index))}>
             {t("soc.discard")}
           </button>
         </div>

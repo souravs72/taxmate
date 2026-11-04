@@ -255,7 +255,7 @@ export default function SupplierForm() {
                 <button type="button" className="btn ghost" onClick={() => nav("/purchase-orders/new", { state: { mapped: { supplier: name } } })}>{t("nav.purchaseOrders")}</button>
                 <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices/new", { state: { mapped: { supplier: name } } })}>{t("nav.purchaseInvoices")}</button>
                 <button type="button" className="btn ghost" onClick={() => nav("/supplier-quotations/new", { state: { mapped: { supplier: name } } })}>{t("nav.supplierQuotations")}</button>
-                <button type="button" className="btn ghost" disabled={rfq.busy} onClick={() => void rfq.open(() => makeRfq.call({ supplier: name }))}>Request for Quotation</button>
+                <button type="button" className="btn ghost" disabled={rfq.busy} onClick={() => void rfq.open(() => makeRfq.call({ supplier: name }))}>{t("reg.ui.rfqOne")}</button>
               </>
             ) : null}
 

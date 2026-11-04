@@ -196,6 +196,8 @@ export const METHOD = {
   runReport: "taxmate.api.reports.run_report",
   listReports: "taxmate.api.reports.list_reports",
   reportBadges: "taxmate.api.report_badges.get_report_badges",
+  printFormats: "taxmate.api.printing.print_formats",
+  printRender: "taxmate.api.printing.render",
   fulfilmentSummary: "taxmate.api.sales_order.fulfilment_summary",
   salesOrderLinks: "taxmate.api.sales_order.linked_documents",
   draftPurchaseInvoiceFromIncoming: "taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",
