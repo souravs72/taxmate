@@ -13,6 +13,7 @@ import { t } from "../../i18n/strings";
 import { Card, Loading, ErrorBox, PageHead, Pill } from "../../components/ui";
 import { money } from "../../lib/format";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { useState } from "react";
 
@@ -93,6 +94,8 @@ export default function LandedCostVoucherDetail() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.landedCostVoucher} name={name} doc={d as unknown as Record<string, unknown>}>
       {err && <ErrorBox error={err} />}
       <Card num={1} title={t("lcv.details")}>
         <div className="fields">
@@ -153,6 +156,7 @@ export default function LandedCostVoucherDetail() {
           </tbody>
         </table>
       </Card>
+      </DocTabShell>
     </>
   );
 }

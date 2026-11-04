@@ -16,6 +16,7 @@ import { date, money, qty } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 
@@ -102,6 +103,8 @@ export default function StockReconciliationDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.stockReconciliation} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {(submitCall.error || cancelCall.error || amendCall.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error} />
       )}
@@ -149,6 +152,7 @@ export default function StockReconciliationDetail() {
           />
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

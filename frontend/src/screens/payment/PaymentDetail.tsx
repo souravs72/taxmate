@@ -13,6 +13,7 @@ import {
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { DirChip } from "./PaymentList";
@@ -127,6 +128,8 @@ export default function PaymentDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.paymentEntry} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {(cancelCall.error || amendCall.error || deleteAction.error) && (
         <ErrorBox error={cancelCall.error ?? amendCall.error ?? deleteAction.error} />
       )}
@@ -229,6 +232,7 @@ export default function PaymentDetail() {
             )}
           </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

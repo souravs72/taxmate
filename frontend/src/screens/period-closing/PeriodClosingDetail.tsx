@@ -14,6 +14,7 @@ import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string;
@@ -82,6 +83,8 @@ export default function PeriodClosingDetail() {
           {t(`status.${st}`)}
         </Pill>
       </PageHead>
+
+      <DocTabShell doctype={"Period Closing Voucher"} name={name} doc={data as unknown as Record<string, unknown>}>
       {(submitCall.error || cancelCall.error || amendCall.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error} />
       )}
@@ -101,6 +104,7 @@ export default function PeriodClosingDetail() {
           {data.remarks && <ReadRow k={t("je.col.remark")} v={data.remarks} />}
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

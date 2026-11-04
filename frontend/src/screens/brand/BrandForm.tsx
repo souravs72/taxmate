@@ -10,6 +10,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = { name: string; brand?: string };
 
@@ -71,6 +72,8 @@ export default function BrandForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.brand} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">
@@ -79,6 +82,7 @@ export default function BrandForm() {
           </Field>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

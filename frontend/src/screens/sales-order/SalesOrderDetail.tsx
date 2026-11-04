@@ -18,6 +18,7 @@ import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, MiniBar, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import UpdateItems from "../../components/UpdateItems";
 import LinkField from "../../components/LinkField";
 import LineItems, { type LineField } from "../../components/LineItems";
@@ -337,6 +338,8 @@ export default function SalesOrderDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.salesOrder} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {(mapError || statusError || makeDn.error || makeSi.error || paymentRequest.error || inward.error) && (
         <ErrorBox error={submitCall.error ?? cancelCall.error ?? amendCall.error ?? statusError ?? mapError ?? makeDn.error ?? makeSi.error ?? paymentRequest.error ?? inward.error} />
       )}
@@ -514,6 +517,7 @@ export default function SalesOrderDetail() {
             />
           </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

@@ -13,6 +13,7 @@ import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
 
@@ -166,6 +167,8 @@ export default function AddressForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={"Address"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>
@@ -309,6 +312,7 @@ export default function AddressForm() {
           </button>
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

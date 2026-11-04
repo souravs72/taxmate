@@ -10,6 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = {
@@ -93,6 +94,8 @@ export default function TermsAndConditionsForm() {
         }
         title={isNew ? t("tc.new") : termsTitle || name}
       />
+
+      <DocTabShell doctype={"Terms and Conditions"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>
@@ -156,6 +159,7 @@ export default function TermsAndConditionsForm() {
           ready={ready}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

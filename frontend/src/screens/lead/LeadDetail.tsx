@@ -14,6 +14,7 @@ import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = { name: string; lead_name?: string; company_name?: string; email_id?: string; mobile_no?: string; status?: string; city?: string; country?: string };
 
@@ -87,6 +88,8 @@ export default function LeadDetail() {
           </>
         )}
       </PageHead>
+
+      <DocTabShell doctype={DT.lead} name={name} doc={data as unknown as Record<string, unknown>}>
       {(actionError || opportunity.error) ? <ErrorBox error={actionError || opportunity.error} /> : null}
       <Card>
         <div className="fg">
@@ -96,6 +99,7 @@ export default function LeadDetail() {
           {data.city ? <ReadRow k={t("lead.col.city")} v={`${data.city}${data.country ? `, ${data.country}` : ""}`} /> : null}
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

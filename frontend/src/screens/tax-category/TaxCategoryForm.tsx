@@ -10,6 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = { name: string; title?: string; disabled?: 0 | 1 };
@@ -72,6 +73,8 @@ export default function TaxCategoryForm() {
         }
         title={isNew ? t("txc.new") : title || name}
       />
+
+      <DocTabShell doctype={"Tax Category"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>
@@ -106,6 +109,7 @@ export default function TaxCategoryForm() {
           ready={ready}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

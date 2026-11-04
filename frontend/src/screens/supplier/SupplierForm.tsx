@@ -9,6 +9,7 @@ import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
 import { useSession } from "../../lib/session";
 
@@ -266,6 +267,8 @@ export default function SupplierForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.supplier} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {(saveError || rfq.error) && <ErrorBox error={saveError || rfq.error} />}
       {savedNotice ? (
         <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>
@@ -387,6 +390,7 @@ export default function SupplierForm() {
           </Field>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

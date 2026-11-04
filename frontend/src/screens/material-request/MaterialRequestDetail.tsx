@@ -21,6 +21,7 @@ import { date, qty } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 import LineItems, { type LineField } from "../../components/LineItems";
@@ -80,7 +81,6 @@ export default function MaterialRequestDetail() {
   const [busy, setBusy] = useState<"" | "po" | "se" | "sq" | "pick" | "wo">("");
   const [mapError, setMapError] = useState<unknown>(null);
   const [poRows, setPoRows] = useState<PendingRow[] | null>(null);
-  const [tab, setTab] = useState<"details" | "terms" | "more">("details");
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
 
@@ -323,28 +323,15 @@ export default function MaterialRequestDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.materialRequest} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {(submitCall.error || cancelCall.error || amendCall.error || mapError || rfq.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || mapError || rfq.error} />
       )}
 
-      <div className="ftabs" role="tablist">
-        {(["details", "terms", "more"] as const).map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className={`ftab${tab === id ? " on" : ""}`}
-            onClick={() => setTab(id)}
-          >
-            {t(id === "details" ? "mr.tab.details" : id === "terms" ? "mr.tab.terms" : "mr.tab.more")}
-          </button>
-        ))}
-      </div>
 
       <FormLayout>
-        {tab === "details" && (
-          <>
+        <>
             <Card>
               <div className="fg">
                 <ReadRow k={t("mr.purpose")} v={data.material_request_type || "—"} />
@@ -390,16 +377,12 @@ export default function MaterialRequestDetail() {
               />
             </Card>
           </>
-        )}
-        {tab === "terms" && (
           <Card title={t("mr.tab.terms")}>
             {data.tc_name ? <ReadRow k={t("mr.tab.terms")} v={data.tc_name} /> : null}
             {data.terms
               ? <div dangerouslySetInnerHTML={{ __html: termsHtml(data.terms) }} />
               : <p className="sub">{t("mr.termsEmpty")}</p>}
           </Card>
-        )}
-        {tab === "more" && (
           <Card title={t("mr.tab.more")}>
             <div className="fg">
               <ReadRow k={t("mr.col.status")} v={tStatus(data.status)} />
@@ -409,7 +392,6 @@ export default function MaterialRequestDetail() {
               <ReadRow k={t("mr.company")} v={data.company || "—"} />
             </div>
           </Card>
-        )}
       </FormLayout>
 
       {poRows && createPortal(
@@ -501,6 +483,7 @@ export default function MaterialRequestDetail() {
         </div>,
         document.body,
       )}
+      </DocTabShell>
     </>
   );
 }

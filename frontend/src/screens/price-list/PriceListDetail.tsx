@@ -9,6 +9,7 @@ import { useDoc, useDocList } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 
 type PriceDoc = { name: string; price_list_name?: string; currency?: string; selling?: number; buying?: number; enabled?: number };
 type PriceRow = { name: string; item_code?: string; price_list_rate?: number; uom?: string; customer?: string; supplier?: string };
@@ -51,6 +52,8 @@ export default function PriceListDetail() {
           />
         }
       />
+
+      <DocTabShell doctype={DT.priceList} name={name} doc={d as unknown as Record<string, unknown>}>
       <Card title={t("pl.info")}>
         <div className="fg">
           <div className="kv-row">
@@ -101,6 +104,7 @@ export default function PriceListDetail() {
           </table>
         )}
       </Card>
+      </DocTabShell>
     </>
   );
 }

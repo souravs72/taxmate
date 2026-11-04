@@ -12,6 +12,7 @@ import { t, tStatus } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { PrintLangButtons } from "../../components/PrintLangButtons";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 
@@ -68,6 +69,8 @@ export default function CtFilingDetail() {
           <Pill cls={deadlinePill(data.deadline_status)}>{tStatus(data.deadline_status)}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.ctFiling} name={name} doc={data as unknown as Record<string, unknown>}>
       {saveError ? <ErrorBox error={saveError} /> : null}
       <FormLayout aside={
         <Card title={t("ct.summary")}>
@@ -114,6 +117,7 @@ export default function CtFilingDetail() {
           </Card>
         ) : null}
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

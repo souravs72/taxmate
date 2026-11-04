@@ -16,6 +16,7 @@ import { useSession } from "../../lib/session";
 import { parseNum, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormActions, FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
@@ -105,6 +106,8 @@ export default function LoyaltyProgramForm() {
   return (
     <>
       <PageHead title={isNew ? t("lp.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/loyalty-programs")}>{t("lp.title")}</button>} />
+
+      <DocTabShell doctype={DT.loyaltyProgram} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("lp.title")}>
@@ -143,6 +146,7 @@ export default function LoyaltyProgramForm() {
           busy={saving}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

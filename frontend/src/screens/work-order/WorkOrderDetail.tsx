@@ -16,6 +16,7 @@ import { date } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string; bom_no?: string; item_name?: string; qty?: number; produced_qty?: number;
@@ -105,6 +106,8 @@ export default function WorkOrderDetail() {
           <Pill cls={woPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.workOrder} name={name} doc={data as unknown as Record<string, unknown>}>
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>
         <div className="fg">
@@ -116,6 +119,7 @@ export default function WorkOrderDetail() {
           {data.fg_warehouse ? <ReadRow k={t("wo.col.fg")} v={data.fg_warehouse} /> : null}
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

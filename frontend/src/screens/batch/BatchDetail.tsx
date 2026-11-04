@@ -9,6 +9,7 @@ import { useDoc, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string;
@@ -82,6 +83,8 @@ export default function BatchDetail() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.batch} name={name} doc={d as unknown as Record<string, unknown>}>
       {saveError ? <ErrorBox error={saveError} /> : null}
       <Card>
         <div className="grid2">
@@ -103,6 +106,7 @@ export default function BatchDetail() {
           )}
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

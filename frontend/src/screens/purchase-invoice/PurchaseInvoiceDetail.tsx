@@ -14,6 +14,7 @@ import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
@@ -168,6 +169,8 @@ export default function PurchaseInvoiceDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.purchaseInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {busyError && <ErrorBox error={busyError} heading={!deleteAction.error} />}
 
       <FormLayout aside={
@@ -266,6 +269,7 @@ export default function PurchaseInvoiceDetail() {
           />
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

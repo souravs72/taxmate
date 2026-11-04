@@ -20,6 +20,7 @@ import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../componen
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import UpdateItems from "../../components/UpdateItems";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { isNative } from "../../mobile/platform";
@@ -163,6 +164,8 @@ export default function SupplierQuotationDetail() {
           <button className="btn ghost" onClick={() => void doAmend()} disabled={busy}>{t("inv.amend")}</button>
         )}
       </PageHead>
+
+      <DocTabShell doctype={DT.supplierQuotation} name={name} doc={data as unknown as Record<string, unknown>}>
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>
         <div className="fg">
@@ -217,6 +220,7 @@ export default function SupplierQuotationDetail() {
           grandLabel={t("sq.total")}
         />
       </Card>
+      </DocTabShell>
     </>
   );
 }

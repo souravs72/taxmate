@@ -9,6 +9,7 @@ import { date, money } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type WarehouseDoc = {
   name: string;
@@ -173,6 +174,8 @@ export default function WarehouseDetail() {
           <span>{t("wh.account")}: {wh.account || "—"}</span>
         </div>
       </PageHead>
+
+      <DocTabShell doctype={DT.warehouse} name={name} doc={wh as unknown as Record<string, unknown>}>
 
       {/* 4 Stat Cards */}
       <div
@@ -508,6 +511,7 @@ export default function WarehouseDetail() {
           </Card>
         </div>
       </div>
+      </DocTabShell>
     </div>
   );
 }

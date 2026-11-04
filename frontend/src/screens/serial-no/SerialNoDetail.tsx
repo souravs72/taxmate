@@ -9,6 +9,7 @@ import { useDoc, useSave } from "../../lib/resource";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string;
@@ -70,6 +71,8 @@ export default function SerialNoDetail() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.serialNo} name={name} doc={d as unknown as Record<string, unknown>}>
       {saveError ? <ErrorBox error={saveError} /> : null}
       <Card>
         <div className="grid2">
@@ -86,6 +89,7 @@ export default function SerialNoDetail() {
           <Field label={t("sn.deliveryDoc")}><span>{d.delivery_document_no || "—"}</span></Field>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

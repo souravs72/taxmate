@@ -198,6 +198,8 @@ export const METHOD = {
   reportBadges: "taxmate.api.report_badges.get_report_badges",
   printFormats: "taxmate.api.printing.print_formats",
   printRender: "taxmate.api.printing.render",
+  formLayout: "taxmate.api.form_layout.get",
+  connectionsOpenCount: "taxmate.api.connections.open_count",
   fulfilmentSummary: "taxmate.api.sales_order.fulfilment_summary",
   salesOrderLinks: "taxmate.api.sales_order.linked_documents",
   draftPurchaseInvoiceFromIncoming: "taxmate.uae_e_invoicing.doctype.uae_incoming_invoice.uae_incoming_invoice.create_purchase_invoice",

@@ -14,6 +14,7 @@ import { useDoc, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
 
 type PaymentRow = { mode_of_payment?: string; default?: 0 | 1 };
@@ -82,6 +83,8 @@ export default function PosProfileDetail() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.posProfile} name={name} doc={data as unknown as Record<string, unknown>}>
       {saveError && <ErrorBox error={saveError} />}
       <Card title={t("posp.title")}>
         <ReadRow k={t("posp.col.company")} v={data.company || "—"} />
@@ -137,6 +140,7 @@ export default function PosProfileDetail() {
           </table>
         </Card>
       )}
+      </DocTabShell>
     </>
   );
 }

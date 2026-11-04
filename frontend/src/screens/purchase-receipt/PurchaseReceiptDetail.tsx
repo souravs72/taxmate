@@ -21,6 +21,7 @@ import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { isNative } from "../../mobile/platform";
@@ -203,6 +204,8 @@ export default function PurchaseReceiptDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.purchaseReceipt} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {busyError && <ErrorBox error={busyError} />}
 
       <FormLayout
@@ -256,6 +259,7 @@ export default function PurchaseReceiptDetail() {
           />
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

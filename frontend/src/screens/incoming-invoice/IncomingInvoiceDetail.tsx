@@ -8,6 +8,7 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 
 type Doc = {
@@ -98,6 +99,8 @@ export default function IncomingInvoiceDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.incomingInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {draft.error && <ErrorBox error={draft.error} />}
 
       <FormLayout
@@ -130,6 +133,7 @@ export default function IncomingInvoiceDetail() {
           </Card>
         )}
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

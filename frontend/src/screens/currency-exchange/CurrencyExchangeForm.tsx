@@ -15,6 +15,7 @@ import { useSession } from "../../lib/session";
 import { parseNum, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormActions, FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
@@ -90,6 +91,8 @@ export default function CurrencyExchangeForm() {
   return (
     <>
       <PageHead title={isNew ? t("cx.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/currency-exchanges")}>{t("cx.title")}</button>} />
+
+      <DocTabShell doctype={DT.currencyExchange} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("cx.title")}>
@@ -125,6 +128,7 @@ export default function CurrencyExchangeForm() {
           busy={saving}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

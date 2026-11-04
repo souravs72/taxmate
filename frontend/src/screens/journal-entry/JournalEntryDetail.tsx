@@ -10,6 +10,7 @@ import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
@@ -107,6 +108,8 @@ export default function JournalEntryDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.journalEntry} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {busyError && <ErrorBox error={busyError} />}
 
       <FormLayout
@@ -158,6 +161,7 @@ export default function JournalEntryDetail() {
           />
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

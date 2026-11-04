@@ -7,6 +7,7 @@ import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string;
@@ -66,6 +67,8 @@ export default function AccountDetail() {
           {data.disabled ? <Pill cls="p-cxl">{t("coa.disabled")}</Pill> : null}
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.account} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("coa.company")} v={data.company || "—"} />
@@ -77,6 +80,7 @@ export default function AccountDetail() {
           <ReadRow k={t("coa.number")} v={data.account_number || "—"} />
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

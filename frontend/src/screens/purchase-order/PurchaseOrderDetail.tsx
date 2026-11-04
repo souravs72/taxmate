@@ -14,6 +14,7 @@ import { lineHasProductDiscount, productDiscountTotal, readDiscountBasis } from 
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import UpdateItems from "../../components/UpdateItems";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
@@ -267,6 +268,8 @@ export default function PurchaseOrderDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.purchaseOrder} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {(mapError || statusError || makePr.error || makePi.error || paymentRequest.error || subcontract.error) && (
         <ErrorBox error={submitCall.error ?? cancelCall.error ?? amendCall.error ?? statusError ?? mapError ?? makePr.error ?? makePi.error ?? paymentRequest.error ?? subcontract.error} />
       )}
@@ -366,6 +369,7 @@ export default function PurchaseOrderDetail() {
           />
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

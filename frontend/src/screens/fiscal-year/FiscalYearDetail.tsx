@@ -11,6 +11,7 @@ import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Company = { company?: string };
 type Doc = {
@@ -49,6 +50,8 @@ export default function FiscalYearDetail() {
       >
         {data.is_short_year ? <Pill cls="p-flat">{t("fy.short")}</Pill> : null}
       </PageHead>
+
+      <DocTabShell doctype={"Fiscal Year"} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("fy.col.start")} v={date(data.year_start_date)} />
@@ -64,6 +67,7 @@ export default function FiscalYearDetail() {
           </div>
         </Card>
       )}
+      </DocTabShell>
     </>
   );
 }

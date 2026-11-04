@@ -16,6 +16,7 @@ import { useSession } from "../../lib/session";
 import { parseNum, toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormActions, FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
@@ -118,6 +119,8 @@ export default function AssetForm() {
   return (
     <>
       <PageHead title={isNew ? t("ast.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/assets")}>{t("ast.title")}</button>} />
+
+      <DocTabShell doctype={DT.asset} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("ast.title")}>
@@ -177,6 +180,7 @@ export default function AssetForm() {
           busy={saving}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

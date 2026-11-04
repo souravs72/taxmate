@@ -9,6 +9,7 @@ import { date } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type Owner = {
@@ -45,6 +46,8 @@ export default function UboRegisterDetail() {
           <Pill cls={uboPill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.uboRegister} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("coa.company")} v={data.company || "—"} />
@@ -92,6 +95,7 @@ export default function UboRegisterDetail() {
           />
         )}
       </Card>
+      </DocTabShell>
     </>
   );
 }

@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { t, tStatus } from "../../i18n/strings";
@@ -192,6 +193,8 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
           />
         )}
       />
+
+      <DocTabShell doctype={spec.doctype} name={name} doc={data as unknown as Record<string, unknown>}>
       {actionError ? <ErrorBox error={actionError} /> : null}
       <Card>
         <div className="grid2">
@@ -208,6 +211,7 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
         </div>
       </Card>
       {lines.length > 0 ? <LineItems rows={lines} fields={lineFields} /> : null}
+      </DocTabShell>
     </>
   );
 }

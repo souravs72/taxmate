@@ -14,6 +14,7 @@ import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
 
 type TaxRate = { _key: string; tax_type: string; tax_rate: number };
@@ -103,6 +104,8 @@ export default function ItemTaxTemplateDetail() {
           </>
         }
       />
+
+      <DocTabShell doctype={"Item Tax Template"} name={name} doc={data as unknown as Record<string, unknown>}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="fg">
@@ -145,6 +148,7 @@ export default function ItemTaxTemplateDetail() {
           </button>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }
