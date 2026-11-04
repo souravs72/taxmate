@@ -10,6 +10,7 @@ import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, Loading, ErrorBox, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   title?: string;
@@ -56,6 +57,8 @@ export default function PricingRuleDetail() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.pricingRule} name={name} doc={d as unknown as Record<string, unknown>}>
       <Card num={1} title={t("prule.details")}>
         <div className="fields">
           <label>{t("prule.applyOn")}<span>{d.apply_on ?? ""}</span></label>
@@ -80,6 +83,7 @@ export default function PricingRuleDetail() {
           <label>{t("prule.col.active")}<span>{d.disable ? t("prule.disabled") : t("prule.enabled")}</span></label>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

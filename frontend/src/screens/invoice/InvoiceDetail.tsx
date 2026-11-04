@@ -17,6 +17,7 @@ import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { FormLayout } from "../../components/form";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
@@ -258,6 +259,8 @@ export default function InvoiceDetail() {
         </p>
       </PageHead>
 
+      <DocTabShell doctype={DT.salesInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
+
       {busyError && <ErrorBox error={busyError} />}
 
       {/* Payment split — the spec's worked case: total / received / outstanding */}
@@ -445,6 +448,7 @@ export default function InvoiceDetail() {
             />
           </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

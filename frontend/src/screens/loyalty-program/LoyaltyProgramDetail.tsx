@@ -15,6 +15,7 @@ import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string;
@@ -55,6 +56,8 @@ export default function LoyaltyProgramDetail() {
           />
         }
       />
+
+      <DocTabShell doctype={DT.loyaltyProgram} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card title={t("lp.title")}>
         <ReadRow k={t("lp.col.type")} v={data.loyalty_program_type || "—"} />
         <ReadRow k={t("lp.col.company")} v={data.company || "—"} />
@@ -65,6 +68,7 @@ export default function LoyaltyProgramDetail() {
           <ReadRow k={t("lp.col.expiry")} v={t("lp.expiryDays").replace("{n}", String(data.expiry_duration))} />
         )}
       </Card>
+      </DocTabShell>
     </>
   );
 }

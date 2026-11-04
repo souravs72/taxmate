@@ -1,7 +1,35 @@
-{# Shared amount for UAE prints. Callers: uae_bilingual_tax_invoice.html,
-   uae_bilingual_payment.html. The Latin code stays visible in RTL. #}
+{# Shared bidi helpers for UAE prints. Callers: uae_bilingual_tax_invoice.html,
+   uae_bilingual_payment.html, uae_vat_201_worksheet.html, uae_ct_worksheet.html.
+
+   Every macro carries its isolation inline. A format's own stylesheet is not
+   enough for two reasons: `unicode-bidi: isolate` without `display:inline-block`
+   lets the span break mid-amount — which is how "AED 1,000.00" stayed on one
+   line and "(د.إ)" moved to the next — and a format copied into a new file
+   arrives without the CSS that made the old one correct.
+
+   For an Arabic print, Frappe renders the format inside an RTL container. Any
+   Latin or numeric run that is not isolated takes its order from that
+   container, which is how the full stop at the end of an English amount in
+   words ended up at the left-hand edge. #}
+
+{# An amount. Always LTR, never broken across lines. #}
 {% macro uae_money(amount, currency) -%}
 {%- set code = currency or "AED" -%}
 {%- set num = frappe.utils.fmt_money(amount or 0) -%}
-<span class="tm-amt" dir="ltr">{{ code }} {{ num }}{% if code == "AED" %} (د.إ){% endif %}</span>
+<span class="tm-amt" dir="ltr" style="direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap">{{ code }} {{ num }}{% if code == "AED" %} (د.إ){% endif %}</span>
+{%- endmacro %}
+
+{# A run that is Latin or numeric by nature: a document name, a date, a TRN,
+   a reference number, a percentage. #}
+{% macro tm_ltr(value) -%}
+<span class="tm-ltr" dir="ltr" style="direction:ltr;unicode-bidi:isolate;display:inline-block;white-space:nowrap">{{ value }}</span>
+{%- endmacro %}
+
+{# Stored text that may arrive in either language: a party name, an address,
+   an account name, a narration, an amount in words. `dir="auto"` takes the
+   direction from the text's own first strong character, so the same span is
+   right for "Al Noor Jewellers LLC" and for "مجوهرات النور". It wraps, so it
+   is safe on long text. #}
+{% macro tm_auto(value) -%}
+<span class="tm-auto" dir="auto" style="unicode-bidi:isolate">{{ value }}</span>
 {%- endmacro %}

@@ -7,6 +7,7 @@ import re
 import frappe
 
 from taxmate.uae_e_invoicing.constants import CREDIT_NOTE_REASON_CODES, credit_note_reason_code
+from taxmate.utils.localize import ledger_label
 
 _ARABIC = re.compile(r"[\u0600-\u06FF]")
 
@@ -82,3 +83,41 @@ def tm_status(raw) -> str:
 	if tm_is_arabic():
 		return _STATUS_AR.get(text) or text
 	return text
+
+
+def tm_account(name) -> str:
+	"""Account name in the print language, keeping the company abbreviation.
+
+	The stored value is an account id such as ``Cash - XSm``. ``ledger_label``
+	translates the name and leaves the abbreviation alone, which is what the
+	reports already do — the same label in a print and on screen.
+	"""
+	text = _text(name)
+	if not text:
+		return ""
+	return ledger_label(text) or text
+
+
+def tm_in_words(amount, currency=None) -> str:
+	"""The amount in words, in the print language.
+
+	``doc.in_words`` is written once when the document is saved, in whichever
+	language the person who saved it was using, and never changes again. An
+	Arabic print of a document saved in English therefore showed English words.
+	This recomputes from the figure inside the current print language.
+
+	Returns "" when Frappe cannot phrase the number — a negative amount, or a
+	currency with no fraction set up. The caller falls back to the stored value
+	rather than dropping the row.
+	"""
+	try:
+		value = float(amount)
+	except (TypeError, ValueError):
+		return ""
+	if not value:
+		return ""
+	try:
+		return frappe.utils.money_in_words(value, currency or "AED") or ""
+	except Exception:
+		frappe.log_error(title="tm_in_words")
+		return ""

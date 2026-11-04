@@ -11,6 +11,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
 
@@ -127,6 +128,8 @@ export default function ContactForm() {
           !isNew ? (<DocHistory doctype="Contact" name={name} />) : null
         }
       />
+
+      <DocTabShell doctype={"Contact"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>
@@ -226,6 +229,7 @@ export default function ContactForm() {
           ready={ready}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

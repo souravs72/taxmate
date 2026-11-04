@@ -9,6 +9,7 @@ import { date } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string; company?: string; obligation?: string; status?: string; due_date?: string;
@@ -40,6 +41,8 @@ export default function LateFilingDetail() {
           <Pill cls={latePill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.lateFiling} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("coa.company")} v={data.company || "—"} />
@@ -54,6 +57,7 @@ export default function LateFilingDetail() {
           </div>
         ) : null}
       </Card>
+      </DocTabShell>
     </>
   );
 }

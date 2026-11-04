@@ -15,6 +15,7 @@ import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
 import { PrintLangButtons } from "../../components/PrintLangButtons";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LineItems, { type LineField } from "../../components/LineItems";
 
@@ -149,6 +150,8 @@ export default function Vat201Detail() {
           <Pill cls={deadlinePill(data.deadline_status)}>{tStatus(data.deadline_status)}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.vat201} name={name} doc={data as unknown as Record<string, unknown>}>
       {busyError && <ErrorBox error={busyError} />}
       <FormLayout
         aside={
@@ -205,6 +208,7 @@ export default function Vat201Detail() {
           </Card>
         ) : null}
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

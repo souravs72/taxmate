@@ -11,6 +11,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
 
 type Doc = { name: string; item_group_name?: string; parent_item_group?: string; is_group?: number };
@@ -83,6 +84,8 @@ export default function ItemGroupForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.itemGroup} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">
@@ -105,6 +108,7 @@ export default function ItemGroupForm() {
           </Field>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

@@ -11,6 +11,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Field } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
@@ -82,6 +83,8 @@ export default function TerritoryForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.territory} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card num={1} title={t("ter.details")}>
@@ -103,6 +106,7 @@ export default function TerritoryForm() {
           </div>
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

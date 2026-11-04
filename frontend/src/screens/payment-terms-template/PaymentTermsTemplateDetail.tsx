@@ -10,6 +10,7 @@ import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 
 type TermRow = {
   payment_term?: string;
@@ -58,6 +59,8 @@ export default function PaymentTermsTemplateDetail() {
           />
         }
       />
+
+      <DocTabShell doctype={DT.paymentTerms} name={name} doc={d as unknown as Record<string, unknown>}>
       <Card title={t("ptt.terms")}>
         {(d.terms ?? []).length === 0 ? (
           <p style={{ color: "var(--faint)" }}>{t("ptt.noTerms")}</p>
@@ -86,6 +89,7 @@ export default function PaymentTermsTemplateDetail() {
           </table>
         )}
       </Card>
+      </DocTabShell>
     </>
   );
 }

@@ -13,6 +13,7 @@ import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = {
   name: string;
@@ -64,6 +65,8 @@ export default function BankAccountDetail() {
           {data.is_company_account ? <Pill cls="p-flat">{t("ba.companyAccount")}</Pill> : null}
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.bankAccount} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("ba.col.accountName")} v={data.account_name || "—"} />
@@ -73,6 +76,7 @@ export default function BankAccountDetail() {
           {data.account_type && <ReadRow k={t("ba.col.accountType")} v={data.account_type} />}
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

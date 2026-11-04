@@ -10,6 +10,7 @@ import { date, money } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type Act = {
@@ -78,6 +79,8 @@ export default function EsrFilingDetail() {
           <Pill cls={esrPill(data.status)}>{tStatus(data.status)}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.esrFiling} name={name} doc={data as unknown as Record<string, unknown>}>
       {saveError ? <ErrorBox error={saveError} /> : null}
       <Card>
         <div className="fg">
@@ -130,6 +133,7 @@ export default function EsrFilingDetail() {
           />
         </Card>
       ) : null}
+      </DocTabShell>
     </>
   );
 }

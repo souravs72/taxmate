@@ -12,6 +12,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
 
@@ -109,6 +110,8 @@ export default function WarehouseForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.warehouse} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">
@@ -154,6 +157,7 @@ export default function WarehouseForm() {
           </Field>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

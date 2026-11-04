@@ -9,6 +9,7 @@ import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
 import { useSession } from "../../lib/session";
 
@@ -307,6 +308,8 @@ export default function CustomerForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.customer} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {savedNotice && (
         <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>
           <b>{t("form.saved")}</b>
@@ -506,6 +509,7 @@ export default function CustomerForm() {
           {t("cust.addCreditLimit")}
         </button>
       </Card>
+      </DocTabShell>
     </>
   );
 }

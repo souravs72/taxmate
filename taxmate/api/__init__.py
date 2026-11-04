@@ -375,6 +375,8 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "idp_scan_cancel", "method": "taxmate.api.idp_scan.cancel_scan"},
 			{"name": "print_formats", "method": "taxmate.api.printing.print_formats"},
 			{"name": "print_render", "method": "taxmate.api.printing.render"},
+			{"name": "form_layout", "method": "taxmate.api.form_layout.get"},
+			{"name": "connections_open_count", "method": "taxmate.api.connections.open_count"},
 			*_EXISTING_ACTIONS,
 		],
 	}

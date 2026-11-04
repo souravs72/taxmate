@@ -18,6 +18,7 @@ import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
@@ -106,6 +107,8 @@ export default function PosInvoiceDetail() {
           <Pill cls={pill}>{label}</Pill>
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.posInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
       {(submitCall.error || cancelCall.error || amendCall.error || deleteAction.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || deleteAction.error} />
       )}
@@ -139,6 +142,7 @@ export default function PosInvoiceDetail() {
           ] as LineField<Payment>[]}
         />
       </Card>
+      </DocTabShell>
     </>
   );
 }

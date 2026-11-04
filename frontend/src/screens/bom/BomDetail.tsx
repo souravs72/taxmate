@@ -12,6 +12,7 @@ import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import LineItems, { type LineField } from "../../components/LineItems";
 
@@ -71,6 +72,8 @@ export default function BomDetail() {
           {data.is_active ? <Pill cls="p-done">{t("bom.activeLabel")}</Pill> : <Pill cls="p-flat">{t("no")}</Pill>}
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.bom} name={name} doc={data as unknown as Record<string, unknown>}>
       {(submitCall.error || cancelCall.error || amendCall.error || deleteAction.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || deleteAction.error} />
       )}
@@ -103,6 +106,7 @@ export default function BomDetail() {
           ] as LineField<BomItem>[]}
         />
       </Card>
+      </DocTabShell>
     </>
   );
 }

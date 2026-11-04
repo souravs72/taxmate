@@ -10,6 +10,7 @@ import { DT } from "../../lib/frappe";
 import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 
 type Doc = { name: string; uom_name?: string; must_be_whole_number?: number; enabled?: number };
 
@@ -81,6 +82,8 @@ export default function UomForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.uom} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">
@@ -101,6 +104,7 @@ export default function UomForm() {
           </Field>
         </div>
       </Card>
+      </DocTabShell>
     </>
   );
 }

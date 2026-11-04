@@ -79,6 +79,9 @@ SPA_DOC_ROUTES: dict[str, str] = {
 	"Payment Request": "/payment-requests/{name}",
 	"Subcontracting Order": "/subcontracting-orders/{name}",
 	"Subcontracting Inward Order": "/subcontracting-inward-orders/{name}",
+	"Cost Center": "/cost-centers/{name}",
+	"Period Closing Voucher": "/period-closing/{name}",
+	"UAE E-Invoice Log": "/e-invoice-log",
 }
 
 
@@ -88,4 +91,18 @@ def doc_route(doctype: str | None, name: str | None) -> str | None:
 	template = SPA_DOC_ROUTES.get(doctype)
 	if not template:
 		return None
+	if "{name}" not in template:
+		return template
 	return template.format(name=quote(name, safe=""))
+
+
+def spa_list_path(doctype: str | None) -> str | None:
+	"""List route for Connections badges. Derived from SPA_DOC_ROUTES."""
+	if not doctype:
+		return None
+	template = SPA_DOC_ROUTES.get(doctype)
+	if not template:
+		return None
+	if "{name}" not in template:
+		return template
+	return template.split("/{name}")[0] or template.rsplit("/", 1)[0]

@@ -19,6 +19,7 @@ import { qty } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type LocationLine = {
@@ -128,6 +129,8 @@ export default function PickListDetail() {
           />
         }
       />
+
+      <DocTabShell doctype={DT.pickList} name={name} doc={data as unknown as Record<string, unknown>}>
       {actionError && <ErrorBox error={actionError} />}
       <Card title={t("picklist.title")}>
         <ReadRow k={t("picklist.col.purpose")} v={data.purpose || "—"} />
@@ -167,6 +170,7 @@ export default function PickListDetail() {
           </table>
         </Card>
       )}
+      </DocTabShell>
     </>
   );
 }

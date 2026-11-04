@@ -9,6 +9,7 @@ import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import { IfCanWrite } from "../../components/RoleGate";
 
 type LinkEntry = { link_doctype?: string; link_name?: string };
@@ -54,6 +55,8 @@ export default function ContactDetail() {
           </button>
         </IfCanWrite>
       </PageHead>
+
+      <DocTabShell doctype={"Contact"} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           {data.gender ? <ReadRow k={t("cnt.col.gender")} v={data.gender} /> : null}
@@ -71,6 +74,7 @@ export default function ContactDetail() {
           </div>
         </Card>
       )}
+      </DocTabShell>
     </>
   );
 }

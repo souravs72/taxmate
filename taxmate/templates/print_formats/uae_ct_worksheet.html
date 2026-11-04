@@ -1,5 +1,6 @@
 {# Corporate tax worksheet. English print keeps bilingual headings. Arabic print uses Arabic headings.
    Amounts and the company TRN stay as stored. Regime and adjustment rows are stored data. #}
+{% from "templates/print_formats/uae_money.html" import tm_auto %}
 {% set is_ar = tm_is_arabic() %}
 <style>
 .tm-ct { font-family: "Noto Naskh Arabic", "Noto Sans", "DejaVu Sans", sans-serif; font-size: 11pt; color: #111; }
@@ -8,17 +9,18 @@
 .tm-ct td, .tm-ct th { border: 1px solid #ccc; padding: 5px 7px; }
 .tm-ct th { background: #0b3d2e; color: #fff; }
 .tm-ct .num { text-align: right; }
-.tm-ct .tm-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.tm-ct .tm-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; white-space: nowrap; }
+.tm-ct .tm-auto { unicode-bidi: isolate; }
 .tm-ct .note { margin-top: 12px; font-size: 8.5pt; color: #444; }
 </style>
 <div class="tm-ct"{% if is_ar %} dir="rtl"{% endif %}>
   <h1>{% if is_ar %}ورقة عمل ضريبة الشركات{% else %}UAE Corporate Tax Worksheet / ورقة عمل ضريبة الشركات{% endif %}</h1>
   <p>
-    <strong>{% if is_ar %}الشركة{% else %}Company / الشركة{% endif %}:</strong> {{ doc.company }}
+    <strong>{% if is_ar %}الشركة{% else %}Company / الشركة{% endif %}:</strong> {{ tm_auto(doc.company) }}
     {% if doc.company_trn %} · <strong>{% if is_ar %}الرقم الضريبي{% else %}TRN / الرقم الضريبي{% endif %}:</strong> <span class="tm-ltr">{{ doc.company_trn }}</span>{% endif %}<br>
     <strong>{% if is_ar %}الفترة{% else %}Period / الفترة{% endif %}:</strong> <span class="tm-ltr">{{ doc.get_formatted("period_start") }} – {{ doc.get_formatted("period_end") }}</span>
     · <strong>{% if is_ar %}الاستحقاق{% else %}Due / الاستحقاق{% endif %}:</strong> <span class="tm-ltr">{{ doc.get_formatted("filing_due_date") }}</span><br>
-    <strong>{% if is_ar %}النظام{% else %}Regime / النظام{% endif %}:</strong> {{ doc.regime or "" }}
+    <strong>{% if is_ar %}النظام{% else %}Regime / النظام{% endif %}:</strong> {{ tm_auto(doc.regime or "") }}
   </p>
   <table>
     <thead>
@@ -61,10 +63,10 @@
     <tbody>
       {% for row in doc.adjustments %}
       <tr>
-        <td>{{ row.adjustment_type }}</td>
-        <td>{{ row.category }}</td>
+        <td>{{ tm_auto(row.adjustment_type) }}</td>
+        <td>{{ tm_auto(row.category) }}</td>
         <td class="num"><span class="tm-ltr">{{ frappe.format(row.amount, {"fieldtype": "Currency", "currency": "AED"}) }}</span></td>
-        <td>{{ row.notes or "" }}</td>
+        <td>{{ tm_auto(row.notes or "") }}</td>
       </tr>
       {% endfor %}
     </tbody>

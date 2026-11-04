@@ -19,6 +19,7 @@ import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
+import DocTabShell from "../../components/DocTabShell";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type FinanceBook = {
@@ -115,6 +116,8 @@ export default function AssetDetail() {
           />
         }
       />
+
+      <DocTabShell doctype={DT.asset} name={name} doc={data as unknown as Record<string, unknown>}>
       {actionError && <ErrorBox error={actionError} />}
       <Card title={t("ast.title")}>
         <ReadRow k={t("ast.col.category")} v={data.asset_category || "—"} />
@@ -146,6 +149,7 @@ export default function AssetDetail() {
           </table>
         </Card>
       )}
+      </DocTabShell>
     </>
   );
 }

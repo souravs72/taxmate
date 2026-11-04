@@ -10,6 +10,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Field } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
 import LinkField from "../../components/LinkField";
 
@@ -81,6 +82,8 @@ export default function SupplierGroupForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.supplierGroup} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card num={1} title={t("sg.details")}>
@@ -102,6 +105,7 @@ export default function SupplierGroupForm() {
           </div>
         </Card>
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

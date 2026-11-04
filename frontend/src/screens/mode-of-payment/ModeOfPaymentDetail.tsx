@@ -13,6 +13,7 @@ import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type MoPAccount = { company?: string; default_account?: string };
@@ -68,6 +69,8 @@ export default function ModeOfPaymentDetail() {
           {data.type && <Pill cls="p-flat">{tStatus(data.type)}</Pill>}
         </p>
       </PageHead>
+
+      <DocTabShell doctype={DT.modeOfPayment} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("mop.col.type")} v={data.type ? tStatus(data.type) : "—"} />
@@ -97,6 +100,7 @@ export default function ModeOfPaymentDetail() {
           />
         )}
       </Card>
+      </DocTabShell>
     </>
   );
 }

@@ -6,6 +6,7 @@ import { money } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LineItems, { type LineField } from "../../components/LineItems";
 
 type Charge = { charge_type?: string; account_head?: string; rate?: number; tax_amount?: number; description?: string };
@@ -42,6 +43,8 @@ export default function TaxTemplateDetail() {
           {data.is_default ? <Pill cls="p-done">{t("tx.col.default")}</Pill> : null}
         </p>
       </PageHead>
+
+      <DocTabShell doctype={dt} name={name} doc={data as unknown as Record<string, unknown>}>
       <Card>
         <div className="fg">
           <ReadRow k={t("coa.company")} v={data.company || "—"} />
@@ -70,6 +73,7 @@ export default function TaxTemplateDetail() {
           ] as LineField<Charge>[]}
         />
       </Card>
+      </DocTabShell>
     </>
   );
 }

@@ -13,6 +13,7 @@ import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { t } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import DocTabShell from "../../components/DocTabShell";
 import { FormActions, FormLayout } from "../../components/form";
 
 type Doc = { name: string; asset_category_name?: string; enable_cwip_accounting?: 0 | 1 };
@@ -66,6 +67,8 @@ export default function AssetCategoryForm() {
   return (
     <>
       <PageHead title={isNew ? t("ac.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/asset-categories")}>{t("ac.title")}</button>} />
+
+      <DocTabShell doctype={DT.assetCategory} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("ac.title")}>
@@ -85,6 +88,7 @@ export default function AssetCategoryForm() {
           busy={saving}
         />
       </FormLayout>
+      </DocTabShell>
     </>
   );
 }

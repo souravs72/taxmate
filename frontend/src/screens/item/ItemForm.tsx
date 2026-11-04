@@ -8,6 +8,7 @@ import { parseNum } from "../../lib/format";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
+import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
 
 const COMMON_UOMS = ["Nos", "Unit", "Box", "Set", "Pair", "Kg", "g", "Litre", "Ltr", "Meter", "m", "Dozen", "Hour", "Day"];
@@ -374,6 +375,8 @@ export default function ItemForm() {
           </>
         }
       />
+
+      <DocTabShell doctype={DT.item} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card title={t("item.identity")}>
         <div className="grid2">
@@ -721,6 +724,7 @@ export default function ItemForm() {
           {t("item.addUom")}
         </button>
       </Card>
+      </DocTabShell>
     </>
   );
 }
