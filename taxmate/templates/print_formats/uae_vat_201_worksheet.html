@@ -1,5 +1,6 @@
 {# VAT 201 worksheet. English print keeps bilingual headings. Arabic print uses Arabic headings.
    Box numbers, amounts, and the company TRN are the stored figures. Do not pass bilingual pairs through _(). #}
+{% from "templates/print_formats/uae_money.html" import tm_auto %}
 {% set is_ar = tm_is_arabic() %}
 <style>
 .tm-201 { font-family: "Noto Naskh Arabic", "Noto Sans", "DejaVu Sans", sans-serif; font-size: 11pt; color: #111; }
@@ -8,13 +9,14 @@
 .tm-201 td, .tm-201 th { border: 1px solid #ccc; padding: 5px 7px; }
 .tm-201 th { background: #0b3d2e; color: #fff; }
 .tm-201 .num { text-align: right; }
-.tm-201 .tm-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.tm-201 .tm-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; white-space: nowrap; }
+.tm-201 .tm-auto { unicode-bidi: isolate; }
 .tm-201 .note { margin-top: 12px; font-size: 8.5pt; color: #444; }
 </style>
 <div class="tm-201"{% if is_ar %} dir="rtl"{% endif %}>
   <h1>{% if is_ar %}إقرار ضريبة القيمة المضافة{% else %}UAE VAT 201 Worksheet / إقرار ضريبة القيمة المضافة{% endif %}</h1>
   <p>
-    <strong>{% if is_ar %}الشركة{% else %}Company / الشركة{% endif %}:</strong> {{ doc.company }}
+    <strong>{% if is_ar %}الشركة{% else %}Company / الشركة{% endif %}:</strong> {{ tm_auto(doc.company) }}
     {% if doc.company_trn %} · <strong>{% if is_ar %}الرقم الضريبي{% else %}TRN / الرقم الضريبي{% endif %}:</strong> <span class="tm-ltr">{{ doc.company_trn }}</span>{% endif %}<br>
     <strong>{% if is_ar %}الفترة{% else %}Period / الفترة{% endif %}:</strong> <span class="tm-ltr">{{ doc.get_formatted("period_start") }} – {{ doc.get_formatted("period_end") }}</span>
     · <strong>{% if is_ar %}الاستحقاق{% else %}Due / الاستحقاق{% endif %}:</strong> <span class="tm-ltr">{{ doc.get_formatted("filing_due_date") }}</span>
@@ -32,7 +34,7 @@
       {% for row in doc.boxes %}
       <tr>
         <td><span class="tm-ltr">{{ row.box_no }}</span></td>
-        <td>{{ row.legend }}</td>
+        <td>{{ tm_auto(row.legend) }}</td>
         <td class="num"><span class="tm-ltr">{{ frappe.format(row.amount, {"fieldtype": "Currency", "currency": "AED"}) }}</span></td>
         <td class="num"><span class="tm-ltr">{{ frappe.format(row.vat_amount, {"fieldtype": "Currency", "currency": "AED"}) }}</span></td>
       </tr>

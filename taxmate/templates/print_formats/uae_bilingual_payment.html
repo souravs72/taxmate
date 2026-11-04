@@ -1,8 +1,16 @@
 {# UAE bilingual payment voucher / سند صرف — Payment Entry.
-   English and Arabic labels are both written out. Stored party names,
-   account names, and narration stay as entered on the document. #}
-{% from "templates/print_formats/uae_money.html" import uae_money %}
+   English and Arabic labels are both written out. Stored party names and
+   narration print as entered; account names print through the ledger
+   catalogue, so an Arabic print says الصندوق rather than Cash.
+
+   Direction is set here, not inherited. Frappe renders an Arabic print inside
+   an RTL container, and this voucher carries Latin runs — the voucher number,
+   the dates, the amounts, the amount in words — which take their order from
+   whatever container they land in unless they say otherwise. Every one of them
+   goes through tm_ltr, tm_auto or uae_money. #}
+{% from "templates/print_formats/uae_money.html" import uae_money, tm_ltr, tm_auto %}
 {% include "templates/print_formats/uae_print_head.html" %}
+{% set is_ar = tm_is_arabic() %}
 {% set is_receive = doc.payment_type == "Receive" %}
 {% set is_transfer = doc.payment_type == "Internal Transfer" %}
 {% set title_en = "Payment Receipt" if is_receive else ("Internal Transfer" if is_transfer else "Payment Voucher") %}
@@ -11,6 +19,7 @@
 {% set party_ar = "استلم من" if is_receive else ("الطرف" if is_transfer else "دفع إلى") %}
 {% set cur = doc.paid_from_account_currency or doc.paid_to_account_currency or "AED" %}
 {% set recv_cur = doc.paid_to_account_currency or cur %}
+{% set words = tm_in_words(doc.paid_amount, cur) or doc.in_words %}
 {% set kind_ar = {"Supplier": "مورد", "Customer": "عميل", "Employee": "موظف", "Shareholder": "مساهم"} %}
 {% set ref_ar = {
   "Sales Invoice": "فاتورة مبيعات",
@@ -27,16 +36,20 @@
 .tm-pay .titles h1 { margin: 0; font-size: 18pt; color: #0b3d2e; }
 .tm-pay .titles .ar { direction: rtl; font-size: 16pt; margin-top: 2px; }
 .tm-pay .meta { text-align: right; font-size: 10pt; }
+.tm-pay[dir="rtl"] .meta { text-align: left; }
 .tm-pay table.lines { width: 100%; margin-top: 8px; }
 .tm-pay table.lines th, .tm-pay table.lines td { border: 1px solid #ccc; padding: 5px 6px; vertical-align: top; }
 .tm-pay table.lines th { background: #0b3d2e; color: #fff; font-size: 9pt; text-align: left; }
-.tm-pay .num { text-align: right; white-space: nowrap; }
-.tm-pay .tm-amt { direction: ltr; unicode-bidi: isolate; }
+.tm-pay[dir="rtl"] table.lines th { text-align: right; }
+.tm-pay .num { text-align: right; }
+.tm-pay[dir="rtl"] .num { text-align: left; }
+.tm-pay .tm-amt, .tm-pay .tm-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; white-space: nowrap; }
+.tm-pay .tm-auto { unicode-bidi: isolate; }
 .tm-pay .remarks { margin-top: 12px; white-space: pre-wrap; }
 .tm-pay .sign { margin-top: 28px; font-size: 10pt; }
 .tm-pay .sign .ar { direction: rtl; text-align: right; }
 </style>
-<div class="tm-pay">
+<div class="tm-pay" dir="{{ "rtl" if is_ar else "ltr" }}">
   <table class="hdr">
     <tr>
       <td class="titles">
@@ -44,9 +57,9 @@
         <div class="ar">{{ title_ar }}</div>
       </td>
       <td class="meta">
-        <div><strong>Voucher No. / رقم السند:</strong> {{ doc.name }}</div>
-        <div><strong>Date / التاريخ:</strong> {{ doc.get_formatted("posting_date") }}</div>
-        {% if doc.company %}<div><strong>Company / الشركة:</strong> {{ doc.company }}</div>{% endif %}
+        <div><strong>{{ tm_ltr("Voucher No.") }} / رقم السند:</strong> {{ tm_ltr(doc.name) }}</div>
+        <div><strong>Date / التاريخ:</strong> {{ tm_ltr(doc.get_formatted("posting_date")) }}</div>
+        {% if doc.company %}<div><strong>Company / الشركة:</strong> {{ tm_auto(doc.company) }}</div>{% endif %}
       </td>
     </tr>
   </table>
@@ -55,7 +68,7 @@
     {% if doc.party_name or doc.party %}
     <tr>
       <th>{{ party_en }} / {{ party_ar }}</th>
-      <td>{{ doc.party_name or doc.party }}</td>
+      <td>{{ tm_auto(doc.party_name or doc.party) }}</td>
     </tr>
     {% endif %}
     {% if doc.party_type %}
@@ -67,25 +80,25 @@
     {% if doc.mode_of_payment %}
     <tr>
       <th>Mode of Payment / طريقة الدفع</th>
-      <td>{{ doc.mode_of_payment }}</td>
+      <td>{{ tm_auto(doc.mode_of_payment) }}</td>
     </tr>
     {% endif %}
     {% if doc.reference_no %}
     <tr>
-      <th>Reference No. / رقم المرجع</th>
-      <td>{{ doc.reference_no }}{% if doc.reference_date %} · {{ doc.get_formatted("reference_date") }}{% endif %}</td>
+      <th>{{ tm_ltr("Reference No.") }} / رقم المرجع</th>
+      <td>{{ tm_ltr(doc.reference_no) }}{% if doc.reference_date %} · {{ tm_ltr(doc.get_formatted("reference_date")) }}{% endif %}</td>
     </tr>
     {% endif %}
     {% if doc.paid_from %}
     <tr>
       <th>From Account / من حساب</th>
-      <td>{{ doc.paid_from }}</td>
+      <td>{{ tm_auto(tm_account(doc.paid_from)) }}</td>
     </tr>
     {% endif %}
     {% if doc.paid_to %}
     <tr>
       <th>To Account / إلى حساب</th>
-      <td>{{ doc.paid_to }}</td>
+      <td>{{ tm_auto(tm_account(doc.paid_to)) }}</td>
     </tr>
     {% endif %}
     <tr>
@@ -98,10 +111,10 @@
       <td class="num">{{ uae_money(doc.received_amount, recv_cur) }}</td>
     </tr>
     {% endif %}
-    {% if doc.in_words %}
+    {% if words %}
     <tr>
       <th>In Words / كتابة</th>
-      <td>{{ doc.in_words }}</td>
+      <td>{{ tm_auto(words) }}</td>
     </tr>
     {% endif %}
     {% if doc.total_allocated_amount %}
@@ -135,7 +148,7 @@
     <tbody>
       {% for row in doc.deductions %}
       <tr>
-        <td>{{ row.account }}{% if row.description %}<div>{{ row.description }}</div>{% endif %}</td>
+        <td>{{ tm_auto(tm_account(row.account)) }}{% if row.description %}<div>{{ tm_auto(row.description) }}</div>{% endif %}</td>
         <td class="num">{{ uae_money(row.amount, cur) }}</td>
       </tr>
       {% endfor %}
@@ -154,7 +167,7 @@
     <tbody>
       {% for row in doc.taxes %}
       <tr>
-        <td>{{ row.description or row.account_head }}</td>
+        <td>{{ tm_auto(row.description or tm_account(row.account_head)) }}</td>
         <td class="num">{{ uae_money(row.tax_amount, cur) }}</td>
       </tr>
       {% endfor %}
@@ -174,10 +187,10 @@
     <tbody>
       {% for row in doc.references %}
       <tr>
-        <td>{{ row.idx or loop.index }}</td>
+        <td>{{ tm_ltr(row.idx or loop.index) }}</td>
         <td>
           {{ row.reference_doctype }}{% if ref_ar.get(row.reference_doctype) %} / {{ ref_ar.get(row.reference_doctype) }}{% endif %}
-          <div>{{ row.reference_name }}</div>
+          <div>{{ tm_ltr(row.reference_name) }}</div>
         </td>
         <td class="num">{{ uae_money(row.allocated_amount, cur) }}</td>
       </tr>
@@ -188,7 +201,7 @@
 
   {% if doc.remarks %}
   <div class="remarks">
-    <strong>Narration / البيان</strong><br>{{ doc.remarks }}
+    <strong>Narration / البيان</strong><br>{{ tm_auto(doc.remarks) }}
   </div>
   {% endif %}
 
@@ -216,9 +229,9 @@
       {% for entries in gl %}
       {% if entries.debit and not entries.credit %}
       <tr>
-        <td>{{ entries.account }}</td>
+        <td>{{ tm_auto(tm_account(entries.account)) }}</td>
         <td>{% if entries.party_type %}{{ entries.party_type }}{% if kind_ar.get(entries.party_type) %} / {{ kind_ar.get(entries.party_type) }}{% endif %}{% endif %}</td>
-        <td>{% if entries.party %}{{ entries.party }}{% endif %}</td>
+        <td>{% if entries.party %}{{ tm_auto(entries.party) }}{% endif %}</td>
         <td class="num">{{ uae_money(entries.debit, company_cur) }}</td>
       </tr>
       {% endif %}
@@ -231,9 +244,9 @@
       {% for entries in gl %}
       {% if entries.credit and not entries.debit %}
       <tr>
-        <td>{{ entries.account }}</td>
+        <td>{{ tm_auto(tm_account(entries.account)) }}</td>
         <td>{% if entries.party_type %}{{ entries.party_type }}{% if kind_ar.get(entries.party_type) %} / {{ kind_ar.get(entries.party_type) }}{% endif %}{% endif %}</td>
-        <td>{% if entries.party %}{{ entries.party }}{% endif %}</td>
+        <td>{% if entries.party %}{{ tm_auto(entries.party) }}{% endif %}</td>
         <td class="num">{{ uae_money(entries.credit, company_cur) }}</td>
       </tr>
       {% endif %}
@@ -247,7 +260,7 @@
   {% endif %}
 
   <div class="sign">
-    <div>For / عن {{ doc.company }}</div>
+    <div>For / عن {{ tm_auto(doc.company or "") }}</div>
     <div class="ar">Authorized Signatory / المفوض بالتوقيع</div>
   </div>
 </div>
