@@ -18,8 +18,6 @@ type Group = { title: string; results: Hit[] };
 
 type SearchResponse = { message?: { query?: string; groups?: Group[] } };
 
-const DEBOUNCE_MS = 220;
-
 export default function GlobalSearch() {
   const navigate = useNavigate();
   const listId = useId();
@@ -30,6 +28,8 @@ export default function GlobalSearch() {
   const [active, setActive] = useState(0);
   const [groups, setGroups] = useState<Group[]>([]);
   const search = useFrappePostCall<SearchResponse>(METHOD.awesomeSearch);
+  const searchCache = useRef<Map<string, Group[]>>(new Map());
+  const activeReqId = useRef(0);
 
   const flat = groups.flatMap((g) => g.results.map((r) => ({ ...r, group: g.title })));
 
@@ -61,20 +61,37 @@ export default function GlobalSearch() {
       setOpen(false);
       return;
     }
+
+    // Instant cache hit: render immediately (0ms)
+    if (searchCache.current.has(text)) {
+      setGroups(searchCache.current.get(text)!);
+      setActive(0);
+      setOpen(true);
+      return;
+    }
+
+    const reqId = ++activeReqId.current;
     const handle = window.setTimeout(() => {
       void search
         .call({ text, limit: 20 })
         .then((res) => {
+          if (reqId !== activeReqId.current) return;
           const next = res?.message?.groups ?? (res as unknown as { groups?: Group[] })?.groups ?? [];
+          searchCache.current.set(text, next);
+          if (searchCache.current.size > 100) {
+            const firstKey = searchCache.current.keys().next().value;
+            if (firstKey) searchCache.current.delete(firstKey);
+          }
           setGroups(next);
           setActive(0);
           setOpen(true);
         })
         .catch(() => {
+          if (reqId !== activeReqId.current) return;
           setGroups([]);
           setOpen(true);
         });
-    }, DEBOUNCE_MS);
+    }, text.length === 1 ? 260 : 180);
     return () => window.clearTimeout(handle);
     // search.call identity churns; q is the trigger.
     // eslint-disable-next-line react-hooks/exhaustive-deps

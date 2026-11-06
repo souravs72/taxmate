@@ -378,8 +378,11 @@ export function Field({ label, required, hint, htmlFor, children }: {
   label: string; required?: boolean; hint?: string; htmlFor?: string; children: React.ReactNode;
 }) {
   return (
-    <div className="f">
-      <label htmlFor={htmlFor}>{label} {required && <span className="req">*</span>}</label>
+    <div className={`f${required ? " reqd" : ""}`}>
+      <label htmlFor={htmlFor}>
+        {label}
+        {required ? <span className="req" aria-hidden="true">*</span> : null}
+      </label>
       {children}
       {hint && <span className="help">{hint}</span>}
     </div>

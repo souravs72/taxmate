@@ -1,105 +1,16 @@
-/**
- * WorkOrderList — Phase 18.
- * Callers: App.tsx /work-orders; nav under Stock
- */
-import { useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import type { Filter } from "frappe-react-sdk";
-
+import DocList from "../../components/DocList";
 import { DT } from "../../lib/frappe";
-import { useDraftDelete } from "../../lib/useDraftDelete";
-import BulkDraftBar from "../../components/BulkDraftBar";
-import { useDocList, useDocCount } from "../../lib/resource";
-import { useSession } from "../../lib/session";
-import { canWrite } from "../../lib/roles";
-import { useListParams } from "../../lib/list";
-import { date } from "../../lib/format";
-import { t, tStatus } from "../../i18n/strings";
-import { Card, Pill } from "../../components/ui";
-import { ListScreen } from "../../components/screen";
-import { DataTable, ListFooter, type Column } from "../../components/DataTable";
-import { FilterBar, SearchFilter } from "../../components/filters";
-import { IfCanWrite } from "../../components/RoleGate";
-
-const PAGE = 25;
-type Row = { name: string; item_name?: string; qty?: number; produced_qty?: number; planned_start_date?: string; status?: string };
-
-function woPill(status?: string): string {
-  if (!status || status === "Draft") return "p-draft";
-  if (status === "Completed") return "p-done";
-  if (status === "Cancelled" || status === "Stopped") return "p-cxl";
-  if (status === "In Process") return "p-open";
-  return "p-flat";
-}
+import { t } from "../../i18n/strings";
 
 export default function WorkOrderList() {
-  const nav = useNavigate();
-  const session = useSession();
-  const { get, set, page, setPage, start } = useListParams(PAGE);
-  const q = get("q");
-  const company = session.company;
-
-  const filters = useMemo(() => {
-    const f: [string, string, string][] = [];
-    if (company) f.push(["company", "=", company]);
-    if (q.trim()) f.push(["item_name", "like", `%${q.trim()}%`]);
-    return f as unknown as Filter<Row>[];
-  }, [company, q]);
-
-  const list = useDocList<Row>(DT.workOrder, {
-    fields: ["name", "item_name", "qty", "produced_qty", "planned_start_date", "status", "docstatus"],
-    filters,
-    orderBy: { field: "modified", order: "desc" },
-    limit: PAGE,
-    limit_start: start,
-  });
-  const count = useDocCount(DT.workOrder, filters);
-
-  const columns: Column<Row>[] = [
-    { key: "name", header: t("wo.col.no"), cell: (r) => <span className="ordno">{r.name}</span> },
-    { key: "item", header: t("wo.col.item"), cell: (r) => r.item_name || "—" },
-    { key: "qty", header: t("wo.col.qty"), cell: (r) => `${r.produced_qty ?? 0} / ${r.qty ?? 0}` },
-    { key: "start", header: t("wo.col.start"), cell: (r) => date(r.planned_start_date) },
-    { key: "status", header: t("wo.col.status"), cell: (r) => <Pill cls={woPill(r.status)}>{tStatus(r.status || "Draft")}</Pill> },
-  ];
-
-
-  const rows = list.data ?? [];
-  const writable = canWrite(session);
-  const refreshList = useCallback(() => { void list.mutate(); }, [list]);
-  const draftDelete = useDraftDelete({
-    doctype: DT.workOrder,
-    onDone: refreshList,
-    enabled: writable,
-    clearDeps: [q, page],
-  });
-
   return (
-    <ListScreen
+    <DocList
+      doctype={DT.workOrder}
+      routeBase="/work-orders"
       title={t("wo.title")}
-      primary={(
-        <IfCanWrite>
-          <button className="btn" onClick={() => nav("/work-orders/new")}>{t("wo.new")}</button>
-        </IfCanWrite>
-      )}
-    >
-      <Card bodyClass={null as unknown as string}>
-        <FilterBar>
-          <SearchFilter value={q} onChange={(v) => set("q", v)} placeholder={t("wo.search")} />
-        </FilterBar>
-        <BulkDraftBar drafts={draftDelete} />
-
-        <DataTable<Row>
-          rows={rows}
-          rowKey={(r) => r.name}
-          onOpen={(r) => nav(`/work-orders/${encodeURIComponent(r.name)}`)}
-          state={{ isLoading: list.isLoading, error: list.error, onRetry: () => list.mutate() }}
-          emptyLabel={t("wo.empty")}
-          columns={columns}
-          selection={draftDelete.selection(rows)}
-        />
-        <ListFooter shown={(list.data ?? []).length} total={count.data ?? 0} page={page} pageSize={PAGE} onPage={setPage} />
-      </Card>
-    </ListScreen>
+      newLabel={t("wo.new")}
+      searchPlaceholder={t("wo.search")}
+      emptyLabel={t("wo.empty")}
+    />
   );
 }

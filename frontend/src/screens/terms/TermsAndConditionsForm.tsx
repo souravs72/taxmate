@@ -95,7 +95,7 @@ export default function TermsAndConditionsForm() {
         title={isNew ? t("tc.new") : termsTitle || name}
       />
 
-      <DocTabShell doctype={"Terms and Conditions"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={"Terms and Conditions"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>

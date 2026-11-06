@@ -17,7 +17,6 @@ import {
   bookFilters,
   chipRange,
   isRunnableReport,
-  reportBlurbKey,
   reportCaps,
   type Periodicity,
 } from "../../lib/bookReports";
@@ -29,14 +28,35 @@ import { useLang } from "../../lib/i18n";
 import { useIsPhone } from "../../lib/useMedia";
 import { t } from "../../i18n/strings";
 import { Empty, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
-import { LinkFilter, SearchFilter } from "../../components/filters";
+import { LinkFilter } from "../../components/filters";
 import ReportDataTable, { type ReportCol } from "./ReportDataTable";
 import "../../styles/list-mobile.css";
 import "./reports.css";
 
 type Col = ReportCol;
 type Row = Record<string, unknown>;
-type Payload = { result?: Row[]; columns?: Col[]; report_label?: string };
+type SummaryItem = {
+  type?: string;
+  value?: number | string;
+  label?: string;
+  datatype?: string;
+  currency?: string;
+  indicator?: string;
+  color?: string;
+};
+type ChartPayload = {
+  type?: string;
+  colors?: string[];
+  data?: { labels?: string[]; datasets?: { name?: string; values?: Array<number | null> }[] };
+};
+type Payload = {
+  result?: Row[];
+  columns?: Col[];
+  report_label?: string;
+  report_summary?: SummaryItem[];
+  chart?: ChartPayload;
+  execution_time?: number;
+};
 type Fy = { year_start_date?: string; year_end_date?: string };
 type Chip = "month" | "quarter" | "ytd" | "fy";
 
@@ -55,6 +75,23 @@ const CAT_LABEL: Record<string, string> = {
 const fill = (s: string, vars: Record<string, string | number>) =>
   Object.entries(vars).reduce((out, [k, v]) => out.replaceAll(`{${k}}`, String(v)), s);
 
+const DESK_COPY = {
+  en: {
+    compare: "For comparison, use >5, <10 or =324. For ranges, use 5:10 (for values between 5 and 10).",
+    exec: "Execution time: {s} sec",
+    rowNum: "Row",
+    colFilter: "Filter {column}",
+    toggle: "Show or hide rows under {a}",
+  },
+  ar: {
+    compare: "للمقارنة استخدم >5 أو <10 أو =324. للنطاق استخدم 5:10 (للقيم بين 5 و 10).",
+    exec: "مدة التنفيذ: {s} ث",
+    rowNum: "الصف",
+    colFilter: "تصفية {column}",
+    toggle: "إظهار أو إخفاء الصفوف تحت {a}",
+  },
+} as const;
+
 function yearStart(iso?: string): string {
   const d = iso || toIsoDate(new Date());
   return `${d.slice(0, 4)}-01-01`;
@@ -64,8 +101,22 @@ function isMoney(col: Col): boolean {
   return col.fieldtype === "Currency" || col.fieldtype === "Float" || col.fieldtype === "Int";
 }
 
+type MoneyMark = { mark?: string | null; onRight?: boolean };
+
+function decorate(text: string, mark?: MoneyMark): string {
+  const token = (mark?.mark || "").trim();
+  if (!token) return text;
+  return mark?.onRight === false ? `${token}\u00a0${text}` : `${text}\u00a0${token}`;
+}
+
+function amount(n: number, col: Col, mark?: MoneyMark): string {
+  const text = col.fieldtype === "Int" ? String(Math.round(n)) : money(n);
+  if (col.fieldtype === "Currency") return decorate(text, mark);
+  return text;
+}
+
 /**
- * Money cells show numerals only — currency lives once in the footer.
+ * Currency cells use the Currency symbol, on the side that doctype stores.
  * UAE VAT 201 (and similar) return `frappe.format` strings; prefer `raw_*`
  * when present, else parse the decorated string.
  */
@@ -102,27 +153,26 @@ function accountCell(row: Row, field: string): string | null {
   return typeof row.account === "string" && row.account.trim() ? unquote(row.account) : null;
 }
 
-function cell(row: Row, col: Col): string {
+function cell(row: Row, col: Col, mark?: MoneyMark): string {
   const field = col.fieldname || "";
   const named = accountCell(row, field);
   if (named != null && named !== "") return named;
   const v = row[field];
   if (v == null || v === "") return "—";
-  if (typeof v === "number") return isMoney(col) ? money(v) : String(v);
+  if (typeof v === "number") return isMoney(col) ? amount(v, col, mark) : String(v);
   if (!isMoney(col)) return String(v);
 
   const raw = row[`raw_${field}`];
-  if (typeof raw === "number" && Number.isFinite(raw)) return money(raw);
+  if (typeof raw === "number" && Number.isFinite(raw)) return amount(raw, col, mark);
 
   if (typeof v === "string") {
     const trimmed = v.trim();
     if (trimmed === "-" || trimmed === "—") return "—";
-    if (/^[-\d.,\s]+$/.test(trimmed)) return money(trimmed);
     const parsed = parseDeskMoney(trimmed);
-    if (parsed != null) return money(parsed);
+    if (parsed != null) return amount(parsed, col, mark);
     return trimmed;
   }
-  return money(Number(v));
+  return amount(Number(v), col, mark);
 }
 
 function spaRouteForVoucher(voucherType: unknown, voucherNo: unknown): string | null {
@@ -148,11 +198,11 @@ function usedColumns(cols: Col[], rows: Row[]): Col[] {
   });
 }
 
-function exportCsv(name: string, cols: Col[], rows: Row[]): void {
+function exportCsv(name: string, cols: Col[], rows: Row[], mark?: MoneyMark): void {
   const esc = (s: string) => `"${s.replace(/"/g, "\"\"")}"`;
   const lines = [
     cols.map((c) => esc(c.label || c.fieldname || "")).join(","),
-    ...rows.map((r) => cols.map((c) => esc(cell(r, c))).join(",")),
+    ...rows.map((r) => cols.map((c) => esc(cell(r, c, mark))).join(",")),
   ];
   const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
@@ -160,6 +210,206 @@ function exportCsv(name: string, cols: Col[], rows: Row[]): void {
   a.download = `${name}.csv`;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+function shortAxis(n: number): string {
+  const sign = n < 0 ? "−" : "";
+  const a = Math.abs(n);
+  if (a >= 1_000_000) {
+    const m = a / 1_000_000;
+    const text = m >= 10 || Math.abs(m - Math.round(m)) < 0.05 ? String(Math.round(m)) : m.toFixed(1);
+    return `${sign}${text}M`;
+  }
+  if (a >= 1000) return `${sign}${Math.round(a / 1000)}K`;
+  return `${sign}${Math.round(a)}`;
+}
+
+/** Even steps, with the top tick above the tallest bar. */
+function axisTicks(min: number, max: number): number[] {
+  const bot = Math.min(0, min);
+  const top = Math.max(0, max);
+  const span = Math.max(top - bot, Math.abs(top) || 1);
+  const rough = span / 3;
+  const pow = Math.pow(10, Math.floor(Math.log10(rough)));
+  const n = rough / pow;
+  const step = (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pow;
+  const start = Math.floor(bot / step) * step;
+  const end = Math.max(step, Math.ceil((top * 1.08) / step) * step);
+  const ticks: number[] = [];
+  for (let v = start; v <= end + step * 0.01; v += step) ticks.push(Math.round(v * 1000) / 1000);
+  return ticks;
+}
+
+/** Income in ink, expense in slate, the result in the one brand blue. */
+function seriesColor(name: string, value: number): string {
+  const n = name.toLowerCase();
+  if (/profit|margin|\bnet\b/.test(n)) return value < 0 ? "var(--bad)" : "var(--brand)";
+  if (/expense|loss|debit|outflow/.test(n)) return "var(--muted)";
+  if (/income|revenue|credit|inflow|sales/.test(n)) return "var(--text)";
+  return "var(--text)";
+}
+
+function columnPath(x: number, y: number, w: number, h: number, down: boolean): string {
+  const r = Math.max(0, Math.min(4, w / 2, h));
+  if (h < 0.5) return "";
+  if (!down) {
+    return `M${x} ${y + h}H${x + w}V${y + r}Q${x + w} ${y} ${x + w - r} ${y}H${x + r}Q${x} ${y} ${x} ${y + r}Z`;
+  }
+  return `M${x} ${y}H${x + w}V${y + h - r}Q${x + w} ${y + h} ${x + w - r} ${y + h}H${x + r}Q${x} ${y + h} ${x} ${y + h - r}Z`;
+}
+
+function summaryText(item: SummaryItem, mark?: MoneyMark): string {
+  const n = typeof item.value === "number" ? item.value : Number(item.value);
+  if (!Number.isFinite(n)) return item.value == null || item.value === "" ? "—" : String(item.value);
+  if (item.datatype === "Currency") return decorate(money(n), mark);
+  if (item.datatype === "Int") return String(Math.round(n));
+  if (item.datatype === "Percent") return `${money(n)}%`;
+  if (item.datatype === "Float") return money(n);
+  return String(item.value);
+}
+
+function toneOf(item: SummaryItem): string {
+  const raw = (item.indicator || item.color || "").toLowerCase();
+  if (raw === "green" || raw === "red" || raw === "blue") return raw;
+  return "";
+}
+
+function ReportSummary({ items, mark }: { items: SummaryItem[]; mark?: MoneyMark }) {
+  const visible = items.filter((item) => item.type !== "separator" && item.label);
+  if (!visible.length) return null;
+  return (
+    <div className="rpt-summary">
+      {visible.map((item) => (
+        <div className="rpt-sum" key={item.label}>
+          <span>{item.label}</span>
+          <b className={toneOf(item)}>{summaryText(item, item.datatype === "Currency" ? mark : undefined)}</b>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReportChart({ chart }: { chart: ChartPayload }) {
+  const labels = chart.data?.labels ?? [];
+  const sets = (chart.data?.datasets ?? []).filter((set) => set.name);
+  if (!labels.length || !sets.length) return null;
+  const single = labels.length === 1;
+  const values = sets.flatMap((set) => (set.values ?? []).map((v) => v ?? 0));
+  const ticks = axisTicks(Math.min(0, ...values), Math.max(0, ...values));
+  const axisMax = ticks[ticks.length - 1] ?? 0;
+  const axisMin = ticks[0] ?? 0;
+  const span = axisMax - axisMin || 1;
+  const W = 1000;
+  const H = 168;
+  const padL = 52;
+  const padR = 12;
+  const padT = 22;
+  const padB = single ? 28 : 22;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const yOf = (v: number) => padT + ((axisMax - v) / span) * innerH;
+  const zero = yOf(0);
+  const columns = single ? sets.length : labels.length;
+  const colW = innerW / columns;
+  const per = single ? 1 : sets.length;
+  const barW = Math.min(single ? 56 : 18, Math.max(4, (colW * (single ? 0.34 : 0.62)) / per));
+
+  type Bar = { name: string; value: number; color: string };
+  const groups: { key: string; label: string; bars: Bar[] }[] = single
+    ? sets.map((set, si) => {
+        const value = set.values?.[0] ?? 0;
+        return {
+          key: set.name || String(si),
+          label: set.name || "",
+          bars: [{ name: set.name || "", value, color: seriesColor(set.name || "", value) }],
+        };
+      })
+    : labels.map((label, li) => ({
+        key: label,
+        label,
+        bars: sets.map((set) => {
+          const value = set.values?.[li] ?? 0;
+          return { name: set.name || "", value, color: seriesColor(set.name || "", value) };
+        }),
+      }));
+
+  return (
+    <figure className="rpt-chart">
+      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("rpt.chart")}>
+        {ticks.map((tick) => {
+          const y = yOf(tick);
+          const baseline = Math.abs(tick) < span * 0.001;
+          return (
+            <g key={tick}>
+              {!baseline && (
+                <line x1={padL} x2={W - padR} y1={y} y2={y} stroke="var(--border)" strokeWidth="1" />
+              )}
+              <text x={padL - 8} y={y + 3} textAnchor="end" fill="var(--faint)" fontSize="11" fontFamily="var(--ui)">
+                {shortAxis(tick)}
+              </text>
+            </g>
+          );
+        })}
+        <line x1={padL} x2={W - padR} y1={zero} y2={zero} stroke="var(--border-2)" strokeWidth="1" />
+        {groups.map((group, gi) => {
+          const pack = barW * group.bars.length;
+          const gx = padL + gi * colW + (colW - pack) / 2;
+          return (
+            <g key={group.key}>
+              {group.bars.map((bar, bi) => {
+                const down = bar.value < 0;
+                const y = down ? zero : yOf(bar.value);
+                const h = Math.max(bar.value === 0 ? 1 : 6, Math.abs(zero - yOf(bar.value)));
+                const x = gx + bi * barW + (group.bars.length > 1 ? 1.5 : 0);
+                const w = Math.max(2, barW - (group.bars.length > 1 ? 3 : 0));
+                const shown = shortAxis(bar.value);
+                return (
+                  <g key={bar.name}>
+                    <path d={columnPath(x, y, w, h, down)} fill={bar.color}>
+                      <title>{`${bar.name}: ${shown}`}</title>
+                    </path>
+                    {single && (
+                      <text
+                        x={x + w / 2}
+                        y={down ? y + h + 14 : Math.max(12, y - 14)}
+                        textAnchor="middle"
+                        fill={bar.color}
+                        fontSize="12"
+                        fontWeight="600"
+                        fontFamily="var(--ui)"
+                      >
+                        {shown}
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+              <text
+                x={padL + gi * colW + colW / 2}
+                y={H - 8}
+                textAnchor="middle"
+                fill="var(--muted)"
+                fontSize="11"
+                fontFamily="var(--ui)"
+              >
+                {group.label}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      {!single && (
+        <ul className="rpt-chart-legend">
+          {sets.map((set) => (
+            <li key={set.name}>
+              <span className="rpt-swatch" style={{ background: seriesColor(set.name || "", 1) }} />
+              {set.name}
+            </li>
+          ))}
+        </ul>
+      )}
+    </figure>
+  );
 }
 
 function Check({ on, label, onChange }: { on: boolean; label: string; onChange: () => void }) {
@@ -181,9 +431,17 @@ export default function ReportRunner() {
   const { get, set, setMany } = useListParams(20);
   const today = session.today || toIsoDate(new Date());
   const company = session.company;
+  const currencyDoc = useDoc<{ symbol?: string; symbol_on_right?: 0 | 1 }>(
+    "Currency",
+    session.currency || undefined,
+    session.currency ? `currency-${session.currency}` : null,
+  );
+  const moneyMark: MoneyMark = {
+    mark: currencyDoc.data?.symbol || session.currency,
+    onRight: currencyDoc.data?.symbol_on_right !== 0,
+  };
   const caps = reportCaps(name);
   const allowed = isRunnableReport(name);
-  const [find, setFind] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const sheetRef = useRef<HTMLDivElement | null>(null);
   const filterBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -200,7 +458,7 @@ export default function ReportRunner() {
   const toDate = get("to") || today;
   const periodicity = (PERIODICITIES as readonly string[]).includes(get("p"))
     ? (get("p") as Periodicity)
-    : "Monthly";
+    : "Yearly";
   const costCenter = get("cc");
   const rawAccount = get("account");
   const account = rawAccount && (rawAccount.startsWith("'") || rawAccount.endsWith("'") || rawAccount.startsWith('"') || rawAccount.endsWith('"')) ? "" : rawAccount;
@@ -249,13 +507,9 @@ export default function ReportRunner() {
     () => (run.data?.message?.result ?? []).filter((r) => r && typeof r === "object" && !Array.isArray(r)),
     [run.data],
   );
-  const q = find.trim().toLowerCase();
-  const shown = useMemo(() => {
-    if (!q) return rows;
-    return rows.filter((r) => columns.some((c) => cell(r, c).toLowerCase().includes(q)));
-  }, [rows, columns, q]);
-
-  const blurbKey = reportBlurbKey(name);
+  const summary = run.data?.message?.report_summary ?? [];
+  const chart = run.data?.message?.chart;
+  const execution = run.data?.message?.execution_time;
   const companyFilters = company ? [["company", "=", company]] : undefined;
   const activeChip = (["month", "quarter", "ytd", "fy"] as const).find((k) => {
     const next = chipRange(k, today, fy.data?.year_start_date, fy.data?.year_end_date);
@@ -371,68 +625,53 @@ export default function ReportRunner() {
 
   return (
     <div className="rpt-run">
-      <PageHead
-        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/reports")}>{t("rpt.title")}</button>}
-        title={run.data?.message?.report_label || name}
-        sub={phone ? undefined : (blurbKey ? t(blurbKey) : t("rpt.runSub"))}
-        stickyActions={false}
-        actions={
-          <>
-            <button
-              type="button"
-              className={`btn ghost sm${phone ? " rpt-icon-act" : ""}`}
-              disabled={paused || run.isLoading}
-              onClick={() => run.mutate()}
-              aria-label={t("rpt.refresh")}
-            >
-              {phone ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                  <path d="M13.2 8a5.2 5.2 0 1 1-1.4-3.5" strokeLinecap="round" />
-                  <path d="M13.2 2.8v3.2H10" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              ) : t("rpt.refresh")}
-            </button>
-            <button
-              type="button"
-              className={`btn ghost sm${phone ? " rpt-icon-act" : ""}`}
-              disabled={!shown.length}
-              onClick={() => exportCsv(name, columns, shown)}
-              aria-label={t("rpt.export")}
-            >
-              {phone ? (
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
-                  <path d="M8 2.5v7M5.5 7.2 8 9.7l2.5-2.5M3.2 12.5h9.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              ) : t("rpt.export")}
-            </button>
-          </>
-        }
-      />
+      <header className="rpt-head">
+        <nav aria-label={t("rpt.title")}>
+          <ol className="rpt-crumbs">
+            <li><button type="button" onClick={() => nav("/reports")}>{t("rpt.title")}</button></li>
+            <li><h1>{run.data?.message?.report_label || name}</h1></li>
+          </ol>
+        </nav>
+        <div className="rpt-head-acts">
+          <button type="button" className="rpt-icon" disabled={paused || run.isLoading} onClick={() => run.mutate()} aria-label={t("rpt.refresh")}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M13.2 8a5.2 5.2 0 1 1-1.4-3.5" strokeLinecap="round" />
+              <path d="M13.2 2.8v3.2H10" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+          <button type="button" className="rpt-icon" disabled={!rows.length} onClick={() => exportCsv(name, columns, rows, moneyMark)} aria-label={t("rpt.export")}>
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
+              <path d="M8 2.5v7M5.5 7.2 8 9.7l2.5-2.5M3.2 12.5h9.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        </div>
+      </header>
 
       {/* Frappe `.page-form` — filters above the grid (sheet on phone). */}
       <div className={`rpt-form${phone ? " rpt-form-phone" : ""}`}>
-        {(caps.periodChips || caps.periodicity || (phone && sheetFieldCount > 0)) && (
+        {phone && (caps.periodChips || caps.periodicity || sheetFieldCount > 0) && (
           <div className="rpt-top">
             {caps.periodChips && (
-              <div className="rpt-links" role="group" aria-label={t("rpt.period")}>
+              <select
+                className="ctl"
+                aria-label={t("rpt.period")}
+                value={activeChip || ""}
+                onChange={(e) => { if (e.target.value) applyChip(e.target.value as Chip); }}
+              >
+                <option value="">{t("rpt.period")}</option>
                 {(["month", "quarter", "ytd", "fy"] as const).map((k) => (
-                  <button key={k} type="button" aria-pressed={activeChip === k} onClick={() => applyChip(k)}>
-                    {t(`rpt.chip.${k}`)}
-                  </button>
+                  <option key={k} value={k}>{t(`rpt.chip.${k}`)}</option>
                 ))}
-              </div>
+              </select>
             )}
             {caps.periodicity && (
-              <label className="rpt-grain">
-                <span>{t("rpt.columns")}</span>
-                <select className="ctl" value={periodicity} onChange={(e) => set("p", e.target.value)}>
-                  {PERIODICITIES.map((p) => (
-                    <option key={p} value={p}>{t(`rpt.p.${p}`)}</option>
-                  ))}
-                </select>
-              </label>
+              <select className="ctl" aria-label={t("rpt.periodicity")} value={periodicity} onChange={(e) => set("p", e.target.value)}>
+                {PERIODICITIES.map((p) => (
+                  <option key={p} value={p}>{t(`rpt.p.${p}`)}</option>
+                ))}
+              </select>
             )}
-            {phone && sheetFieldCount > 0 && (
+            {sheetFieldCount > 0 && (
               <button
                 ref={filterBtnRef}
                 type="button"
@@ -454,13 +693,33 @@ export default function ReportRunner() {
 
         {(!phone || !sheetFieldCount) && (
           <div className="rpt-fields">
+            {!phone && caps.periodChips && (
+              <select
+                className="ctl"
+                aria-label={t("rpt.period")}
+                value={activeChip || ""}
+                onChange={(e) => { if (e.target.value) applyChip(e.target.value as Chip); }}
+              >
+                <option value="">{t("rpt.period")}</option>
+                {(["month", "quarter", "ytd", "fy"] as const).map((k) => (
+                  <option key={k} value={k}>{t(`rpt.chip.${k}`)}</option>
+                ))}
+              </select>
+            )}
+            {!phone && caps.periodicity && (
+              <select className="ctl" aria-label={t("rpt.periodicity")} value={periodicity} onChange={(e) => set("p", e.target.value)}>
+                {PERIODICITIES.map((p) => (
+                  <option key={p} value={p}>{t(`rpt.p.${p}`)}</option>
+                ))}
+              </select>
+            )}
             {caps.dates && (
               <>
                 <Field label={t("rpt.from")}>
-                  <input className="ctl" type="date" value={fromDate} onChange={(e) => set("from", e.target.value)} />
+                  <input className="ctl" type="date" aria-label={t("rpt.from")} value={fromDate} onChange={(e) => set("from", e.target.value)} />
                 </Field>
                 <Field label={t("rpt.to")}>
-                  <input className="ctl" type="date" value={toDate} onChange={(e) => set("to", e.target.value)} />
+                  <input className="ctl" type="date" aria-label={t("rpt.to")} value={toDate} onChange={(e) => set("to", e.target.value)} />
                 </Field>
               </>
             )}
@@ -509,8 +768,8 @@ export default function ReportRunner() {
             )}
             {caps.party === "typed" && (
               <Field label={t("rpt.partyType")}>
-                <select className="ctl" value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
-                  <option value="">{t("rpt.any")}</option>
+                <select className="ctl" aria-label={t("rpt.partyType")} value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
+                  <option value="">{t("rpt.partyType")}</option>
                   <option value="Customer">{t("nav.customers")}</option>
                   <option value="Supplier">{t("nav.suppliers")}</option>
                 </select>
@@ -528,19 +787,19 @@ export default function ReportRunner() {
             )}
             {caps.voucher && (
               <Field label={t("rpt.voucher")}>
-                <input className="ctl" value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
+                <input className="ctl" aria-label={t("rpt.voucher")} value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
               </Field>
             )}
             {caps.categorize && (
               <Field label={t("rpt.categorize")}>
-                <select className="ctl" value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
+                <select className="ctl" aria-label={t("rpt.categorize")} value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
                   {GL_CATEGORIES.map((c) => <option key={c} value={c}>{t(CAT_LABEL[c] ?? c)}</option>)}
                 </select>
               </Field>
             )}
             {caps.status.length > 0 && (
               <Field label={t("rpt.status")}>
-                <select className="ctl" value={status} onChange={(e) => set("status", e.target.value)}>
+                <select className="ctl" aria-label={t("rpt.status")} value={status} onChange={(e) => set("status", e.target.value)}>
                   <option value="">{t("rpt.any")}</option>
                   {caps.status.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -548,7 +807,7 @@ export default function ReportRunner() {
             )}
             {caps.sla.length > 0 && (
               <Field label={t("rpt.sla")}>
-                <select className="ctl" value={sla} onChange={(e) => set("sla", e.target.value)}>
+                <select className="ctl" aria-label={t("rpt.sla")} value={sla} onChange={(e) => set("sla", e.target.value)}>
                   <option value="">{t("rpt.any")}</option>
                   {caps.sla.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
@@ -668,7 +927,7 @@ export default function ReportRunner() {
               {caps.party === "typed" && (
                 <div className="lm-frow">
                   <Field label={t("rpt.partyType")}>
-                    <select className="ctl" value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
+                    <select className="ctl" aria-label={t("rpt.partyType")} value={partyType} onChange={(e) => setMany({ ptype: e.target.value, party: "" })}>
                       <option value="">{t("rpt.any")}</option>
                       <option value="Customer">{t("nav.customers")}</option>
                       <option value="Supplier">{t("nav.suppliers")}</option>
@@ -691,14 +950,14 @@ export default function ReportRunner() {
               {caps.voucher && (
                 <div className="lm-frow">
                   <Field label={t("rpt.voucher")}>
-                    <input className="ctl" value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
+                    <input className="ctl" aria-label={t("rpt.voucher")} value={voucherNo} onChange={(e) => set("vn", e.target.value)} placeholder={t("rpt.voucher")} />
                   </Field>
                 </div>
               )}
               {caps.categorize && (
                 <div className="lm-frow">
                   <Field label={t("rpt.categorize")}>
-                    <select className="ctl" value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
+                    <select className="ctl" aria-label={t("rpt.categorize")} value={categorizeBy} onChange={(e) => set("cat", e.target.value)}>
                       {GL_CATEGORIES.map((c) => <option key={c} value={c}>{t(CAT_LABEL[c] ?? c)}</option>)}
                     </select>
                   </Field>
@@ -707,7 +966,7 @@ export default function ReportRunner() {
               {caps.status.length > 0 && (
                 <div className="lm-frow">
                   <Field label={t("rpt.status")}>
-                    <select className="ctl" value={status} onChange={(e) => set("status", e.target.value)}>
+                    <select className="ctl" aria-label={t("rpt.status")} value={status} onChange={(e) => set("status", e.target.value)}>
                       <option value="">{t("rpt.any")}</option>
                       {caps.status.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -717,7 +976,7 @@ export default function ReportRunner() {
               {caps.sla.length > 0 && (
                 <div className="lm-frow">
                   <Field label={t("rpt.sla")}>
-                    <select className="ctl" value={sla} onChange={(e) => set("sla", e.target.value)}>
+                    <select className="ctl" aria-label={t("rpt.sla")} value={sla} onChange={(e) => set("sla", e.target.value)}>
                       <option value="">{t("rpt.any")}</option>
                       {caps.sla.map((s) => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -758,15 +1017,33 @@ export default function ReportRunner() {
 
       {run.error && <ErrorBox error={run.error} onRetry={() => run.mutate()} />}
 
+      {!paused && !run.isLoading && summary.length > 0 && (
+        <ReportSummary items={summary} mark={moneyMark} />
+      )}
+      {!paused && !run.isLoading && chart?.data?.labels?.length ? <ReportChart chart={chart} /> : null}
+
       <div className="rpt-grid-wrap">
         <ReportDataTable
           columns={columns}
-          rows={shown}
+          rows={rows}
           isMoney={isMoney}
           compact={phone}
           loading={paused || run.isLoading}
           loadingNode={<Loading />}
-          empty={<Empty label={q ? t("rpt.noneRows") : t("rpt.empty")} />}
+          empty={<Empty label={t("rpt.empty")} />}
+          footnote={DESK_COPY[lang].compare}
+          countLabel={(shownN, totalN) => {
+            const exec = typeof execution === "number" ? fill(DESK_COPY[lang].exec, { s: execution.toFixed(6) }) : "";
+            const rowsText = shownN === totalN
+              ? fill(t("rpt.rowCount"), { n: shownN })
+              : fill(t("rpt.ofTotal"), { n: shownN, total: totalN });
+            if (exec && shownN !== totalN) return `${rowsText} · ${exec}`;
+            return exec || rowsText;
+          }}
+          filterLabel={(column) => fill(DESK_COPY[lang].colFilter, { column })}
+          rowNumberLabel={DESK_COPY[lang].rowNum}
+          toggleLabel={(accountName) => fill(DESK_COPY[lang].toggle, { a: accountName })}
+          noMatch={<Empty label={t("rpt.noneRows")} />}
           regionLabel={t("rpt.resultsRegion")}
           isRowActive={(row) => {
             if (spaRouteForVoucher(row.voucher_type, row.voucher_no)) return true;
@@ -788,29 +1065,16 @@ export default function ReportRunner() {
           rowClassName={(row) => {
             const clickable = isClickableAccount(row, name, !!caps.tree);
             const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
+            const acct = String(row.account || "");
+            const quoted = (acct.startsWith("'") && acct.endsWith("'")) || (acct.startsWith('"') && acct.endsWith('"'));
             return [
-              row.bold ? "rpt-bold" : "",
+              row.bold || quoted ? "rpt-bold" : "",
               clickable || voucherRoute ? "rpt-open" : "",
             ].filter(Boolean).join(" ");
           }}
           onRowActivate={activateRow}
-          renderCell={(row, c) => cell(row, c)}
+          renderCell={(row, c) => cell(row, c, moneyMark)}
         />
-        <div className="rpt-footer">
-          <span className="rpt-footer-meta">
-            {[
-              session.currency || null,
-              paused || run.isLoading
-                ? t("list.loading")
-                : q && rows.length !== shown.length
-                  ? fill(t("rpt.ofTotal"), { n: shown.length, total: rows.length })
-                  : fill(t("rpt.rowCount"), { n: shown.length }),
-            ].filter(Boolean).join(" · ")}
-          </span>
-          <div className="rpt-footer-find">
-            <SearchFilter value={find} onChange={setFind} placeholder={t("rpt.find")} />
-          </div>
-        </div>
       </div>
     </div>
   );

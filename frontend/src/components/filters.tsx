@@ -196,14 +196,28 @@ export function FilterBar({ children }: { children: ReactNode }) {
 export function SearchFilter({ value, onChange, placeholder }: {
   value: string; onChange: (v: string) => void; placeholder: string;
 }) {
+  const [localVal, setLocalVal] = useState(value);
+
+  useEffect(() => {
+    setLocalVal(value);
+  }, [value]);
+
+  useEffect(() => {
+    if (localVal === value) return;
+    const timer = window.setTimeout(() => {
+      onChange(localVal);
+    }, 250);
+    return () => window.clearTimeout(timer);
+  }, [localVal, value, onChange]);
+
   return (
     <div className="fsearch">
       <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
         <circle cx="7" cy="7" r="4.5" /><path d="M10.5 10.5 14 14" />
       </svg>
-      <input className="ctl" type="search" value={value} placeholder={placeholder}
+      <input className="ctl" type="search" value={localVal} placeholder={placeholder}
         aria-label={placeholder}
-        onChange={(e) => onChange(e.target.value)} />
+        onChange={(e) => setLocalVal(e.target.value)} />
     </div>
   );
 }

@@ -246,86 +246,103 @@ export default function SalesOrderDetail() {
               if (newName) nav(`/orders/${encodeURIComponent(newName)}/edit`);
               else mutate();
             }}
+            create={[
+              {
+                key: "dn",
+                label: busy === "dn" ? t("soc.saving") : t("sod.createDn"),
+                hidden: !canDeliver,
+                disabled: !!busy,
+                onClick: () => { void createDownstream("dn"); },
+              },
+              {
+                key: "si",
+                label: busy === "si" ? t("soc.saving") : t("sod.createSi"),
+                hidden: !canBill,
+                disabled: !!busy,
+                onClick: () => { void createDownstream("si"); },
+              },
+              {
+                key: "pick",
+                label: t("nav.pickLists"),
+                hidden: !canPick,
+                disabled: !!busy,
+                onClick: () => { void mapDraft(makePick.call, DT.pickList, "/pick-lists/"); },
+              },
+              {
+                key: "mr",
+                label: t("nav.materialRequests"),
+                hidden: !canRequest,
+                disabled: !!busy,
+                onClick: () => { void mapDraft(makeMr.call, DT.materialRequest, "/material-requests/"); },
+              },
+              {
+                key: "wo",
+                label: t("nav.workOrders"),
+                hidden: !canMakeWork,
+                disabled: !!busy,
+                onClick: () => { void openWorkOrders(); },
+              },
+              {
+                key: "payment",
+                label: t("sod.createPayment"),
+                hidden: !canPay,
+                onClick: () => nav(`/payments/new?dt=${encodeURIComponent(DT.salesOrder)}&dn=${encodeURIComponent(name)}`),
+              },
+              {
+                key: "payreq",
+                label: t("doc.paymentRequest"),
+                hidden: !(data.docstatus === 1 && !closed && (data.per_billed ?? 0) < 100),
+                disabled: paymentRequest.busy,
+                onClick: () => { void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.salesOrder, reference_name: name })); },
+              },
+              {
+                key: "inward",
+                label: t("doc.subInward"),
+                hidden: !(data.docstatus === 1 && !held && !closed && !!data.is_subcontracted
+                  && (data.items ?? []).some((row) => Number(row.qty) !== Number(row.subcontracted_qty || 0))),
+                disabled: inward.busy,
+                onClick: () => { void inward.open(() => makeInward.call({ source_name: name })); },
+              },
+            ]}
+            menu={[
+              {
+                key: "hold",
+                label: t("supp.onHold"),
+                hidden: !(canHoldOrClose && !held),
+                disabled: setStatus.loading || !holdReason.trim(),
+                onClick: () => { void changeStatus("On Hold", holdReason); },
+              },
+              {
+                key: "resume",
+                label: t("act.resume"),
+                hidden: !canResume,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Draft"); },
+              },
+              {
+                key: "close",
+                label: t("hist.close"),
+                hidden: !canHoldOrClose,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Closed"); },
+              },
+              {
+                key: "reopen",
+                label: t("act.reopen"),
+                hidden: !canReopen,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Draft"); },
+              },
+            ]}
             extra={
               <>
-                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                 {!isNative() && (
                   <PrintLangButtons doctype={DT.salesOrder} name={name} />
                 )}
-                {canDeliver && (
-                <button type="button" className="btn ghost" disabled={!!busy}
-                  onClick={() => void createDownstream("dn")}>
-                  {busy === "dn" ? t("soc.saving") : t("sod.createDn")}
-                </button>
-                )}
-                {canBill && (
-                <button type="button" className="btn" disabled={!!busy}
-                  onClick={() => void createDownstream("si")}>
-                  {busy === "si" ? t("soc.saving") : t("sod.createSi")}
-                </button>
-                )}
-                {canPick && (
-                  <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void mapDraft(makePick.call, DT.pickList, "/pick-lists/")}>
-                    {t("nav.pickLists")}
-                  </button>
-                )}
-                {canRequest && (
-                  <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void mapDraft(makeMr.call, DT.materialRequest, "/material-requests/")}>
-                    {t("nav.materialRequests")}
-                  </button>
-                )}
-                {canMakeWork && (
-                  <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void openWorkOrders()}>
-                    {t("nav.workOrders")}
-                  </button>
-                )}
-                {canPay && (
-                  <button type="button" className="btn ghost"
-                    onClick={() => nav(`/payments/new?dt=${encodeURIComponent(DT.salesOrder)}&dn=${encodeURIComponent(name)}`)}>
-                    {t("sod.createPayment")}
-                  </button>
-                )}
-                {data.docstatus === 1 && !closed && (data.per_billed ?? 0) < 100 && (
-                  <button type="button" className="btn ghost" disabled={paymentRequest.busy}
-                    onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.salesOrder, reference_name: name }))}>
-                    {t("doc.paymentRequest")}
-                  </button>
-                )}
-                {data.docstatus === 1 && !held && !closed && !!data.is_subcontracted
-                  && (data.items ?? []).some((row) => Number(row.qty) !== Number(row.subcontracted_qty || 0)) && (
-                  <button type="button" className="btn ghost" disabled={inward.busy}
-                    onClick={() => void inward.open(() => makeInward.call({ source_name: name }))}>
-                    {t("doc.subInward")}
-                  </button>
-                )}
-                {canHoldOrClose && !held && (
-                  <>
-                    <input className="ctl" value={holdReason} aria-label={t("act.holdReason")}
-                      onChange={(event) => setHoldReason(event.target.value)} />
-                    <button type="button" className="btn ghost" disabled={setStatus.loading || !holdReason.trim()}
-                      onClick={() => void changeStatus("On Hold", holdReason)}>
-                      {t("supp.onHold")}
-                    </button>
-                  </>
-                )}
-                {canResume && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading}
-                    onClick={() => void changeStatus("Draft")}>
-                    {t("act.resume")}
-                  </button>
-                )}
-                {canHoldOrClose && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading}
-                    onClick={() => void changeStatus("Closed")}>
-                    {t("hist.close")}
-                  </button>
-                )}
-                {canReopen && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading}
-                    onClick={() => void changeStatus("Draft")}>
-                    {t("act.reopen")}
-                  </button>
-                )}
+                {canHoldOrClose && !held ? (
+                  <input className="ctl" value={holdReason} aria-label={t("act.holdReason")}
+                    onChange={(event) => setHoldReason(event.target.value)} />
+                ) : null}
               </>
             }
           />
@@ -453,6 +470,13 @@ export default function SalesOrderDetail() {
                     <>
                       <div className="icode">{l.item_code}</div>
                       <div className="iname">{l.item_name}</div>
+                      {(l.hs_code || l.sac_code) && (
+                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                          {l.hs_code ? `HS ${l.hs_code}` : ""}
+                          {l.hs_code && l.sac_code ? " · " : ""}
+                          {l.sac_code ? `SAC ${l.sac_code}` : ""}
+                        </div>
+                      )}
                     </>
                   ),
                 },

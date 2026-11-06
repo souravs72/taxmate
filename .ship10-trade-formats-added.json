@@ -1,0 +1,15 @@
+{
+  "tag": "ship10-trade-formats",
+  "at": "2026-11-04T23:18:28.024Z",
+  "files": [
+    "taxmate/taxmate/print_format/__init__.py",
+    "taxmate/taxmate/print_format/uae_delivery_note/uae_delivery_note.json",
+    "taxmate/taxmate/print_format/uae_purchase_order/uae_purchase_order.json",
+    "taxmate/taxmate/print_format/uae_purchase_receipt/uae_purchase_receipt.json",
+    "taxmate/taxmate/print_format/uae_quotation/uae_quotation.json",
+    "taxmate/taxmate/print_format/uae_sales_order/uae_sales_order.json",
+    "taxmate/taxmate/print_format/uae_supplier_quotation/uae_supplier_quotation.json",
+    "taxmate/templates/print_formats/uae_bilingual_document.html",
+    "taxmate/tests/test_print_documents.py"
+  ]
+}

@@ -203,6 +203,8 @@ import UaeCapitalGoodsList from "./screens/uae-capital-goods/UaeCapitalGoodsList
 import UaeCapitalGoodsForm from "./screens/uae-capital-goods/UaeCapitalGoodsForm";
 import NotFound from "./screens/NotFound";
 import CompanySettings from "./screens/company/CompanySettings";
+import WorkflowList from "./screens/workflow/WorkflowList";
+import WorkflowDetail from "./screens/workflow/WorkflowDetail";
 import PrintPreview from "./screens/print/PrintPreview";
 
 export default function App() {
@@ -511,6 +513,8 @@ export default function App() {
           <Route path="/assets/:name/edit" element={<AssetForm />} />
           <Route path="/assets/:name" element={<AssetDetail />} />
           <Route path="/company" element={<CompanySettings />} />
+          <Route path="/workflows" element={<WorkflowList />} />
+          <Route path="/workflows/:name" element={<WorkflowDetail />} />
           <Route path="/print/:doctype/:name" element={<PrintPreview />} />
           <Route path="/period-closing" element={<PeriodClosingList />} />
           <Route path="/period-closing/:name" element={<PeriodClosingDetail />} />

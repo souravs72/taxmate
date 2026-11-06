@@ -372,6 +372,10 @@ export interface SalesOrderItem {
   item_name: string;
   /** Description */
   description?: string;
+  /** HS Code / SAC Code */
+  hs_code?: string;
+  sac_code?: string;
+  uae_item_type?: string;
   /** Delivery Date */
   delivery_date?: string;
   /** Image */

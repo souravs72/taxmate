@@ -1,0 +1,300 @@
+{# One bilingual format for the six trade documents that had none: Quotation,
+   Sales Order, Delivery Note, Supplier Quotation, Purchase Order and Purchase
+   Receipt. Each has its own Print Format record; all six include this file.
+
+   One template rather than six copies. These documents differ in four things —
+   their title, which side the party is on, which field carries their date, and
+   two or three extra lines of their own — so those four live in SPEC below and
+   everything else is shared. A fix to the shared part is made once.
+
+   English print keeps both languages. Arabic print (tm_is_arabic) uses Arabic
+   headings only. Do not pass a bilingual pair through _().
+
+   Direction: every Latin or numeric run goes through tm_ltr, every piece of
+   stored text through tm_auto, every amount through uae_money. Frappe renders
+   an Arabic print inside an RTL block, and anything not isolated takes its
+   order from that block — that is how a date prints with its parts reversed. #}
+{% from "templates/print_formats/uae_money.html" import uae_money, tm_ltr, tm_auto %}
+{% include "templates/print_formats/uae_print_head.html" %}
+{% set is_ar = tm_is_arabic() %}
+
+{% set SPEC = {
+  "Quotation": {
+    "en": "Quotation", "ar": "عرض سعر", "side": "customer",
+    "date": "transaction_date",
+    "extra": [["valid_till", "Valid Till", "صالح حتى", "date"]]
+  },
+  "Sales Order": {
+    "en": "Sales Order", "ar": "أمر بيع", "side": "customer",
+    "date": "transaction_date",
+    "extra": [["delivery_date", "Delivery Date", "تاريخ التسليم", "date"],
+              ["po_no", "Your Reference", "مرجعكم", "ltr"]]
+  },
+  "Delivery Note": {
+    "en": "Delivery Note", "ar": "إشعار تسليم", "side": "customer",
+    "date": "posting_date",
+    "extra": [["po_no", "Your Reference", "مرجعكم", "ltr"],
+              ["lr_no", "Waybill No.", "رقم بوليصة الشحن", "ltr"],
+              ["vehicle_no", "Vehicle", "المركبة", "ltr"]]
+  },
+  "Supplier Quotation": {
+    "en": "Supplier Quotation", "ar": "عرض سعر من مورد", "side": "supplier",
+    "date": "transaction_date",
+    "extra": [["valid_till", "Valid Till", "صالح حتى", "date"]]
+  },
+  "Purchase Order": {
+    "en": "Purchase Order", "ar": "أمر شراء", "side": "supplier",
+    "date": "transaction_date",
+    "extra": [["schedule_date", "Required By", "مطلوب بحلول", "date"]]
+  },
+  "Purchase Receipt": {
+    "en": "Purchase Receipt", "ar": "إشعار استلام", "side": "supplier",
+    "date": "posting_date",
+    "extra": [["supplier_delivery_note", "Supplier Delivery Note", "إشعار تسليم المورد", "ltr"]]
+  }
+} %}
+{% set spec = SPEC.get(doc.doctype) or {"en": doc.doctype, "ar": doc.doctype, "side": "customer", "date": "posting_date", "extra": []} %}
+{% set buying = spec.side == "supplier" %}
+
+{# The party, its Arabic name when the site keeps one, its address and TRN.
+   Quotation uses a Dynamic Link (quotation_to + party_name); buying docs use
+   Supplier; selling docs use Customer. #}
+{% set party_id = doc.supplier if buying else (doc.customer or doc.get("party_name")) %}
+{% if buying %}
+  {% set party_dt = "Supplier" %}
+{% elif doc.doctype == "Quotation" and doc.get("quotation_to") %}
+  {% set party_dt = doc.quotation_to %}
+{% else %}
+  {% set party_dt = "Customer" %}
+{% endif %}
+{% set party_name = (doc.get("supplier_name") if buying else doc.get("customer_name")) or party_id %}
+{% set party_name = tm_name(party_name, doc.get("supplier_name_in_arabic") if buying else doc.get("customer_name_in_arabic")) %}
+{% set party_addr = tm_name(doc.get("address_display"), doc.get("address_in_arabic")) %}
+{% set party_trn = doc.get("tax_id") or (frappe.db.get_value(party_dt, party_id, "tax_id") if party_id and party_dt else None) %}
+
+{# Our own side. company_trn exists on the invoices; everywhere else the
+   company's Tax ID is the TRN. #}
+{% set own_trn = doc.get("company_trn") or frappe.db.get_value("Company", doc.company, "tax_id") %}
+{% set own_addr = doc.get("company_address_display") %}
+
+{% set money = (doc.get("grand_total") or 0) | abs > 0 %}
+{% set cur = doc.currency or "AED" %}
+{% set words = tm_in_words(doc.get("grand_total"), cur) or doc.get("in_words") %}
+{% set emirate_ar = {
+  "Abu Dhabi": "أبوظبي", "Ajman": "عجمان", "Dubai": "دبي", "Fujairah": "الفجيرة",
+  "Ras Al Khaimah": "رأس الخيمة", "Sharjah": "الشارقة", "Umm Al Quwain": "أم القيوين"
+} %}
+<style>
+.tm-doc { font-family: "Noto Naskh Arabic", "Noto Sans", "DejaVu Sans", sans-serif; color: #111; font-size: 11pt; }
+.tm-doc table { border-collapse: collapse; }
+.tm-doc .hdr { width: 100%; margin-bottom: 12px; border-bottom: 2px solid #0b3d2e; }
+.tm-doc .hdr td { vertical-align: top; padding-bottom: 10px; }
+.tm-doc .titles h1 { margin: 0; font-size: 18pt; color: #0b3d2e; }
+.tm-doc .titles .ar { direction: rtl; font-size: 16pt; margin-top: 2px; }
+.tm-doc .meta { text-align: right; font-size: 10pt; }
+.tm-doc[dir="rtl"] .meta { text-align: left; }
+.tm-doc .parties { width: 100%; margin: 10px 0 14px; }
+.tm-doc .parties td { width: 50%; vertical-align: top; padding: 8px 10px; border: 1px solid #ddd; }
+.tm-doc .parties h3 { margin: 0 0 6px; font-size: 10pt; color: #0b3d2e; }
+.tm-doc table.items { width: 100%; margin-top: 8px; }
+.tm-doc table.items th, .tm-doc table.items td { border: 1px solid #ccc; padding: 5px 6px; vertical-align: top; }
+.tm-doc table.items th { background: #0b3d2e; color: #fff; font-size: 9pt; }
+.tm-doc .num { text-align: right; }
+.tm-doc[dir="rtl"] .num { text-align: left; }
+.tm-doc .tm-amt, .tm-doc .tm-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; white-space: nowrap; }
+.tm-doc .tm-auto { unicode-bidi: isolate; }
+.tm-doc .totals { width: 46%; margin-left: auto; margin-top: 10px; }
+.tm-doc[dir="rtl"] .totals { margin-left: 0; margin-right: auto; }
+.tm-doc .totals td { padding: 4px 8px; border: 1px solid #ddd; }
+.tm-doc .totals tr.grand td { font-weight: 700; background: #f3f7f5; }
+.tm-doc .words { margin-top: 8px; font-size: 10pt; }
+.tm-doc .terms { margin-top: 14px; padding: 8px 10px; border: 1px solid #ddd; font-size: 9pt; }
+.tm-doc .terms h3 { margin: 0 0 4px; font-size: 9.5pt; color: #0b3d2e; }
+.tm-doc .terms-body { unicode-bidi: isolate; }
+.tm-doc .sign { margin-top: 28px; font-size: 10pt; }
+.tm-doc .sign .ar { direction: rtl; text-align: right; }
+.tm-doc[dir="rtl"] .sign .ar { text-align: left; }
+</style>
+<div class="tm-doc" dir="{{ "rtl" if is_ar else "ltr" }}">
+  <table class="hdr">
+    <tr>
+      <td class="titles">
+        {% if is_ar %}
+        <h1>{{ spec.ar }}</h1>
+        {% else %}
+        <h1>{{ spec.en }}</h1>
+        <div class="ar">{{ spec.ar }}</div>
+        {% endif %}
+      </td>
+      <td class="meta">
+        <div><strong>{% if is_ar %}رقم المستند{% else %}Document No. / رقم المستند{% endif %}:</strong> {{ tm_ltr(doc.name) }}</div>
+        <div><strong>{% if is_ar %}التاريخ{% else %}Date / التاريخ{% endif %}:</strong> {{ tm_ltr(doc.get_formatted(spec.date)) }}</div>
+        {% for field, label_en, label_ar, kind in spec.extra %}
+          {% if doc.get(field) %}
+        <div><strong>{% if is_ar %}{{ label_ar }}{% else %}{{ label_en }} / {{ label_ar }}{% endif %}:</strong>
+          {{ tm_ltr(doc.get_formatted(field)) if kind == "date" else tm_ltr(doc.get(field)) }}</div>
+          {% endif %}
+        {% endfor %}
+        {% if doc.get("vat_emirate") %}
+        <div><strong>{% if is_ar %}مكان التوريد{% else %}Place of Supply / مكان التوريد{% endif %}:</strong>
+          {{ emirate_ar.get(doc.vat_emirate) if is_ar and emirate_ar.get(doc.vat_emirate) else doc.vat_emirate }}</div>
+        {% endif %}
+      </td>
+    </tr>
+  </table>
+
+  <table class="parties">
+    {# The seller is always on the left: our company on a selling document,
+       the party on a buying one. Same order as the tax invoice. #}
+    {% set seller_name = party_name if buying else doc.company %}
+    {% set seller_addr = party_addr if buying else own_addr %}
+    {% set seller_trn = party_trn if buying else own_trn %}
+    {% set other_name = doc.company if buying else party_name %}
+    {% set other_addr = own_addr if buying else party_addr %}
+    {% set other_trn = own_trn if buying else party_trn %}
+    <tr>
+      <td>
+        <h3>{% if is_ar %}المورد{% else %}Supplier / المورد{% endif %}</h3>
+        <div>{{ tm_auto(seller_name or "") }}</div>
+        {% if seller_addr %}<div>{{ tm_auto(seller_addr) }}</div>{% endif %}
+        {% if seller_trn %}<div><strong>{% if is_ar %}الرقم الضريبي{% else %}TRN / الرقم الضريبي{% endif %}:</strong> {{ tm_ltr(seller_trn) }}</div>{% endif %}
+      </td>
+      <td>
+        <h3>{% if is_ar %}{{ "المشتري" if buying else "العميل" }}{% else %}{{ "Buyer / المشتري" if buying else "Customer / العميل" }}{% endif %}</h3>
+        <div>{{ tm_auto(other_name or "") }}</div>
+        {% if other_addr %}<div>{{ tm_auto(other_addr) }}</div>{% endif %}
+        {% if other_trn %}<div><strong>{% if is_ar %}الرقم الضريبي{% else %}TRN / الرقم الضريبي{% endif %}:</strong> {{ tm_ltr(other_trn) }}</div>{% endif %}
+      </td>
+    </tr>
+    {% if doc.get("shipping_address") or doc.get("contact_display") %}
+    {% set both = doc.get("shipping_address") and doc.get("contact_display") %}
+    <tr>
+      {% if doc.get("shipping_address") %}
+      <td{% if not both %} colspan="2"{% endif %}>
+        <h3>{% if is_ar %}عنوان الشحن{% else %}Shipping Address / عنوان الشحن{% endif %}</h3>
+        <div>{{ tm_auto(doc.shipping_address) }}</div>
+      </td>
+      {% endif %}
+      {% if doc.get("contact_display") %}
+      <td{% if not both %} colspan="2"{% endif %}>
+        <h3>{% if is_ar %}جهة الاتصال{% else %}Contact / جهة الاتصال{% endif %}</h3>
+        <div>{{ tm_auto(doc.contact_display) }}</div>
+        {% if doc.get("contact_mobile") %}<div>{{ tm_ltr(doc.contact_mobile) }}</div>{% endif %}
+      </td>
+      {% endif %}
+    </tr>
+    {% endif %}
+  </table>
+
+  <table class="items">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>{% if is_ar %}الوصف{% else %}Description / الوصف{% endif %}</th>
+        <th class="num">{% if is_ar %}الكمية{% else %}Qty / الكمية{% endif %}</th>
+        <th>{% if is_ar %}الوحدة{% else %}UOM / الوحدة{% endif %}</th>
+        {% if money %}
+        <th class="num">{% if is_ar %}السعر{% else %}Rate / السعر{% endif %}</th>
+        <th class="num">{% if is_ar %}المبلغ{% else %}Amount / المبلغ{% endif %}</th>
+        {% else %}
+        <th>{% if is_ar %}المستودع{% else %}Warehouse / المستودع{% endif %}</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in doc.items %}
+      {% set item_net = item.get("net_amount") if item.get("net_amount") is not none else item.get("amount") %}
+      {% set item_text = tm_line(item.item_name, item.description, item.get("item_name_in_arabic") or item.get("description_in_arabic")) %}
+      <tr>
+        <td>{{ tm_ltr(item.idx) }}</td>
+        <td>
+          {{ tm_auto(item_text) }}
+          {% if item.get("item_code") and item.get("item_code") != item.get("item_name") %}
+          <div style="font-size:8pt;color:#555">{{ tm_ltr(item.item_code) }}</div>
+          {% endif %}
+          {% if item.get("hs_code") %}<div style="font-size:8pt;color:#555">HS: {{ tm_ltr(item.hs_code) }}</div>{% elif item.get("sac_code") %}<div style="font-size:8pt;color:#555">SAC: {{ tm_ltr(item.sac_code) }}</div>{% endif %}
+          {% if item.get("batch_no") %}<div style="font-size:8pt;color:#555">{% if is_ar %}الدفعة{% else %}Batch / الدفعة{% endif %}: {{ tm_ltr(item.batch_no) }}</div>{% endif %}
+        </td>
+        <td class="num">{{ tm_ltr(frappe.format(item.qty, {"fieldtype": "Float"})) }}</td>
+        <td>{{ tm_auto(item.get("uom") or "") }}</td>
+        {% if money %}
+        <td class="num">{{ uae_money(item.rate, cur) }}</td>
+        <td class="num">{{ uae_money(item_net, cur) }}</td>
+        {% else %}
+        <td>{{ tm_auto(item.get("warehouse") or item.get("target_warehouse") or item.get("accepted_warehouse") or "") }}</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if money %}
+  {% if doc.taxes %}
+  <table class="items" style="margin-top:12px;width:60%;margin-left:auto;">
+    <thead>
+      <tr>
+        <th>{% if is_ar %}ملخص الضريبة{% else %}Tax Summary / ملخص الضريبة{% endif %}</th>
+        <th class="num">{% if is_ar %}السعر{% else %}Rate / السعر{% endif %}</th>
+        <th class="num">{% if is_ar %}المبلغ{% else %}Amount / المبلغ{% endif %}</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for tax in doc.taxes %}
+      <tr>
+        <td>{{ tm_auto(tax.description or tm_account(tax.get("account_head"))) }}</td>
+        <td class="num">{% if tax.rate %}{{ tm_ltr(frappe.format(tax.rate, {"fieldtype": "Percent"})) }}{% endif %}</td>
+        <td class="num">{{ uae_money(tax.tax_amount, cur) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <table class="totals">
+    <tr>
+      <td>{% if is_ar %}الإجمالي قبل الضريبة{% else %}Net Total / الإجمالي قبل الضريبة{% endif %}</td>
+      <td class="num">{{ uae_money(doc.get("net_total") or doc.get("total"), cur) }}</td>
+    </tr>
+    {% if doc.get("total_taxes_and_charges") %}
+    <tr>
+      <td>{% if is_ar %}ضريبة القيمة المضافة{% else %}VAT / ضريبة القيمة المضافة{% endif %}</td>
+      <td class="num">{{ uae_money(doc.total_taxes_and_charges, cur) }}</td>
+    </tr>
+    {% endif %}
+    {% if doc.get("rounding_adjustment") and not doc.get("disable_rounded_total") %}
+    <tr>
+      <td>{% if is_ar %}التقريب{% else %}Round Off / التقريب{% endif %}</td>
+      <td class="num">{{ uae_money(doc.rounding_adjustment, cur) }}</td>
+    </tr>
+    <tr class="grand">
+      <td>{% if is_ar %}الإجمالي المقرّب{% else %}Rounded Total / الإجمالي المقرّب{% endif %}</td>
+      <td class="num">{{ uae_money(doc.get("rounded_total") if doc.get("rounded_total") is not none else (doc.grand_total + doc.rounding_adjustment), cur) }}</td>
+    </tr>
+    {% else %}
+    <tr class="grand">
+      <td>{% if is_ar %}الإجمالي شامل الضريبة{% else %}Grand Total / الإجمالي شامل الضريبة{% endif %}</td>
+      <td class="num">{{ uae_money(doc.get("rounded_total") if (doc.get("rounded_total") and not doc.get("disable_rounded_total")) else doc.grand_total, cur) }}</td>
+    </tr>
+    {% endif %}
+  </table>
+
+  {% if words %}
+  <div class="words"><strong>{% if is_ar %}كتابة{% else %}In Words / كتابة{% endif %}:</strong> {{ tm_auto(words) }}</div>
+  {% endif %}
+  {% endif %}
+
+  {% if doc.get("terms") %}
+  {# dir="auto" goes on the body, not on the block that also holds the heading:
+     an Arabic heading would otherwise decide the direction of English terms. #}
+  <div class="terms">
+    <h3>{% if is_ar %}الشروط والأحكام{% else %}Terms and Conditions / الشروط والأحكام{% endif %}</h3>
+    <div class="terms-body" dir="auto">{{ doc.terms }}</div>
+  </div>
+  {% endif %}
+
+  <div class="sign">
+    <div>{% if is_ar %}عن{% else %}For / عن{% endif %} {{ tm_auto(doc.company or "") }}</div>
+    <div class="ar">{% if is_ar %}المفوض بالتوقيع{% else %}Authorized Signatory / المفوض بالتوقيع{% endif %}</div>
+  </div>
+</div>
+{% include "templates/print_formats/uae_print_foot.html" %}

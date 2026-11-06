@@ -32,6 +32,8 @@ _CHOSEN_EMIRATE_DOCTYPES = (
 	"Delivery Note",
 	"Sales Invoice",
 	"POS Invoice",
+	"Purchase Order",
+	"Supplier Quotation",
 )
 
 

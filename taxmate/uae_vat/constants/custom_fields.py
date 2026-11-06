@@ -48,6 +48,7 @@ PARTY_LEGAL_FIELDS = [
 		"fieldtype": "Data",
 		"insert_after": "legal_registration_identifier",
 		"description": "Authority that issued the trade licence. Required on the e-invoice when the registration type is TL.",
+		"mandatory_depends_on": "eval:doc.legal_registration_identifier_type=='TL' || (doc.trade_license_number && !doc.legal_registration_identifier_type)",
 		"translatable": 0,
 	},
 	{
@@ -150,6 +151,7 @@ INVOICE_E_INVOICE_FIELDS = [
 		"insert_after": "uae_billing_frequency",
 		"description": "IBT-081 (UNCL 4461). POS payments use the Mode of Payment code instead.",
 		"depends_on": "eval:!doc.is_return",
+		"mandatory_depends_on": "eval:!doc.is_return",
 		"translatable": 0,
 	},
 	{
@@ -369,6 +371,7 @@ INVOICE_ITEM_FIELDS = [
 		"insert_after": "item_code",
 		"fetch_from": "item_code.uae_item_type",
 		"fetch_if_empty": 1,
+		"mandatory_depends_on": "eval:Boolean(doc.item_code)",
 		"print_hide": 1,
 		"translatable": 0,
 	},
@@ -380,6 +383,7 @@ INVOICE_ITEM_FIELDS = [
 		"fetch_from": "item_code.hs_code",
 		"fetch_if_empty": 1,
 		"depends_on": "eval:in_list(['Goods','Both'], doc.uae_item_type)",
+		"mandatory_depends_on": "eval:in_list(['Goods','Both'], doc.uae_item_type)",
 		"print_hide": 1,
 		"translatable": 0,
 	},
@@ -391,6 +395,7 @@ INVOICE_ITEM_FIELDS = [
 		"fetch_from": "item_code.sac_code",
 		"fetch_if_empty": 1,
 		"depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
+		"mandatory_depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
 		"print_hide": 1,
 		"translatable": 0,
 	},
@@ -447,6 +452,56 @@ INVOICE_ITEM_FIELDS = [
 	},
 ]
 
+TRADE_ITEM_FIELDS = [
+	{
+		"fieldname": "uae_item_type",
+		"label": "UAE Item Type",
+		"fieldtype": "Select",
+		"options": "\nGoods\nService\nBoth",
+		"insert_after": "item_code",
+		"fetch_from": "item_code.uae_item_type",
+		"fetch_if_empty": 1,
+		"mandatory_depends_on": "eval:Boolean(doc.item_code)",
+		"print_hide": 1,
+		"translatable": 0,
+	},
+	{
+		"fieldname": "hs_code",
+		"label": "HS Code",
+		"fieldtype": "Data",
+		"insert_after": "uae_item_type",
+		"fetch_from": "item_code.hs_code",
+		"fetch_if_empty": 1,
+		"depends_on": "eval:in_list(['Goods','Both'], doc.uae_item_type)",
+		"mandatory_depends_on": "eval:in_list(['Goods','Both'], doc.uae_item_type)",
+		"print_hide": 1,
+		"translatable": 0,
+	},
+	{
+		"fieldname": "sac_code",
+		"label": "SAC Code",
+		"fieldtype": "Data",
+		"insert_after": "hs_code",
+		"fetch_from": "item_code.sac_code",
+		"fetch_if_empty": 1,
+		"depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
+		"mandatory_depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
+		"print_hide": 1,
+		"translatable": 0,
+	},
+	{
+		"fieldname": "uae_excise_category",
+		"label": "UAE Excise Category",
+		"fieldtype": "Select",
+		"options": "\nTobacco and tobacco products\nCarbonated drinks\nEnergy drinks\nSweetened drinks\nElectronic smoking devices\nLiquids used in electronic smoking devices",
+		"insert_after": "sac_code",
+		"fetch_from": "item_code.uae_excise_category",
+		"fetch_if_empty": 1,
+		"print_hide": 1,
+		"translatable": 0,
+	},
+]
+
 CUSTOM_FIELDS = {
 	"Company": [
 		{
@@ -468,6 +523,7 @@ CUSTOM_FIELDS = {
 			"label": "Trade License Number",
 			"fieldtype": "Data",
 			"insert_after": "uae_e_invoice_enabled",
+			"mandatory_depends_on": "eval:doc.uae_e_invoice_enabled",
 			"translatable": 0,
 		},
 		{
@@ -476,6 +532,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Select",
 			"options": "\nTL\nEID\nPAS\nCD",
 			"insert_after": "trade_license_number",
+			"mandatory_depends_on": "eval:doc.uae_e_invoice_enabled",
 			"translatable": 0,
 		},
 		{
@@ -483,6 +540,7 @@ CUSTOM_FIELDS = {
 			"label": "Legal Registration Identifier",
 			"fieldtype": "Data",
 			"insert_after": "legal_registration_identifier_type",
+			"mandatory_depends_on": "eval:doc.uae_e_invoice_enabled",
 			"translatable": 0,
 		},
 		{
@@ -491,6 +549,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Data",
 			"insert_after": "legal_registration_identifier",
 			"description": "Authority that issued the trade licence. Required on the e-invoice when the registration type is TL.",
+			"mandatory_depends_on": "eval:doc.uae_e_invoice_enabled && (!doc.legal_registration_identifier_type || doc.legal_registration_identifier_type=='TL')",
 			"translatable": 0,
 		},
 		{
@@ -499,6 +558,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Data",
 			"insert_after": "uae_licence_authority",
 			"description": "Company's Peppol endpoint identifier registered with the ASP",
+			"mandatory_depends_on": "eval:doc.uae_e_invoice_enabled",
 			"translatable": 0,
 		},
 		{
@@ -574,6 +634,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Select",
 			"options": "\nGoods\nService\nBoth",
 			"insert_after": "uae_classification_section",
+			"reqd": 1,
 			"translatable": 0,
 		},
 		{
@@ -582,6 +643,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Data",
 			"insert_after": "uae_item_type",
 			"depends_on": "eval:in_list(['Goods','Both'], doc.uae_item_type)",
+			"mandatory_depends_on": "eval:in_list(['Goods','Both'], doc.uae_item_type)",
 			"translatable": 0,
 		},
 		{
@@ -590,6 +652,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Data",
 			"insert_after": "hs_code",
 			"depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
+			"mandatory_depends_on": "eval:in_list(['Service','Both'], doc.uae_item_type)",
 			"translatable": 0,
 		},
 		{
@@ -624,6 +687,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Select",
 			"options": "\nStandard\nZero Rated\nExempt\nOut of Scope\nReverse Charge\nMargin Scheme",
 			"insert_after": "uae_vat_section",
+			"reqd": 1,
 			"translatable": 0,
 		},
 		{
@@ -632,6 +696,7 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Small Text",
 			"insert_after": "uae_vat_category",
 			"depends_on": "eval:in_list(['Zero Rated','Exempt','Out of Scope'], doc.uae_vat_category)",
+			"mandatory_depends_on": "eval:in_list(['Zero Rated','Exempt','Out of Scope'], doc.uae_vat_category)",
 		},
 		{
 			"fieldname": "uae_rcm_nature",
@@ -643,6 +708,7 @@ CUSTOM_FIELDS = {
 			),
 			"insert_after": "uae_exemption_reason",
 			"depends_on": "eval:doc.uae_vat_category=='Reverse Charge'",
+			"mandatory_depends_on": "eval:doc.uae_vat_category=='Reverse Charge'",
 			"description": "FTA reverse-charge category. Sent as Reverse Charge Mechanism Type.",
 			"translatable": 0,
 		},
@@ -718,6 +784,13 @@ CUSTOM_FIELDS = {
 	],
 	"Sales Invoice Item": INVOICE_ITEM_FIELDS,
 	"Purchase Invoice Item": INVOICE_ITEM_FIELDS,
+	"POS Invoice Item": INVOICE_ITEM_FIELDS,
+	"Quotation Item": TRADE_ITEM_FIELDS,
+	"Sales Order Item": TRADE_ITEM_FIELDS,
+	"Delivery Note Item": TRADE_ITEM_FIELDS,
+	"Purchase Order Item": TRADE_ITEM_FIELDS,
+	"Purchase Receipt Item": TRADE_ITEM_FIELDS,
+	"Supplier Quotation Item": TRADE_ITEM_FIELDS,
 	# Same Select as erpnext/regional/united_arab_emirates/setup.py sales_invoice_fields.
 	# fetch_if_empty: Desk fetch_from runs in _validate_links and overwrites a
 	# typed value (blank company-address emirate clears it). Keep a chosen
@@ -731,6 +804,44 @@ CUSTOM_FIELDS = {
 			"insert_after": "taxes_and_charges",
 			"fetch_from": "company_address.emirate",
 			"fetch_if_empty": 1,
+			"reqd": 1,
+			"translatable": 0,
+		},
+	],
+	"Purchase Order": [
+		{
+			"fieldname": "vat_emirate",
+			"label": "VAT Emirate",
+			"fieldtype": "Select",
+			"options": "\n" + "\n".join(UAE_EMIRATES),
+			"insert_after": "taxes_and_charges",
+			"fetch_from": "company_address.emirate",
+			"fetch_if_empty": 1,
+			"reqd": 1,
+			"translatable": 0,
+		},
+	],
+	"Supplier Quotation": [
+		{
+			"fieldname": "vat_emirate",
+			"label": "VAT Emirate",
+			"fieldtype": "Select",
+			"options": "\n" + "\n".join(UAE_EMIRATES),
+			"insert_after": "taxes_and_charges",
+			"fetch_from": "company_address.emirate",
+			"fetch_if_empty": 1,
+			"reqd": 1,
+			"translatable": 0,
+		},
+	],
+	"Address": [
+		{
+			"fieldname": "emirate",
+			"label": "Emirate",
+			"fieldtype": "Select",
+			"options": "\n" + "\n".join(UAE_EMIRATES),
+			"insert_after": "city",
+			"mandatory_depends_on": "eval:doc.country=='United Arab Emirates'",
 			"translatable": 0,
 		},
 	],
@@ -741,6 +852,18 @@ CUSTOM_FIELDS = {
 			"fieldtype": "Link",
 			"options": "UAE Customs Declaration",
 			"insert_after": "company",
+		},
+	],
+	"Workflow": [
+		{
+			"fieldname": "company",
+			"label": "Company",
+			"fieldtype": "Link",
+			"options": "Company",
+			"insert_after": "document_type",
+			"in_list_view": 1,
+			"in_standard_filter": 1,
+			"description": "Company this workflow applies to. If empty, applies globally across all entities.",
 		},
 	],
 }

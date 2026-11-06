@@ -19,6 +19,7 @@ import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
+import { CreateMenu } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 import UpdateItems from "../../components/UpdateItems";
@@ -128,41 +129,52 @@ export default function SupplierQuotationDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/supplier-quotations")}>{t("sq.title")}</button>}
         title={data.name}
-        actions={<DocHistory doctype={DT.supplierQuotation} name={name} />}
+        actions={
+          <>
+            {writable && data.docstatus === 1 ? (
+              <CreateMenu
+                items={[
+                  {
+                    key: "po",
+                    label: t("sq.makePO"),
+                    disabled: busy,
+                    onClick: () => { void createPO(); },
+                  },
+                  {
+                    key: "quotation",
+                    label: t("nav.quotations"),
+                    disabled: busy,
+                    onClick: () => { void createQuotation(); },
+                  },
+                ]}
+              />
+            ) : null}
+            <DocHistory doctype={DT.supplierQuotation} name={name} />
+            {!isNative() ? (
+              <PrintLangButtons doctype={DT.supplierQuotation} name={name} />
+            ) : null}
+            {writable && data.docstatus === 0 ? (
+              <>
+                <button type="button" className="btn ghost" onClick={() => nav(`/supplier-quotations/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
+                {canSubmit ? (
+                  <button type="button" className="btn" onClick={() => void doSubmit()} disabled={busy}>{t("sq.submit")}</button>
+                ) : null}
+                <button type="button" className="btn quiet" disabled={deleteAction.loading || busy}
+                  onClick={deleteAction.onDelete}>
+                  {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
+                </button>
+              </>
+            ) : null}
+            {data.docstatus === 1 && canCancel ? (
+              <button type="button" className="btn quiet" onClick={() => void doCancel()} disabled={busy}>{t("sq.cancel")}</button>
+            ) : null}
+            {canSubmit && data.docstatus === 2 ? (
+              <button type="button" className="btn ghost" onClick={() => void doAmend()} disabled={busy}>{t("inv.amend")}</button>
+            ) : null}
+          </>
+        }
       >
         <Pill cls={sqPill(data.status)}>{tStatus(data.status || "Draft")}</Pill>
-        {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
-        {!isNative() && (
-          <PrintLangButtons doctype={DT.supplierQuotation} name={name} />
-        )}
-        {writable && data.docstatus === 0 && (
-          <>
-            <button className="btn ghost" onClick={() => nav(`/supplier-quotations/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
-            {canSubmit && (
-            <button className="btn" onClick={() => void doSubmit()} disabled={busy}>{t("sq.submit")}</button>
-            )}
-            <button type="button" className="btn quiet" disabled={deleteAction.loading || busy}
-              onClick={deleteAction.onDelete}>
-              {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
-            </button>
-          </>
-        )}
-        {data.docstatus === 1 && (
-          <>
-            {writable && (
-            <>
-            <button className="btn" onClick={() => void createPO()} disabled={busy}>{t("sq.makePO")}</button>
-            <button className="btn ghost" onClick={() => void createQuotation()} disabled={busy}>{t("nav.quotations")}</button>
-            </>
-            )}
-            {canCancel && (
-            <button className="btn ghost" onClick={() => void doCancel()} disabled={busy}>{t("sq.cancel")}</button>
-            )}
-          </>
-        )}
-        {canSubmit && data.docstatus === 2 && (
-          <button className="btn ghost" onClick={() => void doAmend()} disabled={busy}>{t("inv.amend")}</button>
-        )}
       </PageHead>
 
       <DocTabShell doctype={DT.supplierQuotation} name={name} doc={data as unknown as Record<string, unknown>}>

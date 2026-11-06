@@ -69,10 +69,54 @@ export default function TeamDetail() {
     setNote(null);
   }, [doc]);
 
+  useEffect(() => {
+    if (doc?.company && company && doc.company !== company) {
+      nav("/team", { replace: true });
+    }
+  }, [company, doc?.company, nav]);
+
   if (!session.user) return <Loading />;
   if (!allowed) return <ErrorBox error={{ message: t("team.denied") }} />;
   if (get.isLoading && !doc) return <Loading />;
-  if (get.error) return <ErrorBox error={get.error} onRetry={() => get.mutate()} />;
+  if (get.error) {
+    const isMismatch = get.error.message?.includes("belong") || get.error.message?.includes("not found");
+    return (
+      <div className="team-detail-error">
+        <PageHead
+          title={userName || t("team.title")}
+          actions={
+            <button type="button" className="btn ghost" onClick={() => nav("/team")}>
+              ← Back to Team
+            </button>
+          }
+        />
+        <Card>
+          <div style={{ padding: "36px 24px", textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center", gap: "12px" }}>
+            <div style={{ width: 44, height: 44, borderRadius: "50%", background: "var(--warn-bg)", color: "var(--warn)", display: "grid", placeItems: "center" }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+              </svg>
+            </div>
+            <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 650, color: "var(--text)" }}>
+              {isMismatch ? "Team Member Not in Active Company" : "Could Not Load Team Member"}
+            </h3>
+            <p style={{ margin: 0, maxWidth: "480px", fontSize: "13px", color: "var(--muted)", lineHeight: 1.5 }}>
+              {isMismatch
+                ? `${userName} does not belong to ${company || "this company"}. Team members and access permissions are isolated per company entity.`
+                : get.error.message || "An error occurred while loading this user."}
+            </p>
+            <div style={{ display: "flex", gap: "10px", marginTop: "8px" }}>
+              <button type="button" className="btn" onClick={() => nav("/team")}>
+                View Company Team Roster →
+              </button>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
   if (!doc) return <ErrorBox error={{ message: t("team.empty") }} />;
 
   function toggleSpa(role: SpaRole) {

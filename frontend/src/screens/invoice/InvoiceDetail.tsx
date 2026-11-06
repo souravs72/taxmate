@@ -213,33 +213,36 @@ export default function InvoiceDetail() {
               if (newName) nav(`/invoices/${encodeURIComponent(newName)}`);
               else refresh();
             }}
-            extra={
-              <>
-                {submitted && outstanding !== 0 && (
-                  <button className="btn" onClick={() => nav(`/payments/new?dt=${encodeURIComponent(DT.salesInvoice)}&dn=${encodeURIComponent(name)}`)}>
-                    {t("inv.receive")}
-                  </button>
-                )}
-                {submitted && !data.is_return && outstanding > 0 && (
-                  <button type="button" className="btn ghost" disabled={paymentRequest.busy}
-                    onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.salesInvoice, reference_name: name }))}>
-                    {t("doc.paymentRequest")}
-                  </button>
-                )}
-                {submitted && !data.is_return && !data.update_stock && !(data.items ?? []).some((row) => row.is_delivered_by_supplier)
-                  && (data.items ?? []).some((row) => Number(row.qty) - Number(row.delivered_qty || 0) > 0 && !row.scio_detail && !row.dn_detail && !row.delivered_by_supplier) && (
-                  <button className="btn ghost" disabled={makeDn.loading} onClick={() => void createDelivery()}>
-                    {t("sod.createDn")}
-                  </button>
-                )}
-                {submitted && !data.is_return && (outstanding >= 0 || Math.abs(outstanding) < grand) && (
-                  <button className="btn ghost" onClick={() => nav(`/invoices/${encodeURIComponent(name)}/return`)}>
-                    {t("inv.credit")}
-                  </button>
-                )}
-                <PrintLangButtons doctype={DT.salesInvoice} name={name} format="UAE Bilingual Tax Invoice" />
-              </>
-            }
+            create={[
+              {
+                key: "receive",
+                label: t("inv.receive"),
+                hidden: !(submitted && outstanding !== 0),
+                onClick: () => nav(`/payments/new?dt=${encodeURIComponent(DT.salesInvoice)}&dn=${encodeURIComponent(name)}`),
+              },
+              {
+                key: "payreq",
+                label: t("doc.paymentRequest"),
+                hidden: !(submitted && !data.is_return && outstanding > 0),
+                disabled: paymentRequest.busy,
+                onClick: () => { void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.salesInvoice, reference_name: name })); },
+              },
+              {
+                key: "dn",
+                label: t("sod.createDn"),
+                hidden: !(submitted && !data.is_return && !data.update_stock && !(data.items ?? []).some((row) => row.is_delivered_by_supplier)
+                  && (data.items ?? []).some((row) => Number(row.qty) - Number(row.delivered_qty || 0) > 0 && !row.scio_detail && !row.dn_detail && !row.delivered_by_supplier)),
+                disabled: makeDn.loading,
+                onClick: () => { void createDelivery(); },
+              },
+              {
+                key: "credit",
+                label: t("inv.credit"),
+                hidden: !(submitted && !data.is_return && (outstanding >= 0 || Math.abs(outstanding) < grand)),
+                onClick: () => nav(`/invoices/${encodeURIComponent(name)}/return`),
+              },
+            ]}
+            extra={<PrintLangButtons doctype={DT.salesInvoice} name={name} format="UAE Bilingual Tax Invoice" />}
           />
         }
       >

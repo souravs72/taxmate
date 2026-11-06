@@ -38,7 +38,9 @@ function abbrOf(row?: CompanyRow | null, fallback?: string | null): string {
  * its query string (?as=accountant&month=…).
  */
 function landingFor(pathname: string, search: string): string {
-  const parts = pathname.split("/").filter(Boolean);
+  // Strip app prefix /taxmate if present in pathname
+  const stripped = pathname.replace(/^\/?taxmate\/?/, "");
+  const parts = stripped.split("/").filter(Boolean);
   if (parts.length === 0) return `/taxmate/${search}`;
   if (parts[0] === "catalogue" && parts.length > 1) return `/taxmate/catalogue/${parts[1]}`;
   return `/taxmate/${parts[0]}`;

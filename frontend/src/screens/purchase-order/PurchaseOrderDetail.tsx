@@ -27,6 +27,7 @@ type Line = {
   returned_qty?: number; delivered_by_supplier?: number; subcontracted_qty?: number;
   billed_amt?: number; uom?: string; rate?: number; amount?: number;
   price_list_rate?: number; discount_percentage?: number; discount_amount?: number;
+  hs_code?: string; sac_code?: string; uae_item_type?: string;
 };
 type Doc = {
   name: string; supplier?: string; supplier_name?: string; transaction_date?: string;
@@ -180,82 +181,100 @@ export default function PurchaseOrderDetail() {
                 if (newName) nav(`/purchase-orders/${encodeURIComponent(newName)}/edit`);
                 else mutate();
               }}
+              create={[
+                {
+                  key: "pr",
+                  label: busy === "pr" ? t("soc.saving") : t("po.receive"),
+                  hidden: !canReceive,
+                  disabled: !!busy,
+                  onClick: () => { void createDownstream("pr"); },
+                },
+                {
+                  key: "pi",
+                  label: busy === "pi" ? t("soc.saving") : t("po.bill"),
+                  hidden: !canBill,
+                  disabled: !!busy,
+                  onClick: () => { void createDownstream("pi"); },
+                },
+                {
+                  key: "deliver",
+                  label: t("act.deliver"),
+                  hidden: !canDropship,
+                  onClick: () => setDropRows(lines.filter((row) => row.delivered_by_supplier && row.name).map((row) => ({
+                    name: row.name || "",
+                    item_code: row.item_code,
+                    qty: row.qty,
+                    received_qty: row.received_qty,
+                    qty_change: Number(row.qty || 0) - Number(row.received_qty || 0),
+                    selected: Number(row.qty || 0) > Number(row.received_qty || 0),
+                  }))),
+                },
+                {
+                  key: "pay",
+                  label: t("pi.pay"),
+                  hidden: !(data.docstatus === 1 && data.status !== "Closed" && (data.per_billed ?? 0) < 100),
+                  onClick: () => nav(`/payments/new?dt=${encodeURIComponent(DT.purchaseOrder)}&dn=${encodeURIComponent(name)}`),
+                },
+                {
+                  key: "payreq",
+                  label: t("doc.paymentRequest"),
+                  hidden: !(data.docstatus === 1 && !held && data.status !== "Closed" && (data.per_billed ?? 0) < 100),
+                  disabled: paymentRequest.busy,
+                  onClick: () => { void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.purchaseOrder, reference_name: name })); },
+                },
+                {
+                  key: "sub",
+                  label: t("doc.subOrder"),
+                  hidden: !(data.docstatus === 1 && !held && data.status !== "Closed" && !!data.is_subcontracted && !data.is_old_subcontracting_flow
+                    && (data.items ?? []).some((row) => !row.delivered_by_supplier && Number(row.received_qty || 0) < Number(row.qty || 0))
+                    && (data.items ?? []).some((row) => Number(row.qty) !== Number(row.subcontracted_qty || 0))),
+                  disabled: subcontract.busy,
+                  onClick: () => { void subcontract.open(() => makeSub.call({ source_name: name })); },
+                },
+              ]}
+              menu={[
+                {
+                  key: "hold",
+                  label: t("supp.onHold"),
+                  hidden: !(canChange && !held),
+                  disabled: setStatus.loading || !holdReason.trim(),
+                  onClick: () => { void changeStatus("On Hold", holdReason); },
+                },
+                {
+                  key: "resume",
+                  label: t("act.resume"),
+                  hidden: !(canChange && held),
+                  disabled: setStatus.loading,
+                  onClick: () => { void changeStatus("Draft"); },
+                },
+                {
+                  key: "close",
+                  label: t("hist.close"),
+                  hidden: !canChange,
+                  disabled: setStatus.loading,
+                  onClick: () => { void changeStatus("Closed"); },
+                },
+                {
+                  key: "reopen",
+                  label: t("act.reopen"),
+                  hidden: !(writable && data.docstatus === 1 && stopped),
+                  disabled: setStatus.loading,
+                  onClick: () => { void changeStatus("Submitted"); },
+                },
+              ]}
               extra={
                 <>
-                  {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                   {!isNative() && (
                     <PrintLangButtons doctype={DT.purchaseOrder} name={name} />
                   )}
-                  {canReceive && (
-                  <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void createDownstream("pr")}>
-                    {busy === "pr" ? t("soc.saving") : t("po.receive")}
-                  </button>
-                  )}
-                  {canBill && (
-                  <button type="button" className="btn" disabled={!!busy} onClick={() => void createDownstream("pi")}>
-                    {busy === "pi" ? t("soc.saving") : t("po.bill")}
-                  </button>
-                  )}
-                  {canChange && !held && (
-                    <>
-                      <input
-                        className="ctl"
-                        value={holdReason}
-                        aria-label={t("act.holdReason")}
-                        onChange={(event) => setHoldReason(event.target.value)}
-                      />
-                      <button type="button" className="btn ghost" disabled={setStatus.loading || !holdReason.trim()} onClick={() => void changeStatus("On Hold", holdReason)}>
-                        {t("supp.onHold")}
-                      </button>
-                    </>
-                  )}
-                  {canChange && held && (
-                    <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Draft")}>
-                      {t("act.resume")}
-                    </button>
-                  )}
-                  {canChange && (
-                    <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Closed")}>
-                      {t("hist.close")}
-                    </button>
-                  )}
-                  {canDropship && (
-                    <button type="button" className="btn ghost" onClick={() => setDropRows(lines.filter((row) => row.delivered_by_supplier && row.name).map((row) => ({
-                      name: row.name || "",
-                      item_code: row.item_code,
-                      qty: row.qty,
-                      received_qty: row.received_qty,
-                      qty_change: Number(row.qty || 0) - Number(row.received_qty || 0),
-                      selected: Number(row.qty || 0) > Number(row.received_qty || 0),
-                    })))}>
-                      {t("act.deliver")}
-                    </button>
-                  )}
-                  {data.docstatus === 1 && data.status !== "Closed" && (data.per_billed ?? 0) < 100 && (
-                    <button type="button" className="btn ghost"
-                      onClick={() => nav(`/payments/new?dt=${encodeURIComponent(DT.purchaseOrder)}&dn=${encodeURIComponent(name)}`)}>
-                      {t("pi.pay")}
-                    </button>
-                  )}
-                  {data.docstatus === 1 && !held && data.status !== "Closed" && (data.per_billed ?? 0) < 100 && (
-                    <button type="button" className="btn ghost" disabled={paymentRequest.busy}
-                      onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.purchaseOrder, reference_name: name }))}>
-                      {t("doc.paymentRequest")}
-                    </button>
-                  )}
-                  {data.docstatus === 1 && !held && data.status !== "Closed" && !!data.is_subcontracted && !data.is_old_subcontracting_flow
-                    && (data.items ?? []).some((row) => !row.delivered_by_supplier && Number(row.received_qty || 0) < Number(row.qty || 0))
-                    && (data.items ?? []).some((row) => Number(row.qty) !== Number(row.subcontracted_qty || 0)) && (
-                    <button type="button" className="btn ghost" disabled={subcontract.busy}
-                      onClick={() => void subcontract.open(() => makeSub.call({ source_name: name }))}>
-                      {t("doc.subOrder")}
-                    </button>
-                  )}
-                  {writable && data.docstatus === 1 && stopped && (
-                    <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Submitted")}>
-                      {t("act.reopen")}
-                    </button>
-                  )}
+                  {canChange && !held ? (
+                    <input
+                      className="ctl"
+                      value={holdReason}
+                      aria-label={t("act.holdReason")}
+                      onChange={(event) => setHoldReason(event.target.value)}
+                    />
+                  ) : null}
                 </>
               }
             />
@@ -335,7 +354,18 @@ export default function PurchaseOrderDetail() {
             fields={[
               {
                 key: "item", label: t("dn.item"), slot: "title",
-                render: (row) => row.item_name || row.item_code,
+                render: (row) => (
+                  <>
+                    <div>{row.item_name || row.item_code}</div>
+                    {(row.hs_code || row.sac_code) && (
+                      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
+                        {row.hs_code ? `HS ${row.hs_code}` : ""}
+                        {row.hs_code && row.sac_code ? " · " : ""}
+                        {row.sac_code ? `SAC ${row.sac_code}` : ""}
+                      </div>
+                    )}
+                  </>
+                ),
               },
               {
                 key: "qty", label: t("dn.qty"), slot: "primary", numeric: true,

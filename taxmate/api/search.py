@@ -5,6 +5,7 @@ Returns grouped hits with routes under /taxmate only, never Desk /app/.
 
 from __future__ import annotations
 
+from functools import lru_cache
 import re
 from typing import Any
 
@@ -398,15 +399,17 @@ def _nav_results(text: str, limit: int) -> list[dict[str, Any]]:
 def _doctype_list_results(text: str, limit: int) -> list[dict[str, Any]]:
 	"""Match DocType titles like AwesomeBar 'List Customer' — SPA lists only."""
 	out: list[dict[str, Any]] = []
-	can_read = set(frappe.get_user().get_can_read())
+	can_read: set[str] | None = None
 	for doctype in _SPA_DOCTYPES:
-		if doctype not in can_read or not is_allowed_doctype(doctype):
-			continue
 		route = _list_route(doctype)
 		if not route:
 			continue
 		score = max(_fuzzy_score(text, doctype), _fuzzy_score(text, f"list {doctype}"))
 		if score < 0.4:
+			continue
+		if can_read is None:
+			can_read = set(frappe.get_user().get_can_read())
+		if doctype not in can_read or not is_allowed_doctype(doctype):
 			continue
 		out.append(
 			{
@@ -422,10 +425,18 @@ def _doctype_list_results(text: str, limit: int) -> list[dict[str, Any]]:
 	return out[:limit]
 
 
+@lru_cache(maxsize=1)
+def _get_allowed_global_doctypes() -> set[str]:
+	return {dt for dt in GLOBAL_SEARCH_DOCTYPES if dt in _SPA_DOCTYPES and is_allowed_doctype(dt)}
+
+
 def _global_results(text: str, limit: int) -> list[dict[str, Any]]:
+	if len(cstr(text).strip()) < 2:
+		return []
+
 	from frappe.utils.global_search import search as frappe_global_search
 
-	allowed = {dt for dt in GLOBAL_SEARCH_DOCTYPES if dt in _SPA_DOCTYPES and is_allowed_doctype(dt)}
+	allowed = _get_allowed_global_doctypes()
 	if not allowed:
 		return []
 
@@ -471,7 +482,8 @@ def _global_results(text: str, limit: int) -> list[dict[str, Any]]:
 
 def _exact_name_hits(text: str, limit: int) -> list[dict[str, Any]]:
 	"""If the query looks like a document name, try exact matches on SPA doctypes."""
-	if " " in text.strip() and not re.search(r"-\d", text):
+	t = text.strip()
+	if len(t) < 3 or (" " in t and not re.search(r"-\d", t)):
 		return []
 	out: list[dict[str, Any]] = []
 	for doctype in _SPA_DOCTYPES:

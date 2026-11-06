@@ -1,0 +1,7 @@
+{
+  "tag": "ship9-print-defects",
+  "at": "2026-11-04T16:17:47.313Z",
+  "files": [
+    "taxmate/tests/test_print_bidi.py"
+  ]
+}

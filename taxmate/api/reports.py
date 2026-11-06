@@ -40,6 +40,12 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 		filters["company"] = active
 	assert_company_read(filters.get("company"))
 
+	# Trial Balance clamps its dates to `fiscal_year`. The screen sends the
+	# session's current year, so a range in another year came back with the
+	# wrong figures. Use the fiscal year that contains From Date.
+	if report_name == "Trial Balance" and filters.get("from_date"):
+		_set_fiscal_year_from_date(filters)
+
 	# ERPNext Receivable/Payable reports expect party to be a list/tuple for pypika criteria
 	if report_name in ("Accounts Payable", "Accounts Receivable") and "party" in filters:
 		party_val = filters["party"]
@@ -50,12 +56,21 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 
 	from frappe.desk.query_report import run
 
-	result = run(
-		report_name,
-		filters=filters,
-		ignore_prepared_report=ignore_prepared_report,
-		are_default_filters=False,
-	)
+	if report_name == "Cash Flow":
+		# Older ERPNext v16 leaves VAT, accruals and other balance sheet movements
+		# out of Cash Flow, so Net Change in Cash disagrees with the bank. This
+		# adds them, plus opening and closing cash, and builds accumulated
+		# columns on one basis. Figures ERPNext already reports are kept.
+		from taxmate.utils.cash_flow import run_cash_flow
+
+		result = run_cash_flow(filters, ignore_prepared_report=ignore_prepared_report)
+	else:
+		result = run(
+			report_name,
+			filters=filters,
+			ignore_prepared_report=ignore_prepared_report,
+			are_default_filters=False,
+		)
 	# Report id stays English for the route. The heading and account labels follow User.language.
 	if isinstance(result, dict):
 		localize_report(report_name, result)
@@ -74,3 +89,15 @@ def _as_filter_dict(filters) -> dict:
 	if isinstance(filters, dict):
 		return filters
 	frappe.throw(_("filters must be a JSON object"), frappe.ValidationError)
+
+
+def _set_fiscal_year_from_date(filters: dict) -> None:
+	from erpnext.accounts.utils import FiscalYearError, get_fiscal_year
+
+	try:
+		filters["fiscal_year"] = get_fiscal_year(
+			filters["from_date"], company=filters.get("company"), as_dict=True, verbose=0
+		).name
+	except FiscalYearError:
+		# No fiscal year covers the date. Keep what was sent; ERPNext explains.
+		frappe.clear_messages()

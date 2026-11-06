@@ -157,6 +157,7 @@ const _BASE_NAV: NavEntry[] = [
   { type: "section", key: "nav.company" },
   { type: "link", to: "/company", key: "nav.companySettings" },
   { type: "link", to: "/team", key: "nav.team" },
+  { type: "link", to: "/workflows", key: "nav.workflows" },
 ];
 
 /**

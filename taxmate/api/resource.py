@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 import frappe
@@ -24,6 +25,7 @@ from taxmate.utils.company import (
 )
 
 
+@lru_cache(maxsize=256)
 def is_allowed_doctype(doctype: str) -> bool:
 	if not doctype or doctype in DENIED_SEARCH_DOCTYPES:
 		return False
@@ -469,6 +471,9 @@ def get_meta(doctype: str) -> dict[str, Any]:
 		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	meta = frappe.get_meta(doctype)
+	sort_order = (meta.sort_order or "DESC").lower()
+	if sort_order not in ("asc", "desc"):
+		sort_order = "desc"
 	return {
 		"name": meta.name,
 		"module": meta.module,
@@ -478,6 +483,9 @@ def get_meta(doctype: str) -> dict[str, Any]:
 		"autoname": meta.autoname,
 		"title_field": meta.title_field,
 		"search_fields": meta.search_fields,
+		"sort_field": meta.sort_field or "modified",
+		"sort_order": sort_order,
+		"image_field": getattr(meta, "image_field", None) or None,
 		"fields": [_field_meta(field, nest_children=True) for field in meta.fields],
 	}
 

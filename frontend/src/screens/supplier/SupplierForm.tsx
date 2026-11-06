@@ -8,6 +8,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { CreateMenu } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
@@ -250,15 +251,34 @@ export default function SupplierForm() {
         title={isNew ? t("supp.new") : form.supplier_name || name}
         actions={
           <>
-            {!isNew ? (<DocHistory doctype={DT.supplier} name={name} />) : null}
             {!isNew ? (
-              <>
-                <button type="button" className="btn ghost" onClick={() => nav("/purchase-orders/new", { state: { mapped: { supplier: name } } })}>{t("nav.purchaseOrders")}</button>
-                <button type="button" className="btn ghost" onClick={() => nav("/purchase-invoices/new", { state: { mapped: { supplier: name } } })}>{t("nav.purchaseInvoices")}</button>
-                <button type="button" className="btn ghost" onClick={() => nav("/supplier-quotations/new", { state: { mapped: { supplier: name } } })}>{t("nav.supplierQuotations")}</button>
-                <button type="button" className="btn ghost" disabled={rfq.busy} onClick={() => void rfq.open(() => makeRfq.call({ supplier: name }))}>{t("reg.ui.rfqOne")}</button>
-              </>
+              <CreateMenu
+                items={[
+                  {
+                    key: "po",
+                    label: t("nav.purchaseOrders"),
+                    onClick: () => nav("/purchase-orders/new", { state: { mapped: { supplier: name } } }),
+                  },
+                  {
+                    key: "pi",
+                    label: t("nav.purchaseInvoices"),
+                    onClick: () => nav("/purchase-invoices/new", { state: { mapped: { supplier: name } } }),
+                  },
+                  {
+                    key: "sq",
+                    label: t("nav.supplierQuotations"),
+                    onClick: () => nav("/supplier-quotations/new", { state: { mapped: { supplier: name } } }),
+                  },
+                  {
+                    key: "rfq",
+                    label: t("reg.ui.rfqOne"),
+                    disabled: rfq.busy,
+                    onClick: () => { void rfq.open(() => makeRfq.call({ supplier: name })); },
+                  },
+                ]}
+              />
             ) : null}
+            {!isNew ? (<DocHistory doctype={DT.supplier} name={name} />) : null}
 
             <button type="button" className="btn ghost" onClick={() => nav("/suppliers")}>{t("soc.discard")}</button>
             <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
@@ -268,7 +288,7 @@ export default function SupplierForm() {
         }
       />
 
-      <DocTabShell doctype={DT.supplier} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.supplier} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {(saveError || rfq.error) && <ErrorBox error={saveError || rfq.error} />}
       {savedNotice ? (
         <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>

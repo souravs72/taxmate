@@ -27,6 +27,9 @@ _LANG = {"en": "en", "ar": "ar"}
 # Frappe always offers this; it is not a Print Format record.
 STANDARD = "Standard"
 
+# Used only if frappe.get_module_list is unavailable; mirrors modules.txt.
+_FALLBACK_MODULES = ("TaxMate", "UAE VAT", "UAE E-Invoicing", "UAE Corporate Tax", "UAE Compliance")
+
 
 def _assert_can_print(doctype: str, name: str) -> None:
 	assert_allowed_doctype(doctype)
@@ -58,8 +61,22 @@ def _in_language(lang: str | None):
 		frappe.local.lang_full_dict = cached
 
 
+def _our_modules() -> set[str]:
+	"""Every module this app owns, read from its modules.txt.
+
+	A format counts as ours by module. Checking for the single module named
+	"TaxMate" missed all five bilingual formats, which live in UAE
+	E-Invoicing, UAE VAT and UAE Corporate Tax: none of them ever sorted
+	first, and none was ever picked as a doctype's default.
+	"""
+	try:
+		return set(frappe.get_module_list("taxmate"))
+	except Exception:
+		return set(_FALLBACK_MODULES)
+
+
 def _formats_for(doctype: str) -> list[dict[str, Any]]:
-	"""Enabled formats for *doctype*, TaxMate's own first, Standard last."""
+	"""Enabled formats for *doctype*, this app's own first, Standard last."""
 	rows = frappe.get_all(
 		"Print Format",
 		filters={"doc_type": doctype, "disabled": 0},
@@ -67,9 +84,10 @@ def _formats_for(doctype: str) -> list[dict[str, Any]]:
 		order_by="name asc",
 		limit_page_length=0,
 	)
+	mine = _our_modules()
 	ours, theirs = [], []
 	for row in rows:
-		entry = {"name": row["name"], "label": _(row["name"]), "taxmate": row.get("module") == "TaxMate"}
+		entry = {"name": row["name"], "label": _(row["name"]), "taxmate": row.get("module") in mine}
 		(ours if entry["taxmate"] else theirs).append(entry)
 	return [*ours, *theirs, {"name": STANDARD, "label": _(STANDARD), "taxmate": False}]
 

@@ -137,7 +137,7 @@ def _assert_can_manage(user: str) -> None:
 	_assert_taxmate_teammate(user)
 	company = _active_company()
 	if not _belongs_to_company(user, company):
-		frappe.throw(_("User not found"))
+		frappe.throw(_("User does not belong to {0}").format(company))
 	if not _can_manage_target(user):
 		frappe.throw(_("That user belongs to another company"), frappe.PermissionError)
 
@@ -301,7 +301,13 @@ def get_user(user: str) -> dict[str, Any]:
 		frappe.throw(_("User not found"))
 	_assert_taxmate_teammate(user)
 	if not _belongs_to_company(user, company):
-		frappe.throw(_("User not found"))
+		theirs = _company_permissions(user)
+		caller_companies = set(user_companies())
+		common = [c for c in theirs if c in caller_companies]
+		if common:
+			company = common[0]
+		else:
+			frappe.throw(_("User does not belong to {0}").format(company))
 	return _as_user_row(user, company=company)
 
 

@@ -73,7 +73,7 @@ export default function BrandForm() {
         }
       />
 
-      <DocTabShell doctype={DT.brand} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.brand} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">

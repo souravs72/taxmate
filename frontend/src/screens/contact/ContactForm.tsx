@@ -129,7 +129,7 @@ export default function ContactForm() {
         }
       />
 
-      <DocTabShell doctype={"Contact"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={"Contact"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>

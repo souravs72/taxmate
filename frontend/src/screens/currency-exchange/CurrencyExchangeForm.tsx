@@ -92,7 +92,7 @@ export default function CurrencyExchangeForm() {
     <>
       <PageHead title={isNew ? t("cx.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/currency-exchanges")}>{t("cx.title")}</button>} />
 
-      <DocTabShell doctype={DT.currencyExchange} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.currencyExchange} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("cx.title")}>

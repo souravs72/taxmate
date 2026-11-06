@@ -50,20 +50,24 @@ export default function LinkField({
   const [box, setBox] = useState<MenuBox | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const suppressClear = useRef(false);
+  const activeReqId = useRef(0);
   const search = useFrappePostCall<{ message: Hit[] }>(METHOD.searchLink);
   const filterKey = JSON.stringify(filters ?? null);
 
   useEffect(() => {
     if (!open) return;
     setStatus("loading");
+    const reqId = ++activeReqId.current;
     const handle = window.setTimeout(() => {
       search
         .call({ doctype, txt: q, page_length: 12, filters: filters ?? undefined })
         .then((r) => {
+          if (reqId !== activeReqId.current) return;
           setHits(r?.message ?? []);
           setStatus("ready");
         })
         .catch(() => {
+          if (reqId !== activeReqId.current) return;
           setHits([]);
           setStatus("error");
         });

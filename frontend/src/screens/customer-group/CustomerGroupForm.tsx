@@ -83,7 +83,7 @@ export default function CustomerGroupForm() {
         }
       />
 
-      <DocTabShell doctype={DT.customerGroup} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.customerGroup} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card num={1} title={t("cg.details")}>

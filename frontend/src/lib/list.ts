@@ -102,7 +102,12 @@ export function groupRow<T extends { name?: string }>(rows: T[], name: string): 
  * derived-Overdue filter needs one. frappe.desk.reportview.get_count runs the
  * same DatabaseQuery the list does, permissions included.
  */
-export function useFilteredCount(doctype: string, filters: FilterTuple[], orFilters?: FilterTuple[]) {
+export function useFilteredCount(
+  doctype: string,
+  filters: FilterTuple[],
+  orFilters?: FilterTuple[],
+  enabled = true,
+) {
   const call = useFrappeGetCall<{ message: number }>(
     METHOD.getCount,
     {
@@ -110,7 +115,9 @@ export function useFilteredCount(doctype: string, filters: FilterTuple[], orFilt
       filters: JSON.stringify(filters),
       or_filters: JSON.stringify(orFilters ?? []),
     },
-    `count-${doctype}-${JSON.stringify(filters)}-${JSON.stringify(orFilters ?? [])}`,
+    enabled
+      ? `count-${doctype}-${JSON.stringify(filters)}-${JSON.stringify(orFilters ?? [])}`
+      : null,
   );
   return { total: call.data?.message ?? 0, error: call.error };
 }

@@ -168,7 +168,7 @@ export default function AddressForm() {
         }
       />
 
-      <DocTabShell doctype={"Address"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={"Address"} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card>

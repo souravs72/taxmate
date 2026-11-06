@@ -83,7 +83,7 @@ export default function UomForm() {
         }
       />
 
-      <DocTabShell doctype={DT.uom} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.uom} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">

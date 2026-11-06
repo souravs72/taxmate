@@ -85,7 +85,7 @@ export default function ItemGroupForm() {
         }
       />
 
-      <DocTabShell doctype={DT.itemGroup} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.itemGroup} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">

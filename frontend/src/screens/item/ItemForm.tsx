@@ -376,7 +376,7 @@ export default function ItemForm() {
         }
       />
 
-      <DocTabShell doctype={DT.item} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.item} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card title={t("item.identity")}>
         <div className="grid2">

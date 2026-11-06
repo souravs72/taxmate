@@ -184,9 +184,20 @@ doc_events = {
 	"Item": {
 		"validate": "taxmate.uae_vat.overrides.item.validate",
 	},
+	"Quotation": {
+		"validate": "taxmate.uae_vat.overrides.quotation.validate",
+	},
 	"Sales Order": {
 		"validate": "taxmate.uae_vat.overrides.sales_order.validate",
 		"before_submit": "taxmate.uae_vat.overrides.sales_order.before_submit",
+	},
+	"Delivery Note": {
+		"validate": "taxmate.uae_vat.overrides.delivery_note.validate",
+		"before_submit": "taxmate.uae_vat.overrides.delivery_note.before_submit",
+	},
+	"Purchase Order": {
+		"validate": "taxmate.uae_vat.overrides.purchase_order.validate",
+		"before_submit": "taxmate.uae_vat.overrides.purchase_order.before_submit",
 	},
 	"Sales Invoice": {
 		"validate": [
@@ -221,6 +232,10 @@ doc_events = {
 		"before_validate": "taxmate.api.mobile_auth.user_before_validate",
 		"on_update": "taxmate.api.mobile_auth.user_on_update",
 		"on_trash": "taxmate.api.mobile_auth.user_on_trash",
+	},
+	"Workflow": {
+		"before_insert": "taxmate.workflow.company_workflow.before_insert",
+		"validate": "taxmate.workflow.company_workflow.validate",
 	},
 }
 

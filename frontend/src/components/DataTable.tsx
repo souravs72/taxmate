@@ -16,12 +16,17 @@
  * without being touched.
  */
 
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 
 import { t } from "../i18n/strings";
 import { useIsPhone } from "../lib/useMedia";
 import { Empty, ErrorBox, Loading } from "./ui";
 import "../styles/list-mobile.css";
+
+/** Shared scroll viewport — fills the list card; height via `--dt-frame-min-h`. */
+function TableFrame({ children }: { children: ReactNode }) {
+  return <div className="twrap dt-frame">{children}</div>;
+}
 
 /**
  * What a column means on a phone, where there is room for one line of title,
@@ -40,6 +45,14 @@ export type Column<Row> = {
   cell: (row: Row) => React.ReactNode;
   /** Card-mode hint. Optional: unset columns are inferred. */
   role?: ColumnRole;
+  /** When set with TableProps.sort, header is clickable. */
+  sortable?: boolean;
+};
+
+export type SortState = {
+  field: string;
+  order: "asc" | "desc";
+  onChange: (field: string) => void;
 };
 
 export type Selection<Row> = {
@@ -70,17 +83,30 @@ type TableProps<Row> = {
   emptyLabel: string;
   selection?: Selection<Row>;
   rowClassName?: (row: Row) => string | undefined;
+  sort?: SortState;
 };
 
 export function DataTable<Row>(props: TableProps<Row>) {
-  const { rows, columns, rowKey, onOpen, canOpen, state, emptyLabel, selection, rowClassName } = props;
+  const { rows, columns, rowKey, onOpen, canOpen, state, emptyLabel, selection, rowClassName, sort } = props;
   const phone = useIsPhone();
 
-  if (state?.error) return <ErrorBox error={state.error} onRetry={state.onRetry} />;
-  if (state?.isLoading) return <Loading />;
-  if (rows.length === 0) return <Empty label={emptyLabel} />;
+  /* Phone cards size to content; desktop keeps a fixed frame height. */
+  if (phone) {
+    if (state?.error) return <ErrorBox error={state.error} onRetry={state.onRetry} />;
+    if (state?.isLoading) return <Loading />;
+    if (rows.length === 0) return <Empty label={emptyLabel} />;
+    return <CardList {...props} />;
+  }
 
-  if (phone) return <CardList {...props} />;
+  if (state?.error) {
+    return <TableFrame><ErrorBox error={state.error} onRetry={state.onRetry} /></TableFrame>;
+  }
+  if (state?.isLoading) {
+    return <TableFrame><Loading /></TableFrame>;
+  }
+  if (rows.length === 0) {
+    return <TableFrame><Empty label={emptyLabel} /></TableFrame>;
+  }
 
   const selectableRows = selection ? rows.filter(selection.selectable) : [];
   const allPicked = !!selection
@@ -88,7 +114,7 @@ export function DataTable<Row>(props: TableProps<Row>) {
     && selectableRows.every((r) => selection.picked.has(rowKey(r)));
 
   return (
-    <div className="twrap">
+    <TableFrame>
       <table className={onOpen ? "clickable" : undefined}>
         <thead>
           <tr>
@@ -99,12 +125,33 @@ export function DataTable<Row>(props: TableProps<Row>) {
                   onChange={(e) => selection.onToggleAll(e.target.checked)} />
               </th>
             )}
-            {columns.map((c) => (
-              <th key={c.key} className={c.headClassName ?? c.className}
-                  style={c.width ? { width: c.width } : undefined}>
-                {c.header}
-              </th>
-            ))}
+            {columns.map((c) => {
+              const canSort = !!(sort && c.sortable);
+              const active = canSort && sort.field === c.key;
+              const ariaSort = !canSort ? undefined
+                : active ? (sort.order === "asc" ? "ascending" : "descending") : "none";
+              return (
+                <th key={c.key}
+                    className={[c.headClassName ?? c.className, canSort ? "sortable" : ""].filter(Boolean).join(" ") || undefined}
+                    style={c.width ? { width: c.width } : undefined}
+                    aria-sort={ariaSort as "ascending" | "descending" | "none" | undefined}
+                    scope="col"
+                >
+                  {canSort ? (
+                    <button
+                      type="button"
+                      className="sort-btn"
+                      onClick={(e) => { e.stopPropagation(); sort.onChange(c.key); }}
+                    >
+                      {c.header}
+                      <span className="sort-ind" aria-hidden="true">
+                        {active ? (sort.order === "asc" ? "▲" : "▼") : "↕"}
+                      </span>
+                    </button>
+                  ) : c.header}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -135,7 +182,7 @@ export function DataTable<Row>(props: TableProps<Row>) {
           })}
         </tbody>
       </table>
-    </div>
+    </TableFrame>
   );
 }
 

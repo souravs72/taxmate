@@ -120,7 +120,7 @@ export default function AssetForm() {
     <>
       <PageHead title={isNew ? t("ast.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/assets")}>{t("ast.title")}</button>} />
 
-      <DocTabShell doctype={DT.asset} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.asset} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("ast.title")}>

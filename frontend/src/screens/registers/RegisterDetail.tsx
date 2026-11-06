@@ -140,56 +140,72 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
               if (next) nav(`${spec.path}/${encodeURIComponent(next)}/edit`);
               else await doc.mutate();
             } : undefined}
-            extra={(
+            create={[
+              {
+                key: "quotation",
+                label: t("reg.ui.quotation"),
+                hidden: !(spec.doctype === "Opportunity" && !lost),
+                disabled: busy,
+                onClick: () => { void quote.open(() => makeQuote.call({ source_name: name })); },
+              },
+              {
+                key: "rfq",
+                label: t("reg.ui.rfqOne"),
+                hidden: !(spec.doctype === "Opportunity" && !lost && hasItems),
+                disabled: busy,
+                onClick: () => { void rfq.open(() => makeRfq.call({ source_name: name })); },
+              },
+              {
+                key: "sq-opp",
+                label: t("reg.ui.supplierQuotation"),
+                hidden: !(spec.doctype === "Opportunity" && !lost && hasItems),
+                disabled: busy,
+                onClick: () => { void supplierQuote.open(() => makeSq.call({ source_name: name })); },
+              },
+              {
+                key: "payment",
+                label: t("sod.createPayment"),
+                hidden: !canPay,
+                disabled: busy,
+                onClick: () => { void payment.open(() => makePay.call({ source_name: name })); },
+              },
+            ]}
+            menu={[
+              {
+                key: "close",
+                label: t("hist.close"),
+                hidden: !(spec.doctype === "Opportunity" && writable && data.status === "Open"),
+                disabled: busy,
+                onClick: () => { void setOpportunityStatus("Closed"); },
+              },
+              {
+                key: "reopen",
+                label: t("reg.ui.reopen"),
+                hidden: !(spec.doctype === "Opportunity" && writable && !!data.status && data.status !== "Open"),
+                disabled: busy,
+                onClick: () => { void setOpportunityStatus("Open"); },
+              },
+            ]}
+            extra={spec.doctype === "Request for Quotation" && data.docstatus === 1 && suppliers.length > 0 ? (
               <>
-                {spec.doctype === "Opportunity" && !lost && (
-                  <button type="button" className="btn ghost" disabled={busy} onClick={() => void quote.open(() => makeQuote.call({ source_name: name }))}>
-                    {t("reg.ui.quotation")}
-                  </button>
-                )}
-                {spec.doctype === "Opportunity" && !lost && hasItems && (
-                  <>
-                    <button type="button" className="btn ghost" disabled={busy} onClick={() => void rfq.open(() => makeRfq.call({ source_name: name }))}>
-                      {t("reg.ui.rfqOne")}
-                    </button>
-                    <button type="button" className="btn ghost" disabled={busy} onClick={() => void supplierQuote.open(() => makeSq.call({ source_name: name }))}>
-                      {t("reg.ui.supplierQuotation")}
-                    </button>
-                  </>
-                )}
-                {spec.doctype === "Opportunity" && writable && data.status === "Open" && (
-                  <button type="button" className="btn ghost" disabled={busy} onClick={() => void setOpportunityStatus("Closed")}>{t("hist.close")}</button>
-                )}
-                {spec.doctype === "Opportunity" && writable && data.status && data.status !== "Open" && (
-                  <button type="button" className="btn ghost" disabled={busy} onClick={() => void setOpportunityStatus("Open")}>{t("reg.ui.reopen")}</button>
-                )}
-                {spec.doctype === "Request for Quotation" && data.docstatus === 1 && suppliers.length > 0 && (
-                  <>
-                    <Field label={t("reg.ui.supplier")}>
-                      <select className="ctl" aria-label={t("reg.ui.supplier")} value={supplier} onChange={(event) => setSupplier(event.target.value)}>
-                        <option value="">—</option>
-                        {suppliers.map((row) => (
-                          <option key={row.supplier} value={row.supplier}>{row.supplier}</option>
-                        ))}
-                      </select>
-                    </Field>
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      disabled={busy || !supplier}
-                      onClick={() => void supplierQuote.open(() => makeSqFromRfq.call({ source_name: name, for_supplier: supplier }))}
-                    >
-                      {t("reg.ui.supplierQuotation")}
-                    </button>
-                  </>
-                )}
-                {canPay && (
-                  <button type="button" className="btn ghost" disabled={busy} onClick={() => void payment.open(() => makePay.call({ source_name: name }))}>
-                    {t("sod.createPayment")}
-                  </button>
-                )}
+                <Field label={t("reg.ui.supplier")}>
+                  <select className="ctl" aria-label={t("reg.ui.supplier")} value={supplier} onChange={(event) => setSupplier(event.target.value)}>
+                    <option value="">—</option>
+                    {suppliers.map((row) => (
+                      <option key={row.supplier} value={row.supplier}>{row.supplier}</option>
+                    ))}
+                  </select>
+                </Field>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  disabled={busy || !supplier}
+                  onClick={() => void supplierQuote.open(() => makeSqFromRfq.call({ source_name: name, for_supplier: supplier }))}
+                >
+                  {t("reg.ui.supplierQuotation")}
+                </button>
               </>
-            )}
+            ) : null}
           />
         )}
       />

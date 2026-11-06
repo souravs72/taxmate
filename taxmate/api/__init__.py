@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from functools import lru_cache
 from typing import Any
 
 import frappe
@@ -47,6 +48,7 @@ _CORE_MASTERS: tuple[str, ...] = (
 	"UAE Customs Declaration",
 	"UAE Capital Goods Adjustment",
 	"Brand",
+	"Workflow",
 	"UOM",
 	"Customer Group",
 	"Supplier Group",
@@ -140,6 +142,7 @@ _EXISTING_ACTIONS: tuple[dict[str, str], ...] = (
 )
 
 
+@lru_cache(maxsize=1)
 def catalog_doctypes() -> list[str]:
 	names = set(GLOBAL_SEARCH_DOCTYPES)
 	names.update(_CORE_MASTERS)
@@ -212,6 +215,7 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "get_count", "method": "taxmate.api.resource.get_count"},
 			{"name": "group_by_count", "method": "taxmate.api.resource.group_by_count"},
 			{"name": "get_meta", "method": "taxmate.api.resource.get_meta"},
+			{"name": "list_view_spec", "method": "taxmate.api.list_view.list_view_spec"},
 			{"name": "search_link", "method": "taxmate.api.resource.search_link"},
 			{"name": "get_versions", "method": "taxmate.api.resource.get_versions"},
 			{"name": "submit", "method": "taxmate.api.workflow.submit"},
@@ -377,6 +381,10 @@ def get_catalog() -> dict[str, Any]:
 			{"name": "print_render", "method": "taxmate.api.printing.render"},
 			{"name": "form_layout", "method": "taxmate.api.form_layout.get"},
 			{"name": "connections_open_count", "method": "taxmate.api.connections.open_count"},
+			{"name": "get_workflows", "method": "taxmate.api.workflow.get_workflows"},
+			{"name": "get_workflow", "method": "taxmate.api.workflow.get_workflow"},
+			{"name": "toggle_workflow_active", "method": "taxmate.api.workflow.toggle_active"},
+			{"name": "create_workflow_template", "method": "taxmate.api.workflow.create_template_workflow"},
 			*_EXISTING_ACTIONS,
 		],
 	}

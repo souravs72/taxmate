@@ -161,40 +161,45 @@ export default function PurchaseReceiptDetail() {
               if (newName) nav(`/purchase-receipts/${encodeURIComponent(newName)}/edit`);
               else mutate();
             }}
-            extra={
-              <>
-                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
-                {!isNative() && (
-                  <PrintLangButtons doctype={DT.purchaseReceipt} name={name} />
-                )}
-                {canBill && (
-                  <button type="button" className="btn" disabled={busyPi} onClick={() => void createInvoice()}>
-                    {busyPi ? t("soc.saving") : t("pr.createPi")}
-                  </button>
-                )}
-                {submitted && !closed && (
-                  <button type="button" className="btn ghost" disabled={busySe} onClick={() => void createStockEntry()}>
-                    {busySe ? t("soc.saving") : t("nav.stockEntries")}
-                  </button>
-                )}
-                {canReturn && (
-                  <button type="button" className="btn ghost"
-                    onClick={() => nav(`/purchase-receipts/${encodeURIComponent(name)}/return`)}>
-                    {t("pr.return")}
-                  </button>
-                )}
-                {canClose && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Closed")}>
-                    {t("hist.close")}
-                  </button>
-                )}
-                {canReopen && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Submitted")}>
-                    {t("act.reopen")}
-                  </button>
-                )}
-              </>
-            }
+            create={[
+              {
+                key: "pi",
+                label: busyPi ? t("soc.saving") : t("pr.createPi"),
+                hidden: !canBill,
+                disabled: busyPi,
+                onClick: () => { void createInvoice(); },
+              },
+              {
+                key: "se",
+                label: busySe ? t("soc.saving") : t("nav.stockEntries"),
+                hidden: !(submitted && !closed),
+                disabled: busySe,
+                onClick: () => { void createStockEntry(); },
+              },
+              {
+                key: "return",
+                label: t("pr.return"),
+                hidden: !canReturn,
+                onClick: () => nav(`/purchase-receipts/${encodeURIComponent(name)}/return`),
+              },
+            ]}
+            menu={[
+              {
+                key: "close",
+                label: t("hist.close"),
+                hidden: !canClose,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Closed"); },
+              },
+              {
+                key: "reopen",
+                label: t("act.reopen"),
+                hidden: !canReopen,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Submitted"); },
+              },
+            ]}
+            extra={!isNative() ? <PrintLangButtons doctype={DT.purchaseReceipt} name={name} /> : null}
           />
         }
       >

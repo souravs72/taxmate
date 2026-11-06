@@ -123,23 +123,94 @@ def validate_sales_order(doc, on_submit: bool = False) -> None:
 	"""
 	if not _is_uae_company(doc):
 		return
-	if not setting_enabled("require_vat_emirate_on_sales_order", default=1):
-		return
-	if doc.get("vat_emirate"):
-		return
+	if not doc.get("vat_emirate") and setting_enabled("require_vat_emirate_on_sales_order", default=1):
+		resolved = _resolve_company_emirate(doc)
+		if resolved:
+			doc.vat_emirate = resolved
+		else:
+			message = _(
+				"Set Place of Supply (Emirate) on this Sales Order. It carries through to "
+				"the Sales Invoice, where VAT 201 Box 1 is reported by Emirate."
+			)
+			if on_submit:
+				frappe.throw(message, title=_("Place of Supply"))
+			frappe.msgprint(message, title=_("Place of Supply"), indicator="orange", alert=True)
 
-	resolved = _resolve_company_emirate(doc)
-	if resolved:
-		doc.vat_emirate = resolved
-		return
+	if on_submit and (_zone_flag("Company", doc.get("company")) or _zone_flag("Customer", doc.get("customer"))):
+		_validate_designated_zone(
+			doc,
+			party_doctype="Customer",
+			party_name=doc.get("customer"),
+			buyer_doctype="Customer",
+			buyer_name=doc.get("customer"),
+		)
 
-	message = _(
-		"Set Place of Supply (Emirate) on this Sales Order. It carries through to "
-		"the Sales Invoice, where VAT 201 Box 1 is reported by Emirate."
+
+def validate_delivery_note(doc, on_submit: bool = False) -> None:
+	"""Enforce Place of Supply and designated zone validation on Delivery Notes."""
+	if not _is_uae_company(doc):
+		return
+	if not doc.get("vat_emirate"):
+		resolved = _resolve_company_emirate(doc)
+		if resolved:
+			doc.vat_emirate = resolved
+		elif on_submit:
+			frappe.throw(
+				_("Set Place of Supply (Emirate) on this Delivery Note."),
+				title=_("Place of Supply"),
+			)
+
+	if on_submit and (_zone_flag("Company", doc.get("company")) or _zone_flag("Customer", doc.get("customer"))):
+		_validate_designated_zone(
+			doc,
+			party_doctype="Customer",
+			party_name=doc.get("customer"),
+			buyer_doctype="Customer",
+			buyer_name=doc.get("customer"),
+		)
+
+
+def validate_quotation(doc) -> None:
+	"""Resolve company emirate on Quotation so it carries through to Sales Order and Invoice."""
+	if not _is_uae_company(doc):
+		return
+	if not doc.get("vat_emirate"):
+		resolved = _resolve_company_emirate(doc)
+		if resolved:
+			doc.vat_emirate = resolved
+
+
+def validate_purchase_order(doc, on_submit: bool = False) -> None:
+	"""Resolve company emirate and validate designated zone rules for Purchase Orders."""
+	if not _is_uae_company(doc):
+		return
+	if not doc.get("vat_emirate"):
+		resolved = _resolve_company_emirate(doc)
+		if resolved:
+			doc.vat_emirate = resolved
+
+	if on_submit and (_zone_flag("Company", doc.get("company")) or _zone_flag("Supplier", doc.get("supplier"))):
+		_validate_designated_zone(
+			doc,
+			party_doctype="Supplier",
+			party_name=doc.get("supplier"),
+			buyer_doctype="Company",
+			buyer_name=doc.get("company"),
+		)
+
+
+def purchase_order_zone_guidance(doc) -> str | None:
+	"""Designated-zone hint for a Purchase Order, or None when it does not apply."""
+	company_dz = _zone_flag("Company", doc.get("company"))
+	if not company_dz:
+		return None
+	if not _zone_flag("Supplier", doc.get("supplier")):
+		return None
+	return _(
+		"Supplier and company are both in a Designated Zone. If these lines are "
+		"goods that remain in the zone, the Purchase Invoice will require an Item Tax "
+		"Template with UAE VAT Category = Out of Scope."
 	)
-	if on_submit:
-		frappe.throw(message, title=_("Place of Supply"))
-	frappe.msgprint(message, title=_("Place of Supply"), indicator="orange", alert=True)
 
 
 def resolve_company_emirate(company: str | None, company_address: str | None = None) -> str | None:

@@ -111,7 +111,7 @@ export default function WarehouseForm() {
         }
       />
 
-      <DocTabShell doctype={DT.warehouse} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.warehouse} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <Card>
         <div className="grid2">

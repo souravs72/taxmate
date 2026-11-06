@@ -1,20 +1,36 @@
 /**
- * Hook + helpers for Desk Tab Break layout on SPA screens.
- * Callers: DocTabs consumers (detail/form screens).
+ * Hook + types for Desk Tab Break layout on SPA screens.
+ * Callers: DocTabShell, DeskTabPanel, DocTabs.
  * API: METHOD.formLayout → taxmate.api.form_layout.get
- * Schema: {doctype, tabs[{id,label,fieldname,fields,is_connections?}], has_connections}
- * User: Implement the plan as specified... completed all the to-dos.
+ * Schema: tabs with sections/columns/field meta (label, fieldtype, options).
+ * User: mimic erpnext like tabs and fields for all sidebar doctypes.
  */
 import { useMemo, useState } from "react";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { METHOD } from "./frappe";
 
+export type LayoutField = {
+  fieldname: string;
+  label: string;
+  fieldtype: string;
+  options?: string | null;
+  reqd?: number;
+  read_only?: number;
+};
+
+export type LayoutSection = {
+  id: string;
+  label: string;
+  columns: LayoutField[][];
+};
+
 export type DocTab = {
   id: string;
   label: string;
   fieldname: string;
   fields: string[];
+  sections?: LayoutSection[];
   is_connections?: boolean;
 };
 
@@ -48,6 +64,7 @@ export function useDocLayout(doctype: string | undefined) {
     setActive,
     activeTab,
     isConnections: !!activeTab?.is_connections,
+    isDetails: !activeTab || activeTab.id === "__details",
     error,
     isLoading,
     fieldSet: new Set(activeTab?.fields ?? []),

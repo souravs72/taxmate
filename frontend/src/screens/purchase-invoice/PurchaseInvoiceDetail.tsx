@@ -137,29 +137,28 @@ export default function PurchaseInvoiceDetail() {
               if (newName) nav(`/purchase-invoices/${encodeURIComponent(newName)}`);
               else refresh();
             }}
-            extra={
-              <>
-                {submitted && outstanding !== 0 && !data.on_hold && (
-                  <button type="button" className="btn"
-                    onClick={() => nav(`/payments/new?dt=${encodeURIComponent(DT.purchaseInvoice)}&dn=${encodeURIComponent(name)}`)}>
-                    {t("pi.pay")}
-                  </button>
-                )}
-                {submitted && !data.is_return && !data.on_hold && outstanding > 0 && (
-                  <button type="button" className="btn ghost" disabled={paymentRequest.busy}
-                    onClick={() => void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.purchaseInvoice, reference_name: name }))}>
-                    {t("doc.paymentRequest")}
-                  </button>
-                )}
-                {submitted && !data.is_return && (outstanding >= 0 || Math.abs(outstanding) < grand) && (
-                  <button type="button" className="btn ghost"
-                    onClick={() => nav(`/purchase-invoices/${encodeURIComponent(name)}/return`)}>
-                    {t("pi.debit")}
-                  </button>
-                )}
-                <PrintLangButtons doctype={DT.purchaseInvoice} name={name} format="UAE Bilingual Purchase Invoice" />
-              </>
-            }
+            create={[
+              {
+                key: "pay",
+                label: t("pi.pay"),
+                hidden: !(submitted && outstanding !== 0 && !data.on_hold),
+                onClick: () => nav(`/payments/new?dt=${encodeURIComponent(DT.purchaseInvoice)}&dn=${encodeURIComponent(name)}`),
+              },
+              {
+                key: "payreq",
+                label: t("doc.paymentRequest"),
+                hidden: !(submitted && !data.is_return && !data.on_hold && outstanding > 0),
+                disabled: paymentRequest.busy,
+                onClick: () => { void paymentRequest.open(() => makePayReq.call({ reference_doctype: DT.purchaseInvoice, reference_name: name })); },
+              },
+              {
+                key: "debit",
+                label: t("pi.debit"),
+                hidden: !(submitted && !data.is_return && (outstanding >= 0 || Math.abs(outstanding) < grand)),
+                onClick: () => nav(`/purchase-invoices/${encodeURIComponent(name)}/return`),
+              },
+            ]}
+            extra={<PrintLangButtons doctype={DT.purchaseInvoice} name={name} format="UAE Bilingual Purchase Invoice" />}
           />
         }
       >

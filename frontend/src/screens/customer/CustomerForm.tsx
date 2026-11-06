@@ -8,6 +8,7 @@ import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
 import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { CreateMenu } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 import LinkField from "../../components/LinkField";
@@ -284,22 +285,43 @@ export default function CustomerForm() {
         title={isNew ? t("cust.new") : form.customer_name || name}
         actions={
           <>
-            {!isNew ? (<DocHistory doctype={DT.customer} name={name} />) : null}
             {!isNew ? (
-              <>
-                <button type="button" className="btn ghost" onClick={() => void makeQuote.call({ source_name: name }).then(async (res) => {
-                  const mapped = res?.message;
-                  if (!mapped) throw new Error(t("doc.err.mapFailed"));
-                  const body: Record<string, unknown> = { ...mapped };
-                  delete body.name; delete body.doctype; delete body.__islocal; delete body.__unsaved;
-                  const created = await create.createDoc(DT.quotation, body) as { name: string };
-                  nav(`/quotations/${encodeURIComponent(created.name)}/edit`);
-                }).catch((err) => setSaveError(err))}>{t("nav.quotations")}</button>
-                <button type="button" className="btn ghost" onClick={() => nav("/orders/new", { state: { mapped: { customer: name } } })}>{t("nav.salesOrders")}</button>
-                <button type="button" className="btn ghost" disabled={opportunity.busy} onClick={() => void opportunity.open(() => makeOpp.call({ source_name: name }))}>{t("doc.opportunity")}</button>
-                <button type="button" className="btn ghost" onClick={() => nav(`/payments/new?type=Receive&party=${encodeURIComponent(name)}`)}>{t("sod.createPayment")}</button>
-              </>
+              <CreateMenu
+                items={[
+                  {
+                    key: "quotation",
+                    label: t("nav.quotations"),
+                    onClick: () => {
+                      void makeQuote.call({ source_name: name }).then(async (res) => {
+                        const mapped = res?.message;
+                        if (!mapped) throw new Error(t("doc.err.mapFailed"));
+                        const body: Record<string, unknown> = { ...mapped };
+                        delete body.name; delete body.doctype; delete body.__islocal; delete body.__unsaved;
+                        const created = await create.createDoc(DT.quotation, body) as { name: string };
+                        nav(`/quotations/${encodeURIComponent(created.name)}/edit`);
+                      }).catch((err) => setSaveError(err));
+                    },
+                  },
+                  {
+                    key: "so",
+                    label: t("nav.salesOrders"),
+                    onClick: () => nav("/orders/new", { state: { mapped: { customer: name } } }),
+                  },
+                  {
+                    key: "opportunity",
+                    label: t("doc.opportunity"),
+                    disabled: opportunity.busy,
+                    onClick: () => { void opportunity.open(() => makeOpp.call({ source_name: name })); },
+                  },
+                  {
+                    key: "payment",
+                    label: t("sod.createPayment"),
+                    onClick: () => nav(`/payments/new?type=Receive&party=${encodeURIComponent(name)}`),
+                  },
+                ]}
+              />
             ) : null}
+            {!isNew ? (<DocHistory doctype={DT.customer} name={name} />) : null}
 
             <button className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
             <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
@@ -309,7 +331,7 @@ export default function CustomerForm() {
         }
       />
 
-      <DocTabShell doctype={DT.customer} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.customer} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {savedNotice && (
         <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>
           <b>{t("form.saved")}</b>

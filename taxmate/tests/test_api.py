@@ -14,6 +14,7 @@ from frappe.tests.utils import FrappeTestCase
 from taxmate.api import get_catalog, get_session
 from taxmate.api.dashboard import get_home
 from taxmate.api.reports import list_reports
+from taxmate.api.list_view import list_view_spec
 from taxmate.api.resource import bulk_delete, delete, get, get_list, get_meta, get_versions, insert, is_allowed_doctype, save
 
 
@@ -291,6 +292,58 @@ class TestApiResource(FrappeTestCase):
 		self.assertEqual(meta["name"], "Customer")
 		fieldnames = {row["fieldname"] for row in meta["fields"]}
 		self.assertIn("customer_name", fieldnames)
+		self.assertIn(meta.get("sort_order"), ("asc", "desc"))
+		self.assertTrue(meta.get("sort_field"))
+
+	def test_list_view_spec_matches_desk_list_fields(self):
+		"""Columns come from in_list_view (+ title/name), same idea as Desk."""
+		from frappe.utils import cint
+
+		spec = list_view_spec("Customer")
+		self.assertEqual(spec["doctype"], "Customer")
+		col_names = [c["fieldname"] for c in spec["columns"]]
+		self.assertIn("name", col_names)
+		# Customer title field is customer_name and is in_list_view on Desk.
+		self.assertTrue(
+			"customer_name" in col_names or spec.get("title_field") == "customer_name",
+			col_names,
+		)
+		self.assertIn("customer_name", spec["fields"])
+		self.assertIn(spec["sort_order"], ("asc", "desc"))
+
+		si = list_view_spec("Sales Invoice")
+		self.assertTrue(si["is_submittable"])
+		self.assertIn("docstatus", si["fields"])
+		# Desk SI list always surfaces status when present.
+		if frappe.get_meta("Sales Invoice").has_field("status"):
+			self.assertIn("status", si["fields"])
+
+		# Every column with a DocField must be readable at the user's permlevel.
+		meta = frappe.get_meta("Sales Invoice")
+		readable = set(meta.get_permlevel_access("read"))
+		for col in si["columns"]:
+			df = meta.get_field(col["fieldname"])
+			if not df:
+				continue
+			self.assertIn(cint(df.permlevel or 0), readable, col["fieldname"])
+			if col["fieldname"] in ("name", meta.title_field):
+				continue
+			self.assertTrue(
+				df.in_list_view or df.fieldname == "status",
+				col["fieldname"],
+			)
+		for sf in si["standard_filters"]:
+			df = meta.get_field(sf["fieldname"])
+			if df:
+				self.assertIn(cint(df.permlevel or 0), readable, sf["fieldname"])
+
+	def test_list_view_spec_guest_denied(self):
+		frappe.set_user("Guest")
+		try:
+			with self.assertRaises(frappe.AuthenticationError):
+				list_view_spec("Customer")
+		finally:
+			frappe.set_user("Administrator")
 
 	def test_meta_marks_submittable_vouchers(self):
 		self.assertFalse(get_meta("ToDo")["is_submittable"])

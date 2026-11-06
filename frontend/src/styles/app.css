@@ -299,6 +299,39 @@ select.ctl{appearance:none; background-image:linear-gradient(45deg,transparent 5
 .fsearch .ctl{width:100%; padding-inline-start:33px}
 
 .twrap{overflow-x:auto}
+/* Shared DataTable frame: grows into the card; footer stays natural height. */
+.dt-frame{
+  flex: 1 1 auto;
+  min-height: var(--dt-frame-min-h);
+  overflow: auto;
+  /* Keep focused rows clear of sticky thead (WCAG focus-not-obscured). */
+  scroll-padding-block-start: 2.75rem;
+}
+.dt-frame thead th{
+  position: sticky; top: 0; z-index: 1;
+  background: var(--surface);
+}
+.page:has(.dt-frame){
+  flex: 1 1 auto;
+  min-height: 0;
+  height: calc(100dvh - var(--topbar-h, 4.5rem));
+}
+.page:has(.dt-frame) > .phead{flex: none}
+.page:has(.dt-frame) > .card:has(.dt-frame){
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.page:has(.dt-frame) > .card:has(.dt-frame) > .list-toolbar,
+.page:has(.dt-frame) > .card:has(.dt-frame) > .bulkbar,
+.page:has(.dt-frame) > .card:has(.dt-frame) > .foot{
+  flex: none;
+}
+.page:has(.dt-frame) > .card:has(.dt-frame) > .foot{
+  padding-block: 8px;
+}
 table{width:100%; border-collapse:collapse; font-size:13px}
 th{text-align:start; font-size:12px; font-weight:600; letter-spacing:0; text-transform:none; color:var(--muted); padding:10px 14px; background:var(--sunk); border-block-end:1px solid var(--border); white-space:nowrap}
 th.n{text-align:end}
@@ -823,7 +856,340 @@ td.pick{width:38px; padding-inline-end:0}
 .umdrop-item.danger .umdrop-ic{color:var(--bad)}
 
 
-/* Frappe-like form tabs (Team User detail) */
+/* ── Desk form (tabs / sections / controls / connections) ───────────────
+   Structure follows frappe desk form.scss; surfaces stay SaaS-quiet:
+   white fields, hairline rules, denser 2-col stacks when Desk sends 1 col. */
+.tm-form{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  overflow:hidden;
+  margin-block-end:16px;
+}
+.tm-form-tabs-list{
+  position:sticky;
+  top:0;
+  z-index:4;
+  background:var(--surface);
+  border-block-end:1px solid var(--border);
+}
+.tm-form-tabs{
+  display:flex;
+  flex-wrap:nowrap;
+  overflow-x:auto;
+  list-style:none;
+  margin:0;
+  padding:0 4px;
+  gap:0;
+  align-items:center;
+}
+.tm-nav-item{flex:0 0 auto}
+.tm-nav-link{
+  appearance:none;
+  background:transparent;
+  border:0;
+  border-block-end:2px solid transparent;
+  color:var(--muted);
+  cursor:pointer;
+  display:inline-flex;
+  align-items:center;
+  font:inherit;
+  font-size:13px;
+  font-weight:500;
+  margin:0 2px;
+  padding:12px 12px 10px;
+  white-space:nowrap;
+}
+.tm-nav-link:hover{color:var(--text)}
+.tm-nav-link.active{
+  color:var(--brand);
+  border-block-end-color:var(--brand);
+  font-weight:600;
+}
+.tm-form-tab-content{padding:0}
+.tm-form-page{
+  display:flex;
+  flex-direction:column;
+  max-width:72rem;
+}
+.tm-form-section{
+  border-block-end:1px solid var(--border);
+  padding:0 20px 18px;
+}
+.tm-form-section:last-child{border-block-end:0}
+.tm-form-section.unlabeled{padding-top:16px}
+.tm-section-head{
+  padding:18px 0 10px;
+  display:flex;
+  align-items:baseline;
+  gap:10px;
+}
+.tm-section-title{
+  color:var(--text);
+  font-size:13px;
+  font-weight:650;
+  letter-spacing:-0.01em;
+}
+.tm-section-body{
+  display:flex;
+  flex-wrap:wrap;
+  gap:0 20px;
+  padding-top:2px;
+  width:100%;
+}
+.tm-section-body.cols-1 .tm-form-column{flex:1 1 100%; max-width:100%}
+.tm-section-body.cols-2 .tm-form-column{flex:1 1 calc(50% - 10px); max-width:calc(50% - 10px)}
+.tm-section-body.cols-3 .tm-form-column{flex:1 1 calc(33.333% - 14px); max-width:calc(33.333% - 14px)}
+.tm-section-body.cols-4 .tm-form-column{flex:1 1 calc(25% - 15px); max-width:calc(25% - 15px)}
+.tm-form-column{
+  box-sizing:border-box;
+  min-width:0;
+  padding:0;
+}
+.tm-control-stack{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+}
+/* Single Desk column → denser SaaS 2-up field grid (tables stay full width). */
+.tm-section-body.cols-1 .tm-control-stack{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  column-gap:24px;
+  row-gap:14px;
+}
+.tm-section-body.cols-1 .tm-control-stack > .tm-control:only-child{
+  grid-column:1 / -1;
+  max-width:28rem;
+}
+.tm-section-body.cols-1 .tm-control:has(.tm-control-value.multiline),
+.tm-section-body.cols-1 .tm-control[data-fieldtype="Text"],
+.tm-section-body.cols-1 .tm-control[data-fieldtype="Small Text"],
+.tm-section-body.cols-1 .tm-control[data-fieldtype="Long Text"],
+.tm-section-body.cols-1 .tm-control[data-fieldtype="Text Editor"],
+.tm-section-body.cols-1 .tm-control[data-fieldtype="HTML Editor"],
+.tm-section-body.cols-1 .tm-control[data-fieldtype="Code"],
+.tm-section-body.cols-1 .tm-control[data-fieldtype="Markdown Editor"]{
+  grid-column:1 / -1;
+}
+.tm-control{max-width:100%; min-width:0}
+.tm-control-label{
+  color:var(--muted);
+  font-size:11.5px;
+  font-weight:550;
+  letter-spacing:0.01em;
+  margin-block-end:5px;
+  line-height:1.3;
+}
+/* Desk reqd asterisk — same cue as frappe.ui.form Control */
+.tm-req,
+.f label .req{
+  color:var(--bad);
+  font-weight:700;
+  margin-inline-start:3px;
+  font-size:0.95em;
+  line-height:1;
+}
+.tm-grid-title .tm-req{margin-inline-start:4px}
+.tm-control-value{
+  background:var(--input);
+  border:1px solid var(--border-2);
+  border-radius:var(--r-sm);
+  color:var(--text);
+  font-size:13.5px;
+  font-weight:500;
+  line-height:1.45;
+  min-height:2.25rem;
+  padding:7px 11px;
+  word-break:break-word;
+  transition:border-color .12s ease, box-shadow .12s ease;
+}
+.tm-control-value.empty{
+  color:var(--faint);
+  font-weight:450;
+  background:var(--surface);
+  border-style:dashed;
+  border-color:var(--border);
+}
+.tm-control-value.multiline{
+  min-height:4.5rem;
+  white-space:pre-wrap;
+  font-weight:450;
+}
+.tm-control.check{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:2.25rem;
+  padding-block:4px;
+}
+.tm-control.check .tm-control-label{margin:0; font-size:13px; color:var(--text); font-weight:500}
+.tm-control-check{
+  width:16px; height:16px;
+  border:1px solid var(--border-2);
+  border-radius:4px;
+  background:var(--input);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  font-size:11px;
+  color:var(--brand-ink);
+  flex:0 0 auto;
+}
+.tm-control-check.on{
+  background:var(--brand);
+  border-color:var(--brand);
+}
+.tm-form-grid-wrap{margin:4px 0 6px; width:100%}
+.tm-grid-title{
+  color:var(--text);
+  font-size:12px;
+  font-weight:600;
+  letter-spacing:0.01em;
+  margin-block-end:8px;
+}
+.tm-form-grid{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  overflow:auto;
+  background:var(--surface);
+}
+.tm-form-grid table{width:100%; border-collapse:collapse; font-size:12.5px}
+.tm-grid-heading-row th{
+  background:var(--sunk);
+  color:var(--muted);
+  font-weight:550;
+  font-size:11.5px;
+  text-align:start;
+  padding:9px 12px;
+  border-block-end:1px solid var(--border);
+  white-space:nowrap;
+}
+.tm-grid-row td{
+  padding:9px 12px;
+  border-block-end:1px solid var(--border);
+  color:var(--text);
+  vertical-align:top;
+}
+.tm-grid-row:last-child td{border-block-end:0}
+.tm-grid-row:hover td{background:var(--hover)}
+.tm-grid-row-check{width:40px; color:var(--faint); text-align:center; font-variant-numeric:tabular-nums}
+.tm-grid-empty{
+  color:var(--faint);
+  font-size:13px;
+  padding:28px 16px;
+  text-align:center;
+}
+.tm-form-empty{color:var(--faint); font-size:13px; margin:16px 20px}
+.tm-form-edit-body{
+  padding:4px 8px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  max-width:72rem;
+}
+.tm-form-edit-body > .card{
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  box-shadow:none;
+  background:var(--surface);
+}
+.tm-form-edit-body > .card > .chead{
+  padding:14px 16px 0;
+  border:0;
+}
+.tm-form-edit-body > .card > .chead h2{
+  font-size:13px;
+  font-weight:650;
+  letter-spacing:-0.01em;
+}
+.tm-form-edit-body > .card > .chead .snum{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:1.35rem;
+  height:1.35rem;
+  margin-inline-end:8px;
+  border-radius:6px;
+  background:var(--sunk);
+  color:var(--muted);
+  font-size:11px;
+  font-weight:650;
+}
+.tm-form-edit-body > .card .cbody{padding:12px 16px 16px}
+.tm-form-edit-body .f label{
+  font-size:11.5px;
+  font-weight:550;
+  letter-spacing:0.01em;
+}
+.tm-form-edit-body .ctl{
+  background:var(--input);
+  border-radius:var(--r-sm);
+  min-height:2.25rem;
+}
+.tm-connections-body{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  padding:4px 0 8px;
+}
+.tm-document-link{max-width:240px; width:100%}
+.tm-document-link-badge{
+  align-items:center;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm);
+  color:var(--text);
+  display:flex;
+  gap:8px;
+  justify-content:flex-start;
+  padding:8px 11px;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:500;
+  transition:border-color .12s ease, background .12s ease;
+}
+.tm-document-link-badge:hover{
+  border-color:var(--brand-line);
+  background:var(--brand-soft);
+  text-decoration:none;
+}
+.tm-document-link-badge.muted{opacity:0.72; cursor:default}
+.tm-document-link-badge.muted:hover{border-color:var(--border); background:var(--surface)}
+.tm-conn-count{
+  background:var(--sunk);
+  border-radius:999px;
+  color:var(--text);
+  font-size:11px;
+  font-weight:650;
+  min-width:1.5em;
+  padding:1px 7px;
+  text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+.tm-conn-name{flex:1; min-width:0}
+.tm-conn-open{
+  background:var(--sunk);
+  border-radius:999px;
+  color:var(--muted);
+  font-size:11px;
+  padding:1px 7px;
+  white-space:nowrap;
+}
+@media (max-width:720px){
+  .tm-section-body.cols-1 .tm-control-stack{
+    grid-template-columns:minmax(0, 1fr);
+  }
+  .tm-section-body.cols-2 .tm-form-column,
+  .tm-section-body.cols-3 .tm-form-column,
+  .tm-section-body.cols-4 .tm-form-column{
+    flex:1 1 100%;
+    max-width:100%;
+  }
+  .tm-nav-link{margin:0 4px; min-height:44px}
+}
+
+/* Keep legacy ftabs working for Team / other product screens */
 .ftabs{display:flex; gap:0; margin:0 0 14px; border-block-end:1px solid var(--border); overflow-x:auto}
 .ftab{appearance:none; background:transparent; border:0; border-block-end:2px solid transparent; margin-block-end:-1px; padding:10px 14px; font:inherit; font-size:13px; font-weight:500; color:var(--muted); cursor:pointer; white-space:nowrap}
 .ftab:hover{color:var(--text)}
@@ -1068,3 +1434,28 @@ td.pick{width:38px; padding-inline-end:0}
 @media (max-width:420px){
   .coswitch .nm{display:none}
 }
+
+
+
+/* Desk-like list: sortable headers + column picker */
+th.sortable{white-space:nowrap}
+th.sortable .sort-btn{
+  display:inline-flex; align-items:center; gap:0; margin:0; padding:0;
+  border:0; background:none; color:inherit; font:inherit; cursor:pointer; user-select:none;
+}
+th.sortable .sort-btn:hover{color:var(--ink)}
+th.sortable .sort-btn:focus-visible{outline:2px solid var(--brand); outline-offset:2px; border-radius:4px}
+th.sortable .sort-ind{margin-inline-start:4px; opacity:.45; font-size:.75em}
+th.sortable[aria-sort="ascending"] .sort-ind,
+th.sortable[aria-sort="descending"] .sort-ind{opacity:1}
+.col-picker{position:relative}
+.col-picker-menu{
+  position:absolute; inset-inline-end:0; top:calc(100% + 4px); z-index:40;
+  min-width:220px; max-height:320px; overflow:auto;
+  background:var(--surface, #fff); border:1px solid var(--border);
+  border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.08); padding:8px;
+}
+.col-picker-row{display:flex; gap:8px; align-items:center; padding:6px 8px; cursor:pointer; font-size:13px}
+.col-picker-row:hover{background:var(--bg-soft, #f6f6f6)}
+.list-toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 16px; border-block-end:1px solid var(--border)}
+.list-toolbar .filters{border:0; padding:0; flex:1}

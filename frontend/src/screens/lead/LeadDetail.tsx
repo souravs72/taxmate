@@ -13,6 +13,7 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { CreateMenu } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -76,17 +77,37 @@ export default function LeadDetail() {
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/leads")}>{t("lead.title")}</button>}
         title={data.lead_name || data.name}
-        actions={<DocHistory doctype={DT.lead} name={name} />}
+        actions={
+          <>
+            {writable && data.status !== "Converted" ? (
+              <CreateMenu
+                items={[
+                  {
+                    key: "quotation",
+                    label: t("nav.quotations"),
+                    disabled: busy,
+                    onClick: () => { void createQuotation(); },
+                  },
+                  {
+                    key: "opportunity",
+                    label: t("doc.opportunity"),
+                    disabled: busy || opportunity.busy,
+                    onClick: () => { void opportunity.open(() => makeOpp.call({ source_name: name })); },
+                  },
+                ]}
+              />
+            ) : null}
+            <DocHistory doctype={DT.lead} name={name} />
+            {writable && data.status !== "Converted" ? (
+              <>
+                <button type="button" className="btn ghost" onClick={() => nav(`/leads/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
+                <button type="button" className="btn" onClick={() => void convertToCustomer()} disabled={busy}>{t("lead.convert")}</button>
+              </>
+            ) : null}
+          </>
+        }
       >
         <Pill cls={leadPill(data.status)}>{tStatus(data.status || "Open")}</Pill>
-        {writable && data.status !== "Converted" && (
-          <>
-            <button className="btn ghost" onClick={() => nav(`/leads/${encodeURIComponent(name)}/edit`)}>{t("edit")}</button>
-            <button className="btn" onClick={() => void convertToCustomer()} disabled={busy}>{t("lead.convert")}</button>
-            <button className="btn ghost" onClick={() => void createQuotation()} disabled={busy}>{t("nav.quotations")}</button>
-            <button className="btn ghost" onClick={() => void opportunity.open(() => makeOpp.call({ source_name: name }))} disabled={busy || opportunity.busy}>{t("doc.opportunity")}</button>
-          </>
-        )}
       </PageHead>
 
       <DocTabShell doctype={DT.lead} name={name} doc={data as unknown as Record<string, unknown>}>

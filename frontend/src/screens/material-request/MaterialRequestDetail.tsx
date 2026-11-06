@@ -20,6 +20,7 @@ import { canCancelSales, canSubmitSales } from "../../lib/roles";
 import { date, qty } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { CreateMenu, MenuActions } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 import { FormLayout } from "../../components/form";
@@ -239,8 +240,54 @@ export default function MaterialRequestDetail() {
         title={data.material_request_type || data.name}
         actions={
           <>
+            <CreateMenu
+              items={[
+                {
+                  key: "po",
+                  label: busy === "po" ? t("soc.saving") : t("mr.makePO"),
+                  hidden: !(submitted && isPurchase),
+                  disabled: !!busy,
+                  onClick: () => { void startPurchaseOrder(); },
+                },
+                {
+                  key: "sq",
+                  label: busy === "sq" ? t("soc.saving") : t("nav.supplierQuotations"),
+                  hidden: !(submitted && data.material_request_type === "Purchase" && data.status !== "Stopped" && (data.per_ordered ?? 0) < 100),
+                  disabled: !!busy,
+                  onClick: () => { void createSupplierQuotation(); },
+                },
+                {
+                  key: "rfq",
+                  label: t("reg.ui.rfqOne"),
+                  hidden: !(submitted && data.material_request_type === "Purchase" && data.status !== "Stopped" && (data.per_ordered ?? 0) < 100),
+                  disabled: !!busy || rfq.busy,
+                  onClick: () => { void rfq.open(() => makeRfq.call({ source_name: name })); },
+                },
+                {
+                  key: "pick",
+                  label: busy === "pick" ? t("soc.saving") : t("nav.pickLists"),
+                  hidden: !canPick,
+                  disabled: !!busy,
+                  onClick: () => { void createPickList(); },
+                },
+                {
+                  key: "wo",
+                  label: busy === "wo" ? t("soc.saving") : t("nav.workOrders"),
+                  hidden: !canManufacture,
+                  disabled: !!busy,
+                  onClick: () => { void createWorkOrders(); },
+                },
+                {
+                  key: "se",
+                  label: busy === "se" ? t("soc.saving") : t("mr.makeSE"),
+                  hidden: !(submitted && isTransferOrIssue),
+                  disabled: !!busy,
+                  onClick: () => { void createStockEntry(); },
+                },
+              ]}
+            />
             <DocHistory doctype={DT.materialRequest} name={name} />
-            {draft && (
+            {draft ? (
               <>
                 <button type="button" className="btn ghost"
                   onClick={() => nav(`/material-requests/${encodeURIComponent(name)}/edit`)}>{t("inv.edit")}</button>
@@ -249,53 +296,25 @@ export default function MaterialRequestDetail() {
                   {deleteAction.loading ? t("soc.saving") : t("inv.delete")}
                 </button>
               </>
-            )}
-            {draft && canSubmit && (
+            ) : null}
+            {draft && canSubmit ? (
               <button type="button" className="btn" disabled={submitCall.loading}
                 onClick={() => void submitCall.call({ doc: { doctype: DT.materialRequest, name } }).then(() => mutate()).catch(() => undefined)}>
                 {t("inv.submit")}
               </button>
-            )}
-            {submitted && isPurchase && (
-              <button type="button" className="btn" disabled={!!busy}
-                onClick={() => void startPurchaseOrder()}>
-                {busy === "po" ? t("soc.saving") : t("mr.makePO")}
-              </button>
-            )}
-            {submitted && data.material_request_type === "Purchase" && data.status !== "Stopped" && (data.per_ordered ?? 0) < 100 && (
-              <>
-              <button type="button" className="btn ghost" disabled={!!busy}
-                onClick={() => void createSupplierQuotation()}>
-                {busy === "sq" ? t("soc.saving") : t("nav.supplierQuotations")}
-              </button>
-              <button type="button" className="btn ghost" disabled={!!busy || rfq.busy}
-                onClick={() => void rfq.open(() => makeRfq.call({ source_name: name }))}>
-                {t("reg.ui.rfqOne")}
-              </button>
-              </>
-            )}
-            {canPick && (
-              <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void createPickList()}>
-                {busy === "pick" ? t("soc.saving") : t("nav.pickLists")}
-              </button>
-            )}
-            {canManufacture && (
-              <button type="button" className="btn ghost" disabled={!!busy} onClick={() => void createWorkOrders()}>
-                {busy === "wo" ? t("soc.saving") : t("nav.workOrders")}
-              </button>
-            )}
-            {canStop && (
-              <button type="button" className="btn quiet" disabled={stopCall.loading} onClick={() => void stopRequest()}>
-                {t("act.stop")}
-              </button>
-            )}
-            {submitted && isTransferOrIssue && (
-              <button type="button" className="btn ghost" disabled={!!busy}
-                onClick={() => void createStockEntry()}>
-                {busy === "se" ? t("soc.saving") : t("mr.makeSE")}
-              </button>
-            )}
-            {submitted && canCancel && (
+            ) : null}
+            <MenuActions
+              items={[
+                {
+                  key: "stop",
+                  label: t("act.stop"),
+                  hidden: !canStop,
+                  disabled: stopCall.loading,
+                  onClick: () => { void stopRequest(); },
+                },
+              ]}
+            />
+            {submitted && canCancel ? (
               <button type="button" className="btn quiet" disabled={cancelCall.loading}
                 onClick={() => {
                   if (!confirmCancel(name)) return;
@@ -303,8 +322,8 @@ export default function MaterialRequestDetail() {
                 }}>
                 {t("inv.cancel")}
               </button>
-            )}
-            {data.docstatus === 2 && canSubmit && (
+            ) : null}
+            {data.docstatus === 2 && canSubmit ? (
               <button type="button" className="btn ghost" disabled={amendCall.loading}
                 onClick={() => void amendCall.call({ doctype: DT.materialRequest, name }).then((res) => {
                   const next = res?.message?.name;
@@ -313,7 +332,7 @@ export default function MaterialRequestDetail() {
                 }).catch(() => undefined)}>
                 {amendCall.loading ? t("soc.saving") : t("inv.amend")}
               </button>
-            )}
+            ) : null}
           </>
         }
       >

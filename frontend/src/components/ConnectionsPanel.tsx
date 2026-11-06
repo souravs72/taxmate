@@ -1,16 +1,15 @@
 /**
- * Desk Connections groups with open/total counts. SPA routes only — no /app/.
- * Callers: detail screens on the Connections tab (SalesOrderDetail, etc.).
+ * Desk-style Connections (form-links / document-link badges). SPA routes only.
+ * Callers: DocTabShell Connections tab for sidebar DocTypes.
  * API: METHOD.connectionsOpenCount → taxmate.api.connections.open_count
- * Schema: groups[{label, items[{doctype,count,open_count,spa_path,fieldname}]}]
- * User: Implement the plan as specified... completed all the to-dos.
+ * User: keep the design of documents, tabs, and fields similar to frappe/erpnext.
  */
 import { Link } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { METHOD } from "../lib/frappe";
 import { t } from "../i18n/strings";
-import { Card, ErrorBox, Loading } from "./ui";
+import { ErrorBox, Loading } from "./ui";
 
 export type ConnItem = {
   doctype: string;
@@ -45,38 +44,58 @@ export default function ConnectionsPanel({ doctype, name, filterValue }: Props) 
 
   if (!groups.length) {
     return (
-      <Card title={t("sod.linked")}>
-        <p className="conn-muted">—</p>
-      </Card>
+      <div className="tm-form-page">
+        <section className="tm-form-section">
+          <div className="tm-section-head">
+            <span className="tm-section-title">{t("sod.linked")}</span>
+          </div>
+          <div className="tm-section-body">
+            <p className="tm-form-empty">—</p>
+          </div>
+        </section>
+      </div>
     );
   }
 
   return (
-    <div className="conn-groups">
+    <div className="tm-form-page tm-form-links">
       {groups.map((group) => (
-        <Card key={group.label || "group"} title={group.label || t("sod.linked")}>
-          <ul className="conn-list">
+        <section key={group.label || "group"} className="tm-form-section">
+          {group.label ? (
+            <div className="tm-section-head">
+              <span className="tm-section-title">{group.label}</span>
+            </div>
+          ) : null}
+          <div className="tm-section-body tm-connections-body">
             {group.items.map((item) => {
               const field = item.fieldname || defaultField;
               const href =
                 item.spa_path && field && (filterValue || name)
                   ? `${item.spa_path}?${encodeURIComponent(field)}=${encodeURIComponent(filterValue || name)}`
                   : item.spa_path || null;
-              const label = `${item.doctype} (${item.count}${item.open_count ? ` · ${item.open_count} open` : ""})`;
+              const badge = (
+                <>
+                  <span className="tm-conn-count">{item.count}</span>
+                  <span className="tm-conn-name">{item.doctype}</span>
+                  {item.open_count > 0 ? (
+                    <span className="tm-conn-open">{item.open_count} Open</span>
+                  ) : null}
+                </>
+              );
               return (
-                <li key={item.doctype} className="conn-item">
+                <div key={item.doctype} className="tm-document-link">
                   {href ? (
-                    <Link to={href} className="conn-link">
-                      {label}
+                    <Link to={href} className="tm-document-link-badge">
+                      {badge}
                     </Link>
                   ) : (
-                    <span className="conn-muted">{label}</span>
+                    <span className="tm-document-link-badge muted">{badge}</span>
                   )}
-                </li>
+                </div>
               );
             })}
-          </ul>
-        </Card>
+          </div>
+        </section>
       ))}
     </div>
   );

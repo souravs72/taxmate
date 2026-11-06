@@ -120,26 +120,33 @@ export default function QuotationDetail() {
               if (newName) nav(`/quotations/${encodeURIComponent(newName)}/edit`);
               else mutate();
             }}
+            create={[
+              {
+                key: "so",
+                label: mapBusy ? t("soc.saving") : t("quot.makeSO"),
+                hidden: !canOrder,
+                disabled: mapBusy,
+                onClick: () => { void createSO(); },
+              },
+            ]}
+            menu={[
+              {
+                key: "lost",
+                label: t("act.setLost"),
+                hidden: !(canOrder && canWrite(session)),
+                disabled: !lostReason || declareLost.loading,
+                onClick: () => {
+                  void declareLost.call({ name, lost_reason: lostReason }).then(() => mutate()).catch(() => undefined);
+                },
+              },
+            ]}
             extra={
               <>
-                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
                 {!isNative() && (
                   <PrintLangButtons doctype={DT.quotation} name={name} />
                 )}
                 {canOrder && canWrite(session) ? (
-                  <>
-                    <LinkField doctype="Quotation Lost Reason" value={lostReason} onChange={setLostReason} />
-                    <button type="button" className="btn ghost" disabled={!lostReason || declareLost.loading}
-                      onClick={() => void declareLost.call({ name, lost_reason: lostReason }).then(() => mutate()).catch(() => undefined)}>
-                      {t("act.setLost")}
-                    </button>
-                  </>
-                ) : null}
-                {canOrder ? (
-                  <button type="button" className="btn" disabled={mapBusy}
-                    onClick={() => void createSO()}>
-                    {mapBusy ? t("soc.saving") : t("quot.makeSO")}
-                  </button>
+                  <LinkField doctype="Quotation Lost Reason" value={lostReason} onChange={setLostReason} />
                 ) : null}
               </>
             }

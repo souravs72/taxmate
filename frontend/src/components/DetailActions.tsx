@@ -2,15 +2,19 @@
  * DetailActions — reusable submit/cancel/amend/delete action cluster for detail screens.
  *
  * Callers: InvoiceDetail, PurchaseInvoiceDetail, DeliveryNoteDetail,
- *          PurchaseReceiptDetail, StockEntryDetail, JournalEntryDetail, …
+ *          PurchaseReceiptDetail, StockEntryDetail, JournalEntryDetail,
+ *          SalesOrderDetail, QuotationDetail, PurchaseOrderDetail, …
  *
- * Renders Edit, Submit, Delete (drafts), Cancel (submitted), Amend (cancelled),
- * plus an optional extra slot. Labels come from i18n.
+ * Order mirrors Desk: Create | History | Edit | Submit | Delete | [extra] | Menu | Cancel | Amend.
+ * Put make/create links in `create`, status/secondary in `menu`, Print etc. in `extra`.
  */
 import type { ReactNode } from "react";
 import { t } from "../i18n/strings";
 import { confirmCancel } from "../lib/workflow";
+import { CreateMenu, MenuActions, type ActionItem } from "./ActionMenu";
 import DocHistory from "./DocHistory";
+
+export type { ActionItem };
 
 export type DetailActionsProps = {
   /** True when docstatus === 0. */
@@ -38,17 +42,28 @@ export type DetailActionsProps = {
   /** Call the amend RPC. Omit to hide the Amend button. */
   onAmend?: () => void;
   /**
-   * Extra screen-specific buttons (receive payment, print, credit note, etc.).
-   * Rendered between Submit and Cancel.
+   * Desk Create dropdown (custom_make_buttons). Prefer this over a flat
+   * row of make/create buttons in `extra`.
+   */
+  create?: ActionItem[];
+  /** Desk Menu dropdown for secondary / status actions. */
+  menu?: ActionItem[];
+  /**
+   * Remaining screen-specific controls that stay visible (print, hold reason
+   * input). Prefer `create` / `menu` for labelled actions.
    */
   extra?: ReactNode;
   /** When set with `name`, shows the shared History control. */
   doctype?: string;
   name?: string;
+  /** Workflow transitions available from Frappe Workflow engine. */
+  workflowTransitions?: { action: string; next_state?: string }[];
+  /** Handler when user executes a workflow action. */
+  onWorkflowAction?: (action: string) => void;
 };
 
 /**
- * Renders Edit | Submit | Delete | [extra] | Cancel | Amend.
+ * Renders Create | History | Edit | Workflow Actions / Submit | Delete | [extra] | Menu | Cancel | Amend.
  * Callers place this in the `actions` prop of `<PageHead>`.
  */
 export default function DetailActions({
@@ -64,25 +79,44 @@ export default function DetailActions({
   onDelete,
   onCancel,
   onAmend,
+  create,
+  menu,
   extra,
   doctype,
   name,
+  workflowTransitions,
+  onWorkflowAction,
 }: DetailActionsProps) {
   function run(action: () => void | Promise<unknown>) {
     void Promise.resolve(action()).catch(() => undefined);
   }
   return (
     <>
+      {create?.length ? <CreateMenu items={create} /> : null}
       {doctype && name ? <DocHistory doctype={doctype} name={name} /> : null}
       {draft && canWrite && onEdit && (
         <button type="button" className="btn ghost" onClick={onEdit}>
           {t("inv.edit")}
         </button>
       )}
-      {draft && canSubmit && onSubmit && (
-        <button type="button" className="btn" disabled={busy} onClick={() => run(onSubmit)}>
-          {busy ? t("soc.saving") : t("inv.submit")}
-        </button>
+      {workflowTransitions && workflowTransitions.length > 0 ? (
+        workflowTransitions.map((wt) => (
+          <button
+            key={wt.action}
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={() => onWorkflowAction?.(wt.action)}
+          >
+            {wt.action}
+          </button>
+        ))
+      ) : (
+        draft && canSubmit && onSubmit && (
+          <button type="button" className="btn" disabled={busy} onClick={() => run(onSubmit)}>
+            {busy ? t("soc.saving") : t("inv.submit")}
+          </button>
+        )
       )}
       {draft && canWrite && canCancel && onDelete && (
         <button type="button" className="btn quiet" disabled={busy} onClick={onDelete}>
@@ -90,6 +124,7 @@ export default function DetailActions({
         </button>
       )}
       {extra}
+      {menu?.length ? <MenuActions items={menu} /> : null}
       {submitted && canCancel && onCancel && (
         <button
           type="button"

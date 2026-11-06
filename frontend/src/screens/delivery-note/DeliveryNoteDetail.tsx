@@ -167,51 +167,66 @@ export default function DeliveryNoteDetail() {
               if (newName) nav(`/delivery-notes/${encodeURIComponent(newName)}/edit`);
               else mutate();
             }}
-            extra={
-              <>
-                {/* Print view needs a cookie session; the app gets PDF sharing in round 3. */}
-                {!isNative() && (
-                  <PrintLangButtons doctype={DT.deliveryNote} name={name} />
-                )}
-                {canBill && (
-                  <button type="button" className="btn" disabled={busySi} onClick={() => void createInvoice()}>
-                    {busySi ? t("soc.saving") : t("dn.createSi")}
-                  </button>
-                )}
-                {submitted && writable && !closed && (
-                  <button type="button" className="btn ghost" disabled={busyPick} onClick={() => void createPickList()}>
-                    {busyPick ? t("soc.saving") : t("dn.createPickList")}
-                  </button>
-                )}
-                {submitted && !data.is_return && !closed && (
-                  <>
-                    <button type="button" className="btn ghost" disabled={shipment.busy} onClick={() => void shipment.open(() => makeShipment.call({ source_name: name }))}>{t("doc.shipment")}</button>
-                    {(data.per_installed ?? 0) < 100 && (
-                      <button type="button" className="btn ghost" disabled={installation.busy} onClick={() => void installation.open(() => makeInstall.call({ source_name: name }))}>{t("doc.installationNote")}</button>
-                    )}
-                    {data.status !== "Completed" && (
-                      <button type="button" className="btn ghost" disabled={trip.busy} onClick={() => void trip.open(() => makeTrip.call({ source_name: name }))}>{t("doc.deliveryTrip")}</button>
-                    )}
-                  </>
-                )}
-                {canReturn && (
-                  <button type="button" className="btn ghost"
-                    onClick={() => nav(`/delivery-notes/${encodeURIComponent(name)}/return`)}>
-                    {t("dn.return")}
-                  </button>
-                )}
-                {canClose && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Closed")}>
-                    {t("hist.close")}
-                  </button>
-                )}
-                {canReopen && (
-                  <button type="button" className="btn ghost" disabled={setStatus.loading} onClick={() => void changeStatus("Submitted")}>
-                    {t("act.reopen")}
-                  </button>
-                )}
-              </>
-            }
+            create={[
+              {
+                key: "si",
+                label: busySi ? t("soc.saving") : t("dn.createSi"),
+                hidden: !canBill,
+                disabled: busySi,
+                onClick: () => { void createInvoice(); },
+              },
+              {
+                key: "pick",
+                label: busyPick ? t("soc.saving") : t("dn.createPickList"),
+                hidden: !(submitted && writable && !closed),
+                disabled: busyPick,
+                onClick: () => { void createPickList(); },
+              },
+              {
+                key: "shipment",
+                label: t("doc.shipment"),
+                hidden: !(submitted && !data.is_return && !closed),
+                disabled: shipment.busy,
+                onClick: () => { void shipment.open(() => makeShipment.call({ source_name: name })); },
+              },
+              {
+                key: "install",
+                label: t("doc.installationNote"),
+                hidden: !(submitted && !data.is_return && !closed && (data.per_installed ?? 0) < 100),
+                disabled: installation.busy,
+                onClick: () => { void installation.open(() => makeInstall.call({ source_name: name })); },
+              },
+              {
+                key: "trip",
+                label: t("doc.deliveryTrip"),
+                hidden: !(submitted && !data.is_return && !closed && data.status !== "Completed"),
+                disabled: trip.busy,
+                onClick: () => { void trip.open(() => makeTrip.call({ source_name: name })); },
+              },
+              {
+                key: "return",
+                label: t("dn.return"),
+                hidden: !canReturn,
+                onClick: () => nav(`/delivery-notes/${encodeURIComponent(name)}/return`),
+              },
+            ]}
+            menu={[
+              {
+                key: "close",
+                label: t("hist.close"),
+                hidden: !canClose,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Closed"); },
+              },
+              {
+                key: "reopen",
+                label: t("act.reopen"),
+                hidden: !canReopen,
+                disabled: setStatus.loading,
+                onClick: () => { void changeStatus("Submitted"); },
+              },
+            ]}
+            extra={!isNative() ? <PrintLangButtons doctype={DT.deliveryNote} name={name} /> : null}
           />
         }
       >

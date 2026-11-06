@@ -33,6 +33,7 @@ import {
   FileSpreadsheet,
   FileText,
   FolderTree,
+  GitBranch,
   Globe2,
   Grid2x2,
   Hammer,
@@ -169,6 +170,7 @@ export function navIcon(to: string): ReactNode {
     case "/asset-categories": return ico(FolderTree);
     case "/company": return ico(Settings);
     case "/team": return ico(Users);
+    case "/workflows": return ico(GitBranch);
     default: return ico(CircleDot);
   }
 }

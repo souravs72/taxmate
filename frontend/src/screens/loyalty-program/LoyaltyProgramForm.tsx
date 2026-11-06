@@ -107,7 +107,7 @@ export default function LoyaltyProgramForm() {
     <>
       <PageHead title={isNew ? t("lp.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/loyalty-programs")}>{t("lp.title")}</button>} />
 
-      <DocTabShell doctype={DT.loyaltyProgram} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
+      <DocTabShell editDetails doctype={DT.loyaltyProgram} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("lp.title")}>

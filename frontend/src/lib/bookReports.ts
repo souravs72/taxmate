@@ -105,6 +105,8 @@ export type FilterCtx = {
 
 export type ReportCaps = {
   dates: boolean;
+  /** One "As on" date instead of From/To (ageing reports). */
+  asOf: boolean;
   periodChips: boolean;
   periodicity: boolean;
   costCenter: boolean;
@@ -136,10 +138,10 @@ export function reportCaps(report: string): ReportCaps {
   return {
     dates: !["UAE Late Filing Status", "UAE Group VAT Status", "UAE E-Invoice Status", "UAE Compliance Status"].includes(report),
     periodChips: statement || tb || gl || report === "Customer Ledger Summary" || report === "Supplier Ledger Summary"
-      || report === "Accounts Receivable" || report === "Accounts Payable"
       || report === "UAE VAT 201" || report === "UAE Import VAT Explanation"
       || report === "UAE E-Invoice VAT 201 Reconciliation" || report === "EmaraTax Export"
       || report === "UAE Corporate Tax Worksheet" || stock,
+    asOf: report === "Accounts Receivable" || report === "Accounts Payable",
     periodicity: statement,
     costCenter: statement || tb || gl,
     account: gl,
@@ -169,7 +171,10 @@ export function bookFilters(report: string, ctx: FilterCtx): Record<string, unkn
     };
     if (ctx.costCenter) out.cost_center = [ctx.costCenter];
     if (ctx.showZeros) out.show_zero_values = 1;
-    if (ctx.showGroups === false) out.show_group_accounts = 0;
+    // Send the Group accounts box on every run so the screen matches the box.
+    out.show_group_accounts = ctx.showGroups ? 1 : 0;
+    // Closing (and opening) show the net balance on one side, not gross Dr and Cr.
+    out.show_net_values = 1;
     return out;
   }
   if (report === "General Ledger") {
@@ -194,7 +199,7 @@ export function bookFilters(report: string, ctx: FilterCtx): Record<string, unkn
     const out: Record<string, unknown> = {
       company,
       filter_based_on: "Date Range",
-      periodicity: ctx.periodicity || "Monthly",
+      periodicity: ctx.periodicity || "Yearly",
       from_fiscal_year: fiscalYear,
       to_fiscal_year: fiscalYear,
       period_start_date: fromDate,

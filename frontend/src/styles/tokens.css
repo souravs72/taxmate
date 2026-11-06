@@ -43,6 +43,8 @@
   --r: 10px;
   --r-sm: 8px;
   --railw: 256px;
+  /* List DataTable fills the card under the toolbar; footer stays compact. */
+  --dt-frame-min-h: 16rem;
 
   --ui: "Inter", "IBM Plex Sans Arabic", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;

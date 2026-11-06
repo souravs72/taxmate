@@ -28,7 +28,14 @@ class TestPrintFormats(FrappeTestCase):
 		if not any(f["taxmate"] for f in formats):
 			self.skipTest("UAE Bilingual Tax Invoice is not installed on this site")
 		self.assertTrue(formats[0]["taxmate"], "a TaxMate format must sort first")
-		self.assertEqual(out["default"], "UAE Bilingual Tax Invoice")
+		# Property Setter default_print_format wins when set on the DocType.
+		configured = frappe.db.get_value(
+			"Property Setter",
+			{"doc_type": "Sales Invoice", "property": "default_print_format"},
+			"value",
+		)
+		if not configured:
+			self.assertEqual(out["default"], "UAE Bilingual Tax Invoice")
 
 	def test_doctype_outside_the_api_is_refused(self):
 		with self.assertRaises(frappe.PermissionError):
