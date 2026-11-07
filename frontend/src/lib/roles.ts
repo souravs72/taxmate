@@ -110,13 +110,20 @@ export function allowedDashModes(session: {
   if (!session?.user) return null;
   const roles = session.roles ?? [];
   if (session.user === "Administrator" || roles.includes("System Manager")) {
-    return ["owner", "accountant", "clients"];
+    return ["accountant", "owner", "clients"];
   }
-  const role = spaRoleOf(session);
-  // Owner stays on the owner view only. Accountant may open the owner view
-  // as well as the books / all-clients views; clerk and viewer stay on books.
-  if (role === "owner") return ["owner"];
-  if (role === "accountant") return ["accountant", "owner", "clients"];
+  const allRoles = spaRolesOf(session);
+  // An accountant manages compliance, filings, and books across clients.
+  // They must be able to see: Accountant dashboard, Owner dashboard, and All Clients dashboard.
+  if (allRoles.includes("accountant")) {
+    return ["accountant", "owner", "clients"];
+  }
+  // A business owner is the owner of a particular company.
+  // They must strictly see their company Owner dashboard only, never Accountant or All Clients.
+  if (allRoles.includes("owner")) {
+    return ["owner"];
+  }
+  // Clerks and viewers see the books / accountant dashboard.
   return ["accountant"];
 }
 

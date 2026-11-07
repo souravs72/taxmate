@@ -36,12 +36,13 @@
   display:flex; flex-direction:column; align-items:flex-start; gap:6px; padding:14px 16px;
   border:1px solid var(--border); border-radius:var(--r); background:var(--surface);
   color:inherit; font:inherit; text-align:start; cursor:pointer; position:relative; overflow:hidden;
+  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
 }
 .ad-q::before{content:""; position:absolute; inset:0; background:linear-gradient(to bottom, var(--q-bg), transparent 70%); opacity:.7; pointer-events:none}
 .ad-q > *{position:relative}
-.ad-q:hover{border-color:var(--border-2)}
+.ad-q:hover{border-color:var(--border-2); transform:translateY(-1px); box-shadow:0 4px 14px rgba(15,23,42,.06)}
 .ad-q:focus-visible{outline:2px solid var(--brand); outline-offset:2px}
-.ad-q:disabled{cursor:default}
+.ad-q:disabled{cursor:default; transform:none; box-shadow:none}
 .ad-q-bad{--q:var(--bad); --q-bg:var(--bad-bg)}
 .ad-q-info{--q:var(--info); --q-bg:var(--info-bg)}
 .ad-q-ok{--q:var(--ok); --q-bg:var(--ok-bg)}
@@ -75,7 +76,8 @@
 .ad-close .od-cardsub{margin:10px 0 6px}
 .ad-count b{font-size:20px; color:var(--text); font-variant-numeric:tabular-nums}
 .ad-progress{height:6px; margin:12px 16px 0; border-radius:3px; background:var(--track); overflow:hidden}
-.ad-progress i{display:block; height:100%; border-radius:3px; background:var(--warn)}
+.ad-progress i{display:block; height:100%; border-radius:3px; background:var(--warn); transition:width .3s ease, background .3s ease}
+.ad-progress.done i{background:var(--ok)}
 .ad-step,.ad-hrow{display:flex; align-items:flex-start; gap:10px; padding:10px 16px; border-block-start:1px solid var(--border)}
 .ad-step .btn{margin-inline-start:auto; flex:none}
 .ad-step-t{display:flex; flex-direction:column; gap:2px; min-width:0; font-size:13px}

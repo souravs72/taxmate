@@ -399,7 +399,7 @@ function CloseCard({ d, cur }: { d: Payload; cur: string }) {
         <h2>{fill(t("ad.close"), { m: monthName(c.month, true) })}</h2>
         <span className="ad-count"><b>{c.done}</b> / {c.total}</span>
       </div>
-      <div className="ad-progress" role="progressbar" aria-valuemin={0} aria-valuemax={c.total} aria-valuenow={c.done}>
+      <div className={`ad-progress${c.done === c.total ? " done" : ""}`} role="progressbar" aria-valuemin={0} aria-valuemax={c.total} aria-valuenow={c.done}>
         <i style={{ width: `${pct}%` }} />
       </div>
       <p className="od-cardsub ad-pad">

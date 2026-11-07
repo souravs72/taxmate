@@ -349,7 +349,10 @@ function ProfitCard({ d, view, cur }: { d: Payload; view: View; cur: string }) {
         </div>
         {view === "growth" && (
           <div className="od-side">
-            <span className={`od-chip ${dNp == null ? "" : dNp >= 0 ? "up" : "down"}`}>{deltaText(dNp)}</span>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+              <span className={`od-chip ${dNp == null ? "" : dNp >= 0 ? "up" : "down"}`}>{deltaText(dNp)}</span>
+              {p.revenue > 0 && <span className="od-chip">{pctText(nm)} {t("od.netMargin")}</span>}
+            </div>
             <span className="od-muted">{fill(t("od.vsPrev"), { v: `${cur} ${whole(npPrev)}` })}</span>
           </div>
         )}
