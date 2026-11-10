@@ -9,6 +9,18 @@ type Hit = { value: string; description?: string };
 
 type MenuBox = { top?: number; bottom?: number; left: number; width: number; maxHeight: number };
 
+/** Frappe link descriptions (e.g. address_display) ship HTML with <br>; show plain text. */
+function plainDescription(raw?: string): string {
+  if (!raw) return "";
+  return raw
+    .replace(/<br\s*\/?>/gi, ", ")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\s*,\s*,+/g, ",")
+    .replace(/\s+/g, " ")
+    .replace(/^[,\s]+|[,\s]+$/g, "")
+    .trim();
+}
+
 function placeMenu(input: HTMLInputElement): MenuBox {
   const rect = input.getBoundingClientRect();
   const gap = 4;
@@ -65,7 +77,11 @@ export default function LinkField({
         .call({ doctype, txt: q, page_length: 12, filters: filters ?? undefined })
         .then((r) => {
           if (reqId !== activeReqId.current) return;
-          setHits(r?.message ?? []);
+          const rows = (r?.message ?? []).map((h) => ({
+            ...h,
+            description: plainDescription(h.description) || undefined,
+          }));
+          setHits(rows);
           setStatus("ready");
         })
         .catch(() => {
@@ -155,7 +171,7 @@ export default function LinkField({
                 onClick={() => { onChange(h.value); setQ(h.value); setOpen(false); }}
               >
                 <b>{h.value}</b>
-                {h.description && h.description !== h.value && <span>{h.description}</span>}
+                {h.description && h.description !== h.value ? <span>{h.description}</span> : null}
               </button>
             </li>
           ))}

@@ -1131,13 +1131,21 @@ td.pick{width:38px; padding-inline-end:0}
 .tm-form-edit-body{padding:12px 16px 16px}
 .tm-form-extras{padding:12px 16px 0; display:flex; flex-direction:column; gap:12px; width:100%}
 
+/* Beat .tm-section-body{gap:0} — tiles need breathing room like Desk connections. */
+.tm-section-body.tm-connections-body,
 .tm-connections-body{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
-  padding:4px 0 8px;
+  align-items:stretch;
+  gap:14px 16px;
+  padding:4px 0 12px;
 }
-.tm-document-link{max-width:240px; width:100%}
+.tm-document-link{
+  flex:0 1 220px;
+  width:auto;
+  min-width:180px;
+  max-width:260px;
+}
 
 .tm-document-link-badge{
   align-items:center;
@@ -1148,11 +1156,13 @@ td.pick{width:38px; padding-inline-end:0}
   display:flex;
   gap:8px;
   justify-content:flex-start;
-  padding:8px 11px;
+  padding:10px 12px;
   text-decoration:none;
   font-size:13px;
   font-weight:500;
   transition:border-color .12s ease, background .12s ease;
+  height:100%;
+  box-sizing:border-box;
 }
 .tm-document-link-badge:hover{
   border-color:var(--brand-line);
@@ -1460,5 +1470,43 @@ th.sortable[aria-sort="descending"] .sort-ind{opacity:1}
 }
 .col-picker-row{display:flex; gap:8px; align-items:center; padding:6px 8px; cursor:pointer; font-size:13px}
 .col-picker-row:hover{background:var(--bg-soft, #f6f6f6)}
+
+/* Desk-like create dialog (Workflows New) */
+.tm-modal-scrim{
+  position:fixed; inset:0; z-index:1000;
+  display:grid; place-items:center;
+  padding:16px;
+  background:rgba(15, 23, 42, 0.45);
+  backdrop-filter:blur(2px);
+}
+.tm-modal{
+  width:100%; max-width:440px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--r-sm, 6px);
+  box-shadow:0 12px 40px rgba(15, 23, 42, 0.16);
+}
+.tm-modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:12px; padding:14px 16px;
+  border-block-end:1px solid var(--border);
+}
+.tm-modal-head h3{margin:0; font-size:15px; font-weight:600}
+.tm-modal-err{padding:12px 16px 0}
+.tm-modal-body{
+  display:flex; flex-direction:column; gap:14px;
+  padding:16px;
+}
+.tm-field{display:flex; flex-direction:column; gap:5px; margin:0}
+.tm-field > span{font-size:12px; font-weight:600; color:var(--muted)}
+.tm-field .ctl{width:100%; height:34px; font-size:13px}
+.tm-modal-foot{
+  display:flex; justify-content:flex-end; gap:8px;
+  margin-block-start:4px;
+  padding-block-start:12px;
+  border-block-start:1px solid var(--border);
+}
+.muted{color:var(--muted); font-size:12.5px}
+
 .list-toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 16px; border-block-end:1px solid var(--border)}
 .list-toolbar .filters{border:0; padding:0; flex:1}
