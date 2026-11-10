@@ -355,7 +355,7 @@ export default function SalesOrderDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.salesOrder} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.salesOrder} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(mapError || statusError || makeDn.error || makeSi.error || paymentRequest.error || inward.error) && (
         <ErrorBox error={submitCall.error ?? cancelCall.error ?? amendCall.error ?? statusError ?? mapError ?? makeDn.error ?? makeSi.error ?? paymentRequest.error ?? inward.error} />

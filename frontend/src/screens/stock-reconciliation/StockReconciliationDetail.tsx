@@ -103,7 +103,7 @@ export default function StockReconciliationDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.stockReconciliation} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.stockReconciliation} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(submitCall.error || cancelCall.error || amendCall.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error} />

@@ -236,7 +236,7 @@ export default function DeliveryNoteDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.deliveryNote} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.deliveryNote} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {busyError && <ErrorBox error={busyError} />}
 
