@@ -21,7 +21,6 @@ import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { date, money } from "../../lib/format";
 import { getLocale } from "../../lib/i18n";
-import { useIsPhone } from "../../lib/useMedia";
 import { t, tStatus } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { whole } from "../../components/charts";
@@ -161,7 +160,6 @@ export default function AccountantDashboard() {
   const nav = useNavigate();
   const openBankRec = useOpenBankRec();
   const session = useSession();
-  const phone = useIsPhone();
   const [params, setParams] = useSearchParams();
   const month = params.get("month") ?? "";
 
@@ -173,13 +171,11 @@ export default function AccountantDashboard() {
   );
   const d = res.data?.message;
   const cur = d?.currency || session.currency || "";
-  const firstName = (session.full_name || session.user || "").trim().split(/[\s@._-]/)[0];
   const openQueues = d ? Object.values(d.queues).filter((q) => q && ("total" in q ? q.total : q.count) > 0).length : 0;
-  const queueLine = d ? (openQueues ? fill(t("ad.queuesOpen"), { n: openQueues }) : t("ad.queuesClear")) : "";
-  /* Phone: one status line. Desktop keeps company · date · queues. */
-  const headSub = phone
-    ? queueLine || undefined
-    : [session.company, date(session.today), queueLine].filter(Boolean).join(" · ");
+  const headTitle = d?.company || session.company || t("nav.dashboard");
+  const headSub = d
+    ? (openQueues ? fill(t("ad.queuesOpen"), { n: openQueues }) : t("ad.queuesClear"))
+    : "\u00a0";
 
   const setMonth = (key: string, latest: string) => {
     const next = new URLSearchParams(params);
@@ -191,7 +187,7 @@ export default function AccountantDashboard() {
   return (
     <div className="odash adash">
       <PageHead
-        title={firstName ? `${t("dash.hello")}, ${firstName}` : t("nav.dashboard")}
+        title={headTitle}
         sub={headSub}
         /* The role switch changes what you are looking at, not what you are
            doing: on a phone it stays under the title instead of taking a whole
@@ -255,41 +251,35 @@ function Queues({ d, cur }: { d: Payload; cur: string }) {
     ? Object.entries(q.drafts.by_doctype).filter(([, n]) => n > 0).map(([dt, n]) => `${t(`ad.dt.${dt}`)} ${n}`).join(" · ")
     : "";
 
-  const tiles: { key: string; tone: "warn" | "bad" | "info"; value: number | null; label: string; sub: string; cta: string; go: () => void; icon: string }[] = [
+  const tiles: { key: string; tone: "warn" | "bad" | "info"; value: number | null; label: string; sub: string; go: () => void }[] = [
     {
       key: "drafts", tone: "warn", value: q.drafts?.total ?? null, label: t("ad.q.drafts"),
-      sub: q.drafts ? (draftParts || t("ad.none")) : t("od.noAccess"), cta: t("ad.q.draftsGo"), go: () => nav(draftsTo),
-      icon: '<path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3M6.5 9.5h5M6.5 12.5h3.5"/>',
+      sub: q.drafts ? (draftParts || t("ad.none")) : t("od.noAccess"), go: () => nav(draftsTo),
     },
     {
       key: "unalloc", tone: "warn", value: q.unallocated?.count ?? null, label: t("ad.q.unalloc"),
       sub: q.unallocated ? fill(t("ad.q.unallocSub"), { v: amt(cur, q.unallocated.amount) }) : t("od.noAccess"),
-      cta: t("ad.q.unallocGo"), go: () => scrollTo("ad-unalloc"),
-      icon: '<rect x="2.5" y="4.5" width="13" height="9" rx="1.5"/><path d="M2.5 8h13"/>',
+      go: () => scrollTo("ad-unalloc"),
     },
     {
       key: "bank", tone: "bad", value: q.bank?.count ?? null, label: t("ad.q.bank"),
       sub: q.bank ? fill(t("ad.q.bankSub"), { n: q.bank.accounts }) : t("od.noAccess"),
-      cta: t("ad.q.bankGo"), go: () => scrollTo("ad-bank"),
-      icon: '<path d="M2.5 7L9 3l6.5 4M4 8v5M7.3 8v5M10.7 8v5M14 8v5M2.5 15h13"/>',
+      go: () => scrollTo("ad-bank"),
     },
     {
       key: "einv", tone: "bad", value: q.einvoice?.count ?? null, label: t("ad.q.einv"),
       sub: q.einvoice ? fill(t("ad.q.einvSub"), { r: q.einvoice.rejected, f: q.einvoice.failed }) : t("od.noAccess"),
-      cta: t("ad.q.einvGo"), go: () => scrollTo("ad-einv"),
-      icon: '<circle cx="9" cy="9" r="6.5"/><path d="M9 5.5v4M9 12.3v.2"/>',
+      go: () => scrollTo("ad-einv"),
     },
     {
       key: "data", tone: "warn", value: q.data?.count ?? null, label: t("ad.q.data"),
       sub: q.data ? fill(t("ad.q.dataSub"), { n: q.data.checks }) : t("od.noAccess"),
-      cta: t("ad.q.dataGo"), go: () => scrollTo("ad-fixes"),
-      icon: '<path d="M11.5 3.5a3 3 0 00-3.9 3.9L3 12l3 3 4.6-4.6a3 3 0 003.9-3.9l-2 2-2-.5-.5-2z"/>',
+      go: () => scrollTo("ad-fixes"),
     },
     {
       key: "late", tone: "info", value: q.late?.count ?? null, label: fill(t("ad.q.late"), { n: 60 }),
       sub: q.late ? (q.late.count ? fill(t("ad.q.lateSub"), { v: amt(cur, q.late.amount), n: q.late.oldest_days ?? 0 }) : t("ad.none")) : t("od.noAccess"),
-      cta: t("ad.q.lateGo"), go: () => nav("/receivables"),
-      icon: '<circle cx="9" cy="9" r="6.5"/><path d="M9 5.5V9l2.5 1.5"/>',
+      go: () => nav("/receivables"),
     },
   ];
 
@@ -307,16 +297,9 @@ function Queues({ d, cur }: { d: Payload; cur: string }) {
     <div className="ad-queues">
       {open.map((tl) => (
         <button key={tl.key} type="button" className={`ad-q ad-q-${tl.tone}`} onClick={tl.go}>
-          <span className="ad-q-top">
-            <span className="ad-q-ic">
-              <svg width="17" height="17" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"
-                strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: tl.icon }} />
-            </span>
-            <span className="ad-q-n">{tl.value}</span>
-          </span>
+          <span className="ad-q-n">{tl.value}</span>
           <span className="ad-q-l">{tl.label}</span>
           <span className="ad-q-s">{tl.sub}</span>
-          <span className="ad-q-go">{tl.cta} →</span>
         </button>
       ))}
     </div>
@@ -506,7 +489,7 @@ function VatCard({ d, cur }: { d: Payload; cur: string }) {
         <p className="od-note">
           {log.due_date ? `${t("ad.vat.due")} ${date(log.due_date)} · ${daysText(log.days)}` : ""}
         </p>
-        <button type="button" className="btn quiet sm od-start" onClick={() => nav(`/vat-201/${encodeURIComponent(log.name)}`)}>{t("ad.vat.open")} →</button>
+        <button type="button" className="btn quiet sm od-start" onClick={() => nav(`/vat-201/${encodeURIComponent(log.name)}`)}>{t("ad.vat.open")}</button>
       </div>
     </section>
   );
@@ -537,7 +520,6 @@ function HealthCard({ health, cur }: { health: Health[] | null; cur: string }) {
         <h2>{t("ad.health")}</h2>
         <Pill cls={bad ? "p-overdue" : "p-done"}>{bad ? fill(t("ad.h.toFix"), { n: bad }) : t("ad.h.allClear")}</Pill>
       </div>
-      <p className="od-cardsub ad-pad ad-pt">{t("ad.h.sub")}</p>
       <div>
         {health.map((h) => (
           <div key={h.key} className="ad-hrow">
@@ -590,7 +572,7 @@ function BankCard({ banks, cur }: { banks: Payload["banks"]; cur: string }) {
       <div className="chead">
         <h2>{t("ad.bank")}</h2>
         <button type="button" className="btn quiet sm" onClick={openBankRec}>
-          {needsWork.length ? t("ad.a.reconcile") : t("ad.a.view")} ↗
+          {needsWork.length ? t("ad.a.reconcile") : t("ad.a.view")}
         </button>
       </div>
       {needsWork.length === 0 ? (
@@ -696,7 +678,7 @@ function FixesCard({ data, cur }: { data: Payload["fixes"]; cur: string }) {
       {!data ? <div className="cbody"><p className="od-note">{t("od.noAccess")}</p></div>
         : (
           <>
-            <p className="od-cardsub ad-pad ad-pt">{data.count ? t("ad.fixes.sub") : t("ad.fixes.clean")}</p>
+            {data.count === 0 && <p className="od-note ad-pad ad-pt">{t("ad.fixes.clean")}</p>}
             {data.checks.map((c) => {
               const names = c.names.shown.join(", ") + (c.names.more ? ` +${c.names.more}` : "");
               return (
@@ -740,7 +722,6 @@ function PartyAgeCard({ title, col, data, base, link, to }: {
         : data.parties === 0 ? <Empty label={t("ad.age.none")} />
         : (
           <>
-            <p className="od-cardsub ad-pad ad-pt">{t("ad.age.sub")}</p>
             <div className="ad-scroll">
               <div className="ad-tbl ad-tbl-age" role="table" aria-label={title}>
                 <div className="tr" role="row">
@@ -855,7 +836,6 @@ function ActivityCard({ rows, cur }: { rows: Payload["activity"]; cur: string })
     <section className="card">
       <div className="chead">
         <h2>{t("ad.activity")}</h2>
-        <span className="hint">{t("ad.activity.sub")}</span>
       </div>
       {rows.length === 0 ? <Empty label={t("ad.activity.none")} /> : rows.map((r) => {
         const route = docRoute(r.doctype, r.name);
@@ -885,7 +865,7 @@ function ActivityCard({ rows, cur }: { rows: Payload["activity"]; cur: string })
 function CalendarCard({ items, cur }: { items: Payload["calendar"]; cur: string }) {
   const nav = useNavigate();
   return (
-    <Card title={t("ad.calendar")} hint={t("ad.calendar.sub")} bodyClass="od-cmp ad-cal">
+    <Card title={t("ad.calendar")} bodyClass="od-cmp ad-cal">
       {items.length === 0 && <div className="od-cmp-i"><p className="od-note">{t("od.noDeadlines")}</p></div>}
       {items.map((f) => {
         if (f.kind === "vat" || f.kind === "ct") {

@@ -1,48 +1,23 @@
-import { useEffect, useState } from "react";
+/**
+ * Customer create/edit. Callers: App.tsx /customers/new, /customers/:name.
+ * API: taxmate.api.resource.insert/save on Customer, Address, Contact.
+ * Customer fields use Desk layout (form_layout.get). Address stays in the Details after slot.
+ */
+import { useEffect, useId, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 import { DT, METHOD } from "../../lib/frappe";
 import { isValidUaeTrn } from "../../lib/trn";
 import { useOpenMapped } from "../../lib/openMapped";
-import { useDoc, useDocList, useInsert, useSave } from "../../lib/resource";
+import { deskPayload, useDeskForm } from "../../lib/deskForm";
+import { useDoc, useInsert, useSave } from "../../lib/resource";
 import { UAE_EMIRATES } from "../../types/uae";
 import { t } from "../../i18n/strings";
-import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import { CreateMenu } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
-import LinkField from "../../components/LinkField";
 import { useSession } from "../../lib/session";
-
-type CreditLimitRow = {
-  _key: string;
-  company: string;
-  credit_limit: number;
-  bypass_credit_limit_check: 0 | 1;
-};
-
-type CustomerDoc = {
-  name: string;
-  custom_company?: string;
-  customer_name?: string;
-  customer_type?: string;
-  customer_group?: string;
-  territory?: string;
-  tax_id?: string;
-  payment_terms?: string;
-  trade_license_number?: string;
-  legal_registration_identifier?: string;
-  legal_registration_identifier_type?: string;
-  uae_peppol_id?: string;
-  uae_fz_beneficiary_id?: string;
-  uae_in_designated_zone?: 0 | 1;
-  selling_price_list?: string;
-  tax_category?: string;
-  customer_primary_address?: string;
-  customer_primary_contact?: string;
-  credit_limits?: { company?: string; credit_limit?: number; bypass_credit_limit_check?: 0 | 1 }[];
-  disabled?: 0 | 1;
-};
 
 type AddressDoc = {
   name?: string;
@@ -50,7 +25,6 @@ type AddressDoc = {
   city?: string;
   state?: string;
   emirate?: string;
-  country?: string;
   email_id?: string;
   phone?: string;
 };
@@ -60,28 +34,14 @@ export default function CustomerForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
   const location = useLocation();
-  const isNew = name === "new";
+  const addrId = useId();
+  const desk = useDeskForm(DT.customer, name);
+  const { isNew, existing, values, setField, seed } = desk;
 
-  const existing = useDoc<CustomerDoc>(DT.customer, isNew ? undefined : name, isNew ? null : name, {
-    isPaused: () => isNew,
-  });
-  const settings = useDoc<{ customer_group?: string; territory?: string; selling_price_list?: string }>(DT.sellingSettings, DT.sellingSettings);
-  const groups = useDocList<{ name: string }>(DT.customerGroup, {
-    fields: ["name"],
-    filters: [["is_group", "=", 0]],
-    limit: 50,
-  });
-  const territories = useDocList<{ name: string }>(DT.territory, {
-    fields: ["name"],
-    filters: [["is_group", "=", 0]],
-    limit: 50,
-  });
-  const priceLists = useDocList<{ name: string }>(DT.priceList, {
-    fields: ["name"],
-    filters: [["selling", "=", 1]],
-    limit: 50,
-  });
-  const terms = useDocList<{ name: string }>(DT.paymentTerms, { fields: ["name"], limit: 50 });
+  const settings = useDoc<{ customer_group?: string; territory?: string; selling_price_list?: string }>(
+    DT.sellingSettings,
+    DT.sellingSettings,
+  );
   const create = useInsert();
   const remove = useFrappePostCall(METHOD.delete);
   const makeQuote = useFrappePostCall<{ message: Record<string, unknown> }>(METHOD.makeCustomerQuotation);
@@ -89,98 +49,53 @@ export default function CustomerForm() {
   const opportunity = useOpenMapped("/opportunities");
   const update = useSave();
 
-  const [form, setForm] = useState({
-    custom_company: session.company || "",
-    customer_name: "",
-    customer_type: "Company",
-    customer_group: "",
-    tax_id: "",
-    payment_terms: "",
-    territory: "",
-    selling_price_list: "",
-    tax_category: "",
-    trade_license_number: "",
-    legal_registration_identifier: "",
-    legal_registration_identifier_type: "CRN",
-    uae_peppol_id: "",
-    uae_fz_beneficiary_id: "",
-    uae_in_designated_zone: 0 as 0 | 1,
-    disabled: 0 as 0 | 1,
+  const [addr, setAddr] = useState({
     address_line1: "",
     city: "",
     state: "",
     email_id: "",
     phone: "",
   });
-  const [creditLimits, setCreditLimits] = useState<CreditLimitRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState<unknown>(null);
   const [savedNotice, setSavedNotice] = useState(!!(location.state as { saved?: boolean } | null)?.saved);
 
-  let _clKey = 0;
-  const newClKey = () => `cl${++_clKey}`;
-
   useEffect(() => {
-    if (!isNew || !settings.data) return;
-    setForm((f) => ({
-      ...f,
-      customer_group: f.customer_group || settings.data?.customer_group || "",
-      territory: f.territory || settings.data?.territory || "",
-      selling_price_list: f.selling_price_list || settings.data?.selling_price_list || "",
-    }));
-  }, [isNew, settings.data]);
+    if (!isNew) return;
+    seed({
+      custom_company: session.company || "",
+      customer_type: "Company",
+      customer_group: settings.data?.customer_group || "",
+      territory: settings.data?.territory || "",
+      selling_price_list: settings.data?.selling_price_list || "",
+    });
+  }, [isNew, seed, session.company, settings.data]);
 
-  useEffect(() => {
-    const d = existing.data;
-    if (!d) return;
-    setForm((f) => ({
-      ...f,
-      custom_company: d.custom_company || session.company || "",
-      customer_name: d.customer_name || "",
-      customer_type: d.customer_type || "Company",
-      customer_group: d.customer_group || "",
-      tax_id: d.tax_id || "",
-      payment_terms: d.payment_terms || "",
-      territory: d.territory || "",
-      selling_price_list: d.selling_price_list || "",
-      tax_category: d.tax_category || "",
-      trade_license_number: d.trade_license_number || "",
-      legal_registration_identifier: d.legal_registration_identifier || "",
-      legal_registration_identifier_type: d.legal_registration_identifier_type || "CRN",
-      uae_peppol_id: d.uae_peppol_id || "",
-      uae_fz_beneficiary_id: d.uae_fz_beneficiary_id || "",
-      uae_in_designated_zone: d.uae_in_designated_zone || 0,
-      disabled: (d.disabled ? 1 : 0) as 0 | 1,
-    }));
-    setCreditLimits(
-      (d.credit_limits ?? []).map((r) => ({
-        _key: `cl${Math.random()}`,
-        company: r.company || "",
-        credit_limit: Number(r.credit_limit) || 0,
-        bypass_credit_limit_check: (r.bypass_credit_limit_check ?? 0) as 0 | 1,
-      }))
-    );
-  }, [existing.data]);
-
-  const addrName = existing.data?.customer_primary_address;
+  const addrName = existing.data?.customer_primary_address as string | undefined;
   const address = useDoc<AddressDoc>(DT.address, addrName, addrName || null, {
     isPaused: () => !addrName,
   });
   useEffect(() => {
     const a = address.data;
     if (!a) return;
-    setForm((f) => ({
-      ...f,
+    setAddr({
       address_line1: a.address_line1 || "",
       city: a.city || "",
       state: a.emirate || a.state || "",
       email_id: a.email_id || "",
       phone: a.phone || "",
-    }));
+    });
   }, [address.data]);
 
-  const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
-  const ready = !!form.customer_name && !!form.customer_type && !!(form.customer_group || settings.data?.customer_group) && !!(form.territory || settings.data?.territory) && !!form.address_line1 && !!form.city && !!form.state;
+  const group = String(values.customer_group || settings.data?.customer_group || "");
+  const territory = String(values.territory || settings.data?.territory || "");
+  const ready = !!String(values.customer_name || "").trim()
+    && !!values.customer_type
+    && !!group
+    && !!territory
+    && !!addr.address_line1
+    && !!addr.city
+    && !!addr.state;
 
   async function save() {
     setBusy(true);
@@ -188,71 +103,53 @@ export default function CustomerForm() {
     setSavedNotice(false);
     let createdName: string | undefined;
     try {
-      if (form.tax_id && !isValidUaeTrn(form.tax_id)) {
-        throw new Error(t("cust.trnInvalid"));
-      }
-      const group = form.customer_group || settings.data?.customer_group;
-      const territory = settings.data?.territory;
+      const taxId = String(values.tax_id || "");
+      if (taxId && !isValidUaeTrn(taxId)) throw new Error(t("cust.trnInvalid"));
       const payload = {
-        custom_company: form.custom_company || session.company || undefined,
-        customer_name: form.customer_name,
-        customer_type: form.customer_type,
+        ...deskPayload(values),
+        custom_company: values.custom_company || session.company || undefined,
         customer_group: group,
-        territory: form.territory || territory,
-        selling_price_list: form.selling_price_list || undefined,
-        tax_category: form.tax_category || undefined,
-        tax_id: form.tax_id || undefined,
-        payment_terms: form.payment_terms || undefined,
-        trade_license_number: form.trade_license_number || undefined,
-        legal_registration_identifier: form.legal_registration_identifier || undefined,
-        legal_registration_identifier_type: form.legal_registration_identifier_type || undefined,
-        uae_peppol_id: form.uae_peppol_id || undefined,
-        uae_fz_beneficiary_id: form.uae_fz_beneficiary_id || undefined,
-        uae_in_designated_zone: form.uae_in_designated_zone,
-        disabled: form.disabled,
-        credit_limits: creditLimits.length > 0
-          ? creditLimits.map(({ _key: _k, ...r }) => r)
-          : undefined,
+        territory,
       };
       const cust = isNew
         ? await create.createDoc(DT.customer, payload)
         : await update.updateDoc(DT.customer, name, payload);
-      const custName = (cust as { name: string }).name;
+      const custName = String((cust as { name: string }).name);
       if (isNew) createdName = custName;
 
       const addrPayload = {
-        address_title: form.customer_name,
+        address_title: values.customer_name,
         address_type: "Billing",
-        address_line1: form.address_line1,
-        city: form.city,
-        state: form.state,
-        emirate: form.state,
+        address_line1: addr.address_line1,
+        city: addr.city,
+        state: addr.state,
+        emirate: addr.state,
         country: "United Arab Emirates",
-        email_id: form.email_id || undefined,
-        phone: form.phone || undefined,
+        email_id: addr.email_id || undefined,
+        phone: addr.phone || undefined,
         links: [{ link_doctype: "Customer", link_name: custName }],
       };
-      let primaryAddress = existing.data?.customer_primary_address;
+      let primaryAddress = existing.data?.customer_primary_address as string | undefined;
       if (primaryAddress) {
         await update.updateDoc(DT.address, primaryAddress, addrPayload);
       } else {
-        const addr = await create.createDoc(DT.address, addrPayload);
-        primaryAddress = (addr as { name: string }).name;
+        const created = await create.createDoc(DT.address, addrPayload);
+        primaryAddress = String((created as { name: string }).name);
       }
 
-      let primaryContact = existing.data?.customer_primary_contact;
-      if (form.email_id || form.phone) {
+      let primaryContact = existing.data?.customer_primary_contact as string | undefined;
+      if (addr.email_id || addr.phone) {
         const contactPayload = {
-          first_name: form.customer_name,
-          email_id: form.email_id || undefined,
-          mobile_no: form.phone || undefined,
+          first_name: values.customer_name,
+          email_id: addr.email_id || undefined,
+          mobile_no: addr.phone || undefined,
           links: [{ link_doctype: "Customer", link_name: custName }],
         };
         if (primaryContact) {
           await update.updateDoc(DT.contact, primaryContact, contactPayload);
         } else {
           const contact = await create.createDoc(DT.contact, contactPayload);
-          primaryContact = (contact as { name: string }).name;
+          primaryContact = String((contact as { name: string }).name);
         }
       }
 
@@ -282,7 +179,7 @@ export default function CustomerForm() {
     <>
       <PageHead
         eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/customers")}>{t("nav.customers")}</button>}
-        title={isNew ? t("cust.new") : form.customer_name || name}
+        title={isNew ? t("cust.new") : String(values.customer_name || name)}
         actions={
           <>
             {!isNew ? (
@@ -321,216 +218,51 @@ export default function CustomerForm() {
                 ]}
               />
             ) : null}
-            {!isNew ? (<DocHistory doctype={DT.customer} name={name} />) : null}
-
-            <button className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
-            <button className="btn" disabled={busy || !ready} onClick={() => void save()}>
+            {!isNew ? <DocHistory doctype={DT.customer} name={name} /> : null}
+            <button type="button" className="btn ghost" onClick={() => nav("/customers")}>{t("soc.discard")}</button>
+            <button type="button" className="btn" disabled={busy || !ready} onClick={() => void save()}>
               {busy ? t("soc.saving") : t("form.save")}
             </button>
           </>
         }
       />
 
-      <DocTabShell editDetails doctype={DT.customer} name={isNew ? "" : name} doc={existing.data as unknown as Record<string, unknown> | undefined}>
-      {savedNotice && (
-        <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>
-          <b>{t("form.saved")}</b>
-        </div>
-      )}
-      {(saveError || opportunity.error) && <ErrorBox error={saveError || opportunity.error} />}
-
-      <Card num={1} title={t("cust.identity")}>
-        <div className="grid2">
-          <Field label={t("cust.col.name")} required>
-            <input className="ctl" value={form.customer_name} onChange={(e) => set("customer_name", e.target.value)} />
-          </Field>
-          <CheckField
-            label={t("common.disabled")}
-            hint={t("doc.offHint")}
-            checked={!!form.disabled}
-            onChange={(on) => set("disabled", on ? 1 : 0)}
-          />
-          <Field label={t("cust.type")} required>
-            <select className="ctl" value={form.customer_type} onChange={(e) => set("customer_type", e.target.value)}>
-              <option value="Company">{t("cust.type.company")}</option>
-              <option value="Individual">{t("cust.type.individual")}</option>
-              <option value="Partnership">{t("cust.type.partnership")}</option>
-            </select>
-          </Field>
-          <Field label={t("cust.col.group")} required>
-            <select className="ctl" value={form.customer_group} onChange={(e) => set("customer_group", e.target.value)}>
-              <option value="" />
-              {(groups.data ?? []).map((g) => <option key={g.name} value={g.name}>{g.name}</option>)}
-            </select>
-          </Field>
-          <Field label={t("cust.col.trn")} hint={t("cust.trnHint")}>
-            <input
-              className="ctl"
-              value={form.tax_id}
-              inputMode="numeric"
-              autoComplete="off"
-              aria-invalid={!!form.tax_id && !isValidUaeTrn(form.tax_id)}
-              onChange={(e) => set("tax_id", e.target.value)}
-            />
-          </Field>
-          <Field label={t("f.paymentTerms")}>
-            <select className="ctl" value={form.payment_terms} onChange={(e) => set("payment_terms", e.target.value)}>
-              <option value="" />
-              {(terms.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
-            </select>
-          </Field>
-          <Field label={t("f.territory")} required>
-            <select className="ctl" value={form.territory} onChange={(e) => set("territory", e.target.value)}>
-              <option value="" />
-              {(territories.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
-            </select>
-          </Field>
-          <Field label={t("f.sellingPriceList")}>
-            <select className="ctl" value={form.selling_price_list} onChange={(e) => set("selling_price_list", e.target.value)}>
-              <option value="" />
-              {(priceLists.data ?? []).map((x) => <option key={x.name} value={x.name}>{x.name}</option>)}
-            </select>
-          </Field>
-          <Field label={t("f.taxCategory")}>
-            <LinkField doctype={DT.taxCategory} value={form.tax_category}
-              onChange={(v) => set("tax_category", v)} />
-          </Field>
-        </div>
-      </Card>
-
-      <Card num={2} title={t("cust.legal")}>
-        <div className="grid2">
-          <Field label={t("cust.license")}>
-            <input className="ctl" value={form.trade_license_number} onChange={(e) => set("trade_license_number", e.target.value)} />
-          </Field>
-          <Field label={t("cust.legalId")}>
-            <input className="ctl" value={form.legal_registration_identifier} onChange={(e) => set("legal_registration_identifier", e.target.value)} />
-          </Field>
-          <Field label={t("cust.legalType")}>
-            <select className="ctl" value={form.legal_registration_identifier_type}
-              onChange={(e) => set("legal_registration_identifier_type", e.target.value)}>
-              <option value="CRN">CRN</option>
-              <option value="OTH">OTH</option>
-            </select>
-          </Field>
-          <Field label={t("cust.peppol")}>
-            <input className="ctl" value={form.uae_peppol_id} onChange={(e) => set("uae_peppol_id", e.target.value)} />
-          </Field>
-          <Field label={t("cust.fz")}>
-            <input className="ctl" value={form.uae_fz_beneficiary_id} onChange={(e) => set("uae_fz_beneficiary_id", e.target.value)} />
-          </Field>
-          <Field label={t("cust.dz")}>
-            <select className="ctl" value={String(form.uae_in_designated_zone)}
-              onChange={(e) => set("uae_in_designated_zone", Number(e.target.value))}>
-              <option value="0">{t("no")}</option>
-              <option value="1">{t("yes")}</option>
-            </select>
-          </Field>
-        </div>
-      </Card>
-
-      <Card num={3} title={t("cust.address")}>
-        <div className="grid2">
-          <Field label={t("cust.line")} required>
-            <input className="ctl" value={form.address_line1} onChange={(e) => set("address_line1", e.target.value)} />
-          </Field>
-          <Field label={t("cust.col.city")} required>
-            <input className="ctl" value={form.city} onChange={(e) => set("city", e.target.value)} />
-          </Field>
-          <Field label={t("f.emirate")} required>
-            <select className="ctl" value={form.state} onChange={(e) => set("state", e.target.value)}>
-              <option value="" />
-              {UAE_EMIRATES.map((e) => <option key={e} value={e}>{e}</option>)}
-            </select>
-          </Field>
-          <Field label={t("cust.email")}>
-            <input className="ctl" type="email" value={form.email_id} onChange={(e) => set("email_id", e.target.value)} />
-          </Field>
-          <Field label={t("cust.phone")}>
-            <input className="ctl" value={form.phone} onChange={(e) => set("phone", e.target.value)} />
-          </Field>
-        </div>
-      </Card>
-
-      <Card num={4} title={t("cust.creditLimits")}>
-        {creditLimits.length === 0 ? (
-          <p style={{ color: "var(--faint)", marginBottom: 8 }}>{t("cust.noCreditLimits")}</p>
-        ) : (
-          <table className="data-table" style={{ marginBottom: 8 }}>
-            <thead>
-              <tr>
-                <th>{t("cust.cl.company")}</th>
-                <th>{t("cust.cl.limit")}</th>
-                <th>{t("cust.cl.bypass")}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {creditLimits.map((r) => (
-                <tr key={r._key}>
-                  <td>
-                    <input
-                      className="ctl"
-                      value={r.company}
-                      onChange={(e) =>
-                        setCreditLimits((ls) =>
-                          ls.map((l) => l._key === r._key ? { ...l, company: e.target.value } : l)
-                        )
-                      }
-                      placeholder={t("cust.cl.company")}
-                    />
-                  </td>
-                  <td>
-                    <input
-                      className="ctl"
-                      type="number"
-                      min={0}
-                      value={r.credit_limit}
-                      onChange={(e) =>
-                        setCreditLimits((ls) =>
-                          ls.map((l) => l._key === r._key ? { ...l, credit_limit: Number(e.target.value) } : l)
-                        )
-                      }
-                    />
-                  </td>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={!!r.bypass_credit_limit_check}
-                      onChange={(e) =>
-                        setCreditLimits((ls) =>
-                          ls.map((l) => l._key === r._key ? { ...l, bypass_credit_limit_check: e.target.checked ? 1 : 0 } : l)
-                        )
-                      }
-                    />
-                  </td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn ghost"
-                      onClick={() => setCreditLimits((ls) => ls.filter((l) => l._key !== r._key))}
-                    >
-                      ×
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-        <button
-          type="button"
-          className="btn ghost"
-          onClick={() =>
-            setCreditLimits((ls) => [
-              ...ls,
-              { _key: newClKey(), company: "", credit_limit: 0, bypass_credit_limit_check: 0 },
-            ])
-          }
-        >
-          {t("cust.addCreditLimit")}
-        </button>
-      </Card>
+      <DocTabShell
+        doctype={DT.customer}
+        name={isNew ? "" : name}
+        doc={values}
+        onChange={setField}
+        after={
+          <Card title={t("cust.address")}>
+            <div className="grid2">
+              <Field label={t("cust.line")} required htmlFor={`${addrId}-line`}>
+                <input id={`${addrId}-line`} className="ctl" value={addr.address_line1} onChange={(e) => setAddr((a) => ({ ...a, address_line1: e.target.value }))} />
+              </Field>
+              <Field label={t("cust.col.city")} required htmlFor={`${addrId}-city`}>
+                <input id={`${addrId}-city`} className="ctl" value={addr.city} onChange={(e) => setAddr((a) => ({ ...a, city: e.target.value }))} />
+              </Field>
+              <Field label={t("f.emirate")} required htmlFor={`${addrId}-emirate`}>
+                <select id={`${addrId}-emirate`} className="ctl" value={addr.state} onChange={(e) => setAddr((a) => ({ ...a, state: e.target.value }))}>
+                  <option value="" />
+                  {UAE_EMIRATES.map((e) => <option key={e} value={e}>{e}</option>)}
+                </select>
+              </Field>
+              <Field label={t("cust.email")} htmlFor={`${addrId}-email`}>
+                <input id={`${addrId}-email`} className="ctl" type="email" value={addr.email_id} onChange={(e) => setAddr((a) => ({ ...a, email_id: e.target.value }))} />
+              </Field>
+              <Field label={t("cust.phone")} htmlFor={`${addrId}-phone`}>
+                <input id={`${addrId}-phone`} className="ctl" value={addr.phone} onChange={(e) => setAddr((a) => ({ ...a, phone: e.target.value }))} />
+              </Field>
+            </div>
+          </Card>
+        }
+      >
+        {savedNotice ? (
+          <div className="alert" role="status" style={{ background: "var(--ok-bg)" }}>
+            <b>{t("form.saved")}</b>
+          </div>
+        ) : null}
+        {(saveError || opportunity.error) ? <ErrorBox error={saveError || opportunity.error} /> : null}
       </DocTabShell>
     </>
   );

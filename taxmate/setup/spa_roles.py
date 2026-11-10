@@ -322,14 +322,19 @@ def spa_role_of(user: str | None = None) -> str | None:
 def require_spa_role(*allowed: str) -> None:
 	"""Reject the call unless the user holds one of these SPA roles.
 
+	Any matching marker counts — not only the highest. An accountant who also
+	holds Owner must still open the books and all-clients views.
+
 	Administrator and System Manager pass. They are the product operators and
 	stay on Frappe's own bypass, not a second TaxMate rule.
 	"""
 	user = frappe.session.user
 	if user == "Administrator" or "System Manager" in frappe.get_roles(user):
 		return
-	if spa_role_of(user) not in allowed:
-		frappe.throw(frappe._("Not permitted"), frappe.PermissionError)
+	held = spa_roles_of(user)
+	if any(role in allowed for role in held):
+		return
+	frappe.throw(frappe._("Not permitted"), frappe.PermissionError)
 
 
 def apply_spa_role(user: str, spa_role: str) -> None:

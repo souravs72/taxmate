@@ -2,8 +2,8 @@
  * Desk form shell: sticky tabs + form page for every sidebar DocType.
  * Callers: SalesOrderDetail and other detail/form screens.
  * API: useDocLayout + DeskTabPanel + ConnectionsPanel.
- * View mode always uses Desk layout. editDetails keeps custom Details form body.
- * User: keep the design of documents, tabs, and fields similar to frappe/erpnext.
+ * View uses Desk layout. onChange edits the same layout. editDetails is the
+ * legacy custom Details body until that screen is converted.
  */
 import type { ReactNode } from "react";
 
@@ -18,9 +18,12 @@ type Props = {
   name: string;
   doc?: Record<string, unknown> | null;
   extras?: ReactNode;
+  after?: ReactNode;
   editDetails?: boolean;
   details?: ReactNode;
   children?: any;
+  onChange?: (fieldname: string, value: unknown) => void;
+  disabled?: boolean;
 };
 
 export default function DocTabShell({
@@ -28,31 +31,42 @@ export default function DocTabShell({
   name,
   doc,
   extras,
+  after,
   editDetails = false,
   details,
   children,
+  onChange,
+  disabled,
 }: Props) {
   const { tabs, active, setActive, activeTab, isConnections, isDetails, isLoading } =
     useDocLayout(doctype);
   const formBody = details ?? children;
+  const legacyCustom = editDetails && isDetails && formBody != null && !onChange;
 
   if (isLoading && !tabs.length) return <Loading />;
+
+  const notice = formBody && !legacyCustom ? <div className="tm-form-extras">{formBody}</div> : null;
 
   return (
     <div className="tm-form std-form-layout">
       <DocTabs tabs={tabs} active={active} onChange={setActive} />
       <div className="tm-form-tab-content">
         {isConnections ? (
-          <ConnectionsPanel doctype={doctype} name={name} />
-        ) : isDetails && editDetails && formBody != null ? (
+          <>
+            {notice}
+            <ConnectionsPanel doctype={doctype} name={name} />
+          </>
+        ) : legacyCustom ? (
           <>
             {extras}
             <div className="tm-form-edit-body">{formBody}</div>
           </>
         ) : activeTab ? (
           <>
-            {isDetails ? extras : null}
-            <DeskTabPanel tab={activeTab} doc={doc} />
+            {extras && isDetails ? <div className="tm-form-extras">{extras}</div> : null}
+            {notice}
+            <DeskTabPanel tab={activeTab} doc={doc} onChange={onChange} disabled={disabled} />
+            {after && isDetails ? <div className="tm-form-extras">{after}</div> : null}
           </>
         ) : null}
       </div>

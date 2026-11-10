@@ -302,10 +302,12 @@ export default function ClientsDashboard() {
   return (
     <div className="odash cdash">
       <PageHead
-        title={t("cd.title")}
-        /* Keep the same title+sub block height as the other home views so the
-           action row (and switcher) does not jump vertically. */
-        sub={"\u00a0"}
+        title={t("company.allClients")}
+        sub={d
+          ? (d.totals.status.bad
+              ? `${fill(t("cd.exec.bad"), { n: d.totals.status.bad })} · ${fill(t("cd.exec.portfolio"), { n: d.companies })}`
+              : fill(t("cd.exec.portfolio"), { n: d.companies }))
+          : "\u00a0"}
         viewControls={<DashSwitch />}
         actions={
           <>

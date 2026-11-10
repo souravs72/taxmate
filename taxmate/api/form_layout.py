@@ -11,7 +11,7 @@ returns Desk Tab Break structure for the SPA.
 
 Reads DocType meta only (no data files). Return shape:
   {doctype, tabs:[{id,label,fieldname,fields,sections:[{id,label,columns:[[
-    {fieldname,label,fieldtype,options,reqd,read_only}]]}], is_connections?}]}
+    {fieldname,label,fieldtype,options,reqd,read_only,depends_on,default,columns?}]]}], is_connections?}]}
 
 User: "I wanted you to mimic erpnext like tabs and fields for all the
 doctypes present in the sidebar. I still don't see the same structure"
@@ -39,19 +39,49 @@ _LAYOUT_ONLY = frozenset(
 	}
 )
 
+_CHILD_SKIP = _LAYOUT_ONLY | {"Table", "Table MultiSelect"}
+
 _DETAILS_ID = "__details"
 _CONNECTIONS_ID = "connections_tab"
 
 
-def _field_dict(df) -> dict[str, Any]:
-	return {
+def _field_dict(df, nest_table: bool = True) -> dict[str, Any]:
+	row: dict[str, Any] = {
 		"fieldname": df.fieldname,
 		"label": _(df.label) if df.label else df.fieldname,
 		"fieldtype": df.fieldtype,
 		"options": df.options or None,
 		"reqd": 1 if df.reqd else 0,
 		"read_only": 1 if df.read_only else 0,
+		"depends_on": df.depends_on or None,
+		"default": df.default if df.default not in (None, "") else None,
 	}
+	if getattr(df, "is_virtual", 0):
+		row["is_virtual"] = 1
+	if nest_table and df.fieldtype in ("Table", "Table MultiSelect") and df.options:
+		row["columns"] = _table_columns(df.options)
+	return row
+
+
+def _table_columns(child_dt: str) -> list[dict[str, Any]]:
+	if not frappe.db.exists("DocType", child_dt):
+		return []
+	child = frappe.get_meta(child_dt)
+	if not child.istable:
+		return []
+	listed: list[dict[str, Any]] = []
+	fallback: list[dict[str, Any]] = []
+	for field in child.fields:
+		if not field.fieldname or getattr(field, "hidden", 0):
+			continue
+		if field.fieldtype in _CHILD_SKIP:
+			continue
+		row = _field_dict(field, nest_table=False)
+		if field.in_list_view:
+			listed.append(row)
+		elif len(fallback) < 8:
+			fallback.append(row)
+	return listed or fallback
 
 
 def _new_section(df=None) -> dict[str, Any]:
@@ -78,6 +108,8 @@ def get(doctype: str) -> dict[str, Any]:
 	"""Ordered Desk tabs with sections, columns, and field meta."""
 	require_login()
 	assert_allowed_doctype(doctype)
+	if not frappe.has_permission(doctype, "read"):
+		frappe.throw(_("Not permitted"), frappe.PermissionError)
 
 	meta = frappe.get_meta(doctype)
 	tabs: list[dict[str, Any]] = []

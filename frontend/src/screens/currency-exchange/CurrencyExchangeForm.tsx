@@ -1,133 +1,66 @@
 /**
  * Currency Exchange form — new and edit.
- * Importers: App.tsx routes /currency-exchanges/new and /currency-exchanges/:name/edit.
- * API: taxmate.api.resource.insert / save.
- * Schema: date (Date), from_currency (Link), to_currency (Link),
- *   exchange_rate (Float), for_buying (Check), for_selling (Check).
- * User: "Implement the plan… complete all the to-dos."
+ * Importers: App.tsx /currency-exchanges/new and /:name/edit.
+ * API: taxmate.api.resource.insert/save. Desk layout via form_layout.get.
  */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
-import { useDoc, useInsert, useSave } from "../../lib/resource";
+import { useDeskForm } from "../../lib/deskForm";
 import { useSession } from "../../lib/session";
-import { parseNum, toIsoDate } from "../../lib/format";
+import { toIsoDate } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { ErrorBox, Loading, PageHead } from "../../components/ui";
 import DocTabShell from "../../components/DocTabShell";
-import { FormActions, FormLayout } from "../../components/form";
-import LinkField from "../../components/LinkField";
-
-type Doc = {
-  name: string;
-  date?: string;
-  from_currency?: string;
-  to_currency?: string;
-  exchange_rate?: number;
-  for_buying?: 0 | 1;
-  for_selling?: 0 | 1;
-};
 
 export default function CurrencyExchangeForm() {
   const { name = "new" } = useParams();
   const nav = useNavigate();
   const session = useSession();
-  const isNew = name === "new";
-  const existing = useDoc<Doc>(DT.currencyExchange, isNew ? undefined : name, isNew ? null : name, {
-    isPaused: () => isNew,
-  });
-
-  const [exDate, setExDate] = useState(toIsoDate(new Date()));
-  const [fromCurr, setFromCurr] = useState("");
-  const [toCurr, setToCurr] = useState("AED");
-  const [rate, setRate] = useState(1);
-  const [forBuying, setForBuying] = useState(true);
-  const [forSelling, setForSelling] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<unknown>(null);
-
-  const insert = useInsert();
-  const save = useSave();
+  const { isNew, existing, values, setField, seed, save, busy, saveError } = useDeskForm(DT.currencyExchange, name);
 
   useEffect(() => {
-    if (!isNew && existing.data) {
-      const d = existing.data;
-      setExDate(d.date ?? toIsoDate(new Date()));
-      setFromCurr(d.from_currency ?? "");
-      setToCurr(d.to_currency ?? "AED");
-      setRate(d.exchange_rate ?? 1);
-      setForBuying(!!d.for_buying);
-      setForSelling(!!d.for_selling);
-    }
-  }, [isNew, existing.data]);
+    if (!isNew) return;
+    seed({
+      date: toIsoDate(new Date()),
+      to_currency: session.currency || "",
+      exchange_rate: 1,
+      for_buying: 1,
+      for_selling: 1,
+    });
+  }, [isNew, seed, session.currency]);
+
+  const ready = !!values.from_currency && !!values.to_currency && Number(values.exchange_rate) > 0;
+
+  async function onSave() {
+    try {
+      const doc = await save();
+      nav(`/currency-exchanges/${encodeURIComponent(String(doc.name))}/edit`);
+    } catch { /* saveError */ }
+  }
 
   if (!session.user) return <Navigate to="/" />;
   if (!isNew && existing.isLoading) return <Loading />;
   if (!isNew && existing.error) return <ErrorBox error={existing.error} onRetry={() => existing.mutate()} />;
 
-  async function handleSave() {
-    setSaving(true); setSaveError(null);
-    try {
-      const body: Record<string, unknown> = {
-        doctype: DT.currencyExchange,
-        date: exDate,
-        from_currency: fromCurr,
-        to_currency: toCurr,
-        exchange_rate: rate,
-        for_buying: forBuying ? 1 : 0,
-        for_selling: forSelling ? 1 : 0,
-      };
-      if (isNew) {
-        const created = await insert.createDoc(DT.currencyExchange, body);
-        nav(`/currency-exchanges/${encodeURIComponent((created as { name: string }).name)}/edit`);
-      } else {
-        await save.updateDoc(DT.currencyExchange, name, body);
-        nav("/currency-exchanges");
-      }
-    } catch (e) { setSaveError(e); } finally { setSaving(false); }
-  }
-
   return (
     <>
-      <PageHead title={isNew ? t("cx.new") : name} eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/currency-exchanges")}>{t("cx.title")}</button>} />
+      <PageHead
+        title={isNew ? t("cx.new") : name}
+        eyebrow={<button type="button" className="btn quiet" onClick={() => nav("/currency-exchanges")}>{t("cx.title")}</button>}
+        actions={
+          <>
+            <button type="button" className="btn ghost" onClick={() => nav("/currency-exchanges")}>{t("soc.discard")}</button>
+            <button type="button" className="btn" disabled={busy || !ready} onClick={() => void onSave()}>
+              {busy ? t("soc.saving") : t("form.save")}
+            </button>
+          </>
+        }
+      />
 
-      <DocTabShell editDetails doctype={DT.currencyExchange} name={isNew ? "" : name} doc={existing.data as Record<string, unknown> | undefined}>
-      {saveError && <ErrorBox error={saveError} />}
-      <FormLayout>
-        <Card title={t("cx.title")}>
-          <Field label={t("cx.col.date")}>
-            <input className="inp" type="date" value={exDate} onChange={(e) => setExDate(e.target.value)} />
-          </Field>
-          <Field label={t("cx.col.from")}>
-            <LinkField doctype="Currency" value={fromCurr} onChange={setFromCurr} placeholder="USD" />
-          </Field>
-          <Field label={t("cx.col.to")}>
-            <LinkField doctype="Currency" value={toCurr} onChange={setToCurr} placeholder="AED" />
-          </Field>
-          <Field label={t("cx.col.rate")}>
-            <input className="inp" type="number" min={0.000001} step={0.000001} value={rate}
-              onChange={(e) => setRate(parseNum(e.target.value))} />
-          </Field>
-          <Field label="">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={forBuying} onChange={(e) => setForBuying(e.target.checked)} />
-              {t("cx.col.forBuying")}
-            </label>
-          </Field>
-          <Field label="">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={forSelling} onChange={(e) => setForSelling(e.target.checked)} />
-              {t("cx.col.forSelling")}
-            </label>
-          </Field>
-        </Card>
-        <FormActions
-          onDiscard={() => nav("/currency-exchanges")}
-          onSave={handleSave}
-          busy={saving}
-        />
-      </FormLayout>
+      <DocTabShell doctype={DT.currencyExchange} name={isNew ? "" : name} doc={values} onChange={setField}>
+        {saveError ? <ErrorBox error={saveError} /> : null}
       </DocTabShell>
     </>
   );

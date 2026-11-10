@@ -8,17 +8,12 @@ import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { useDoc, useDocList, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite, eInvoiceLocked } from "../../lib/roles";
-import { date, datetime, money, qty } from "../../lib/format";
+import { date, datetime, money } from "../../lib/format";
 import { EINVOICE_CHIP, INV_PILL_CLASS, invoiceUiStatus, isInvoiceOverdue } from "../../lib/status";
-import { t, tStatus } from "../../i18n/strings";
-import { CREDIT_NOTE_REASON_LABELS, creditNoteReasonCode } from "../../lib/creditNoteReason";
-import { TxnTotals } from "../../components/txnFields";
-import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
-import { Card, Empty, ErrorBox, Loading, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
-import { FormLayout } from "../../components/form";
+import { t } from "../../i18n/strings";
+import { Card, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
-import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 /** The pipeline the e-invoice walks, in order. */
@@ -169,18 +164,6 @@ export default function InvoiceDetail() {
 
   const refresh = () => Promise.all([mutate(), logs.mutate()]);
 
-  /* Keep only the rows that point at THIS invoice, then total per payment —
-     the child-table join also returns the payment's other allocations.   */
-  const allocations = Object.values(
-    (payments.data?.message ?? [])
-      .filter((r) => r.ref === name)
-      .reduce<Record<string, { name: string; allocated: number }>>((acc, r) => {
-        acc[r.name] ??= { name: r.name, allocated: 0 };
-        acc[r.name].allocated += Number(r.allocated) || 0;
-        return acc;
-      }, {}),
-  );
-
   return (
     <>
       <PageHead
@@ -262,195 +245,68 @@ export default function InvoiceDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.salesInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
-
-      {busyError && <ErrorBox error={busyError} />}
-
-      {/* Payment split — the spec's worked case: total / received / outstanding */}
-      {submitted && (
-        <Card title={t("inv.pay.title")}>
-          <div className="paybar">
-            <i style={{ width: `${grand ? (received / grand) * 100 : 0}%`, background: "var(--c-billed)" }} />
-            <i style={{ width: `${grand ? (outstanding / grand) * 100 : 0}%`,
-                        background: late ? "var(--bad)" : "var(--c-confirmed)" }} />
-          </div>
-          <div className="paylegend">
-            <span><i style={{ background: "var(--track)" }} />{t("inv.pay.total")} <b>{cur} {money(grand)}</b></span>
-            <span><i style={{ background: "var(--c-billed)" }} />{t("inv.pay.received")} <b>{cur} {money(received)}</b></span>
-            <span>
-              <i style={{ background: late ? "var(--bad)" : "var(--c-confirmed)" }} />
-              {t("inv.pay.outstanding")} <b>{cur} {money(outstanding)}</b>
-            </span>
-          </div>
-        </Card>
-      )}
-
-      {/* E-invoice pipeline */}
-      {submitted && (
-        <Card
-          title={t("inv.einv.title")}
-         
-          bodyClass={null as unknown as string}
-        >
-          <EInvoicePipeline status={eStatus} log={log} />
-          <div className="addrow">
-            {eStatus && !PIPE_FAILED.includes(eStatus) && log && (
-              <button className="btn ghost sm" disabled={syncCall.loading}
-                onClick={() => void syncCall.call({ log_name: log.name }).then(refresh)}>
-                {syncCall.loading ? t("soc.saving") : t("inv.einv.refresh")}
-              </button>
-            )}
-            {eStatus === "Accepted" && log && (
-              <button className="btn ghost sm" disabled={fetchCall.loading}
-                onClick={() => void fetchCall.call({ log_name: log.name }).then(refresh)}>
-                {t("inv.einv.fetch")}
-              </button>
-            )}
-            {(!eStatus || PIPE_FAILED.includes(eStatus)) && canSubmit && (
-              <button className="btn sm" disabled={einvoiceCall.loading}
-                onClick={() => void einvoiceCall.call({ docname: name, doctype: DT.salesInvoice }).then(refresh)}>
-                {einvoiceCall.loading ? t("soc.saving") : t("inv.einv.retry")}
-              </button>
-            )}
-            {log && (
-              <button className="btn quiet sm" onClick={() => nav(`/e-invoice-log?invoice=${encodeURIComponent(name)}`)}>
-                {t("inv.einv.openLog")}
-              </button>
-            )}
-          </div>
-          {log?.error_message && (
-            <div className="alert" style={{ background: "var(--bad-bg)", margin: "0 16px 16px" }}>
-              <span>{log.error_message}</span>
-            </div>
-          )}
-        </Card>
-      )}
-
-      <FormLayout aside={
-        <>
-          <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("inv.totals")}</h2>
-            <TxnTotals
-              currency={cur}
-              itemsTotal={data.total}
-              productDiscount={productDiscountTotal(data.items ?? [])}
-              orderDiscount={data.discount_amount}
-              orderDiscountPercent={data.additional_discount_percentage}
-              discountOn={readDiscountBasis(data.apply_discount_on, Number(data.discount_amount) > 0)}
-              net={data.net_total}
-              vat={data.total_taxes_and_charges}
-              grand={grand}
-              roundingAdjustment={!data.disable_rounded_total ? data.rounding_adjustment : undefined}
-              roundedTotal={!data.disable_rounded_total ? data.rounded_total : undefined}
-              netLabel={t("sod.net")}
-              vatLabel={t("sod.vat")}
-              grandLabel={t("sod.grand")}
-            />
-            {submitted && <SumRow k={t("inv.pay.received")} v={money(received)} cls="rule" currency={cur} />}
-            {submitted && (
-              <SumRow k={t("inv.col.outstanding")} v={money(outstanding)} cls="due" currency={cur} />
-            )}
-          </Card>
-
-          <Card title={t("sod.linked")} bodyClass={null as unknown as string}>
-            <LinkedDocs
-              payments={allocations}
-              creditNotes={creditNotes.data ?? []}
-              currency={cur}
-              loading={payments.isLoading || creditNotes.isLoading}
-              onOpen={(path) => nav(path)}
-            />
-          </Card>
-
-          {log && (
-            <Card title={t("inv.einv.log")} bodyClass="cbody">
-              <ReadRow k={t("inv.einv.logStatus")} v={tStatus(log.status)} />
-              <ReadRow k={t("inv.einv.aspId")} v={<span className="mono">{log.asp_document_id || "—"}</span>} />
-              <ReadRow k={t("inv.einv.updated")} v={datetime(log.modified)} />
-            </Card>
-          )}
-        </>
-      }>
-          <Card title={t("inv.details")}>
-            <div className="fg">
-              <ReadRow k={t("f.customer")} v={data.customer_name || data.customer} link />
-              <ReadRow k={t("f.customerTrn")} v={<span className="mono">{data.tax_id || "—"}</span>} />
-              <ReadRow k={t("f.companyTrn")} v={<span className="mono">{data.company_trn || "—"}</span>} />
-              <ReadRow k={t("f.address")} v={data.customer_address || "—"} />
-              <ReadRow k={t("inv.date")} v={date(data.posting_date)} />
-              <ReadRow k={t("inv.due")} v={date(data.due_date)} />
-              <ReadRow k={t("f.paymentTerms")} v={data.payment_terms_template || "—"} />
-              <ReadRow k={t("f.taxTemplate")} v={data.taxes_and_charges || "—"} />
-              <ReadRow k={t("f.emirate")} v={data.vat_emirate || "—"} />
-              {submitted && outstanding > 0
-                && (Boolean(data.advances?.length) || data.allocate_advances_automatically != null)
-                && data.total_advance != null ? (
-                <ReadRow k={t("txn.totalAdvance")} v={money(data.total_advance)} />
-              ) : null}
-              {!!data.is_return && (
-                <ReadRow k={t("inv.reason")} v={(() => {
-                  const code = creditNoteReasonCode(data.uae_credit_note_reason);
-                  return code ? CREDIT_NOTE_REASON_LABELS[code] : (data.uae_credit_note_reason || "—");
-                })()} />
-              )}
-            </div>
-          </Card>
-
-          {/* bodyClass off: LineItems renders the `.twrap` wrapper itself, so
-              the card body must not add a second one. */}
-          <Card title={t("inv.lines")} bodyClass={null}>
-            {/* A saved invoice's lines are read-only here — no add, no remove.
-                Item, quantity and amount on the face of a phone card; the rate
-                sits below, still visible with collapse off. */}
-            <LineItems<Line>
-              rows={data.items ?? []}
-              showIndex
-              collapse={false}
-              fields={[
-                {
-                  key: "item", label: t("soc.pickItem"), slot: "title",
-                  render: (l) => (
-                    <>
-                      <div className="icode">{l.item_code}</div>
-                      <div className="iname">{l.item_name}</div>
-                      <div className="itags">
-                        {l.uae_item_type && <span className="tag">{l.uae_item_type}</span>}
-                        {l.hs_code && <span className="tag code">HS {l.hs_code}</span>}
-                        {l.sac_code && <span className="tag code">SAC {l.sac_code}</span>}
-                      </div>
-                    </>
-                  ),
-                },
-                {
-                  key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
-                  render: (l) => (
-                    <>
-                      {qty(l.qty)}
-                      <div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div>
-                    </>
-                  ),
-                },
-                {
-                  key: "rate", label: t("sod.col.rate"), numeric: true,
-                  render: (l) => <><span className="cur">{cur}</span> {money(l.rate)}</>,
-                },
-                {
-                  key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
-                  td: { fontWeight: 600 },
-                  render: (l) => <><span className="cur">{cur}</span> {money(l.amount)}</>,
-                },
-              ] as LineField<Line>[]}
-              /* The net total the table carried in its own <tfoot>. */
-              footer={
-                <tr>
-                  <td colSpan={4} className="n">{t("sod.net")}</td>
-                  <td className="n"><span className="cur">{cur}</span> {money(data.net_total)}</td>
-                </tr>
-              }
-              footerCard={<><span>{t("sod.net")}</span><span><span className="cur">{cur}</span> {money(data.net_total)}</span></>}
-            />
-          </Card>
-      </FormLayout>
+      <DocTabShell
+        doctype={DT.salesInvoice}
+        name={name}
+        doc={data as unknown as Record<string, unknown>}
+        extras={
+          <>
+            {submitted ? (
+              <Card title={t("inv.pay.title")}>
+                <div className="paybar">
+                  <i style={{ width: `${grand ? (received / grand) * 100 : 0}%`, background: "var(--c-billed)" }} />
+                  <i style={{ width: `${grand ? (outstanding / grand) * 100 : 0}%`,
+                              background: late ? "var(--bad)" : "var(--c-confirmed)" }} />
+                </div>
+                <div className="paylegend">
+                  <span><i style={{ background: "var(--track)" }} />{t("inv.pay.total")} <b>{cur} {money(grand)}</b></span>
+                  <span><i style={{ background: "var(--c-billed)" }} />{t("inv.pay.received")} <b>{cur} {money(received)}</b></span>
+                  <span>
+                    <i style={{ background: late ? "var(--bad)" : "var(--c-confirmed)" }} />
+                    {t("inv.pay.outstanding")} <b>{cur} {money(outstanding)}</b>
+                  </span>
+                </div>
+              </Card>
+            ) : null}
+            {submitted ? (
+              <Card title={t("inv.einv.title")} bodyClass={null as unknown as string}>
+                <EInvoicePipeline status={eStatus} log={log} />
+                <div className="addrow">
+                  {eStatus && !PIPE_FAILED.includes(eStatus) && log && (
+                    <button className="btn ghost sm" disabled={syncCall.loading}
+                      onClick={() => void syncCall.call({ log_name: log.name }).then(refresh)}>
+                      {syncCall.loading ? t("soc.saving") : t("inv.einv.refresh")}
+                    </button>
+                  )}
+                  {eStatus === "Accepted" && log && (
+                    <button className="btn ghost sm" disabled={fetchCall.loading}
+                      onClick={() => void fetchCall.call({ log_name: log.name }).then(refresh)}>
+                      {t("inv.einv.fetch")}
+                    </button>
+                  )}
+                  {(!eStatus || PIPE_FAILED.includes(eStatus)) && canSubmit && (
+                    <button className="btn sm" disabled={einvoiceCall.loading}
+                      onClick={() => void einvoiceCall.call({ docname: name, doctype: DT.salesInvoice }).then(refresh)}>
+                      {einvoiceCall.loading ? t("soc.saving") : t("inv.einv.retry")}
+                    </button>
+                  )}
+                  {log && (
+                    <button className="btn quiet sm" onClick={() => nav(`/e-invoice-log?invoice=${encodeURIComponent(name)}`)}>
+                      {t("inv.einv.openLog")}
+                    </button>
+                  )}
+                </div>
+                {log?.error_message ? (
+                  <div className="alert" style={{ background: "var(--bad-bg)", margin: "0 16px 16px" }}>
+                    <span>{log.error_message}</span>
+                  </div>
+                ) : null}
+              </Card>
+            ) : null}
+          </>
+        }
+      >
+        {busyError ? <ErrorBox error={busyError} /> : null}
       </DocTabShell>
     </>
   );
@@ -492,33 +348,3 @@ function EInvoicePipeline({ status, log }: { status?: string; log?: EInvoiceLog 
   );
 }
 
-function LinkedDocs({
-  payments, creditNotes, currency, loading, onOpen,
-}: {
-  payments: { name: string; allocated?: number }[];
-  creditNotes: { name: string; grand_total?: number; posting_date?: string }[];
-  currency: string;
-  loading: boolean;
-  onOpen: (path: string) => void;
-}) {
-  if (loading) return <Loading />;
-  if (payments.length + creditNotes.length === 0) return <Empty label={t("inv.noLinked")} />;
-  return (
-    <>
-      {payments.map((p) => (
-        <div className="doc" key={p.name} onClick={() => onOpen(`/payments/${encodeURIComponent(p.name)}`)}>
-          <span className="ic" style={{ background: "var(--ok-bg)", color: "var(--ok)" }}>₵</span>
-          <span className="t"><b>{p.name}</b><span>{t("nav.payments")}</span></span>
-          <span className="r">{money(p.allocated)}<small>{currency}</small></span>
-        </div>
-      ))}
-      {creditNotes.map((c) => (
-        <div className="doc" key={c.name} onClick={() => onOpen(`/invoices/${encodeURIComponent(c.name)}`)}>
-          <span className="ic" style={{ background: "var(--bad-bg)", color: "var(--bad)" }}>↩</span>
-          <span className="t"><b>{c.name}</b><span>{t("inv.credit")}</span></span>
-          <span className="r">{money(c.grand_total)}<small>{date(c.posting_date)}</small></span>
-        </div>
-      ))}
-    </>
-  );
-}

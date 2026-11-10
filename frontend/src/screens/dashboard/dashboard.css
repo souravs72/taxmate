@@ -47,8 +47,8 @@
 }
 .dash-seg button[aria-pressed="true"]{
   background:var(--surface);
-  color:var(--brand);
-  box-shadow:0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.04);
+  color:var(--text);
+  box-shadow:0 1px 2px rgba(0,0,0,.06);
 }
 
 /* Grids place cards side by side; the global `.card + .card` stacking
@@ -57,34 +57,38 @@
 .od-body{display:flex; flex-direction:column; gap:16px; transition:opacity .15s}
 .od-busy{opacity:.6}
 
-/* ── Tile refinements ── */
-.odash .tile{
-  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+/* ── KPI strip (type, not icon tiles) ── */
+.od-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  background:var(--surface);
+  overflow:hidden;
 }
-.odash .tilebtn:hover .tile{
-  border-color:var(--border-2);
-  transform:translateY(-1px);
-  box-shadow:0 4px 14px rgba(15,23,42,.06);
+.od-kpi{
+  display:flex; flex-direction:column; align-items:flex-start; gap:4px;
+  min-width:0; min-height:44px; padding:14px 16px;
+  border:0; border-inline-end:1px solid var(--border);
+  background:transparent; color:inherit; font:inherit; text-align:start; cursor:pointer;
 }
-.odash .tile .foot{
-  margin-block-start:auto;
-  padding-block-start:10px;
-  padding-inline:0;
-  padding-block-end:0;
-  border-block-start:0;
-  font-size:11.5px;
-  color:var(--muted);
-  display:flex;
-  align-items:center;
-  gap:6px;
-  flex-wrap:wrap;
-}
+.od-kpi:last-child{border-inline-end:0}
+.od-kpi:hover{background:var(--hover)}
+.od-kpi:focus-visible{outline:2px solid var(--brand); outline-offset:-2px}
+.od-kpi-v{font-size:22px; font-weight:700; letter-spacing:-.03em; line-height:1.15; font-variant-numeric:tabular-nums}
+.od-kpi-f{font-size:12px; color:var(--muted); line-height:1.35}
+.odash .delta{font-weight:600}
+.odash .delta.up{color:var(--ok)}
+.odash .delta.down{color:var(--warn)}
+@media (max-width:1100px){.od-kpis{grid-template-columns:repeat(2,minmax(0,1fr))} .od-kpi:nth-child(2){border-inline-end:0} .od-kpi:nth-child(1),.od-kpi:nth-child(2){border-block-end:1px solid var(--border)}}
+@media (max-width:560px){.od-kpis{grid-template-columns:minmax(0,1fr)} .od-kpi{border-inline-end:0; border-block-end:1px solid var(--border)} .od-kpi:last-child{border-block-end:0}}
 
 /* ── Filters ── */
 .od-filters{display:flex; flex-wrap:wrap; align-items:center; gap:14px 22px; padding:10px 16px}
 .od-fgroup{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
 .od-push{margin-inline-start:auto}
-.od-flabel{font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--muted)}
+.od-flabel{font-size:12px; font-weight:500; color:var(--muted)}
+.od-chips{display:flex; gap:6px; align-items:center; flex-wrap:wrap; justify-content:flex-end}
 .od-plabel{font-size:12.5px; font-weight:500}
 .od-hint{margin:-8px 0 0; font-size:12px; color:var(--muted)}
 
@@ -115,7 +119,7 @@
   .od-hero{grid-template-columns:minmax(0,1fr)}
   /* Period-range chrome in card headers; keep action hints (View all). */
   .odash .card .chead .hint .od-muted{display:none}
-  .od-flabel{letter-spacing:0; text-transform:none; font-size:12px}
+  .od-flabel{font-size:12px}
 }
 .od-profit-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap}
 .od-side{display:flex; flex-direction:column; align-items:flex-end; gap:4px; text-align:end}
@@ -150,7 +154,8 @@
 @media (max-width:760px){.od-row-1-1{grid-template-columns:minmax(0,1fr)}}
 
 /* ── Charts ── */
-.tchart{display:block; height:auto; overflow:visible; max-width:100%; min-width:0}
+.tchart{display:block; height:auto; overflow:visible; max-width:100%; min-width:0; max-height:200px}
+.od-row-2-1 > :last-child .tchart{max-height:148px}
 .tchart-grid{stroke:var(--border); stroke-width:1}
 .tchart-zero{stroke:var(--border-2); stroke-width:1}
 .tchart-ax{fill:var(--muted); font-size:11px; font-family:var(--ui)}

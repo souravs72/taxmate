@@ -17,6 +17,10 @@ export type LayoutField = {
   options?: string | null;
   reqd?: number;
   read_only?: number;
+  depends_on?: string | null;
+  default?: string | null;
+  is_virtual?: number;
+  columns?: LayoutField[];
 };
 
 export type LayoutSection = {

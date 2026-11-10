@@ -8,6 +8,8 @@ User: Implement the plan as specified... Don't stop until you have completed all
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import frappe
 from frappe.tests.utils import FrappeTestCase
 
@@ -54,6 +56,69 @@ class TestFormLayout(FrappeTestCase):
 		self.assertEqual(out["tabs"][0]["id"], "__details")
 		self.assertTrue(len(out["tabs"][0]["fields"]) > 0)
 
+	def test_sales_invoice_items_table_exposes_list_view_columns(self):
+		out = form_layout.get("Sales Invoice")
+		items = None
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						if field.get("fieldname") == "items":
+							items = field
+		self.assertIsNotNone(items)
+		self.assertEqual(items["fieldtype"], "Table")
+		self.assertTrue(items.get("columns"))
+		names = [c["fieldname"] for c in items["columns"]]
+		self.assertIn("item_code", names)
+		self.assertTrue(all(c.get("label") and c.get("fieldtype") for c in items["columns"]))
+
+	def test_customer_fields_carry_depends_on_key(self):
+		out = form_layout.get("Customer")
+		by_name: dict[str, dict] = {}
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						by_name[field["fieldname"]] = field
+		self.assertIn("depends_on", by_name["customer_name"])
+		self.assertTrue(any(f.get("depends_on") for f in by_name.values()))
+
 	def test_refused_outside_catalog(self):
 		with self.assertRaises(frappe.PermissionError):
 			form_layout.get("DocType")
+
+	def test_read_permission_required(self):
+		with patch("frappe.has_permission", return_value=False) as hp:
+			with self.assertRaises(frappe.PermissionError):
+				form_layout.get("Customer")
+			hp.assert_any_call("Customer", "read")
+
+	def test_virtual_fields_flagged(self):
+		out = form_layout.get("Sales Invoice")
+		by_name: dict[str, dict] = {}
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						by_name[field["fieldname"]] = field
+		meta = frappe.get_meta("Sales Invoice")
+		self.assertTrue(
+			any(getattr(df, "is_virtual", 0) and not getattr(df, "hidden", 0) for df in meta.fields),
+			"Sales Invoice should have a visible virtual field to flag",
+		)
+		for df in meta.fields:
+			if not getattr(df, "is_virtual", 0) or getattr(df, "hidden", 0):
+				continue
+			if not df.fieldname or df.fieldtype in (
+				"Tab Break",
+				"Section Break",
+				"Column Break",
+				"Fold",
+				"Heading",
+				"HTML",
+				"Button",
+				"Image",
+			):
+				continue
+			self.assertIn(df.fieldname, by_name)
+			self.assertEqual(by_name[df.fieldname].get("is_virtual"), 1)

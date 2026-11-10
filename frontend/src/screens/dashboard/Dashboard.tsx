@@ -21,8 +21,7 @@ import { date, money } from "../../lib/format";
 import { getLocale } from "../../lib/i18n";
 import { t } from "../../i18n/strings";
 import { Card, Empty, ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
-import { SplitBar, Spark, TrendChart, whole } from "../../components/charts";
-import { useIsPhone } from "../../lib/useMedia";
+import { SplitBar, TrendChart, whole } from "../../components/charts";
 import AccountantDashboard from "./AccountantDashboard";
 import ClientsDashboard from "./ClientsDashboard";
 import { DashSwitch, useDashMode } from "./DashSwitch";
@@ -126,6 +125,20 @@ function daysText(days: number | null): string {
   return t("dash.dueIn").replace("{n}", String(days));
 }
 
+/** One line the owner can act on. Uses only figures already on the payload. */
+function ownerFinding(d: Payload, cur: string): string | null {
+  const vat = d.vat;
+  if (vat && vat.days != null && vat.days <= 14) {
+    if (vat.days < 0) return fill(t("dash.daysOverdue"), { n: -vat.days });
+    if (vat.days === 0) return t("dash.dueToday");
+    return fill(t("od.exec.vat"), { n: vat.days });
+  }
+  const overdue = d.ageing.receivable?.overdue ?? 0;
+  if (overdue > 0) return `${cur} ${whole(overdue)} · ${t("od.overdue")}`;
+  if (d.bills_due.length > 0) return t("od.billsDue");
+  return null;
+}
+
 /* ── Screen ──────────────────────────────────────────────────────────── */
 
 /** Home screen: the owner, the accountant, or the all-clients view (see DashSwitch). */
@@ -139,7 +152,6 @@ export default function Dashboard() {
 function OwnerDashboard() {
   const nav = useNavigate();
   const session = useSession();
-  const phone = useIsPhone();
   const [params, setParams] = useSearchParams();
 
   const period = (PERIODS.includes(params.get("period") as Period) ? params.get("period") : "month") as Period;
@@ -161,18 +173,15 @@ function OwnerDashboard() {
   );
   const d = res.data?.message;
   const cur = d?.currency || session.currency || "";
-  const firstName = (session.full_name || session.user || "").trim().split(/[\s@._-]/)[0];
-  /* Phone: date only — company is in the switcher. Desktop keeps company · date. */
-  const headSub = phone
-    ? date(session.today)
-    : session.company
-      ? `${session.company} · ${date(session.today)}`
-      : date(session.today);
+  const headTitle = d?.company || session.company || t("nav.dashboard");
+  const headSub = d
+    ? (ownerFinding(d, cur) || periodLabel(d.period))
+    : "\u00a0";
 
   return (
     <div className="odash">
       <PageHead
-        title={firstName ? `${t("dash.hello")}, ${firstName}` : t("nav.dashboard")}
+        title={headTitle}
         sub={headSub}
         /* The role switch changes what you are looking at, not what you are
            doing: on a phone it stays under the title instead of taking a whole
@@ -278,7 +287,6 @@ function Body({ d, view, cur, busy }: { d: Payload; view: View; cur: string; bus
 
       <div className="od-row od-row-1-1">
         <Card title={t("od.overdueInv")} hint={<button type="button" className="btn quiet sm" onClick={() => nav("/receivables")}>{t("dash.viewAll")}</button>}>
-          <p className="od-cardsub">{fill(t("od.overdueSub"), { v: `${cur} ${whole(d.ageing.receivable?.overdue)}` })}</p>
           {d.overdue_invoices.length === 0 ? <Empty label={t("od.noOverdue")} /> : d.overdue_invoices.map((r) => (
             <button type="button" key={r.name} className="qrow" onClick={() => nav(`/invoices/${encodeURIComponent(r.name)}`)}>
               <span>
@@ -293,7 +301,6 @@ function Body({ d, view, cur, busy }: { d: Payload; view: View; cur: string; bus
           ))}
         </Card>
         <Card title={t("od.billsDue")} hint={<button type="button" className="btn quiet sm" onClick={() => nav("/payables")}>{t("dash.viewAll")}</button>}>
-          <p className="od-cardsub">{t("od.billsSub")}</p>
           {d.bills_due.length === 0 ? <Empty label={t("od.noBills")} /> : d.bills_due.map((r) => (
             <button type="button" key={r.name} className="qrow" onClick={() => nav(`/purchase-invoices/${encodeURIComponent(r.name)}`)}>
               <span>
@@ -349,7 +356,7 @@ function ProfitCard({ d, view, cur }: { d: Payload; view: View; cur: string }) {
         </div>
         {view === "growth" && (
           <div className="od-side">
-            <div style={{ display: "flex", gap: "6px", alignItems: "center", flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <div className="od-chips">
               <span className={`od-chip ${dNp == null ? "" : dNp >= 0 ? "up" : "down"}`}>{deltaText(dNp)}</span>
               {p.revenue > 0 && <span className="od-chip">{pctText(nm)} {t("od.netMargin")}</span>}
             </div>
@@ -454,58 +461,43 @@ function FlowTiles({ d, view, cur }: { d: Payload; view: View; cur: string }) {
   const rev = f.invoiced?.value ?? 0;
   const gm = d.pnl && d.pnl.revenue ? ((d.pnl.revenue - d.pnl.cogs) / d.pnl.revenue) * 100 : null;
   const tiles: {
-    key: keyof Payload["flows"]; colour: string; tint: string; upGood: boolean; to: string; icon: string; ratio: number | null;
+    key: keyof Payload["flows"]; colour: string; upGood: boolean; to: string; ratio: number | null;
   }[] = [
-    { key: "invoiced", colour: C.rev,    tint: "rgba(37,99,235,.08)",   upGood: true,  to: "/invoices",              icon: '<path d="M4 2.5h7l3 3v10H4z"/><path d="M11 2.5v3h3M6.5 9.5h5M6.5 12.5h3.5"/>', ratio: gm },
-    { key: "bills",    colour: C.exp,    tint: "rgba(180,83,9,.08)",    upGood: false, to: "/purchase-invoices",      icon: '<path d="M3 10l1.5-6.5h9L15 10v5H3z"/><path d="M3 10h4l1 1.5h2l1-1.5h4"/>',      ratio: f.bills && rev ? (f.bills.value / rev) * 100 : null },
-    { key: "received", colour: C.cashIn, tint: "rgba(13,148,136,.08)",  upGood: true,  to: "/payments?type=Receive",  icon: '<path d="M9 3v8M6 8l3 3 3-3M4 15h10"/>',                                          ratio: f.received && rev ? (f.received.value / rev) * 100 : null },
-    { key: "paid",     colour: C.opex,   tint: "rgba(180,83,9,.07)",    upGood: false, to: "/payments?type=Pay",      icon: '<path d="M9 11V3M6 6l3-3 3 3M4 15h10"/>',                                          ratio: f.paid && f.bills?.value ? (f.paid.value / f.bills.value) * 100 : null },
+    { key: "invoiced", colour: C.rev,    upGood: true,  to: "/invoices",             ratio: gm },
+    { key: "bills",    colour: C.exp,    upGood: false, to: "/purchase-invoices",     ratio: f.bills && rev ? (f.bills.value / rev) * 100 : null },
+    { key: "received", colour: C.cashIn, upGood: true,  to: "/payments?type=Receive", ratio: f.received && rev ? (f.received.value / rev) * 100 : null },
+    { key: "paid",     colour: C.opex,   upGood: false, to: "/payments?type=Pay",     ratio: f.paid && f.bills?.value ? (f.paid.value / f.bills.value) * 100 : null },
   ];
 
   return (
-    <div className="tiles">
+    <div className="od-kpis">
       {tiles.map((tl) => {
         const flow = f[tl.key];
         const dlt = flow ? change(flow.value, flow.prev) : null;
         return (
-          <button key={tl.key} type="button" className="tilebtn" onClick={() => nav(tl.to)}>
-            <div className="tile" style={{ ["--tint" as string]: tl.tint }}>
-              <div className="row">
-                <span className="bdg" style={{ background: tl.colour }}>
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6"
-                    strokeLinecap="round" strokeLinejoin="round" dangerouslySetInnerHTML={{ __html: tl.icon }} />
-                </span>
-                <span style={{ minWidth: 0 }}>
-                  <span className="k">{t(`od.${tl.key}`)}</span>
-                  <div className="v"><small>{cur}</small> {flow ? whole(flow.value) : "—"}</div>
-                </span>
-                {view === "growth" && flow && <Spark values={flow.by_month} colour={tl.colour} />}
-              </div>
-              <div className="foot">
-                {!flow ? t("od.noAccess")
-                  : view === "growth" ? (
-                    <>
-                      {/* Only show delta when prev > 0; otherwise it would mislead (∞ %) */}
-                      {dlt != null && flow.prev > 0 && (
-                        <span className={`delta ${(dlt >= 0) === tl.upGood ? "up" : "down"}`}>{deltaText(dlt)}</span>
-                      )}
-                      {flow.prev > 0
-                        ? fill(t("od.vsPrev"), { v: `${cur} ${whole(flow.prev)}` })
-                        : <span className="od-muted">{t("od.noPrior")}</span>}
-                    </>
-                  ) : view === "report" ? (
-                    <>
-                      <b>{fill(t(`od.cnt.${tl.key}`), { n: flow.count })}</b>
-                      · {fill(t("od.prevWas"), { v: `${cur} ${whole(flow.prev)}` })}
-                    </>
-                  ) : (
-                    <span className="od-ratio">
-                      <span>{t(`od.r.${tl.key}`)} <b>{tl.ratio == null ? "—" : pctText(tl.ratio)}</b></span>
-                      <span className="od-meter"><i style={{ width: `${Math.max(0, Math.min(100, tl.ratio ?? 0))}%`, background: tl.colour }} /></span>
-                    </span>
-                  )}
-              </div>
-            </div>
+          <button key={tl.key} type="button" className="od-kpi" onClick={() => nav(tl.to)}>
+            <span className="od-k">{t(`od.${tl.key}`)}</span>
+            <span className="od-kpi-v"><span className="cur">{cur}</span>{flow ? whole(flow.value) : "—"}</span>
+            <span className="od-kpi-f">
+              {!flow ? t("od.noAccess")
+                : view === "growth" ? (
+                  flow.prev > 0
+                    ? <>
+                        {dlt != null && (
+                          <span className={`delta ${(dlt >= 0) === tl.upGood ? "up" : "down"}`}>{deltaText(dlt)}</span>
+                        )}
+                        {" "}{fill(t("od.vsPrev"), { v: `${cur} ${whole(flow.prev)}` })}
+                      </>
+                    : t("od.noPrior")
+                ) : view === "report" ? (
+                  <>{fill(t(`od.cnt.${tl.key}`), { n: flow.count })} · {fill(t("od.prevWas"), { v: `${cur} ${whole(flow.prev)}` })}</>
+                ) : (
+                  <span className="od-ratio">
+                    <span>{t(`od.r.${tl.key}`)} <b>{tl.ratio == null ? "—" : pctText(tl.ratio)}</b></span>
+                    <span className="od-meter"><i style={{ width: `${Math.max(0, Math.min(100, tl.ratio ?? 0))}%`, background: tl.colour }} /></span>
+                  </span>
+                )}
+            </span>
           </button>
         );
       })}
@@ -572,9 +564,9 @@ function PnlCard({ d, view, cur, months, highlight }: {
         </span>
       }
     >
-      <p className="od-cardsub">{t("od.chart.sub")}</p>
       <TrendChart
         ariaLabel={title}
+        height={168}
         categories={months}
         highlight={highlight}
         bars={[
@@ -606,11 +598,9 @@ function CashCard({ d, cur, months, highlight }: { d: Payload; cur: string; mont
         </span>
       }
     >
-      <p className="od-cardsub">{t("od.cashSub")}</p>
       <TrendChart
         ariaLabel={t("od.cash")}
-        width={360}
-        height={250}
+        height={136}
         categories={last6(months)}
         highlight={highlight.map((i) => i - 6).filter((i) => i >= 0)}
         bars={[
@@ -634,7 +624,6 @@ function AgeCard({ title, data, cur, link, onLink }: {
   const labels = [0, 1, 2, 3, 4].map((i) => t(`od.age.${i}`));
   return (
     <Card title={title} hint={<button type="button" className="btn quiet sm" onClick={onLink}>{link}</button>}>
-      <p className="od-cardsub">{t("od.ageSub")}</p>
       {!data ? <p className="od-note">{t("od.noAccess")}</p> : data.total === 0 ? <Empty label={t("od.none")} /> : (
         <div className="od-age">
           <div className="od-age-top">
@@ -668,7 +657,6 @@ function BudgetCard({ budget, cur }: { budget: NonNullable<Payload["budget"]>; c
       title={t("od.budget")}
       hint={tv == null ? undefined : <Pill cls={tv > 0 ? "p-warn" : "p-done"}>{varianceText(tv)}</Pill>}
     >
-      <p className="od-cardsub">{t("od.budgetSub")}</p>
       <div className="od-budget">
         {budget.rows.map((r) => {
           const v = change(r.actual, r.budget);

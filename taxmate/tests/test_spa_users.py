@@ -496,6 +496,30 @@ class TestSpaUsers(FrappeTestCase):
 			frappe.set_user("Administrator")
 			self._delete(created["name"])
 
+	def test_owner_plus_accountant_opens_books_and_clients(self):
+		"""Dual markers: require_spa_role uses any() so Owner+Accountant opens books."""
+		from taxmate.setup.spa_roles import apply_spa_roles, spa_roles_of
+
+		created = self._invite("owner")
+		try:
+			frappe.set_user("Administrator")
+			apply_spa_roles(created["name"], ["owner", "accountant"])
+			self.assertEqual(set(spa_roles_of(created["name"])), {"owner", "accountant"})
+			frappe.set_user(created["name"])
+			from taxmate.api.accountant_dashboard import get_accountant_dashboard
+			from taxmate.api.clients_dashboard import get_clients_dashboard
+			from taxmate.api.owner_dashboard import get_owner_dashboard
+
+			owner = get_owner_dashboard()
+			self.assertTrue(owner.get("company"))
+			books = get_accountant_dashboard()
+			self.assertTrue(books.get("company"))
+			clients = get_clients_dashboard()
+			self.assertGreaterEqual(clients.get("companies") or 0, 1)
+		finally:
+			frappe.set_user("Administrator")
+			self._delete(created["name"])
+
 	def test_accountant_maps_to_each_company_and_may_open_owner_dashboard(self):
 		names = frappe.get_all("Company", pluck="name", limit=2, order_by="name asc")
 		if len(names) < 2:
@@ -531,13 +555,19 @@ class TestSpaUsers(FrappeTestCase):
 			with self.assertRaises(frappe.PermissionError):
 				set_user_role(user=created["name"], spa_role="owner")
 			frappe.set_user(created["name"])
+			from taxmate.api.accountant_dashboard import get_accountant_dashboard
+			from taxmate.api.clients_dashboard import get_clients_dashboard
 			from taxmate.api.owner_dashboard import get_owner_dashboard
 			from taxmate.utils.company import get_default_company, set_active_company
 
 			set_active_company(first)
-			# Accountant may load the owner KPI dashboard for a mapped company.
+			# A CA opens this company's books, its filing queues, and the portfolio.
 			data = get_owner_dashboard(company=get_default_company())
 			self.assertEqual(data.get("company") or get_default_company(), first)
+			books = get_accountant_dashboard(company=get_default_company())
+			self.assertEqual(books.get("company") or get_default_company(), first)
+			clients = get_clients_dashboard()
+			self.assertGreaterEqual(clients.get("companies") or 0, 2)
 		finally:
 			frappe.set_user("Administrator")
 			self._delete(created["name"])
