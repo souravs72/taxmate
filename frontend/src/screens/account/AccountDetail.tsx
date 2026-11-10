@@ -5,7 +5,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -69,17 +69,6 @@ export default function AccountDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.account} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("coa.company")} v={data.company || "—"} />
-          <ReadRow k={t("coa.parent")} v={data.parent_account || "—"} />
-          <ReadRow k={t("coa.root")} v={tStatus(data.root_type)} />
-          <ReadRow k={t("coa.report")} v={data.report_type || "—"} />
-          <ReadRow k={t("coa.type")} v={data.account_type || "—"} />
-          <ReadRow k={t("coa.currency")} v={data.account_currency || "—"} />
-          <ReadRow k={t("coa.number")} v={data.account_number || "—"} />
-        </div>
-      </Card>
       </DocTabShell>
     </>
   );

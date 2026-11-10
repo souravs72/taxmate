@@ -14,12 +14,10 @@ import { DT, METHOD } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
-import { date, money, qty } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
-import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 
 type Line = { item_code?: string; qty?: number; rate?: number; amount?: number };
@@ -109,39 +107,9 @@ export default function PosInvoiceDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.posInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
-      {(submitCall.error || cancelCall.error || amendCall.error || deleteAction.error) && (
+        {(submitCall.error || cancelCall.error || amendCall.error || deleteAction.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || deleteAction.error} />
       )}
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("pos.col.customer")} v={data.customer || t("pos.walkIn")} />
-          <ReadRow k={t("pos.col.date")} v={date(data.posting_date)} />
-          <ReadRow k={t("pos.col.profile")} v={data.pos_profile || "—"} />
-          <ReadRow k={t("pos.col.emirate")} v={data.vat_emirate || "—"} />
-          <ReadRow k={t("pos.col.total")} v={money(data.grand_total)} />
-        </div>
-      </Card>
-      <Card title={t("pos.col.items")}>
-        <LineItems<Line>
-          rows={data.items ?? []}
-          collapse={false}
-          fields={[
-            { key: "item", label: t("pos.col.items"), slot: "title", render: (r) => <>{r.item_code || "—"}</> },
-            { key: "qty", label: t("bom.col.qty"), slot: "primary", numeric: true, render: (r) => <>{qty(r.qty)}</> },
-            { key: "rate", label: t("pos.col.amount"), numeric: true, render: (r) => <>{money(r.rate)}</> },
-          ] as LineField<Line>[]}
-        />
-      </Card>
-      <Card title={t("pos.col.payments")}>
-        <LineItems<Payment>
-          rows={data.payments ?? []}
-          collapse={false}
-          fields={[
-            { key: "mop", label: t("pos.col.mop"), slot: "title", render: (r) => <>{r.mode_of_payment || "—"}</> },
-            { key: "amount", label: t("pos.col.amount"), slot: "primary", numeric: true, render: (r) => <>{money(r.amount)}</> },
-          ] as LineField<Payment>[]}
-        />
-      </Card>
       </DocTabShell>
     </>
   );

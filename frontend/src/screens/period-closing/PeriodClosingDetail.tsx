@@ -10,9 +10,8 @@ import { METHOD } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
-import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -85,25 +84,9 @@ export default function PeriodClosingDetail() {
       </PageHead>
 
       <DocTabShell doctype={"Period Closing Voucher"} name={name} doc={data as unknown as Record<string, unknown>}>
-      {(submitCall.error || cancelCall.error || amendCall.error) && (
+        {(submitCall.error || cancelCall.error || amendCall.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error} />
       )}
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("pcv.col.date")} v={date(data.transaction_date)} />
-          <ReadRow k={t("pcv.col.fiscalYear")} v={data.fiscal_year || "—"} />
-          <ReadRow
-            k={t("pcv.col.period")}
-            v={
-              data.period_start_date && data.period_end_date
-                ? `${date(data.period_start_date)} – ${date(data.period_end_date)}`
-                : "—"
-            }
-          />
-          <ReadRow k={t("pcv.col.account")} v={data.closing_account_head || "—"} />
-          {data.remarks && <ReadRow k={t("je.col.remark")} v={data.remarks} />}
-        </div>
-      </Card>
       </DocTabShell>
     </>
   );

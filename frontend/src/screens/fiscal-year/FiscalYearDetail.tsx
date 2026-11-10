@@ -7,9 +7,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useDoc } from "../../lib/resource";
-import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -52,21 +51,6 @@ export default function FiscalYearDetail() {
       </PageHead>
 
       <DocTabShell doctype={"Fiscal Year"} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("fy.col.start")} v={date(data.year_start_date)} />
-          <ReadRow k={t("fy.col.end")} v={date(data.year_end_date)} />
-        </div>
-      </Card>
-      {(data.companies ?? []).length > 0 && (
-        <Card title={t("fy.companies")}>
-          <div className="fg">
-            {(data.companies ?? []).map((c, i) => (
-              <ReadRow key={i} k={t("coa.company")} v={c.company || "—"} />
-            ))}
-          </div>
-        </Card>
-      )}
       </DocTabShell>
     </>
   );

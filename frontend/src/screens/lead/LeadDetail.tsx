@@ -12,7 +12,7 @@ import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import { CreateMenu } from "../../components/ActionMenu";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
@@ -111,15 +111,7 @@ export default function LeadDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.lead} name={name} doc={data as unknown as Record<string, unknown>}>
-      {(actionError || opportunity.error) ? <ErrorBox error={actionError || opportunity.error} /> : null}
-      <Card>
-        <div className="fg">
-          {data.company_name ? <ReadRow k={t("lead.col.company")} v={data.company_name} /> : null}
-          {data.email_id ? <ReadRow k={t("lead.col.email")} v={data.email_id} /> : null}
-          {data.mobile_no ? <ReadRow k={t("lead.col.mobile")} v={data.mobile_no} /> : null}
-          {data.city ? <ReadRow k={t("lead.col.city")} v={`${data.city}${data.country ? `, ${data.country}` : ""}`} /> : null}
-        </div>
-      </Card>
+        {(actionError || opportunity.error) ? <ErrorBox error={actionError || opportunity.error} /> : null}
       </DocTabShell>
     </>
   );

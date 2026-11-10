@@ -8,7 +8,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
-import { Card, Loading, ErrorBox, PageHead } from "../../components/ui";
+import { Loading, ErrorBox, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -59,30 +59,6 @@ export default function PricingRuleDetail() {
       />
 
       <DocTabShell doctype={DT.pricingRule} name={name} doc={d as unknown as Record<string, unknown>}>
-      <Card num={1} title={t("prule.details")}>
-        <div className="fields">
-          <label>{t("prule.applyOn")}<span>{d.apply_on ?? ""}</span></label>
-          {d.items?.[0]?.item_code && <label>{t("prule.itemCode")}<span>{d.items[0].item_code}</span></label>}
-          {d.item_groups?.[0]?.item_group && <label>{t("prule.itemGroup")}<span>{d.item_groups[0].item_group}</span></label>}
-          {d.brands?.[0]?.brand && <label>{t("prule.brand")}<span>{d.brands[0].brand}</span></label>}
-          {d.customer && <label>{t("prule.customer")}<span>{d.customer}</span></label>}
-          <label>{t("prule.minQty")}<span>{d.min_qty ?? 0}</span></label>
-          <label>{t("prule.rateOrDiscount")}<span>{d.rate_or_discount ?? ""}</span></label>
-          {d.rate_or_discount === "Discount Percentage" && (
-            <label>{t("prule.discountPct")}<span>{d.discount_percentage ?? 0}%</span></label>
-          )}
-          {d.rate_or_discount === "Discount Amount" && (
-            <label>{t("prule.discountAmt")}<span>{d.discount_amount ?? 0}</span></label>
-          )}
-          {d.rate_or_discount === "Rate" && (
-            <label>{t("prule.rate")}<span>{d.rate ?? 0}</span></label>
-          )}
-          <label>{t("prule.validFrom")}<span>{d.valid_from ?? ""}</span></label>
-          <label>{t("prule.validUpto")}<span>{d.valid_upto ?? ""}</span></label>
-          <label>{t("prule.priority")}<span>{d.priority ?? 0}</span></label>
-          <label>{t("prule.col.active")}<span>{d.disable ? t("prule.disabled") : t("prule.enabled")}</span></label>
-        </div>
-      </Card>
       </DocTabShell>
     </>
   );

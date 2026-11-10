@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -57,23 +57,6 @@ export default function ContactDetail() {
       </PageHead>
 
       <DocTabShell doctype={"Contact"} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          {data.gender ? <ReadRow k={t("cnt.col.gender")} v={data.gender} /> : null}
-          {data.email_id ? <ReadRow k={t("cnt.col.email")} v={data.email_id} /> : null}
-          {data.phone ? <ReadRow k={t("cnt.col.phone")} v={data.phone} /> : null}
-          {data.mobile_no ? <ReadRow k={t("cnt.col.mobile")} v={data.mobile_no} /> : null}
-        </div>
-      </Card>
-      {(data.links ?? []).length > 0 && (
-        <Card title={t("addr.links")}>
-          <div className="fg">
-            {(data.links ?? []).map((l, i) => (
-              <ReadRow key={i} k={l.link_doctype || ""} v={l.link_name || "—"} />
-            ))}
-          </div>
-        </Card>
-      )}
       </DocTabShell>
     </>
   );

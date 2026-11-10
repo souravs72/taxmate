@@ -5,9 +5,8 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
-import { date } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -43,20 +42,6 @@ export default function LateFilingDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.lateFiling} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("coa.company")} v={data.company || "—"} />
-          <ReadRow k={t("lf.col.obligation")} v={data.obligation || "—"} />
-          <ReadRow k={t("lf.col.source")} v={data.source_name ? `${data.source_doctype || ""} ${data.source_name}` : "—"} />
-          <ReadRow k={t("v201.col.due")} v={date(data.due_date)} />
-          <ReadRow k={t("lf.col.days")} v={String(data.days_late ?? 0)} />
-        </div>
-        {data.guidance ? (
-          <div>
-            <ReadRow k={t("lf.guidance")} v={data.guidance} />
-          </div>
-        ) : null}
-      </Card>
       </DocTabShell>
     </>
   );

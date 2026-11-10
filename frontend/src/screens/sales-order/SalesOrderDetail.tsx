@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
-  useFrappeGetCall, useFrappePostCall,
+  useFrappePostCall,
 } from "frappe-react-sdk";
 
 import type { SalesOrder, SalesOrderItem } from "../../types/erpnext";
@@ -10,18 +10,16 @@ import { useOpenMapped } from "../../lib/openMapped";
 import { useDoc, useInsert } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
-import { date, money, pct, qty } from "../../lib/format";
+import { date, money, pct } from "../../lib/format";
 import { SO_PILL_CLASS, isLate, toUiStatus } from "../../lib/status";
 import { t } from "../../i18n/strings";
 import { TxnTotals } from "../../components/txnFields";
 import { productDiscountTotal, readDiscountBasis } from "../../lib/txn";
-import { Card, ErrorBox, Loading, MiniBar, PageHead, Pill, ReadRow, SumRow } from "../../components/ui";
-import { FormLayout } from "../../components/form";
+import { Card, ErrorBox, Loading, PageHead, Pill, SumRow } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
 import UpdateItems from "../../components/UpdateItems";
 import LinkField from "../../components/LinkField";
-import LineItems, { type LineField } from "../../components/LineItems";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
 import { PrintLangButtons } from "../../components/PrintLangButtons";
 import { isNative } from "../../mobile/platform";
@@ -44,11 +42,6 @@ export default function SalesOrderDetail() {
      refused by has_child_permission (frappe/permissions.py:837) — it came
      back 403 and the panel rendered empty, which reads as "none". The server
      method filters the parent doctypes instead.                          */
-  const links = useFrappeGetCall<{ message: { delivery_notes: string[]; sales_invoices: string[] } }>(
-    METHOD.salesOrderLinks,
-    { sales_order: name },
-    name ? `so-links-${name}` : null,
-  );
 
   /* Both mappers return an UNSAVED document — verified in ERPNext v16
      (sales_order.py:1356, :1172). Mapping alone leaves nothing behind, so
@@ -209,10 +202,6 @@ export default function SalesOrderDetail() {
   const grand = data.grand_total ?? 0;
   const advance = data.advance_paid ?? 0;
 
-  const linked: { name: string; kind: "dn" | "si" }[] = [
-    ...(links.data?.message?.delivery_notes ?? []).map((n) => ({ name: n, kind: "dn" as const })),
-    ...(links.data?.message?.sales_invoices ?? []).map((n) => ({ name: n, kind: "si" as const })),
-  ];
 
   return (
     <>
@@ -355,192 +344,69 @@ export default function SalesOrderDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell editDetails doctype={DT.salesOrder} name={name} doc={data as unknown as Record<string, unknown>}>
-
-      {(mapError || statusError || makeDn.error || makeSi.error || paymentRequest.error || inward.error) && (
-        <ErrorBox error={submitCall.error ?? cancelCall.error ?? amendCall.error ?? statusError ?? mapError ?? makeDn.error ?? makeSi.error ?? paymentRequest.error ?? inward.error} />
-      )}
-
-      <Card bodyClass="steps">
-        <Step colour="var(--c-draft)" mark="✓" name={t("stage.draft")} value={date(data.transaction_date)} pctv={100} />
-        <Step colour="var(--c-confirmed)" mark={data.docstatus === 1 ? "✓" : "○"} name={t("stage.confirmed")}
-          value={data.docstatus === 1 ? date(data.transaction_date) : "—"} pctv={data.docstatus === 1 ? 100 : 0} />
-        <Step colour="var(--c-delivered)" mark="◐" name={t("stage.delivered")}
-          value={pct(data.per_delivered)} pctv={data.per_delivered ?? 0} />
-        <Step colour="var(--c-billed)" mark="◔" name={t("stage.billed")}
-          value={pct(data.per_billed)} pctv={data.per_billed ?? 0} />
-      </Card>
-
-      <FormLayout aside={
-        <>
-          <Card bodyClass="cbody">
-            <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("sod.value")}</h2>
-            <TxnTotals
-              currency={data.currency || session.currency || "AED"}
-              itemsTotal={data.total}
-              productDiscount={productDiscountTotal(data.items ?? [])}
-              orderDiscount={data.discount_amount}
-              orderDiscountPercent={data.additional_discount_percentage}
-              discountOn={readDiscountBasis(data.apply_discount_on, Number(data.discount_amount) > 0)}
-              net={net}
-              vat={vat}
-              grand={grand}
-              roundingAdjustment={data.rounding_adjustment}
-              roundedTotal={data.rounded_total}
-              netLabel={t("sod.net")}
-              vatLabel={t("sod.vat")}
-              grandLabel={t("sod.grand")}
-            />
-            {advance > 0 && <SumRow k={t("sod.advance")} v={money(advance)} cls="rule" currency={data.currency || session.currency || "AED"} />}
-          </Card>
-
-          <Card title={t("sod.linked")} bodyClass="cbody">
-            {links.error ? (
-              <ErrorBox error={links.error} onRetry={() => links.mutate()} />
-            ) : links.isLoading ? (
-              <Loading />
-            ) : linked.length === 0 ? (
-              <span style={{ fontSize: 12.5, color: "var(--faint)" }}>—</span>
-            ) : (
-              linked.map((p) => (
-                <div key={p.name} className="mono" style={{ fontSize: 12 }}>
-                  {p.kind === "si" ? (
-                    <button type="button" className="btn quiet"
-                       onClick={() => nav(`/invoices/${encodeURIComponent(p.name)}`)}>{p.name}</button>
-                  ) : (
-                    <button type="button" className="btn quiet"
-                       onClick={() => nav(`/delivery-notes/${encodeURIComponent(p.name)}`)}>{p.name}</button>
-                  )}
-                </div>
-              ))
-            )}
-          </Card>
-        </>
-      }>
-          <Card title={t("sod.details")}>
-            <div className="fg">
-              <ReadRow k={t("f.customer")} v={data.customer_name || data.customer} link />
-              <ReadRow k={t("f.customerTrn")} v={<span className="mono">{data.tax_id || "—"}</span>} />
-              <ReadRow k={t("f.address")} v={data.customer_address || "—"} />
-              <ReadRow k={t("f.orderDate")} v={date(data.transaction_date)} />
-              <ReadRow k={t("f.deliveryDate")} v={date(data.delivery_date)} />
-              <ReadRow k={t("f.paymentTerms")} v={data.payment_terms_template || "—"} />
-              <ReadRow k={t("f.taxTemplate")} v={data.taxes_and_charges || "—"} />
-              <ReadRow k={t("f.emirate")} v={(data as unknown as Record<string, string>).vat_emirate || "—"} />
-              <ReadRow k={t("f.priceList")} v={data.selling_price_list || "—"} />
-            </div>
-          </Card>
-
-          {/* bodyClass={null}: LineItems renders its own `.twrap`, so the card
-              must not render a second one. Read-only — the order is edited on
-              its form — and collapse={false} so delivery progress and the
-              remaining quantity stay on the card, which is most of why anyone
-              opens this screen on a phone. */}
-          {woRows && (
-            <Card title={t("nav.workOrders")}>
-              {woRows.map((row, index) => (
-                <div key={row.sales_order_item || index} className="grid3" style={{ marginBottom: 8 }}>
-                  <label className="ctl">
-                    <input type="checkbox" checked={!!row.selected} aria-label={row.item_code || "Item"}
-                      onChange={(event) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, selected: event.target.checked } : item))} />
-                    {" "}{row.item_code}
-                  </label>
-                  <LinkField doctype="BOM" value={row.bom || ""} filters={row.item_code ? [["item", "=", row.item_code], ["is_active", "=", 1]] : undefined}
-                    onChange={(bom) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, bom } : item))} />
-                  <input className="ctl" type="number" aria-label={t("common.quantity")} value={row.pending_qty ?? ""}
-                    onChange={(event) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, pending_qty: Number(event.target.value) } : item))} />
-                </div>
-              ))}
-              <button type="button" className="btn" disabled={!!busy} onClick={() => void confirmWorkOrders()}>{t("soc.save")}</button>
-              <button type="button" className="btn ghost" onClick={() => setWoRows(null)}>{t("soc.discard")}</button>
+      <DocTabShell
+        doctype={DT.salesOrder}
+        name={name}
+        doc={data as unknown as Record<string, unknown>}
+        extras={
+          <>
+            <Card bodyClass="steps">
+              <Step colour="var(--c-draft)" mark="✓" name={t("stage.draft")} value={date(data.transaction_date)} pctv={100} />
+              <Step colour="var(--c-confirmed)" mark={data.docstatus === 1 ? "✓" : "○"} name={t("stage.confirmed")}
+                value={data.docstatus === 1 ? date(data.transaction_date) : "—"} pctv={data.docstatus === 1 ? 100 : 0} />
+              <Step colour="var(--c-delivered)" mark="◐" name={t("stage.delivered")}
+                value={pct(data.per_delivered)} pctv={data.per_delivered ?? 0} />
+              <Step colour="var(--c-billed)" mark="◔" name={t("stage.billed")}
+                value={pct(data.per_billed)} pctv={data.per_billed ?? 0} />
             </Card>
-          )}
-          {canUpdate && (
-            <UpdateItems doctype={DT.salesOrder} name={name} items={lines} onSaved={() => void mutate()} />
-          )}
-          <Card title={t("sod.items")} bodyClass={null}>
-            <LineItems<SalesOrderItem>
-              rows={data.items ?? []}
-              showIndex
-              collapse={false}
-              fields={[
-                {
-                  key: "item", label: t("soc.pickItem"), slot: "title",
-                  render: (l) => (
-                    <>
-                      <div className="icode">{l.item_code}</div>
-                      <div className="iname">{l.item_name}</div>
-                      {(l.hs_code || l.sac_code) && (
-                        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2 }}>
-                          {l.hs_code ? `HS ${l.hs_code}` : ""}
-                          {l.hs_code && l.sac_code ? " · " : ""}
-                          {l.sac_code ? `SAC ${l.sac_code}` : ""}
-                        </div>
-                      )}
-                    </>
-                  ),
-                },
-                {
-                  key: "qty", label: t("sod.col.qty"), slot: "primary", numeric: true,
-                  render: (l) => <>{qty(l.qty ?? 0)}<div style={{ fontSize: 11, color: "var(--faint)" }}>{l.uom}</div></>,
-                },
-                {
-                  key: "rate", label: t("sod.col.rate"), numeric: true,
-                  render: (l) => <><span className="cur">{data.currency || session.currency || "AED"}</span> {money(l.rate)}</>,
-                },
-                {
-                  key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
-                  td: { fontWeight: 600 },
-                  render: (l) => <><span className="cur">{data.currency || session.currency || "AED"}</span> {money(l.amount)}</>,
-                },
-                {
-                  key: "delivered", label: t("so.bar.delivered"),
-                  render: (l) => {
-                    const delivered = l.delivered_qty ?? 0;
-                    const ordered = l.qty ?? 0;
-                    const p = ordered ? (delivered / ordered) * 100 : 0;
-                    return (
-                      <div className="prog">
-                        <div className="row1">
-                          <span className="a">{pct(p)}</span>
-                          <span className="b">{qty(delivered)} / {qty(ordered)}</span>
-                        </div>
-                        <MiniBar value={p} colour="var(--c-delivered)" />
-                      </div>
-                    );
-                  },
-                },
-                {
-                  /* The only cell whose class varied per row (`rem zero` when
-                     nothing is left, `rem open` otherwise). `tdClass` is one
-                     static string, so the pair moves onto a span inside the
-                     cell: `.rem.zero` / `.rem.open` are colour and weight
-                     only, so they read the same there — and, unlike a
-                     `tdClass`, they now also apply on a phone card. */
-                  key: "remaining", label: t("sod.col.remaining"), numeric: true,
-                  render: (l) => {
-                    const remaining = Math.max(0, (l.qty ?? 0) - (l.delivered_qty ?? 0));
-                    return (
-                      <span className={`rem ${remaining === 0 ? "zero" : "open"}`}>
-                        {remaining === 0 ? "—" : `${qty(remaining)} ${l.uom ?? ""}`}
-                      </span>
-                    );
-                  },
-                },
-              ] as LineField<SalesOrderItem>[]}
-              /* The net total the table carried in its <tfoot>: 4 + 1 + 2 = the
-                 seven columns the index column makes. */
-              footer={
-                <tr>
-                  <td colSpan={4} className="n">{t("sod.net")}</td>
-                  <td className="n">{money(net)}</td>
-                  <td colSpan={2} />
-                </tr>
-              }
-              footerCard={<><span>{t("sod.net")}</span><span>{money(net)}</span></>}
-            />
-          </Card>
-      </FormLayout>
+            <Card bodyClass="cbody">
+              <h2 style={{ margin: "0 0 13px", fontSize: 13.5, fontWeight: 600 }}>{t("sod.value")}</h2>
+              <TxnTotals
+                currency={data.currency || session.currency || "AED"}
+                itemsTotal={data.total}
+                productDiscount={productDiscountTotal(data.items ?? [])}
+                orderDiscount={data.discount_amount}
+                orderDiscountPercent={data.additional_discount_percentage}
+                discountOn={readDiscountBasis(data.apply_discount_on, Number(data.discount_amount) > 0)}
+                net={net}
+                vat={vat}
+                grand={grand}
+                roundingAdjustment={data.rounding_adjustment}
+                roundedTotal={data.rounded_total}
+                netLabel={t("sod.net")}
+                vatLabel={t("sod.vat")}
+                grandLabel={t("sod.grand")}
+              />
+              {advance > 0 && <SumRow k={t("sod.advance")} v={money(advance)} cls="rule" currency={data.currency || session.currency || "AED"} />}
+            </Card>
+            {woRows && (
+              <Card title={t("nav.workOrders")}>
+                {woRows.map((row, index) => (
+                  <div key={row.sales_order_item || index} className="grid3" style={{ marginBottom: 8 }}>
+                    <label className="ctl">
+                      <input type="checkbox" checked={!!row.selected} aria-label={row.item_code || "Item"}
+                        onChange={(event) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, selected: event.target.checked } : item))} />
+                      {" "}{row.item_code}
+                    </label>
+                    <LinkField doctype="BOM" value={row.bom || ""} filters={row.item_code ? [["item", "=", row.item_code], ["is_active", "=", 1]] : undefined}
+                      onChange={(bom) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, bom } : item))} />
+                    <input className="ctl" type="number" aria-label={t("common.quantity")} value={row.pending_qty ?? ""}
+                      onChange={(event) => setWoRows((current) => (current ?? []).map((item, i) => i === index ? { ...item, pending_qty: Number(event.target.value) } : item))} />
+                  </div>
+                ))}
+                <button type="button" className="btn" disabled={!!busy} onClick={() => void confirmWorkOrders()}>{t("soc.save")}</button>
+                <button type="button" className="btn ghost" onClick={() => setWoRows(null)}>{t("soc.discard")}</button>
+              </Card>
+            )}
+            {canUpdate && (
+              <UpdateItems doctype={DT.salesOrder} name={name} items={lines} onSaved={() => void mutate()} />
+            )}
+          </>
+        }
+      >
+        {(mapError || statusError || makeDn.error || makeSi.error || paymentRequest.error || inward.error || submitCall.error || cancelCall.error || amendCall.error) && (
+          <ErrorBox error={submitCall.error ?? cancelCall.error ?? amendCall.error ?? statusError ?? mapError ?? makeDn.error ?? makeSi.error ?? paymentRequest.error ?? inward.error} />
+        )}
       </DocTabShell>
     </>
   );

@@ -11,10 +11,9 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t, tStatus } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
-import LineItems, { type LineField } from "../../components/LineItems";
 
 type MoPAccount = { company?: string; default_account?: string };
 
@@ -71,35 +70,6 @@ export default function ModeOfPaymentDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.modeOfPayment} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("mop.col.type")} v={data.type ? tStatus(data.type) : "—"} />
-          <ReadRow k={t("mop.col.enabled")} v={data.enabled ? t("yes") : t("no")} />
-        </div>
-      </Card>
-      <Card title={t("mop.accounts")}>
-        {(data.accounts ?? []).length === 0 ? (
-          <p className="sub">{t("mop.accountsHint")}</p>
-        ) : (
-          /* Read-only: the company's default account, nothing to add or
-             remove here. collapse={false} so both fields show on the card —
-             a two-field row has nothing worth hiding behind "More". */
-          <LineItems<MoPAccount>
-            rows={data.accounts ?? []}
-            collapse={false}
-            fields={[
-              {
-                key: "company", label: t("mop.col.company"), slot: "title",
-                render: (row) => row.company || "—",
-              },
-              {
-                key: "account", label: t("mop.col.defaultAccount"), tdClass: "ordno",
-                render: (row) => row.default_account || "—",
-              },
-            ] as LineField<MoPAccount>[]}
-          />
-        )}
-      </Card>
       </DocTabShell>
     </>
   );

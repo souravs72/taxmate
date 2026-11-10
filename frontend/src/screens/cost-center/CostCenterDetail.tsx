@@ -8,7 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -51,14 +51,6 @@ export default function CostCenterDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.costCenter} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("cc.col.name")} v={data.cost_center_name || data.name} />
-          <ReadRow k={t("cc.col.company")} v={data.company || "—"} />
-          <ReadRow k={t("cc.col.parent")} v={data.parent_cost_center || "—"} />
-          <ReadRow k={t("cc.col.isGroup")} v={data.is_group ? t("yes") : t("no")} />
-        </div>
-      </Card>
       </DocTabShell>
     </>
   );

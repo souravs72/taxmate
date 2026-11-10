@@ -1,9 +1,11 @@
 /**
  * Desk form shell: sticky tabs + form page for every sidebar DocType.
- * Callers: SalesOrderDetail and other detail/form screens.
+ * Callers: detail/form screens across the SPA rail.
  * API: useDocLayout + DeskTabPanel + ConnectionsPanel.
- * View uses Desk layout. onChange edits the same layout. editDetails is the
- * legacy custom Details body until that screen is converted.
+ *
+ * Default Details body is the Desk layout. `extras` / `after` are dashboard strips.
+ * `editDetails` screens still pass their custom form as children (legacy until converted).
+ * Without editDetails, children are alerts only (ErrorBox).
  */
 import type { ReactNode } from "react";
 
@@ -19,6 +21,7 @@ type Props = {
   doc?: Record<string, unknown> | null;
   extras?: ReactNode;
   after?: ReactNode;
+  /** Legacy custom Details body (children or details). */
   editDetails?: boolean;
   details?: ReactNode;
   children?: any;
@@ -40,35 +43,26 @@ export default function DocTabShell({
 }: Props) {
   const { tabs, active, setActive, activeTab, isConnections, isDetails, isLoading } =
     useDocLayout(doctype);
-  const formBody = details ?? children;
-  const legacyCustom = editDetails && isDetails && formBody != null && !onChange;
+  const legacyBody = details ?? (editDetails ? children : null);
+  const legacyCustom = editDetails && isDetails && legacyBody != null && !onChange;
+  const alerts = !editDetails ? children : null;
 
   if (isLoading && !tabs.length) return <Loading />;
-
-  const notice = formBody && !editDetails && !legacyCustom ? (
-    <div className="tm-form-extras">{formBody}</div>
-  ) : null;
 
   return (
     <div className="tm-form std-form-layout">
       <DocTabs tabs={tabs} active={active} onChange={setActive} />
       <div className="tm-form-tab-content">
+        {alerts ? <div className="tm-form-alerts">{alerts}</div> : null}
         {isConnections ? (
-          <>
-            {notice}
-            <ConnectionsPanel doctype={doctype} name={name} />
-          </>
+          <ConnectionsPanel doctype={doctype} name={name} />
         ) : legacyCustom ? (
-          <>
-            {extras}
-            <div className="tm-form-edit-body">{formBody}</div>
-          </>
+          <div className="tm-form-edit-body">{legacyBody}</div>
         ) : activeTab ? (
           <>
-            {extras && isDetails ? <div className="tm-form-extras">{extras}</div> : null}
-            {notice}
+            {extras && isDetails ? <div className="tm-form-dashboard">{extras}</div> : null}
             <DeskTabPanel tab={activeTab} doc={doc} onChange={onChange} disabled={disabled} />
-            {after && isDetails ? <div className="tm-form-extras">{after}</div> : null}
+            {after && isDetails ? <div className="tm-form-dashboard after">{after}</div> : null}
           </>
         ) : null}
       </div>

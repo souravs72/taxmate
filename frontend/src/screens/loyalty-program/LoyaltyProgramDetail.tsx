@@ -11,9 +11,8 @@ import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
-import { date } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -58,16 +57,6 @@ export default function LoyaltyProgramDetail() {
       />
 
       <DocTabShell doctype={DT.loyaltyProgram} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card title={t("lp.title")}>
-        <ReadRow k={t("lp.col.type")} v={data.loyalty_program_type || "—"} />
-        <ReadRow k={t("lp.col.company")} v={data.company || "—"} />
-        <ReadRow k={t("lp.col.from")} v={date(data.from_date)} />
-        <ReadRow k={t("lp.col.to")} v={date(data.to_date)} />
-        <ReadRow k={t("lp.col.convFactor")} v={String(data.conversion_factor ?? 1)} />
-        {(data.expiry_duration ?? 0) > 0 && (
-          <ReadRow k={t("lp.col.expiry")} v={t("lp.expiryDays").replace("{n}", String(data.expiry_duration))} />
-        )}
-      </Card>
       </DocTabShell>
     </>
   );
