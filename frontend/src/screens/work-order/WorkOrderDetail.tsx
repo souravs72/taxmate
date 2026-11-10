@@ -12,9 +12,8 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { confirmCancel } from "../../lib/workflow";
-import { date } from "../../lib/format";
 import { t, tStatus } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -108,17 +107,7 @@ export default function WorkOrderDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.workOrder} name={name} doc={data as unknown as Record<string, unknown>}>
-      {actionError ? <ErrorBox error={actionError} /> : null}
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("wo.col.bom")} v={data.bom_no || "—"} />
-          <ReadRow k={t("wo.col.item")} v={data.item_name || "—"} />
-          <ReadRow k={t("wo.col.qty")} v={`${data.produced_qty ?? 0} / ${data.qty ?? 0}`} />
-          <ReadRow k={t("wo.col.start")} v={date(data.planned_start_date)} />
-          {data.wip_warehouse ? <ReadRow k={t("wo.col.wip")} v={data.wip_warehouse} /> : null}
-          {data.fg_warehouse ? <ReadRow k={t("wo.col.fg")} v={data.fg_warehouse} /> : null}
-        </div>
-      </Card>
+        {actionError ? <ErrorBox error={actionError} /> : null}
       </DocTabShell>
     </>
   );

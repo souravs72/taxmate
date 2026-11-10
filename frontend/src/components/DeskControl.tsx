@@ -89,7 +89,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
           <div className="tm-control-html" dangerouslySetInnerHTML={{ __html: html }} />
         ) : (
           <div className={`tm-control-value${isText ? " multiline" : ""}${!value ? " empty" : ""}`}>
-            {value || "—"}
+            {value || " "}
           </div>
         )}
       </div>

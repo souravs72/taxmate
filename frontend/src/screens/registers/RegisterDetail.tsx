@@ -6,16 +6,14 @@
  * User: build Opportunity, Request for Quotation, Shipment, Installation Note,
  * Delivery Trip, Payment Request, and the two subcontracting documents.
  */
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useFrappePostCall } from "frappe-react-sdk";
 
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
-import LineItems, { type LineField } from "../../components/LineItems";
-import { Card, ErrorBox, Field, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
-import { t, tStatus } from "../../i18n/strings";
-import { date, money } from "../../lib/format";
+import { ErrorBox, Field, Loading, PageHead } from "../../components/ui";
+import { t } from "../../i18n/strings";
 import { DT, METHOD } from "../../lib/frappe";
 import { useInsertMapped, useOpenMapped } from "../../lib/openMapped";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
@@ -46,12 +44,6 @@ type Doc = Record<string, unknown> & {
   lost_reasons?: unknown;
 };
 
-function statusPill(status?: string): string {
-  if (status === "Draft" || status === "Open") return "p-open";
-  if (status === "Completed" || status === "Paid" || status === "Converted") return "p-done";
-  if (status === "Cancelled" || status === "Closed" || status === "Lost" || status === "Stopped") return "p-cxl";
-  return "p-flat";
-}
 
 export default function RegisterDetail({ specKey }: { specKey: string }) {
   const spec = REGISTERS[specKey];
@@ -60,10 +52,6 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
   const session = useSession();
   const doc = useDoc<Doc>(spec.doctype, name);
 
-  const lineFields = useMemo<LineField<Line>[]>(() => [
-    { key: "item", label: t("reg.ui.item"), slot: "title", render: (row) => row.item_code || row.item_name || row.delivery_note || row.customer || row.address || "—" },
-    { key: "qty", label: t("reg.ui.qty"), slot: "primary", render: (row) => row.qty ?? "—" },
-  ], []);
   const submitCall = useFrappePostCall(METHOD.submit);
   const cancelCall = useFrappePostCall(METHOD.cancel);
   const amendCall = useFrappePostCall<{ message: { name: string } }>(METHOD.amend);
@@ -85,8 +73,6 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
   const writable = canWrite(session);
   const canSubmit = canSubmitSales(session.roles);
   const canCancel = canCancelSales(session.roles);
-  const rawLines = spec.linesKey ? data?.[spec.linesKey] : undefined;
-  const lines = Array.isArray(rawLines) ? rawLines as Line[] : [];
   const lost = data?.status === "Lost";
   const hasItems = (data?.items?.length ?? 0) > 0;
   const suppliers = data?.suppliers ?? [];
@@ -211,22 +197,7 @@ export default function RegisterDetail({ specKey }: { specKey: string }) {
       />
 
       <DocTabShell doctype={spec.doctype} name={name} doc={data as unknown as Record<string, unknown>}>
-      {actionError ? <ErrorBox error={actionError} /> : null}
-      <Card>
-        <div className="grid2">
-          <ReadRow k={t("reg.col.status")} v={<Pill cls={statusPill(data.status)}>{tStatus(data.status)}</Pill>} />
-          {spec.facts.map((fact) => {
-            const value = data[fact.field];
-            const shown = fact.date
-              ? date(typeof value === "string" ? value : "")
-              : fact.money
-                ? money(typeof value === "number" || typeof value === "string" ? value : 0)
-                : (value == null || value === "" ? "—" : String(value));
-            return <ReadRow key={fact.key} k={t(fact.label)} v={shown} />;
-          })}
-        </div>
-      </Card>
-      {lines.length > 0 ? <LineItems rows={lines} fields={lineFields} /> : null}
+        {actionError ? <ErrorBox error={actionError} /> : null}
       </DocTabShell>
     </>
   );

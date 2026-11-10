@@ -8,7 +8,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead } from "../../components/ui";
+import { ErrorBox, Loading, PageHead } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -61,34 +61,6 @@ export default function PaymentTermsTemplateDetail() {
       />
 
       <DocTabShell doctype={DT.paymentTerms} name={name} doc={d as unknown as Record<string, unknown>}>
-      <Card title={t("ptt.terms")}>
-        {(d.terms ?? []).length === 0 ? (
-          <p style={{ color: "var(--faint)" }}>{t("ptt.noTerms")}</p>
-        ) : (
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>{t("ptt.term.name")}</th>
-                <th>{t("ptt.term.basis")}</th>
-                <th>{t("ptt.term.portion")}</th>
-                <th>{t("ptt.term.days")}</th>
-                <th>{t("ptt.term.months")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(d.terms ?? []).map((r, i) => (
-                <tr key={i}>
-                  <td>{r.payment_term || "—"}</td>
-                  <td>{r.due_date_based_on || "—"}</td>
-                  <td>{r.invoice_portion ?? "—"}</td>
-                  <td>{r.credit_days ?? "—"}</td>
-                  <td>{r.credit_months ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </Card>
       </DocTabShell>
     </>
   );

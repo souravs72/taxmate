@@ -11,7 +11,7 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 
@@ -67,15 +67,6 @@ export default function BankAccountDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.bankAccount} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("ba.col.accountName")} v={data.account_name || "—"} />
-          <ReadRow k={t("ba.col.bank")} v={data.bank || "—"} />
-          <ReadRow k={t("ba.col.account")} v={data.account || "—"} />
-          <ReadRow k={t("ba.col.company")} v={data.company || "—"} />
-          {data.account_type && <ReadRow k={t("ba.col.accountType")} v={data.account_type} />}
-        </div>
-      </Card>
       </DocTabShell>
     </>
   );

@@ -7,7 +7,7 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { useDoc } from "../../lib/resource";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
 import { IfCanWrite } from "../../components/RoleGate";
@@ -37,10 +37,6 @@ export default function AddressDetail() {
   if (error) return <ErrorBox error={error} onRetry={() => mutate()} />;
   if (!data) return null;
 
-  const addr = [data.address_line1, data.address_line2, data.city, data.emirate, data.country]
-    .filter(Boolean)
-    .join(", ");
-
   return (
     <>
       <PageHead
@@ -67,23 +63,6 @@ export default function AddressDetail() {
       />
 
       <DocTabShell doctype={"Address"} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("addr.col.type")} v={data.address_type || "—"} />
-          <ReadRow k={t("addr.col.line1")} v={addr || "—"} />
-          {data.email_id ? <ReadRow k={t("addr.col.email")} v={data.email_id} /> : null}
-          {data.phone ? <ReadRow k={t("addr.col.phone")} v={data.phone} /> : null}
-        </div>
-      </Card>
-      {(data.links ?? []).length > 0 && (
-        <Card title={t("addr.links")}>
-          <div className="fg">
-            {(data.links ?? []).map((l, i) => (
-              <ReadRow key={i} k={l.link_doctype || ""} v={l.link_name || "—"} />
-            ))}
-          </div>
-        </Card>
-      )}
       </DocTabShell>
     </>
   );

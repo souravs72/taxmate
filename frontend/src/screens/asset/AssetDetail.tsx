@@ -15,9 +15,8 @@ import { DT, METHOD } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canSubmitSales, canCancelSales } from "../../lib/roles";
-import { date, money } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
@@ -118,37 +117,7 @@ export default function AssetDetail() {
       />
 
       <DocTabShell doctype={DT.asset} name={name} doc={data as unknown as Record<string, unknown>}>
-      {actionError && <ErrorBox error={actionError} />}
-      <Card title={t("ast.title")}>
-        <ReadRow k={t("ast.col.category")} v={data.asset_category || "—"} />
-        <ReadRow k={t("ast.col.company")} v={data.company || "—"} />
-        <ReadRow k={t("ast.col.purchaseDate")} v={date(data.purchase_date)} />
-        <ReadRow k={t("ast.col.availDate")} v={date(data.available_for_use_date)} />
-        <ReadRow k={t("ast.col.purchaseAmount")} v={money(data.purchase_amount)} />
-        {data.item_code && <ReadRow k={t("ast.col.item")} v={data.item_code} />}
-      </Card>
-      {data.calculate_depreciation && (data.finance_books ?? []).length > 0 && (
-        <Card title={t("ast.deprSchedule")} >
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b">
-                <th className="text-start py-1 pr-3">{t("ast.col.deprMethod")}</th>
-                <th className="text-end py-1 pr-3">{t("ast.col.deprCount")}</th>
-                <th className="text-end py-1">{t("ast.col.valueAfter")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data.finance_books ?? []).map((fb, i) => (
-                <tr key={i} className="border-b last:border-0">
-                  <td className="py-1 pr-3">{fb.depreciation_method || "—"}</td>
-                  <td className="text-end py-1 pr-3">{fb.total_number_of_depreciations ?? "—"}</td>
-                  <td className="text-end py-1">{money(fb.value_after_depreciation)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
+        {actionError ? <ErrorBox error={actionError}  /> : null}
       </DocTabShell>
     </>
   );

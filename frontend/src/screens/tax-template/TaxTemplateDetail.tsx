@@ -2,12 +2,10 @@ import { useNavigate, useParams } from "react-router-dom";
 
 import { DT } from "../../lib/frappe";
 import { useDoc } from "../../lib/resource";
-import { money } from "../../lib/format";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import DocTabShell from "../../components/DocTabShell";
-import LineItems, { type LineField } from "../../components/LineItems";
 
 type Charge = { charge_type?: string; account_head?: string; rate?: number; tax_amount?: number; description?: string };
 type Doc = {
@@ -45,34 +43,6 @@ export default function TaxTemplateDetail() {
       </PageHead>
 
       <DocTabShell doctype={dt} name={name} doc={data as unknown as Record<string, unknown>}>
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("coa.company")} v={data.company || "—"} />
-        </div>
-      </Card>
-      <Card title={t("tx.charges")}>
-        {/* Three read-only columns and nothing else in the table body: no
-            add, no remove, and collapse off so the charge type stays visible. */}
-        <LineItems<Charge>
-          rows={data.taxes ?? []}
-          collapse={false}
-          fields={[
-            {
-              key: "account", label: t("tx.col.account"), slot: "title",
-              render: (row) => <>{row.account_head || row.description || "—"}</>,
-            },
-            {
-              key: "charge", label: t("tx.col.charge"),
-              render: (row) => <>{row.charge_type || "—"}</>,
-            },
-            {
-              key: "rate", label: t("tx.col.rate"), slot: "primary", numeric: true,
-              tdClass: "tot",
-              render: (row) => <>{money(row.rate)}</>,
-            },
-          ] as LineField<Charge>[]}
-        />
-      </Card>
       </DocTabShell>
     </>
   );

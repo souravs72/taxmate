@@ -10,11 +10,10 @@ import { useDoc } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canCancelSales, canSubmitSales, canWrite } from "../../lib/roles";
 import { t } from "../../i18n/strings";
-import { Card, ErrorBox, Loading, PageHead, Pill, ReadRow } from "../../components/ui";
+import { ErrorBox, Loading, PageHead, Pill } from "../../components/ui";
 import DetailActions from "../../components/DetailActions";
 import DocTabShell from "../../components/DocTabShell";
 import { useDeleteDraftAction } from "../../lib/useDraftDelete";
-import LineItems, { type LineField } from "../../components/LineItems";
 
 type BomItem = { item_code?: string; item_name?: string; qty?: number; uom?: string; rate?: number; amount?: number };
 type Doc = { name: string; item?: string; item_name?: string; quantity?: number; is_active?: number; is_default?: number; docstatus?: number; items?: BomItem[] };
@@ -74,38 +73,9 @@ export default function BomDetail() {
       </PageHead>
 
       <DocTabShell doctype={DT.bom} name={name} doc={data as unknown as Record<string, unknown>}>
-      {(submitCall.error || cancelCall.error || amendCall.error || deleteAction.error) && (
+        {(submitCall.error || cancelCall.error || amendCall.error || deleteAction.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || deleteAction.error} />
       )}
-      <Card>
-        <div className="fg">
-          <ReadRow k={t("bom.col.item")} v={data.item_name || data.item || "—"} />
-          <ReadRow k={t("bom.col.qty")} v={String(data.quantity ?? "—")} />
-          {data.is_default ? <ReadRow k={t("bom.col.default")} v={t("yes")} /> : null}
-        </div>
-      </Card>
-      <Card title={t("bom.materials")}>
-        {/* Read-only: the BOM's materials cannot be added or removed here, so
-            no add or remove, and nothing hides behind "More" on a phone. */}
-        <LineItems<BomItem>
-          rows={data.items ?? []}
-          collapse={false}
-          fields={[
-            {
-              key: "material", label: t("bom.col.material"), slot: "title",
-              render: (r) => <>{r.item_name || r.item_code || "—"}</>,
-            },
-            {
-              key: "qty", label: t("bom.col.matQty"), slot: "primary", numeric: true,
-              render: (r) => <>{r.qty}</>,
-            },
-            {
-              key: "uom", label: t("bom.col.uom"),
-              render: (r) => <>{r.uom || "—"}</>,
-            },
-          ] as LineField<BomItem>[]}
-        />
-      </Card>
       </DocTabShell>
     </>
   );
