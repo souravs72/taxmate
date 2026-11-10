@@ -287,7 +287,7 @@ export default function PurchaseOrderDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.purchaseOrder} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.purchaseOrder} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(mapError || statusError || makePr.error || makePi.error || paymentRequest.error || subcontract.error) && (
         <ErrorBox error={submitCall.error ?? cancelCall.error ?? amendCall.error ?? statusError ?? mapError ?? makePr.error ?? makePi.error ?? paymentRequest.error ?? subcontract.error} />

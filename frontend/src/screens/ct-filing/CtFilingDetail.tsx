@@ -70,7 +70,7 @@ export default function CtFilingDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.ctFiling} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.ctFiling} name={name} doc={data as unknown as Record<string, unknown>}>
       {saveError ? <ErrorBox error={saveError} /> : null}
       <FormLayout aside={
         <Card title={t("ct.summary")}>

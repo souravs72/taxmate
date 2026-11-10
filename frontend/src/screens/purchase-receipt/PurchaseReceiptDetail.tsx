@@ -209,7 +209,7 @@ export default function PurchaseReceiptDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.purchaseReceipt} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.purchaseReceipt} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {busyError && <ErrorBox error={busyError} />}
 

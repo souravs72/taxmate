@@ -119,7 +119,7 @@ export default function StockEntryDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.stockEntry} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.stockEntry} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(submitCall.error || cancelCall.error || amendCall.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error} />

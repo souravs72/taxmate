@@ -99,7 +99,7 @@ export default function IncomingInvoiceDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.incomingInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.incomingInvoice} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {draft.error && <ErrorBox error={draft.error} />}
 

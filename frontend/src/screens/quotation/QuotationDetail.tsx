@@ -159,7 +159,7 @@ export default function QuotationDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.quotation} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.quotation} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(submitCall.error || cancelCall.error || amendCall.error || mapError || declareLost.error || orderAllowed.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || mapError || declareLost.error || orderAllowed.error} />

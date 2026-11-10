@@ -912,12 +912,12 @@ td.pick{width:38px; padding-inline-end:0}
   display:flex;
   flex-direction:column;
   gap:12px;
-  max-width:72rem;
+  width:100%;
 }
 .tm-form-page{
   display:flex;
   flex-direction:column;
-  max-width:72rem;
+  width:100%;
 }
 .tm-form-section{
   border-block-end:1px solid var(--border);
@@ -1114,7 +1114,7 @@ td.pick{width:38px; padding-inline-end:0}
   display:flex;
   flex-direction:column;
   gap:12px;
-  max-width:72rem;
+  width:100%;
 }
 .tm-form-edit-body > .card{
   border:1px solid var(--border);

@@ -342,7 +342,7 @@ export default function MaterialRequestDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.materialRequest} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.materialRequest} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(submitCall.error || cancelCall.error || amendCall.error || mapError || rfq.error) && (
         <ErrorBox error={submitCall.error || cancelCall.error || amendCall.error || mapError || rfq.error} />

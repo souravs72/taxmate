@@ -108,7 +108,7 @@ export default function JournalEntryDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.journalEntry} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.journalEntry} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {busyError && <ErrorBox error={busyError} />}
 

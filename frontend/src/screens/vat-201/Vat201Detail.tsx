@@ -151,7 +151,7 @@ export default function Vat201Detail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.vat201} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.vat201} name={name} doc={data as unknown as Record<string, unknown>}>
       {busyError && <ErrorBox error={busyError} />}
       <FormLayout
         aside={

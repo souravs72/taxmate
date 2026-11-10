@@ -45,7 +45,9 @@ export default function DocTabShell({
 
   if (isLoading && !tabs.length) return <Loading />;
 
-  const notice = formBody && !legacyCustom ? <div className="tm-form-extras">{formBody}</div> : null;
+  const notice = formBody && !editDetails && !legacyCustom ? (
+    <div className="tm-form-extras">{formBody}</div>
+  ) : null;
 
   return (
     <div className="tm-form std-form-layout">

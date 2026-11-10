@@ -20,6 +20,25 @@ const META_KEYS = new Set([
   "parent", "parentfield", "parenttype", "idx", "docstatus",
 ]);
 
+function fieldHasValue(field: LayoutField, doc: Record<string, unknown>): boolean {
+  const raw = doc[field.fieldname];
+  if (field.fieldtype === "Table" || field.fieldtype === "Table MultiSelect") {
+    return Array.isArray(raw) && raw.length > 0;
+  }
+  if (field.fieldtype === "Check") return !!Number(raw);
+  return raw != null && raw !== "";
+}
+
+function showField(
+  field: LayoutField,
+  doc: Record<string, unknown>,
+  editing: boolean,
+): boolean {
+  if (!fieldVisible(field.depends_on, doc)) return false;
+  if (editing || Number(field.reqd)) return true;
+  return fieldHasValue(field, doc);
+}
+
 function gridColumns(field: LayoutField, rows: Record<string, unknown>[]): LayoutField[] {
   if (field.columns?.length) return field.columns;
   const keys = rows.length
@@ -123,7 +142,7 @@ function Column({
   onChange?: (fieldname: string, value: unknown) => void;
   disabled?: boolean;
 }) {
-  const visible = fields.filter((f) => fieldVisible(f.depends_on, doc));
+  const visible = fields.filter((f) => showField(f, doc, !!onChange));
   const scalars = visible.filter((f) => f.fieldtype !== "Table" && f.fieldtype !== "Table MultiSelect");
   const tables = visible.filter((f) => f.fieldtype === "Table" || f.fieldtype === "Table MultiSelect");
   return (
@@ -164,7 +183,7 @@ export default function DeskTabPanel({ tab, doc, onChange, disabled }: Props) {
   return (
     <div className="tm-form-page" data-tab={tab.id}>
       {sections.map((sec, idx) => {
-        const allFields = sec.columns.flat().filter((f) => fieldVisible(f.depends_on, data));
+        const allFields = sec.columns.flat().filter((f) => showField(f, data, !!onChange));
         if (!allFields.length) return null;
         const nCols = Math.max(1, sec.columns.length);
         return (

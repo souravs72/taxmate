@@ -128,7 +128,7 @@ export default function PaymentDetail() {
         </p>
       </PageHead>
 
-      <DocTabShell doctype={DT.paymentEntry} name={name} doc={data as unknown as Record<string, unknown>}>
+      <DocTabShell editDetails doctype={DT.paymentEntry} name={name} doc={data as unknown as Record<string, unknown>}>
 
       {(cancelCall.error || amendCall.error || deleteAction.error) && (
         <ErrorBox error={cancelCall.error ?? amendCall.error ?? deleteAction.error} />
