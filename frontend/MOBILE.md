@@ -47,6 +47,17 @@ Android command-line build (debug APK at
 cd android && ./gradlew assembleDebug
 ```
 
+Play upload (signed release AAB): copy `key.properties.example` to
+`android/key.properties`, fill store/key passwords and the path to
+`~/taxmate-upload.jks`, then:
+
+```bash
+cd android && ./gradlew bundleRelease
+```
+
+Do not commit `key.properties` or the `.jks`. The keystore lives outside
+the repo (`~/taxmate-upload.jks`, alias `taxmate`).
+
 To run on a real iPhone you need to pick your own team under Signing &
 Capabilities in Xcode. Do not commit that change.
 

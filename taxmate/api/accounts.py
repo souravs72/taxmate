@@ -317,9 +317,31 @@ def _stamp_party_tax_id(details: dict, party_type: str, party: str) -> None:
 		details["tax_id"] = frappe.db.get_value(party_type, party, "tax_id") or ""
 
 
+def _linked_to_party(parenttype: str, name: str | None, party_type: str, party: str) -> bool:
+	"""True when Address/Contact Dynamic Link points at this party."""
+	if not name:
+		return False
+	return bool(
+		frappe.db.exists(
+			"Dynamic Link",
+			{
+				"parenttype": parenttype,
+				"parent": name,
+				"link_doctype": party_type,
+				"link_name": party,
+			},
+		)
+	)
+
+
 def _stamp_party_contact(details: dict, party_type: str, party: str) -> None:
 	"""Ensure contact_person and details are populated when a contact exists for the party."""
 	contact = details.get("contact_person")
+	if contact and not _linked_to_party("Contact", contact, party_type, party):
+		contact = None
+		details.pop("contact_person", None)
+		for key in ("contact_display", "contact_email", "contact_mobile", "contact_phone"):
+			details.pop(key, None)
 	if not contact:
 		contact_field = "customer_primary_contact" if party_type == "Customer" else "supplier_primary_contact"
 		if frappe.get_meta(party_type).has_field(contact_field):
@@ -363,6 +385,10 @@ def _stamp_party_address(details: dict, party_type: str, party: str) -> None:
 
 	if party_type == "Customer":
 		addr = details.get("customer_address")
+		if addr and not _linked_to_party("Address", addr, "Customer", party):
+			addr = None
+			details.pop("customer_address", None)
+			details.pop("address_display", None)
 		if not addr:
 			if frappe.get_meta("Customer").has_field("customer_primary_address"):
 				addr = frappe.db.get_value("Customer", party, "customer_primary_address")
@@ -387,6 +413,10 @@ def _stamp_party_address(details: dict, party_type: str, party: str) -> None:
 
 		# Shipping address
 		ship_addr = details.get("shipping_address_name")
+		if ship_addr and not _linked_to_party("Address", ship_addr, "Customer", party):
+			ship_addr = None
+			details.pop("shipping_address_name", None)
+			details.pop("shipping_address", None)
 		if not ship_addr:
 			try:
 				ship_addr = get_default_address("Customer", party, sort_key="is_shipping_address")
@@ -423,6 +453,10 @@ def _stamp_party_address(details: dict, party_type: str, party: str) -> None:
 
 	elif party_type == "Supplier":
 		addr = details.get("supplier_address")
+		if addr and not _linked_to_party("Address", addr, "Supplier", party):
+			addr = None
+			details.pop("supplier_address", None)
+			details.pop("address_display", None)
 		if not addr:
 			if frappe.get_meta("Supplier").has_field("supplier_primary_address"):
 				addr = frappe.db.get_value("Supplier", party, "supplier_primary_address")

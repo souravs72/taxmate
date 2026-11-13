@@ -111,7 +111,7 @@ export default function LoyaltyProgramForm() {
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("lp.title")}>
-          <Field label={t("lp.col.name")}>
+          <Field label={t("lp.col.name")} required>
             <input className="inp" value={lpName} onChange={(e) => setLpName(e.target.value)} placeholder={t("lp.namePh")} />
           </Field>
           <Field label={t("lp.col.type")}>
@@ -122,7 +122,7 @@ export default function LoyaltyProgramForm() {
           <Field label={t("lp.col.company")}>
             <LinkField doctype="Company" value={company} onChange={setCompany} placeholder={t("lp.ph.company")} />
           </Field>
-          <Field label={t("lp.col.from")}>
+          <Field label={t("lp.col.from")} required>
             <input className="inp" type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
           </Field>
           <Field label={t("lp.col.to")}>

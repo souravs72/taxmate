@@ -16,6 +16,7 @@ import { Card, CheckField, ErrorBox, Field, Loading, PageHead } from "../../comp
 import DocTabShell from "../../components/DocTabShell";
 import DocHistory from "../../components/DocHistory";
 import { FormLayout } from "../../components/form";
+import LinkField from "../../components/LinkField";
 
 const ADDRESS_TYPES = ["Billing", "Shipping", "Office", "Personal", "Other"];
 const LINK_DOCTYPES = ["Customer", "Supplier", "Company"];
@@ -109,7 +110,13 @@ export default function AddressForm() {
   const addLink = () => setLinks((ls) => [...ls, emptyLink()]);
   const removeLink = (key: string) => setLinks((ls) => ls.filter((l) => l._key !== key));
 
-  const ready = !!form.address_title.trim() && !!form.address_line1.trim() && !!form.city.trim();
+  const isUae = form.country === "United Arab Emirates";
+  const ready = !!form.address_title.trim()
+    && !!form.address_type
+    && !!form.address_line1.trim()
+    && !!form.city.trim()
+    && !!form.country.trim()
+    && (!isUae || !!form.emirate.trim());
 
   async function saveFn() {
     if (!ready) return;
@@ -199,7 +206,7 @@ export default function AddressForm() {
                 placeholder={t("addr.titlePh")}
               />
             </Field>
-            <Field label={t("addr.col.type")}>
+            <Field label={t("addr.col.type")} required>
               <select
                 className="ctl"
                 value={form.address_type}
@@ -237,7 +244,7 @@ export default function AddressForm() {
                 onChange={(e) => setField("city", e.target.value)}
               />
             </Field>
-            <Field label={t("addr.col.emirate")}>
+            <Field label={t("addr.col.emirate")} required={isUae}>
               <select
                 className="ctl"
                 value={form.emirate}
@@ -251,7 +258,7 @@ export default function AddressForm() {
                 ))}
               </select>
             </Field>
-            <Field label={t("addr.col.country")}>
+            <Field label={t("addr.col.country")} required>
               <input
                 className="ctl"
                 value={form.country}
@@ -287,7 +294,12 @@ export default function AddressForm() {
                 className="ctl"
                 style={{ flex: "0 0 150px" }}
                 value={l.link_doctype}
-                onChange={(e) => setLink(l._key, "link_doctype", e.target.value)}
+                onChange={(e) => {
+                  const dt = e.target.value;
+                  setLinks((ls) =>
+                    ls.map((row) => (row._key === l._key ? { ...row, link_doctype: dt, link_name: "" } : row)),
+                  );
+                }}
               >
                 {LINK_DOCTYPES.map((ld) => (
                   <option key={ld} value={ld}>
@@ -295,13 +307,15 @@ export default function AddressForm() {
                   </option>
                 ))}
               </select>
-              <input
-                className="ctl"
-                style={{ flex: 1 }}
-                value={l.link_name}
-                onChange={(e) => setLink(l._key, "link_name", e.target.value)}
-                placeholder={t("addr.linkNamePh")}
-              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <LinkField
+                  key={l.link_doctype}
+                  doctype={l.link_doctype}
+                  value={l.link_name}
+                  onChange={(v) => setLink(l._key, "link_name", v)}
+                  placeholder={t("addr.linkNamePh")}
+                />
+              </div>
               <button type="button" className="btn ghost" onClick={() => removeLink(l._key)}>
                 ×
               </button>

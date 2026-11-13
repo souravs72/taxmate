@@ -29,7 +29,7 @@ from frappe import _
 from frappe.utils import cint
 from frappe.www.login import get_context as frappe_login_context
 
-TAXMATE_LOGO = "/assets/taxmate/logo.svg"
+TAXMATE_LOGO = "/assets/taxmate/logo.png"
 _ERPNEXT_DEFAULT_LOGO = "/assets/erpnext/images/erpnext-logo.svg"
 
 no_cache = True

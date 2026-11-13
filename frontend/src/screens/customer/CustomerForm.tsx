@@ -91,6 +91,7 @@ export default function CustomerForm() {
   const territory = String(values.territory || settings.data?.territory || "");
   const ready = !!String(values.customer_name || "").trim()
     && !!values.customer_type
+    && !!(values.custom_company || session.company)
     && !!group
     && !!territory
     && !!addr.address_line1

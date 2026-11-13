@@ -97,7 +97,7 @@ export default function AccountForm() {
   }, [existing.data, company]);
 
   const setField = (k: keyof typeof form, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
-  const ready = !!form.account_name.trim() && !!form.company.trim();
+  const ready = !!form.account_name.trim() && !!form.company.trim() && !!form.parent_account.trim();
 
   async function saveFn() {
     if (!ready) return;
@@ -155,10 +155,10 @@ export default function AccountForm() {
                 placeholder={t("acct.namePh")}
               />
             </Field>
-            <Field label={t("coa.company")}>
+            <Field label={t("coa.company")} required>
               <input className="ctl" value={form.company} readOnly disabled />
             </Field>
-            <Field label={t("acct.col.parent")}>
+            <Field label={t("acct.col.parent")} required>
               <select
                 className="ctl"
                 value={form.parent_account}

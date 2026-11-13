@@ -124,10 +124,10 @@ export default function AssetForm() {
       {saveError && <ErrorBox error={saveError} />}
       <FormLayout>
         <Card title={t("ast.title")}>
-          <Field label={t("ast.col.name")}>
+          <Field label={t("ast.col.name")} required>
             <input className="inp" value={assetName} onChange={(e) => setAssetName(e.target.value)} placeholder={t("ast.namePh")} />
           </Field>
-          <Field label={t("ast.col.item")}>
+          <Field label={t("ast.col.item")} required>
             <LinkField doctype={DT.item} value={itemCode} onChange={setItemCode} placeholder={t("asset.ph.item")} />
           </Field>
           <Field label={t("ast.col.category")}>
@@ -136,10 +136,10 @@ export default function AssetForm() {
           <Field label={t("ast.location")} required>
             <LinkField doctype="Location" value={location} onChange={setLocation} />
           </Field>
-          <Field label={t("ast.col.company")}>
+          <Field label={t("ast.col.company")} required>
             <LinkField doctype="Company" value={company} onChange={setCompany} placeholder={t("asset.ph.company")} />
           </Field>
-          <Field label={t("ast.col.purchaseDate")}>
+          <Field label={t("ast.col.purchaseDate")} required>
             <input className="inp" type="date" value={purchaseDate} onChange={(e) => setPurchaseDate(e.target.value)} />
           </Field>
           <Field label={t("ast.col.availDate")}>

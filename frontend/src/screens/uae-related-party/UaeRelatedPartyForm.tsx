@@ -64,7 +64,7 @@ export default function UaeRelatedPartyForm() {
         <Card>
           <div className="fg">
             <Field label={t("urp.col.company")} required><input className="ctl" value={form.company} onChange={(e) => set("company", e.target.value)} /></Field>
-            <Field label={t("urp.col.partyType")}><select className="ctl" value={form.party_type} onChange={(e) => set("party_type", e.target.value)}>{PARTY_TYPES.map((p) => <option key={p}>{p}</option>)}</select></Field>
+            <Field label={t("urp.col.partyType")} required><select className="ctl" value={form.party_type} onChange={(e) => set("party_type", e.target.value)}>{PARTY_TYPES.map((p) => <option key={p}>{p}</option>)}</select></Field>
             <Field label={t("urp.col.party")} required><input className="ctl" value={form.party} onChange={(e) => set("party", e.target.value)} /></Field>
             <Field label={t("urp.col.relationship")}><select className="ctl" value={form.relationship} onChange={(e) => set("relationship", e.target.value)}>{RELATIONSHIPS.map((r) => <option key={r}>{r}</option>)}</select></Field>
             <Field label={t("urp.docComplete")}>

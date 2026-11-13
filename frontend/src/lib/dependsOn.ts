@@ -208,3 +208,14 @@ export function fieldVisible(dependsOn: string | null | undefined, doc: Record<s
     return true;
   }
 }
+
+/** Desk `reqd` plus `mandatory_depends_on` (frappe.ui.form.Layout.set_dependant_property). */
+export function fieldRequired(
+  field: { reqd?: number; mandatory_depends_on?: string | null },
+  doc: Record<string, unknown>,
+): boolean {
+  if (Number(field.reqd)) return true;
+  const expr = field.mandatory_depends_on;
+  if (!expr || !expr.trim()) return false;
+  return fieldVisible(expr, doc);
+}

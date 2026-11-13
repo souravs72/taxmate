@@ -14,6 +14,7 @@ import { Card, ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocTabShell from "../../components/DocTabShell";
 import DocHistory from "../../components/DocHistory";
 import { FormActions, FormLayout } from "../../components/form";
+import LinkField from "../../components/LinkField";
 
 const LINK_DOCTYPES = ["Customer", "Supplier", "Company"];
 const GENDERS = ["", "Male", "Female", "Other"];
@@ -198,7 +199,12 @@ export default function ContactForm() {
                 className="ctl"
                 style={{ flex: "0 0 150px" }}
                 value={l.link_doctype}
-                onChange={(e) => setLink(l._key, "link_doctype", e.target.value)}
+                onChange={(e) => {
+                  const dt = e.target.value;
+                  setLinks((ls) =>
+                    ls.map((row) => (row._key === l._key ? { ...row, link_doctype: dt, link_name: "" } : row)),
+                  );
+                }}
               >
                 {LINK_DOCTYPES.map((ld) => (
                   <option key={ld} value={ld}>
@@ -206,13 +212,15 @@ export default function ContactForm() {
                   </option>
                 ))}
               </select>
-              <input
-                className="ctl"
-                style={{ flex: 1 }}
-                value={l.link_name}
-                onChange={(e) => setLink(l._key, "link_name", e.target.value)}
-                placeholder={t("addr.linkNamePh")}
-              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <LinkField
+                  key={l.link_doctype}
+                  doctype={l.link_doctype}
+                  value={l.link_name}
+                  onChange={(v) => setLink(l._key, "link_name", v)}
+                  placeholder={t("addr.linkNamePh")}
+                />
+              </div>
               <button type="button" className="btn ghost" onClick={() => removeLink(l._key)}>
                 ×
               </button>

@@ -1,0 +1,4 @@
+storePassword=
+keyPassword=
+keyAlias=taxmate
+storeFile=/home/YOU/taxmate-upload.jks

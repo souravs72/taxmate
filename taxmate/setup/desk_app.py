@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-LOGO_URL = "/assets/taxmate/logo.svg"
+LOGO_URL = "/assets/taxmate/logo.png"
 SPA_ROUTE = "/taxmate"
 
 
