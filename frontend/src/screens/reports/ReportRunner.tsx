@@ -124,17 +124,26 @@ function amount(n: number, col: Col, mark?: MoneyMark): string {
 /** ERPNext wraps total lines in quotes, which break in RTL. */
 function unquote(s: string): string {
   const t = s.trim();
-  if (t.length >= 2 && t.startsWith("'") && t.endsWith("'")) return t.slice(1, -1);
-  return t;
+  if (t.length < 2) return t;
+  const a = t[0];
+  const b = t[t.length - 1];
+  const pair = (a === "'" && b === "'") || (a === '"' && b === '"') || (a === "`" && b === "`")
+    || (a === "\u2018" && b === "\u2019") || (a === "\u201C" && b === "\u201D")
+    || (a === "\u00AB" && b === "\u00BB");
+  return pair ? t.slice(1, -1).trim() : t;
+}
+
+function quotedAccount(s: string): boolean {
+  return unquote(s) !== s.trim();
 }
 
 function isClickableAccount(row: Row, reportName: string, hasTree: boolean): boolean {
   if (!hasTree || reportName === "General Ledger") return false;
   const acct = typeof row.account === "string" ? row.account.trim() : "";
-  if (!acct) return false;
-  // Exclude synthetic calculated / summary total rows in financial statements (e.g. 'Profit for the year', 'Total Expense')
-  if (acct.startsWith("'") || acct.endsWith("'") || acct.startsWith('"') || acct.endsWith('"')) return false;
-  if (/^(Total\b|Profit\b|Net Profit|Gross Profit)/i.test(acct)) return false;
+  if (!acct || quotedAccount(acct)) return false;
+  if (Number(row.is_account) === 0) return false;
+  if (Number(row.is_account) === 1) return true;
+  if (/^(Total\b|Profit\b|Net Profit|Gross Profit)/i.test(unquote(acct))) return false;
   return true;
 }
 
@@ -460,8 +469,7 @@ export default function ReportRunner() {
     ? (get("p") as Periodicity)
     : "Yearly";
   const costCenter = get("cc");
-  const rawAccount = get("account");
-  const account = rawAccount && (rawAccount.startsWith("'") || rawAccount.endsWith("'") || rawAccount.startsWith('"') || rawAccount.endsWith('"')) ? "" : rawAccount;
+  const account = get("account");
   const warehouse = get("wh");
   const itemCode = get("item");
   const partyType = get("ptype") || (caps.party === "typed" ? "" : caps.party || "");
@@ -1066,7 +1074,7 @@ export default function ReportRunner() {
             const clickable = isClickableAccount(row, name, !!caps.tree);
             const voucherRoute = spaRouteForVoucher(row.voucher_type, row.voucher_no);
             const acct = String(row.account || "");
-            const quoted = (acct.startsWith("'") && acct.endsWith("'")) || (acct.startsWith('"') && acct.endsWith('"'));
+            const quoted = quotedAccount(acct);
             return [
               row.bold || quoted ? "rpt-bold" : "",
               clickable || voucherRoute ? "rpt-open" : "",

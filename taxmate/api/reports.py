@@ -54,7 +54,15 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 		elif not isinstance(party_val, (list, tuple)) and party_val:
 			filters["party"] = [party_val]
 
-	from frappe.desk.query_report import run
+	from frappe.desk.query_report import get_report_doc, run
+
+	# P&L / TB wrap totals as "'Profit for the year'". Those are not Account
+	# names. GL throws "does not exists" if that string is used as a filter.
+	if report_name == "General Ledger" and not _keep_existing_accounts(filters):
+		get_report_doc(report_name)
+		result = {"result": [], "columns": []}
+		localize_report(report_name, result)
+		return result
 
 	if report_name == "Cash Flow":
 		# Older ERPNext v16 leaves VAT, accruals and other balance sheet movements
@@ -74,6 +82,8 @@ def run_report(report_name: str, filters=None, ignore_prepared_report: bool = Tr
 	# Report id stays English for the route. The heading and account labels follow User.language.
 	if isinstance(result, dict):
 		localize_report(report_name, result)
+		if report_name in _TREE_REPORTS:
+			_mark_ledger_accounts(result, filters.get("company"))
 	# Box 9 on the SPA is the UAE VAT account total. This does not update invoices.
 	if report_name == "UAE VAT 201" and isinstance(result, dict):
 		from taxmate.uae_vat.utils.vat_201 import stamp_box_9
@@ -89,6 +99,76 @@ def _as_filter_dict(filters) -> dict:
 	if isinstance(filters, dict):
 		return filters
 	frappe.throw(_("filters must be a JSON object"), frappe.ValidationError)
+
+
+_TREE_REPORTS = frozenset(
+	{
+		"Profit and Loss Statement",
+		"Balance Sheet",
+		"Cash Flow",
+		"Trial Balance",
+	}
+)
+
+
+def _account_names(value) -> list[str]:
+	if isinstance(value, str):
+		return [value] if value.strip() else []
+	if isinstance(value, (list, tuple)):
+		return [row for row in value if isinstance(row, str) and row.strip()]
+	return []
+
+
+def _keep_existing_accounts(filters: dict) -> bool:
+	"""Leave GL account filters that exist. Drop statement totals.
+
+	Returns False when the caller asked for an account and none of the names
+	are Account documents, so the report must not run unfiltered.
+	"""
+	asked = _account_names(filters.get("account"))
+	if not asked:
+		return True
+	company = filters.get("company")
+	if not company:
+		return True
+	found = set(
+		frappe.get_all(
+			"Account",
+			filters={"company": company, "name": ["in", asked]},
+			pluck="name",
+		)
+	)
+	kept = [name for name in asked if name in found]
+	if kept:
+		filters["account"] = kept
+		return True
+	return False
+
+
+def _mark_ledger_accounts(result: dict, company: str | None) -> None:
+	"""Stamp ``is_account`` so the SPA does not link P&L / TB total rows."""
+	rows = result.get("result")
+	if not isinstance(rows, list) or not company:
+		return
+	wanted = [
+		row["account"]
+		for row in rows
+		if isinstance(row, dict) and isinstance(row.get("account"), str) and row["account"]
+	]
+	if not wanted:
+		return
+	names = set(
+		frappe.get_all(
+			"Account",
+			filters={"company": company, "name": ["in", wanted]},
+			pluck="name",
+		)
+	)
+	for row in rows:
+		if not isinstance(row, dict):
+			continue
+		acc = row.get("account")
+		row["is_account"] = 1 if isinstance(acc, str) and acc in names else 0
 
 
 def _set_fiscal_year_from_date(filters: dict) -> None:
