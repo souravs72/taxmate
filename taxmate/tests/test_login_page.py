@@ -28,6 +28,7 @@ CSS = (APP_ROOT / "public" / "css" / "login.css").read_text()
 class TestLoginPage(unittest.TestCase):
 	def test_template_uses_taxmate_assets_and_frappe_login(self):
 		self.assertIn("/assets/taxmate/css/login.css", HTML)
+		self.assertIn("/assets/taxmate/js/login-motion.js", HTML)
 		self.assertNotIn("ascra_theme_2", HTML)
 		self.assertNotIn("ascra_theme_2", CSS)
 		self.assertIn('post("login"', HTML)
@@ -73,6 +74,7 @@ class TestLoginPage(unittest.TestCase):
 		self.assertTrue(ctx.tm_app_name)
 		self.assertFalse(str(ctx.tm_logo).endswith("erpnext-logo.svg"))
 		self.assertTrue(ctx.tm_hero_title)
+		self.assertEqual(ctx.tm_seal, "BY ADVIREXA")
 		self.assertEqual(len(ctx.tm_features), 3)
 		self.assertIn("net", ctx.tm_card)
 		self.assertEqual(ctx.tm_redirect_qs, "")

@@ -1,0 +1,58 @@
+{% extends "templates/web.html" %}
+{# Public rate card. Subscribe is /login; list_plans stays behind login. #}
+
+{% block title %}{{ _("Plans") }}{% endblock %}
+{% block banner %}{% endblock %}
+{% block navbar %}{% endblock %}
+{% block footer %}{% endblock %}
+{% block breadcrumbs %}{% endblock %}
+{% block sidebar %}{% endblock %}
+
+{% block head_include %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500;1,600&family=Montserrat:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Noto+Naskh+Arabic:wght@500;600&display=swap">
+<link rel="stylesheet" href="/assets/taxmate/css/site.css?v=4">
+{% endblock %}
+
+{% block page_container %}
+<div class="tm-site" dir="{{ 'rtl' if tm_is_rtl else 'ltr' }}">
+  {% include "templates/includes/tm_public_bar.html" %}
+  <main class="tm-main" id="tm-main">
+    <p class="tm-kicker">{{ tm_kicker }}</p>
+    <h1 class="tm-h1">{{ _("Plans") }}</h1>
+    <p class="tm-lede">{{ tm_lede }}</p>
+
+    <div class="tm-rates">
+      {% for plan in tm_plans %}
+      <article class="tm-rate{% if plan.is_popular %} is-popular{% endif %}">
+        <div class="tm-rate-top">
+          <h2>{{ plan.plan_name }}</h2>
+          {% if plan.is_popular %}<span class="tm-chip">{{ _("Popular") }}</span>{% endif %}
+        </div>
+        <p class="tm-price">{{ plan.monthly_label }} <span>{{ _("a month") }}</span></p>
+        <p class="tm-year">{{ _("or {0} a year").format(plan.annual_label) }}</p>
+        <p class="tm-limits">{{ plan.limits }}</p>
+        <ul>
+          {% for bullet in plan.bullets %}
+          <li>{{ bullet }}</li>
+          {% endfor %}
+        </ul>
+        <a class="tm-cta" href="{{ tm_login_url }}">{{ tm_cta }}</a>
+      </article>
+      {% endfor %}
+    </div>
+
+    <section class="tm-faq" aria-labelledby="tm-faq-h">
+      <h2 id="tm-faq-h">{{ _("Questions") }}</h2>
+      <dl>
+        {% for item in tm_faqs %}
+        <dt>{{ item.q }}</dt>
+        <dd>{{ item.a }}</dd>
+        {% endfor %}
+      </dl>
+    </section>
+  </main>
+  {% include "templates/includes/tm_public_foot.html" %}
+</div>
+{% endblock %}
