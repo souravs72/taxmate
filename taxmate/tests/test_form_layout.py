@@ -50,6 +50,63 @@ class TestFormLayout(FrappeTestCase):
 						by_name[field["fieldname"]] = field
 		self.assertEqual(by_name["customer_name"]["reqd"], 1)
 		self.assertEqual(by_name["customer_type"]["reqd"], 1)
+		self.assertEqual(by_name["customer_group"]["reqd"], 1)
+		self.assertEqual(by_name["territory"]["reqd"], 1)
+		self.assertEqual(by_name["custom_company"]["reqd"], 1)
+		self.assertTrue(by_name["customer_group"].get("link_filters"))
+
+	def test_layout_company_mandatory_and_conditional_reqd(self):
+		"""Company reqd flags and e-invoice mandatory_depends_on for SPA * marks."""
+		out = form_layout.get("Company")
+		by_name: dict[str, dict] = {}
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						by_name[field["fieldname"]] = field
+		self.assertEqual(by_name["company_name"]["reqd"], 1)
+		self.assertEqual(by_name["abbr"]["reqd"], 1)
+		self.assertEqual(by_name["default_currency"]["reqd"], 1)
+		self.assertEqual(by_name["country"]["reqd"], 1)
+		self.assertEqual(by_name["valuation_method"]["reqd"], 1)
+		self.assertTrue(by_name["trade_license_number"].get("mandatory_depends_on"))
+
+	def test_layout_supplier_overlay_reqd(self):
+		out = form_layout.get("Supplier")
+		by_name: dict[str, dict] = {}
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						by_name[field["fieldname"]] = field
+		self.assertEqual(by_name["supplier_name"]["reqd"], 1)
+		self.assertEqual(by_name["supplier_group"]["reqd"], 1)
+		self.assertEqual(by_name["custom_company"]["reqd"], 1)
+
+	def test_layout_address_country_and_emirate(self):
+		out = form_layout.get("Address")
+		by_name: dict[str, dict] = {}
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						by_name[field["fieldname"]] = field
+		self.assertEqual(by_name["address_line1"]["reqd"], 1)
+		self.assertEqual(by_name["city"]["reqd"], 1)
+		self.assertEqual(by_name["country"]["reqd"], 1)
+		self.assertTrue(by_name["emirate"].get("mandatory_depends_on"))
+
+	def test_layout_item_hs_mandatory_depends_on(self):
+		out = form_layout.get("Item")
+		by_name: dict[str, dict] = {}
+		for tab in out["tabs"]:
+			for sec in tab.get("sections") or []:
+				for col in sec.get("columns") or []:
+					for field in col:
+						by_name[field["fieldname"]] = field
+		self.assertEqual(by_name["item_code"]["reqd"], 1)
+		self.assertTrue(by_name["hs_code"].get("mandatory_depends_on"))
+		self.assertTrue(by_name["sac_code"].get("mandatory_depends_on"))
 
 	def test_payment_entry_without_tab_breaks_still_returns_details(self):
 		out = form_layout.get("Payment Entry")

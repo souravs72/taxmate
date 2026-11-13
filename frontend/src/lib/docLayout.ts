@@ -18,6 +18,8 @@ export type LayoutField = {
   reqd?: number;
   read_only?: number;
   depends_on?: string | null;
+  mandatory_depends_on?: string | null;
+  link_filters?: unknown;
   default?: string | null;
   is_virtual?: number;
   columns?: LayoutField[];

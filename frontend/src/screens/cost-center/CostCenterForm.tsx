@@ -70,7 +70,7 @@ export default function CostCenterForm() {
 
   const setField = (k: keyof typeof form, v: string | number) =>
     setForm((f) => ({ ...f, [k]: v }));
-  const ready = !!form.cost_center_name.trim() && !!form.company.trim();
+  const ready = !!form.cost_center_name.trim() && !!form.company.trim() && !!form.parent_cost_center.trim();
 
   async function saveFn() {
     if (!ready) return;
@@ -127,10 +127,10 @@ export default function CostCenterForm() {
                 placeholder={t("cc.namePh")}
               />
             </Field>
-            <Field label={t("cc.col.company")}>
+            <Field label={t("cc.col.company")} required>
               <input className="ctl" value={form.company} readOnly disabled />
             </Field>
-            <Field label={t("cc.col.parent")}>
+            <Field label={t("cc.col.parent")} required>
               <select
                 className="ctl"
                 value={form.parent_cost_center}

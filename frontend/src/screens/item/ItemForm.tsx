@@ -246,11 +246,14 @@ export default function ItemForm() {
     );
   }, [existing.data, priceRow, session.company]);
 
+  const goods = form.uae_item_type === "Goods" || form.uae_item_type === "Both";
+  const service = form.uae_item_type === "Service" || form.uae_item_type === "Both";
   const ready =
     !!form.item_code && !!form.item_name && !!form.item_group && !!form.stock_uom &&
     !!form.uae_item_type &&
     (!form.is_sales_item || !!form.custom_company) &&
-    // On edit, hold Save until the Item Price lookup has answered.
+    (!goods || !!form.hs_code) &&
+    (!service || !!form.sac_code) &&
     (isNew || priceResolved);
 
   async function save() {
@@ -552,12 +555,12 @@ export default function ItemForm() {
             </select>
           </Field>
           {(form.uae_item_type === "Goods" || form.uae_item_type === "Both") && (
-            <Field label={t("item.hs")}>
+            <Field label={t("item.hs")} required>
               <input className="ctl" value={form.hs_code} onChange={(e) => set("hs_code", e.target.value)} />
             </Field>
           )}
           {(form.uae_item_type === "Service" || form.uae_item_type === "Both") && (
-            <Field label={t("item.sac")}>
+            <Field label={t("item.sac")} required>
               <input className="ctl" value={form.sac_code} onChange={(e) => set("sac_code", e.target.value)} />
             </Field>
           )}

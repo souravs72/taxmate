@@ -256,7 +256,7 @@ export default function SupplierQuotationForm() {
             <Field label={t("sq.col.supplier")} required>
               <LinkField doctype={DT.supplier} value={supplier} onChange={setSupplier} placeholder={t("sq.supplierPh")} />
             </Field>
-            <Field label={t("sq.col.date")}>
+            <Field label={t("sq.col.date")} required>
               <input className="ctl" type="date" value={transDate} onChange={(e) => setTransDate(e.target.value)} />
             </Field>
             <Field label={t("sq.col.validTill")}>

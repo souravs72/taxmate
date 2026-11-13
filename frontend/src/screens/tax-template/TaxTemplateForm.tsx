@@ -181,7 +181,7 @@ export default function TaxTemplateForm() {
                 placeholder={kind === "purchase" ? t("tx.ph.purchase") : t("tx.ph.sales")}
               />
             </Field>
-            <Field label={t("tx.col.company")}>
+            <Field label={t("tx.col.company")} required>
               <input className="ctl" type="text" value={company} readOnly disabled />
             </Field>
             <Field label={t("tx.col.default")}>

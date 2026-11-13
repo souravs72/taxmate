@@ -147,7 +147,14 @@ export default function SupplierForm() {
   }, [address.data]);
 
   const set = (k: string, v: string | number) => setForm((f) => ({ ...f, [k]: v }));
-  const ready = !!form.supplier_name && !!form.supplier_type && !!form.address_line1 && !!form.city && !!form.state;
+  const group = form.supplier_group || settings.data?.supplier_group || "";
+  const ready = !!form.supplier_name
+    && !!form.supplier_type
+    && !!(form.custom_company || session.company)
+    && !!group
+    && !!form.address_line1
+    && !!form.city
+    && !!form.state;
 
   async function save() {
     setBusy(true);
@@ -158,7 +165,6 @@ export default function SupplierForm() {
       if (form.tax_id && !isValidUaeTrn(form.tax_id)) {
         throw new Error(t("cust.trnInvalid"));
       }
-      const group = form.supplier_group || settings.data?.supplier_group;
       const payload = {
         custom_company: form.custom_company || session.company || undefined,
         supplier_name: form.supplier_name,
@@ -319,11 +325,14 @@ export default function SupplierForm() {
               <option value="Partnership">{t("cust.type.partnership")}</option>
             </select>
           </Field>
-          <Field label={t("cust.col.group")}>
+          <Field label={t("cust.col.group")} required>
             <select className="ctl" value={form.supplier_group} onChange={(e) => set("supplier_group", e.target.value)}>
               <option value="" />
               {(groups.data ?? []).map((g) => <option key={g.name} value={g.name}>{g.name}</option>)}
             </select>
+          </Field>
+          <Field label={t("coa.company")} required>
+            <LinkField doctype="Company" value={form.custom_company} onChange={(v) => set("custom_company", v)} />
           </Field>
           <Field label={t("cust.col.trn")} hint={t("cust.trnHint")}>
             <input

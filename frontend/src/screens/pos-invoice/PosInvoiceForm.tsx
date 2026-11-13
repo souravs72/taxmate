@@ -136,7 +136,7 @@ export default function PosInvoiceForm() {
           <Field label={t("pos.col.date")}>
             <input className="inp" type="date" value={postingDate} onChange={(e) => setPostingDate(e.target.value)} />
           </Field>
-          <Field label={`${t("pos.col.emirate")} *`}>
+          <Field label={t("pos.col.emirate")} required>
             <select className="inp" value={vatEmirate} onChange={(e) => setVatEmirate(e.target.value)} required>
               <option value="">— {t("pos.col.emirate")} —</option>
               {UAE_EMIRATES.map((em) => <option key={em} value={em}>{em}</option>)}

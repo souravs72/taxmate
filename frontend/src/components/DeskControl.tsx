@@ -5,6 +5,7 @@
 import { useId } from "react";
 
 import { date, money } from "../lib/format";
+import { fieldRequired } from "../lib/dependsOn";
 import type { LayoutField } from "../lib/docLayout";
 import LinkField from "./LinkField";
 
@@ -59,7 +60,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
   const id = useId();
   if (field.fieldtype === "Table" || field.fieldtype === "Table MultiSelect") return null;
   const raw = doc[field.fieldname];
-  const reqd = !!Number(field.reqd);
+  const reqd = fieldRequired(field, doc);
   const isCheck = field.fieldtype === "Check";
   const isText = field.fieldtype === "Text" || field.fieldtype === "Small Text"
     || field.fieldtype === "Long Text" || field.fieldtype === "Text Editor"
@@ -110,6 +111,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
           id={id}
           type="checkbox"
           checked={on}
+          aria-required={reqd || undefined}
           onChange={(e) => set(e.target.checked ? 1 : 0)}
         />
         <span className="tm-control-label">
@@ -131,9 +133,17 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
 
   if (field.fieldtype === "Link" && field.options) {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Link">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Link">
         {label}
-        <LinkField id={id} doctype={field.options} value={asStr(raw)} onChange={set} />
+        <LinkField
+          id={id}
+          doctype={field.options}
+          value={asStr(raw)}
+          onChange={set}
+          filters={field.link_filters ?? undefined}
+          required={reqd}
+          placeholder=""
+        />
       </div>
     );
   }
@@ -141,12 +151,12 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
   if (field.fieldtype === "Dynamic Link" && field.options) {
     const dt = asStr(doc[field.options]);
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Dynamic Link">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Dynamic Link">
         {label}
         {dt ? (
-          <LinkField id={id} doctype={dt} value={asStr(raw)} onChange={set} />
+          <LinkField id={id} doctype={dt} value={asStr(raw)} onChange={set} required={reqd} placeholder="" />
         ) : (
-          <input id={id} className="ctl" name={field.fieldname} value={asStr(raw)} autoComplete="off" onChange={(e) => set(e.target.value)} />
+          <input id={id} className="ctl" name={field.fieldname} value={asStr(raw)} autoComplete="off" aria-required={reqd || undefined} onChange={(e) => set(e.target.value)} />
         )}
       </div>
     );
@@ -155,9 +165,9 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
   if (field.fieldtype === "Select") {
     const opts = selectOptions(field.options);
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Select">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Select">
         {label}
-        <select id={id} className="ctl" name={field.fieldname} value={asStr(raw)} onChange={(e) => set(e.target.value)}>
+        <select id={id} className="ctl" name={field.fieldname} value={asStr(raw)} aria-required={reqd || undefined} onChange={(e) => set(e.target.value)}>
           <option value="" />
           {opts.map((o) => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -167,7 +177,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
 
   if (isText) {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype={field.fieldtype}>
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype={field.fieldtype}>
         {label}
         <textarea
           id={id}
@@ -175,6 +185,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
           name={field.fieldname}
           rows={field.fieldtype === "Small Text" ? 3 : 6}
           value={asStr(raw)}
+          aria-required={reqd || undefined}
           onChange={(e) => set(e.target.value)}
         />
       </div>
@@ -183,9 +194,9 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
 
   if (field.fieldtype === "Date") {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Date">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Date">
         {label}
-        <input id={id} className="ctl" type="date" name={field.fieldname} value={asStr(raw).slice(0, 10)} onChange={(e) => set(e.target.value)} />
+        <input id={id} className="ctl" type="date" name={field.fieldname} value={asStr(raw).slice(0, 10)} aria-required={reqd || undefined} onChange={(e) => set(e.target.value)} />
       </div>
     );
   }
@@ -193,7 +204,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
   if (field.fieldtype === "Datetime") {
     const v = asStr(raw).replace(" ", "T").slice(0, 16);
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Datetime">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Datetime">
         {label}
         <input
           id={id}
@@ -201,6 +212,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
           type="datetime-local"
           name={field.fieldname}
           value={v}
+          aria-required={reqd || undefined}
           onChange={(e) => set(e.target.value.replace("T", " "))}
         />
       </div>
@@ -209,27 +221,27 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
 
   if (field.fieldtype === "Time") {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Time">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Time">
         {label}
-        <input id={id} className="ctl" type="time" name={field.fieldname} value={asStr(raw).slice(0, 8)} onChange={(e) => set(e.target.value)} />
+        <input id={id} className="ctl" type="time" name={field.fieldname} value={asStr(raw).slice(0, 8)} aria-required={reqd || undefined} onChange={(e) => set(e.target.value)} />
       </div>
     );
   }
 
   if (field.fieldtype === "Password") {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Password">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Password">
         {label}
-        <input id={id} className="ctl" type="password" name={field.fieldname} value={asStr(raw)} autoComplete="off" onChange={(e) => set(e.target.value)} />
+        <input id={id} className="ctl" type="password" name={field.fieldname} value={asStr(raw)} autoComplete="off" aria-required={reqd || undefined} onChange={(e) => set(e.target.value)} />
       </div>
     );
   }
 
   if (field.fieldtype === "Color") {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype="Color">
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype="Color">
         {label}
-        <input id={id} className="ctl" type="color" name={field.fieldname} value={asStr(raw) || "#000000"} onChange={(e) => set(e.target.value)} />
+        <input id={id} className="ctl" type="color" name={field.fieldname} value={asStr(raw) || "#000000"} aria-required={reqd || undefined} onChange={(e) => set(e.target.value)} />
       </div>
     );
   }
@@ -238,12 +250,13 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
     || field.fieldtype === "Currency" || field.fieldtype === "Percent" || field.fieldtype === "Rating";
   if (numeric) {
     return (
-      <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype={field.fieldtype}>
+      <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype={field.fieldtype}>
         {label}
         <input
           id={id}
           className="ctl"
           type="number"
+          aria-required={reqd || undefined}
           name={field.fieldname}
           inputMode={field.fieldtype === "Int" ? "numeric" : "decimal"}
           step={field.fieldtype === "Int" ? 1 : "any"}
@@ -260,7 +273,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
   }
 
   return (
-    <div className="tm-control" data-fieldname={field.fieldname} data-fieldtype={field.fieldtype}>
+    <div className={`tm-control${reqd ? " reqd" : ""}`} data-fieldname={field.fieldname} data-fieldtype={field.fieldtype}>
       {label}
       <input
         id={id}
@@ -269,6 +282,7 @@ export default function DeskControl({ field, doc, onChange, disabled }: Props) {
         value={asStr(raw)}
         autoComplete="off"
         spellCheck={false}
+        aria-required={reqd || undefined}
         onChange={(e) => set(e.target.value)}
       />
     </div>

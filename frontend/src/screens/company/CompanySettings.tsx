@@ -15,6 +15,7 @@ import { useSave } from "../../lib/resource";
 import { useSession } from "../../lib/session";
 import { canEditCompanyAccounts, canManageCompany, canViewTeam } from "../../lib/roles";
 import { t } from "../../i18n/strings";
+import { getLang } from "../../lib/i18n";
 import { ErrorBox, Field, Loading, PageHead } from "../../components/ui";
 import DocHistory from "../../components/DocHistory";
 import LinkField from "../../components/LinkField";
@@ -76,6 +77,7 @@ type CompanyDoc = {
   legal_registration_identifier_type?: string | null;
   legal_registration_identifier?: string | null;
   uae_peppol_id?: string | null;
+  uae_licence_authority?: string | null;
   uae_fz_beneficiary_id?: string | null;
   uae_in_designated_zone?: number | null;
   uae_e_invoice_enabled?: number | null;
@@ -240,6 +242,7 @@ export default function CompanySettings() {
       "trade_license_number",
       "legal_registration_identifier_type",
       "legal_registration_identifier",
+      "uae_licence_authority",
       "uae_peppol_id",
       "uae_fz_beneficiary_id",
       "uae_in_designated_zone",
@@ -312,6 +315,9 @@ export default function CompanySettings() {
   const dirty = Object.keys(form).some((k) => editableKeys().includes(k as keyof CompanyDoc));
   const logo = val("company_logo");
   const freq = val("taxmate_vat_filing_frequency");
+  const einvOn = checked("uae_e_invoice_enabled");
+  const legalType = val("legal_registration_identifier_type");
+  const licenceAuthReqd = einvOn && (!legalType || legalType === "TL");
 
   function accountField(
     field: keyof CompanyDoc,
@@ -598,20 +604,25 @@ export default function CompanySettings() {
               <div className="chead"><h2>{t("cs.uaeLegal")}</h2></div>
               <div className="cbody">
                 <div className="grid2">
-                  <Field label={t("cs.tradeLicense")}>
+                  <Field label={t("cs.tradeLicense")} required={einvOn}>
                     <input className="ctl" value={val("trade_license_number")} onChange={setText("trade_license_number")} disabled={!canFull} />
                   </Field>
-                  <Field label={t("cs.legalIdType")}>
+                  <Field label={t("cs.legalIdType")} required={einvOn}>
                     <select className="ctl" value={val("legal_registration_identifier_type")} onChange={setText("legal_registration_identifier_type")} disabled={!canFull}>
                       <option value="">—</option>
-                      <option value="CRN">CRN</option>
-                      <option value="OTH">OTH</option>
+                      <option value="TL">TL</option>
+                      <option value="EID">EID</option>
+                      <option value="PAS">PAS</option>
+                      <option value="CD">CD</option>
                     </select>
                   </Field>
-                  <Field label={t("cs.legalId")}>
+                  <Field label={t("cs.legalId")} required={einvOn}>
                     <input className="ctl" value={val("legal_registration_identifier")} onChange={setText("legal_registration_identifier")} disabled={!canFull} />
                   </Field>
-                  <Field label={t("cs.peppolId")}>
+                  <Field label={getLang() === "ar" ? "جهة إصدار الرخصة" : "Licence authority"} required={licenceAuthReqd}>
+                    <input className="ctl" value={val("uae_licence_authority")} onChange={setText("uae_licence_authority")} disabled={!canFull} />
+                  </Field>
+                  <Field label={t("cs.peppolId")} required={einvOn}>
                     <input className="ctl" value={val("uae_peppol_id")} onChange={setText("uae_peppol_id")} disabled={!canFull} />
                   </Field>
                   <Field label={t("cs.fzBeneficiary")}>

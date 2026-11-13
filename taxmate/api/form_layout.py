@@ -25,6 +25,7 @@ import frappe
 from frappe import _
 
 from taxmate.api.resource import assert_allowed_doctype, require_login
+from taxmate.setup.company_fields import STRICT_CUSTOM_COMPANY
 
 _LAYOUT_ONLY = frozenset(
 	{
@@ -44,18 +45,53 @@ _CHILD_SKIP = _LAYOUT_ONLY | {"Table", "Table MultiSelect"}
 _DETAILS_ID = "__details"
 _CONNECTIONS_ID = "connections_tab"
 
+# ERPNext v16 dropped reqd on Customer Group / Territory / Supplier Group.
+# TaxMate still requires them to save, and isolation requires custom_company
+# on STRICT masters. Overlay so DeskControl can paint the same * Desk would.
+_REQD_OVERLAY: dict[str, frozenset[str]] = {
+	"Customer": frozenset({"customer_group", "territory", "custom_company"}),
+	"Supplier": frozenset({"supplier_group", "custom_company"}),
+}
 
-def _field_dict(df, nest_table: bool = True) -> dict[str, Any]:
+
+def _effective_reqd(doctype: str | None, df) -> int:
+	if df.reqd:
+		return 1
+	if not doctype:
+		return 0
+	if df.fieldname == "custom_company" and doctype in STRICT_CUSTOM_COMPANY:
+		return 1
+	return 1 if df.fieldname in _REQD_OVERLAY.get(doctype, frozenset()) else 0
+
+
+def _link_filters(df) -> Any:
+	raw = getattr(df, "link_filters", None)
+	if not raw:
+		return None
+	if isinstance(raw, (list, dict)):
+		return raw
+	try:
+		parsed = frappe.parse_json(raw)
+	except (TypeError, ValueError):
+		return None
+	return parsed or None
+
+
+def _field_dict(df, nest_table: bool = True, doctype: str | None = None) -> dict[str, Any]:
 	row: dict[str, Any] = {
 		"fieldname": df.fieldname,
 		"label": _(df.label) if df.label else df.fieldname,
 		"fieldtype": df.fieldtype,
 		"options": df.options or None,
-		"reqd": 1 if df.reqd else 0,
+		"reqd": _effective_reqd(doctype, df),
 		"read_only": 1 if df.read_only else 0,
 		"depends_on": df.depends_on or None,
+		"mandatory_depends_on": df.mandatory_depends_on or None,
 		"default": df.default if df.default not in (None, "") else None,
 	}
+	filters = _link_filters(df)
+	if filters:
+		row["link_filters"] = filters
 	if getattr(df, "is_virtual", 0):
 		row["is_virtual"] = 1
 	if nest_table and df.fieldtype in ("Table", "Table MultiSelect") and df.options:
@@ -76,7 +112,7 @@ def _table_columns(child_dt: str) -> list[dict[str, Any]]:
 			continue
 		if field.fieldtype in _CHILD_SKIP:
 			continue
-		row = _field_dict(field, nest_table=False)
+		row = _field_dict(field, nest_table=False, doctype=child_dt)
 		if field.in_list_view:
 			listed.append(row)
 		elif len(fallback) < 8:
@@ -156,7 +192,7 @@ def get(doctype: str) -> dict[str, Any]:
 		started_fields = True
 		while col_idx >= len(section["columns"]):
 			section["columns"].append([])
-		fd = _field_dict(df)
+		fd = _field_dict(df, doctype=doctype)
 		section["columns"][col_idx].append(fd)
 		current["fields"].append(df.fieldname)
 
