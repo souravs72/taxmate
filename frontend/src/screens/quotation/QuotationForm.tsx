@@ -204,6 +204,7 @@ export default function QuotationForm() {
     { label: t("inv.lines"), ok: lines.length > 0 && lines.every((l) => l.item_code) },
   ], [customer, txDate, emirate, taxTemplate, lines]);
   const ready = checks.every((c) => c.ok);
+  const displayCurrency = party.currency || session.currency || undefined;
 
   async function save(shouldSubmit: boolean) {
     setBusy(true); setSaveError(null);
@@ -277,6 +278,7 @@ export default function QuotationForm() {
                 {t("quot.summary")}{previewing ? "…" : ""}
               </h2>
               <TxnTotals
+                currency={displayCurrency}
                 itemsTotal={preview?.total ?? net}
                 productDiscount={productDiscountTotal(lines)}
                 orderDiscount={preview?.discount_amount}
@@ -349,7 +351,12 @@ export default function QuotationForm() {
           <PaymentScheduleTable rows={schedule} />
           <PartyFields side="selling" partyName={customer} party={party} onChange={(patch) => setParty((p) => ({ ...p, ...patch }))} />
           <div className="grid3" style={{ marginBlockStart: 14 }}>
-            <ExchangeRateField currency={party.currency || session.currency || undefined} companyCurrency={session.currency || undefined} value={conversionRate} onChange={setConversionRate} />
+            <ExchangeRateField currency={displayCurrency} companyCurrency={session.currency || undefined} value={conversionRate} onChange={setConversionRate} />
+          </div>
+          <div className="numblk">
+            <span className="infochip"><span className="k2">T</span>{t("f.customerTrn")} <b>{party.tax_id || "—"}</b></span>
+            <span className="infochip"><span className="k2">P</span>{t("f.priceList")} <b>{party.selling_price_list || "—"}</b></span>
+            <span className="infochip"><span className="k2">$</span>{t("f.currency")} <b>{displayCurrency || "—"}</b></span>
           </div>
         </Card>
         <Card num={2} title={t("inv.lines")} bodyClass={null as unknown as string}>
@@ -394,7 +401,9 @@ export default function QuotationForm() {
               {
                 key: "amount", label: t("sod.col.amount"), slot: "primary", numeric: true,
                 td: { fontWeight: 600 },
-                render: (l) => money(l.qty * l.rate),
+                render: (l) => displayCurrency
+                  ? <><span className="cur">{displayCurrency}</span> {money(l.qty * l.rate)}</>
+                  : money(l.qty * l.rate),
               },
             ] as LineField<TxnLine>[]}
           />

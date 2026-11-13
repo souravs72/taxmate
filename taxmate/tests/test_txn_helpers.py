@@ -391,6 +391,62 @@ class TestJeAccountDetails(FrappeTestCase):
 		out = get_defaults(company)
 		self.assertIn("accounts_frozen_till", out)
 
+	def test_stamp_drops_address_and_contact_not_linked_to_party(self):
+		"""KAN-55: do not keep another party's address or contact on this customer."""
+		from taxmate.api.accounts import _stamp_party_address, _stamp_party_contact
+
+		customers = frappe.get_all("Customer", filters={"disabled": 0}, limit=2, pluck="name")
+		if len(customers) < 2:
+			self.skipTest("Need two customers")
+		party_a, party_b = customers[0], customers[1]
+
+		addr = frappe.get_doc(
+			{
+				"doctype": "Address",
+				"address_title": f"KAN55 {party_b}",
+				"address_type": "Billing",
+				"address_line1": "Other Party Street",
+				"city": "Dubai",
+				"state": "Dubai",
+				"emirate": "Dubai",
+				"country": "United Arab Emirates",
+				"links": [{"link_doctype": "Customer", "link_name": party_b}],
+			}
+		).insert()
+		self.addCleanup(lambda: frappe.delete_doc("Address", addr.name, force=True, ignore_permissions=True))
+
+		contact = frappe.get_doc(
+			{
+				"doctype": "Contact",
+				"first_name": "KAN55",
+				"last_name": party_b[-12:],
+				"links": [{"link_doctype": "Customer", "link_name": party_b}],
+			}
+		).insert()
+		self.addCleanup(lambda: frappe.delete_doc("Contact", contact.name, force=True, ignore_permissions=True))
+
+		details = {
+			"customer_address": addr.name,
+			"address_display": "stolen",
+			"shipping_address_name": addr.name,
+			"shipping_address": "stolen",
+		}
+		_stamp_party_address(details, "Customer", party_a)
+		self.assertNotEqual(details.get("customer_address"), addr.name)
+		self.assertNotEqual(details.get("shipping_address_name"), addr.name)
+
+		contact_details = {
+			"contact_person": contact.name,
+			"contact_display": "stolen",
+			"contact_email": "stolen@example.com",
+		}
+		_stamp_party_contact(contact_details, "Customer", party_a)
+		self.assertNotEqual(contact_details.get("contact_person"), contact.name)
+
+		keep = {"customer_address": addr.name, "shipping_address_name": addr.name}
+		_stamp_party_address(keep, "Customer", party_b)
+		self.assertEqual(keep.get("customer_address"), addr.name)
+
 
 class TestPaymentInternalTransfer(FrappeTestCase):
 	"""Phase 2: resolve_internal_transfer_accounts catalogued."""
