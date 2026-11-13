@@ -170,3 +170,76 @@ def validate_address_emirate(doc, method=None):
 			_("Emirate must be one of: {0}").format(", ".join(UAE_EMIRATES)),
 			title=_("Invalid Emirate"),
 		)
+
+
+
+def assign_address_contact_company(doc, method=None) -> None:
+	"""Stamp Address/Contact.custom_company from active company or Dynamic Links."""
+	if doc.doctype not in ("Address", "Contact"):
+		return
+	if not getattr(doc, "meta", None) or not doc.meta.has_field("custom_company"):
+		return
+	if doc.get("custom_company"):
+		return
+
+	company = _company_from_links(doc)
+	if not company:
+		from taxmate.utils.company import get_default_company
+
+		company = (
+			get_default_company()
+			or frappe.defaults.get_user_default("company")
+			or frappe.defaults.get_global_default("Company")
+		)
+	if company and frappe.db.exists("Company", company):
+		doc.custom_company = company
+
+
+def _company_from_links(doc) -> str | None:
+	"""Resolve company from Address/Contact Dynamic Links."""
+	for row in doc.get("links") or []:
+		link_dt = row.get("link_doctype")
+		link_name = row.get("link_name")
+		if not link_dt or not link_name:
+			continue
+		if link_dt == "Company" and frappe.db.exists("Company", link_name):
+			return link_name
+		if link_dt in ("Customer", "Supplier") and frappe.get_meta(link_dt).has_field("custom_company"):
+			comp = frappe.db.get_value(link_dt, link_name, "custom_company")
+			if comp:
+				return comp
+		if link_dt in ("Lead", "Opportunity", "Sales Invoice", "Purchase Invoice", "Sales Order", "Purchase Order"):
+			if frappe.get_meta(link_dt).has_field("company"):
+				comp = frappe.db.get_value(link_dt, link_name, "company")
+				if comp:
+					return comp
+	return None
+
+
+
+def assign_master_company(doc, method=None) -> None:
+	"""Stamp custom_company on soft/strict masters when blank."""
+	from taxmate.setup.company_fields import SOFT_CUSTOM_COMPANY, STRICT_CUSTOM_COMPANY
+
+	if doc.doctype not in (SOFT_CUSTOM_COMPANY | STRICT_CUSTOM_COMPANY):
+		return
+	if not getattr(doc, "meta", None) or not doc.meta.has_field("custom_company"):
+		return
+	if doc.get("custom_company"):
+		return
+	if doc.doctype == "Batch" and doc.get("item"):
+		item_co = None
+		if frappe.get_meta("Item").has_field("custom_company"):
+			item_co = frappe.db.get_value("Item", doc.item, "custom_company")
+		if item_co:
+			doc.custom_company = item_co
+			return
+	from taxmate.utils.company import get_default_company
+
+	company = (
+		get_default_company()
+		or frappe.defaults.get_user_default("company")
+		or frappe.defaults.get_global_default("Company")
+	)
+	if company and frappe.db.exists("Company", company):
+		doc.custom_company = company

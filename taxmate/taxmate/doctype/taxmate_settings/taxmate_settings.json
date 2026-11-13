@@ -20,6 +20,12 @@
   "statutory_section",
   "prefer_uae_hosted_files",
   "data_residency_note",
+  "billing_section",
+  "billing_enabled",
+  "trial_days",
+  "billing_company",
+  "column_break_billing",
+  "payment_gateway_account",
   "guidance_section",
   "onboarding_notes"
  ],
@@ -128,6 +134,43 @@
    "label": "Data Residency Note"
   },
   {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "SaaS Billing"
+  },
+  {
+   "default": "0",
+   "description": "When enabled, companies must complete a 7-day trial then subscribe via Stripe to use TaxMate.",
+   "fieldname": "billing_enabled",
+   "fieldtype": "Check",
+   "label": "Enable Company Billing"
+  },
+  {
+   "default": "7",
+   "description": "Free trial length in days for every new and existing company at go-live.",
+   "fieldname": "trial_days",
+   "fieldtype": "Int",
+   "label": "Trial Days"
+  },
+  {
+   "description": "Operator Company that books SaaS Sales Invoices and Payment Entries.",
+   "fieldname": "billing_company",
+   "fieldtype": "Link",
+   "label": "Billing Company",
+   "options": "Company"
+  },
+  {
+   "fieldname": "column_break_billing",
+   "fieldtype": "Column Break"
+  },
+  {
+   "description": "Stripe Payment Gateway Account used for company subscriptions.",
+   "fieldname": "payment_gateway_account",
+   "fieldtype": "Link",
+   "label": "Payment Gateway Account",
+   "options": "Payment Gateway Account"
+  },
+  {
    "fieldname": "guidance_section",
    "fieldtype": "Section Break",
    "label": "Operator Guidance"
@@ -142,7 +185,7 @@
  "index_web_pages_for_search": 1,
  "issingle": 1,
  "links": [],
- "modified": "2026-10-04 12:00:00.000000",
+ "modified": "2026-11-11 01:00:00.000000",
  "modified_by": "Administrator",
  "module": "TaxMate",
  "name": "TaxMate Settings",

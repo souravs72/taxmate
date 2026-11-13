@@ -18,3 +18,6 @@ taxmate.patches.v0_1.apply_phase8_statutory
 taxmate.patches.v0_1.backfill_company_user_permissions
 taxmate.patches.v0_1.set_complyance_asp_provider
 taxmate.patches.v0_1.backfill_customer_supplier_company
+taxmate.patches.v0_1.seed_billing_plans_and_trials
+taxmate.patches.v0_1.backfill_address_contact_company
+taxmate.patches.v0_1.backfill_sidebar_master_company

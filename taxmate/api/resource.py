@@ -16,12 +16,15 @@ from frappe.client import save as client_save
 from frappe.utils import cint, cstr
 
 from taxmate.search import DENIED_SEARCH_DOCTYPES
+from taxmate.billing.entitlement import require_company_entitlement
 from taxmate.utils.company import (
 	can_use_company,
 	company_scoped,
 	get_default_company,
 	owning_company_field,
 	set_active_company,
+	soft_company_scoped,
+	strict_company_scoped,
 )
 
 
@@ -123,34 +126,57 @@ def assert_company_filters(filters=None, or_filters=None) -> None:
 
 
 def scope_to_active_company(doctype: str, filters=None, or_filters=None):
-	"""Add company filter to ``filters`` for company-scoped doctypes.
+	"""Return ``(filters, or_filters)`` pinned to the header company.
 
-	The header company switcher picks ONE company; every list and count follows
-	it without each screen having to remember a filter. A screen that passes its
-	own company filter (in ``filters`` or ``or_filters``) keeps it, still
-	permission-checked.
+	Strict masters (Address, Contact, Customer, Supplier, vouchers): equality.
+	Soft masters (Item, Brand, …): active company or untagged.
 	"""
 	assert_company_filters(filters, or_filters)
 	if not company_scoped(doctype):
-		return filters
+		return filters, or_filters
 	parsed_or = _parse(or_filters)
 	if _pinned_companies(parsed_or):
-		return filters
+		return filters, or_filters
 	company = get_default_company()
 	if not company:
-		return filters
+		return filters, or_filters
 	owning = owning_company_field(doctype)
 	company_field = owning[0] if owning else "company"
 	parsed = _parse(filters)
-	if not parsed:
-		return [[company_field, "=", company]]
 	if _pinned_companies(parsed):
-		return parsed
+		return filters, or_filters
+
+	# Soft masters / optional company Links keep untagged rows.
+	# Strict masters (Address, Contact, Customer, Supplier) always equality-filter.
+	use_soft = (soft_company_scoped(doctype) or (owning is not None and not owning[1])) and not strict_company_scoped(
+		doctype
+	)
+	if use_soft:
+		soft_or = [
+			[company_field, "=", company],
+			[company_field, "in", [""]],
+			[company_field, "is", "not set"],
+		]
+		if parsed_or:
+			# One or_filters slot — fall back to active+blank via ``in``.
+			clause = [company_field, "in", [company, ""]]
+			if not parsed:
+				return [clause], or_filters
+			if isinstance(parsed, dict):
+				return {**parsed, company_field: ["in", [company, ""]]}, or_filters
+			if isinstance(parsed, list | tuple):
+				return [*parsed, clause], or_filters
+			return filters, or_filters
+		return filters, soft_or
+
+	clause = [company_field, "=", company]
+	if not parsed:
+		return [clause], or_filters
 	if isinstance(parsed, dict):
-		return {**parsed, company_field: company}
+		return {**parsed, company_field: company}, or_filters
 	if isinstance(parsed, list | tuple):
-		return [*parsed, [company_field, "=", company]]
-	return filters
+		return [*parsed, clause], or_filters
+	return filters, or_filters
 
 
 def _as_data(value):
@@ -198,11 +224,13 @@ def get_list(
 	group_by=None,
 ):
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
+	filters, or_filters = scope_to_active_company(doctype, filters, or_filters)
 	return client_get_list(
 		doctype,
 		fields=fields,
-		filters=scope_to_active_company(doctype, filters, or_filters),
+		filters=filters,
 		order_by=order_by,
 		limit_start=limit_start,
 		limit_page_length=limit_page_length,
@@ -215,8 +243,9 @@ def get_list(
 @frappe.whitelist()
 def get_count(doctype, filters=None, or_filters=None):
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
-	filters = scope_to_active_company(doctype, filters, or_filters)
+	filters, or_filters = scope_to_active_company(doctype, filters, or_filters)
 	or_filters = _parse(or_filters)
 	if or_filters:
 		return _permission_aware_count(doctype, filters=_parse(filters), or_filters=or_filters)
@@ -226,10 +255,12 @@ def get_count(doctype, filters=None, or_filters=None):
 @frappe.whitelist()
 def group_by_count(doctype: str, current_filters=None, field: str = "status"):
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
 	from frappe.desk.listview import get_group_by_count as desk_group_by_count
 
-	current_filters = scope_to_active_company(doctype, current_filters) or []
+	current_filters, _ = scope_to_active_company(doctype, current_filters)
+	current_filters = current_filters or []
 	if not isinstance(current_filters, str):
 		current_filters = frappe.as_json(current_filters)
 	return desk_group_by_count(doctype, current_filters, field)
@@ -266,6 +297,7 @@ def _adopt_active_company_for_doc(doctype: str, name: str | None) -> str | None:
 @frappe.whitelist()
 def get(doctype, name=None, filters=None, parent=None):
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
 	_adopt_active_company_for_doc(doctype, name)
 	return client_get(doctype, name=name, filters=filters, parent=parent)
@@ -338,12 +370,14 @@ def _stamp_company_if_missing(doc: dict) -> dict:
 @frappe.whitelist(methods=["POST", "PUT"])
 def insert(doc=None):
 	require_login()
+	require_company_entitlement()
 	return client_insert(_apply_tax_template_rows(_stamp_company_if_missing(_require_doc(doc))))
 
 
 @frappe.whitelist(methods=["POST", "PUT"])
 def save(doc):
 	require_login()
+	require_company_entitlement()
 	return client_save(_apply_tax_template_rows(_stamp_company_if_missing(_require_doc(doc))))
 
 
@@ -383,6 +417,7 @@ def _delete_one(doctype: str, name: str) -> None:
 @frappe.whitelist(methods=["DELETE", "POST"])
 def delete(doctype, name):
 	require_login()
+	require_company_entitlement()
 	_delete_one(doctype, name)
 	return {"ok": True, "name": name}
 
@@ -395,6 +430,7 @@ def bulk_delete(doctype: str, names=None):
 	one failure rolls back that row only and is reported in ``failed``.
 	"""
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
 	names = _parse(names) or []
 	if isinstance(names, str):
@@ -523,10 +559,9 @@ def search_link(
 	reference_doctype: str | None = None,
 ):
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
-	assert_company_filters(filters)
-	if doctype in ("Customer", "Supplier"):
-		filters = scope_to_active_company(doctype, filters)
+	filters, _or = scope_to_active_company(doctype, filters, None)
 	from frappe.desk.search import search_link as desk_search_link
 
 	return desk_search_link(
@@ -672,6 +707,7 @@ def get_versions(doctype: str, name: str, limit: int = 50) -> dict[str, Any]:
 	for direct SPA list access.
 	"""
 	require_login()
+	require_company_entitlement()
 	assert_allowed_doctype(doctype)
 	if not name:
 		frappe.throw(_("name is required"))

@@ -8,7 +8,7 @@ app_license = "mit"
 # Apps
 # ------------------
 
-required_apps = ["erpnext"]
+required_apps = ["erpnext", "payments"]
 
 # Each item in the list will be shown as an app in the apps page
 add_to_apps_screen = [
@@ -157,12 +157,16 @@ has_permission = {
 # Hook on document methods and events
 
 doc_events = {
+	"Payment Entry": {
+		"on_submit": "taxmate.billing.payment.on_payment_entry_submit",
+	},
 	"Company": {
 		"validate": "taxmate.uae.company.validate",
 		"after_insert": [
 			"taxmate.uae.company.after_insert",
 			"taxmate.uae_compliance.company.after_insert",
 			"taxmate.uae_corporate_tax.company.after_insert",
+			"taxmate.billing.hooks.company_after_insert",
 		],
 		"on_update": "taxmate.uae.company.on_update",
 	},
@@ -179,8 +183,39 @@ doc_events = {
 		],
 	},
 	"Address": {
-		"validate": "taxmate.uae.validation.validate_address_emirate",
+		"validate": [
+			"taxmate.uae.validation.assign_address_contact_company",
+			"taxmate.uae.validation.validate_address_emirate",
+		],
 	},
+	"Contact": {
+		"validate": "taxmate.uae.validation.assign_address_contact_company",
+	},
+	"Batch": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Payment Terms Template": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Terms and Conditions": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Tax Category": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Territory": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Asset Category": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Driver": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+	"Mode of Payment": {
+		"validate": "taxmate.uae.validation.assign_master_company",
+	},
+
 	"Item": {
 		"validate": "taxmate.uae_vat.overrides.item.validate",
 	},
@@ -269,6 +304,7 @@ scheduler_events = {
 		"taxmate.uae_corporate_tax.notifications.send_ct_reminders",
 		"taxmate.uae_vat.utils.late_filing.sync_late_filing_notices",
 		"taxmate.api.mobile_auth.cleanup_devices",
+		"taxmate.billing.jobs.sync_expired_subscriptions",
 	],
 }
 

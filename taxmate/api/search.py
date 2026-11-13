@@ -326,12 +326,13 @@ def _in_active_company(hits: list[dict[str, Any]]) -> list[dict[str, Any]]:
 		if hit.get("type") == "document" and owning_company_field(hit["doctype"]):
 			by_doctype.setdefault(hit["doctype"], []).append(hit["name"])
 	keep: set[tuple[str, str]] = set()
+	from taxmate.setup.company_fields import STRICT_CUSTOM_COMPANY
+
 	for doctype, names in by_doctype.items():
 		field = owning_company_field(doctype)
 		filters: dict[str, Any] = {"name": ["in", names]}
-		# Mandatory link: equality. Optional link: the permission query keeps
-		# this company and untagged rows, and get_list applies that query.
-		if field and field[1]:
+		# Mandatory / strict masters: equality on the active company.
+		if field and (field[1] or doctype in STRICT_CUSTOM_COMPANY):
 			filters[field[0]] = company
 		for name in frappe.get_list(
 			doctype,

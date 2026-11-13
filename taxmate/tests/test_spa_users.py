@@ -759,7 +759,7 @@ class TestSpaUsers(FrappeTestCase):
 			self.assertTrue(
 				has_permission(frappe._dict(doctype="Sales Invoice", company=second), "read")
 			)
-			self.assertTrue(has_permission(frappe._dict(doctype="Customer", custom_company=None), "read"))
+			self.assertFalse(has_permission(frappe._dict(doctype="Customer", custom_company=None), "read"))
 		finally:
 			frappe.set_user("Administrator")
 			self._delete(created["name"])

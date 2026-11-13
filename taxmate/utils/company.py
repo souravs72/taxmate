@@ -118,16 +118,15 @@ def restore_active_company(login_manager=None) -> None:
 		frappe.defaults.set_user_default("company", active, user=user)
 
 
-OWNING_COMPANY_FIELDS = ("company", "representative_company", "custom_company")
+OWNING_COMPANY_FIELDS = ("company", "representative_company", "custom_company", "pickup_company")
 
 
 def owning_company_field(doctype: str) -> tuple[str, bool] | None:
 	"""Link that ties a row to one company, and whether that link is mandatory.
 
 	``company`` is ERPNext's field. ``representative_company`` owns a VAT Group.
-	``custom_company`` tags a shared master (Item, Customer, Supplier): a blank
-	value stays visible in every company, a filled value belongs to one.
-	Callers: taxmate.uae.permissions and taxmate.api.search._in_active_company.
+	``custom_company`` tags a master: blank may be shared (Item) or forbidden
+	(Address/Contact/Customer/Supplier). Callers: permissions + SPA search.
 	"""
 	if not doctype or doctype == "Company":
 		return None
@@ -143,16 +142,38 @@ def owning_company_field(doctype: str) -> tuple[str, bool] | None:
 	return None
 
 
-def company_scoped(doctype: str) -> bool:
-	"""True when every row of ``doctype`` belongs to a company.
+def soft_company_scoped(doctype: str) -> bool:
+	"""True when untagged rows stay visible alongside the active company."""
+	from taxmate.setup.company_fields import SOFT_CUSTOM_COMPANY
 
-	Includes standard transactional doctypes with a mandatory company field,
-	as well as party masters (Customer, Supplier) which are company-isolated in TaxMate.
-	"""
+	return doctype in SOFT_CUSTOM_COMPANY
+
+
+def strict_company_scoped(doctype: str) -> bool:
+	from taxmate.setup.company_fields import STRICT_CUSTOM_COMPANY
+
+	return doctype in STRICT_CUSTOM_COMPANY
+
+
+def company_scoped(doctype: str) -> bool:
+	"""True when SPA lists must follow the header company switcher."""
 	if not doctype or doctype == "Company":
 		return False
-	if doctype in ("Purchase Invoice", "Customer", "Supplier"):
+	from taxmate.setup.company_fields import (
+		OPTIONAL_COMPANY_SCOPED,
+		SOFT_CUSTOM_COMPANY,
+		STRICT_CUSTOM_COMPANY,
+	)
+
+	if doctype in STRICT_CUSTOM_COMPANY or doctype in SOFT_CUSTOM_COMPANY:
 		return True
+	if doctype in OPTIONAL_COMPANY_SCOPED:
+		return True
+	owning = owning_company_field(doctype)
+	if owning and owning[1]:
+		return True
+	if not frappe.db.exists("DocType", doctype):
+		return False
 	meta = frappe.get_meta(doctype)
 	field = meta.get_field("company")
 	return bool(field and field.fieldtype == "Link" and field.options == "Company" and field.reqd)
