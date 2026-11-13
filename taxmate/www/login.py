@@ -64,13 +64,12 @@ def get_context(context):
 
 	# Left panel copy. Kept here so it is translated and easy to edit; the
 	# figures in the sample card are illustrative and labelled as such.
-	context.tm_seal = "BY ADVIREXA"
 	context.tm_hero_title = _("UAE tax, handled.")
-	context.tm_hero_sub = _("Invoicing, VAT 201 and e-invoicing for businesses filing in the UAE.")
+	context.tm_hero_sub = _("Invoicing, VAT 201 and e-invoicing in one place, for businesses filing in the UAE.")
 	context.tm_features = [
-		{"title": _("E-invoicing to the FTA"), "body": _("Sent through your accredited provider, with retries.")},
-		{"title": _("VAT, Corporate Tax, ESR and UBO"), "body": _("Deadlines listed, with reminders before each filing.")},
-		{"title": _("Books that agree"), "body": _("Bank, stock and party ledgers checked daily.")},
+		{"title": _("E-invoicing to the FTA"), "body": _("sent through your accredited provider, with retries")},
+		{"title": _("Every deadline tracked"), "body": _("VAT, Corporate Tax, ESR and UBO, with reminders")},
+		{"title": _("Books that agree"), "body": _("bank, stock and party ledgers checked daily")},
 	]
 	context.tm_card = {
 		"title": _("VAT 201 · Q3"),
