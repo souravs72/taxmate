@@ -65,6 +65,9 @@ taxmate/www/taxmate.html
 *.apk
 *.aab
 *.ipa
+*.jks
+*.keystore
+frontend/android/key.properties
 
 # Agent / IDE tooling — local only, not shipped in production packages.
 # Callers: git status / packaging (flit); no runtime importer.
@@ -75,6 +78,7 @@ taxmate/www/taxmate.html
 .agents/
 .claude/
 .cursor/
+.cto-toolkit/
 skills-lock.json
 tasks/
 
