@@ -42,6 +42,7 @@
 }
 
 .mob-brand { display: flex; align-items: center; justify-content: center; gap: 10px; margin-block-end: 4px; }
+.mob-brand img { border-radius: 14px; flex: none; }
 .mob-word { font-size: 26px; font-weight: 800; letter-spacing: -0.035em; color: var(--text); }
 .mob-word span:last-child { color: var(--brand); }
 

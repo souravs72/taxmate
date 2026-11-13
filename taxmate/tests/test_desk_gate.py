@@ -18,6 +18,7 @@ class TestDeskGate(unittest.TestCase):
 			"/taxmate/invoices",
 			"/api/method/taxmate.api.get_catalog",
 			"/assets/taxmate/logo.svg",
+			"/assets/taxmate/logo.png",
 			"/login",
 			"/application",
 			"/apple",

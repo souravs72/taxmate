@@ -206,6 +206,21 @@ def _ensure_product_branding():
 		if current in (None, "", "Frappe", "ERPNext", "frappe", "erpnext"):
 			frappe.db.set_single_value(doctype, field, value)
 
+	logo = "/assets/taxmate/logo.png"
+	erp_mark = ("erpnext-logo", "/assets/erpnext/", "/assets/frappe/")
+	for doctype, field in (
+		("Website Settings", "app_logo"),
+		("Website Settings", "favicon"),
+		("Navbar Settings", "app_logo"),
+	):
+		if not frappe.db.exists("DocType", doctype):
+			continue
+		if not frappe.get_meta(doctype).has_field(field):
+			continue
+		current = (frappe.db.get_single_value(doctype, field) or "").strip()
+		if not current or any(token in current for token in erp_mark):
+			frappe.db.set_single_value(doctype, field, logo)
+
 	# ERPNext Settings is replaced by TaxMate Settings workspace (setup/workspaces.py)
 	if frappe.db.exists("Workspace", "ERPNext Settings"):
 		frappe.db.set_value(

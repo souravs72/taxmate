@@ -304,6 +304,7 @@
   /* No auto margin: .tright already carries margin-inline-start:auto, and a
      second auto here would split the free space instead of using it. */
 }
+.mnav-brand img,
 .mnav-brand svg {
   width: 26px;
   height: 26px;
@@ -363,6 +364,7 @@
     border-block-end-color: color-mix(in srgb, var(--border) 70%, transparent);
     isolation: isolate;
   }
+  .app.has-mnav .mnav-brand img,
   .app.has-mnav .mnav-brand svg {
     border-radius: 9px;
   }
