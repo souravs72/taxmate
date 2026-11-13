@@ -9,6 +9,7 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import { useFrappeAuth } from "frappe-react-sdk";
 
 import AppShell from "./components/AppShell";
+import BillingGate from "./components/BillingGate";
 import { ErrorBox, Loading } from "./components/ui";
 import { hasCsrfToken } from "./lib/frappe";
 import { LangProvider } from "./lib/i18n";
@@ -204,6 +205,8 @@ import UaeCapitalGoodsForm from "./screens/uae-capital-goods/UaeCapitalGoodsForm
 import NotFound from "./screens/NotFound";
 import CompanySettings from "./screens/company/CompanySettings";
 import WorkflowList from "./screens/workflow/WorkflowList";
+import Billing from "./screens/billing/Billing";
+import BillingSuccess from "./screens/billing/BillingSuccess";
 import WorkflowDetail from "./screens/workflow/WorkflowDetail";
 import PrintPreview from "./screens/print/PrintPreview";
 
@@ -223,6 +226,7 @@ export default function App() {
 
   const tree = (
     <SessionProvider>
+      <BillingGate>
       <AppShell>
         {!isNative() && !hasCsrfToken() && (
           <ErrorBox error={{ message:
@@ -518,9 +522,12 @@ export default function App() {
           <Route path="/print/:doctype/:name" element={<PrintPreview />} />
           <Route path="/period-closing" element={<PeriodClosingList />} />
           <Route path="/period-closing/:name" element={<PeriodClosingDetail />} />
+          <Route path="/billing" element={<Billing />} />
+          <Route path="/billing/success" element={<BillingSuccess />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </AppShell>
+      </BillingGate>
     </SessionProvider>
   );
   return isNative() ? tree : <LangProvider>{tree}</LangProvider>;

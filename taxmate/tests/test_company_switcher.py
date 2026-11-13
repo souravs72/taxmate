@@ -9,7 +9,6 @@ import unittest
 from unittest.mock import patch
 
 import frappe
-from frappe.tests.utils import FrappeTestCase
 
 from taxmate.api import resource
 from taxmate.api.resource import _names_company, scope_to_active_company
@@ -33,29 +32,27 @@ class TestScopeFilters(unittest.TestCase):
 		self._p2.stop()
 
 	def test_no_filters_gets_company(self):
-		self.assertEqual(
-			scope_to_active_company("Sales Invoice", None),
-			[["company", "=", "Olive Grove Kitchen LLC"]],
-		)
+		filters, _or = scope_to_active_company("Sales Invoice", None)
+		self.assertEqual(filters, [["company", "=", "Olive Grove Kitchen LLC"]])
 
 	def test_list_filters_appended(self):
-		out = scope_to_active_company("Sales Invoice", '[["docstatus","=",1]]')
+		out, _or = scope_to_active_company("Sales Invoice", '[["docstatus","=",1]]')
 		self.assertEqual(out, [["docstatus", "=", 1], ["company", "=", "Olive Grove Kitchen LLC"]])
 
 	def test_dict_filters_appended(self):
-		out = scope_to_active_company("Sales Invoice", {"docstatus": 1})
+		out, _or = scope_to_active_company("Sales Invoice", {"docstatus": 1})
 		self.assertEqual(out, {"docstatus": 1, "company": "Olive Grove Kitchen LLC"})
 
 	def test_explicit_company_kept(self):
 		self.assertEqual(
-			scope_to_active_company("Sales Invoice", [["company", "=", "B"]]),
+			scope_to_active_company("Sales Invoice", [["company", "=", "B"]])[0],
 			[["company", "=", "B"]],
 		)
 		self.assertEqual(
-			scope_to_active_company("Sales Invoice", [["Sales Invoice", "company", "=", "B"]]),
+			scope_to_active_company("Sales Invoice", [["Sales Invoice", "company", "=", "B"]])[0],
 			[["Sales Invoice", "company", "=", "B"]],
 		)
-		self.assertEqual(scope_to_active_company("Sales Invoice", {"company": "B"}), {"company": "B"})
+		self.assertEqual(scope_to_active_company("Sales Invoice", {"company": "B"})[0], {"company": "B"})
 
 	def test_explicit_company_rejected(self):
 		with patch.object(resource, "can_use_company", lambda company, user=None: False):
@@ -65,10 +62,13 @@ class TestScopeFilters(unittest.TestCase):
 				scope_to_active_company("Sales Invoice", None, [["company", "in", ["B"]]])
 
 	def test_company_in_or_filters_kept(self):
-		self.assertIsNone(scope_to_active_company("Sales Invoice", None, [["company", "=", "B"]]))
+		filters, _or = scope_to_active_company("Sales Invoice", None, [["company", "=", "B"]])
+		self.assertIsNone(filters)
 
 	def test_unscoped_doctype_untouched(self):
-		self.assertEqual(scope_to_active_company("Customer", '[["disabled","=",0]]'), '[["disabled","=",0]]')
+		# Patched company_scoped only for Sales Invoice — Customer passes through.
+		filters, _or = scope_to_active_company("Customer", '[["disabled","=",0]]')
+		self.assertEqual(filters, '[["disabled","=",0]]')
 
 	def test_names_company(self):
 		self.assertTrue(_names_company(["company", "=", "X"]))
@@ -77,15 +77,18 @@ class TestScopeFilters(unittest.TestCase):
 		self.assertFalse(_names_company("company"))
 
 
-class TestCompanyScopedDoctypes(FrappeTestCase):
+class TestCompanyScopedDoctypes(unittest.TestCase):
 	def test_mandatory_company_only(self):
 		self.assertTrue(company_utils.company_scoped("Sales Invoice"))
 		self.assertTrue(company_utils.company_scoped("Payment Entry"))
-		self.assertFalse(company_utils.company_scoped("Customer"))
+		self.assertTrue(company_utils.company_scoped("Customer"))
+		self.assertTrue(company_utils.company_scoped("Address"))
+		self.assertTrue(company_utils.company_scoped("Contact"))
 		self.assertFalse(company_utils.company_scoped("Company"))
+		self.assertFalse(company_utils.company_scoped("UOM"))
 
 
-class TestActiveCompany(FrappeTestCase):
+class TestActiveCompany(unittest.TestCase):
 	def setUp(self):
 		self.companies = frappe.get_all("Company", pluck="name", limit=2)
 		if len(self.companies) < 2:

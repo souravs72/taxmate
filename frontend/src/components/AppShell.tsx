@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { useFrappeGetCall } from "frappe-react-sdk";
 
 import { useLang } from "../lib/i18n";
@@ -16,6 +16,7 @@ import "../styles/phone-fixes.css";
 import { navIcon, sectionIcon } from "./navIcons";
 import { CaptureDesk } from "../screens/dashboard/CaptureDesk";
 import TaxMateMark from "./TaxMateMark";
+import TrialStatusChip from "./TrialStatusChip";
 
 const RAIL_KEY = "taxmate-rail";
 const OPEN_KEY = "taxmate-nav-open";
@@ -263,6 +264,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           )}
 
           <CompanySwitcher />
+          <TrialStatusChip />
 
           <GlobalSearch />
 
@@ -274,6 +276,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <UserMenu />
           </div>
         </div>
+
+        {session.billing?.enabled
+          && (session.billing.status === "Trial" || session.billing.can_access === false)
+          && !location.pathname.startsWith("/billing") ? (
+          <div className={`tm-bill-banner${session.billing.can_access === false ? " warn" : ""}`} role="status">
+            <div className="tm-bill-banner-copy">
+              <strong>{session.billing.can_access === false ? "Trial ended" : "Trial"}</strong>
+              <span>
+                {session.billing.can_access === false
+                  ? `Subscribe to restore access for ${session.company || "this company"}.`
+                  : session.billing.days_left === 1
+                    ? "Last day. Subscribe to keep access."
+                    : `${session.billing.days_left ?? 0} days left. Subscribe before it ends.`}
+              </span>
+            </div>
+            <Link to="/billing" className="btn sm">
+              Plans
+            </Link>
+          </div>
+        ) : null}
 
         <div className={`page${mobile ? " mnav-pad" : ""}`} id="taxmate-main" tabIndex={-1} key={lang}>{children}</div>
       </div>

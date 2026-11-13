@@ -202,6 +202,9 @@ def get_catalog() -> dict[str, Any]:
 		"actions": [
 			{"name": "list_my_companies", "method": "taxmate.api.company.list_my_companies"},
 			{"name": "switch_company", "method": "taxmate.api.company.switch_company"},
+			{"name": "list_plans", "method": "taxmate.api.billing.list_plans"},
+			{"name": "get_billing_status", "method": "taxmate.api.billing.get_billing_status"},
+			{"name": "start_checkout", "method": "taxmate.api.billing.start_checkout"},
 			{"name": "list_company_addresses", "method": "taxmate.api.company.list_company_addresses"},
 			{"name": "upload_company_logo", "method": "taxmate.api.company.upload_company_logo"},
 			{"name": "get_uae_tax_settings", "method": "taxmate.api.tax_settings.get_uae_tax_settings"},
@@ -407,6 +410,8 @@ def get_session() -> dict[str, Any]:
 	from taxmate.api.ui_prefs import read_ui_prefs
 
 	prefs = read_ui_prefs()
+	from taxmate.billing.entitlement import session_billing
+
 	return {
 		"user": frappe.session.user,
 		"full_name": frappe.utils.get_fullname(frappe.session.user),
@@ -418,6 +423,7 @@ def get_session() -> dict[str, Any]:
 		"spa_roles": spa_roles_of(),
 		"extra_roles": addon_roles_of(),
 		"is_app_provider": provider,
+		"billing": session_billing(company),
 		# The SITE's today, not the browser's. Anything date-driven in the UI
 		# -- most of all whether an invoice is overdue -- has to agree with the
 		# server, and a viewer outside Asia/Dubai is a day off for part of it.

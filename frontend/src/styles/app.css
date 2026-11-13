@@ -1510,3 +1510,230 @@ th.sortable[aria-sort="descending"] .sort-ind{opacity:1}
 
 .list-toolbar{display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:12px 16px; border-block-end:1px solid var(--border)}
 .list-toolbar .filters{border:0; padding:0; flex:1}
+
+/* ── Trial chip (topbar) ───────────────────────────────────────────── */
+.tm-trial-chip{
+  display:inline-flex; align-items:center; gap:7px; flex:none;
+  padding:6px 11px; border-radius:999px;
+  background:color-mix(in srgb, #b45309 12%, var(--surface));
+  color:#92400e; border:1px solid color-mix(in srgb, #b45309 28%, var(--border));
+  font-size:12px; font-weight:700; text-decoration:none; white-space:nowrap;
+  letter-spacing:-.01em;
+}
+.tm-trial-chip:hover{background:color-mix(in srgb, #b45309 18%, var(--surface))}
+.tm-trial-chip.ended{
+  background:color-mix(in srgb, #b91c1c 12%, var(--surface));
+  color:#991b1b; border-color:color-mix(in srgb, #b91c1c 30%, var(--border));
+}
+.tm-trial-dot{
+  width:7px; height:7px; border-radius:50%; background:currentColor;
+  box-shadow:0 0 0 3px color-mix(in srgb, currentColor 22%, transparent);
+}
+
+.tm-bill-banner{
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+  margin:12px 18px 0; padding:12px 16px; border-radius:12px;
+  background:color-mix(in srgb, #b45309 10%, var(--surface));
+  border:1px solid color-mix(in srgb, #b45309 22%, var(--border));
+  color:#92400e;
+}
+.tm-bill-banner.warn{
+  background:color-mix(in srgb, #b91c1c 10%, var(--surface));
+  border-color:color-mix(in srgb, #b91c1c 24%, var(--border));
+  color:#991b1b;
+}
+.tm-bill-banner-copy{display:flex; flex-direction:column; gap:2px; min-width:min(100%, 28rem)}
+.tm-bill-banner-copy strong{font-size:12px; text-transform:uppercase; letter-spacing:.04em}
+.tm-bill-banner-copy span{font-size:13px; font-weight:500; line-height:1.4}
+.tm-bill-banner .btn{flex:none}
+:root[data-theme="dark"] .tm-trial-chip{
+  color:#fbbf24; background:color-mix(in srgb, #f59e0b 16%, var(--surface));
+  border-color:color-mix(in srgb, #f59e0b 32%, var(--border));
+}
+:root[data-theme="dark"] .tm-trial-chip.ended{
+  color:#fca5a5; background:color-mix(in srgb, #ef4444 16%, var(--surface));
+  border-color:color-mix(in srgb, #ef4444 32%, var(--border));
+}
+:root[data-theme="dark"] .tm-bill-banner{
+  color:#fbbf24; background:color-mix(in srgb, #f59e0b 12%, var(--surface));
+  border-color:color-mix(in srgb, #f59e0b 28%, var(--border));
+}
+:root[data-theme="dark"] .tm-bill-banner.warn{
+  color:#fca5a5; background:color-mix(in srgb, #ef4444 12%, var(--surface));
+  border-color:color-mix(in srgb, #ef4444 28%, var(--border));
+}
+
+/* ── SaaS billing landing ──────────────────────────────────────────── */
+.page:has(> .tm-billing){padding:0; gap:0}
+.tm-billing{
+  min-height:100%;
+  width:100%;
+  max-width:100%;
+  box-sizing:border-box;
+  padding:28px 24px 56px;
+  overflow-x:visible;
+  background:
+    radial-gradient(900px 420px at 12% -8%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 65%),
+    radial-gradient(700px 380px at 88% 0%, color-mix(in srgb, #0f766e 9%, transparent), transparent 60%),
+    var(--bg);
+  color:var(--text);
+}
+:root[data-theme="dark"] .tm-billing{
+  background:
+    radial-gradient(900px 420px at 12% -8%, color-mix(in srgb, var(--brand) 16%, transparent), transparent 65%),
+    radial-gradient(700px 380px at 88% 0%, color-mix(in srgb, #0f766e 12%, transparent), transparent 60%),
+    linear-gradient(180deg, color-mix(in srgb, var(--bg) 55%, #0b1220) 0%, var(--bg) 48%);
+}
+.tm-bill-hero{
+  max-width:640px; margin:0 auto 36px; padding:0 4px; text-align:center;
+  display:flex; flex-direction:column; align-items:center;
+}
+.tm-bill-hero-mark{
+  display:inline-flex; align-items:center; gap:10px; margin:0 0 22px;
+  font-size:15px; font-weight:700; letter-spacing:-.02em;
+  animation:tm-bill-in .5s ease both;
+}
+.tm-bill-kicker{
+  display:inline-block; margin:0 0 14px; padding:5px 12px; border-radius:999px;
+  font-size:12px; font-weight:700; letter-spacing:.02em;
+  background:color-mix(in srgb, #b45309 12%, var(--surface));
+  color:#92400e; border:1px solid color-mix(in srgb, #b45309 25%, var(--border));
+  animation:tm-bill-in .55s .04s ease both;
+}
+.tm-bill-kicker.ended{
+  background:color-mix(in srgb, #b91c1c 12%, var(--surface));
+  color:#991b1b; border-color:color-mix(in srgb, #b91c1c 28%, var(--border));
+}
+:root[data-theme="dark"] .tm-bill-kicker{
+  color:#fbbf24; background:color-mix(in srgb, #f59e0b 16%, var(--surface));
+  border-color:color-mix(in srgb, #f59e0b 32%, var(--border));
+}
+:root[data-theme="dark"] .tm-bill-kicker.ended{
+  color:#fca5a5; background:color-mix(in srgb, #ef4444 16%, var(--surface));
+  border-color:color-mix(in srgb, #ef4444 32%, var(--border));
+}
+.tm-billing-title{
+  margin:0; font-size:clamp(30px, 4.6vw, 44px); font-weight:750; letter-spacing:-.035em; line-height:1.12;
+  text-wrap:balance;
+  animation:tm-bill-in .6s .08s ease both;
+}
+.tm-billing-sub{
+  margin:12px 0 0; max-width:32rem; width:100%;
+  color:var(--muted); font-size:14.5px; line-height:1.5;
+  text-wrap:pretty; overflow-wrap:anywhere;
+  animation:tm-bill-in .65s .12s ease both;
+}
+.tm-trial-clock{
+  display:flex; align-items:center; gap:14px; margin:24px 0 0;
+  padding:14px 18px; border-radius:14px; text-align:start;
+  background:var(--surface); border:1px solid var(--border);
+  box-shadow:0 8px 28px color-mix(in srgb, var(--text) 7%, transparent);
+  animation:tm-bill-in .7s .16s ease both;
+}
+.tm-trial-clock-num{
+  font-size:42px; font-weight:750; letter-spacing:-.04em; line-height:1;
+  font-variant-numeric:tabular-nums; color:var(--text); min-width:1.4ch; text-align:center;
+  animation:tm-trial-pulse 2.4s ease-in-out infinite;
+}
+@keyframes tm-bill-in{
+  from{opacity:0; transform:translateY(10px)}
+  to{opacity:1; transform:none}
+}
+@keyframes tm-trial-pulse{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.04)}
+}
+@media (prefers-reduced-motion: reduce){
+  .tm-bill-hero-mark,.tm-bill-kicker,.tm-billing-title,.tm-billing-sub,.tm-trial-clock,.tm-trial-clock-num{
+    animation:none;
+  }
+}
+.tm-trial-clock-meta{display:flex; flex-direction:column; gap:2px}
+.tm-trial-clock-meta strong{font-size:14px}
+.tm-trial-clock-meta span{font-size:12.5px; color:var(--muted); max-width:16rem}
+.tm-trial-checks{
+  list-style:none; margin:22px auto 0; padding:0; max-width:28rem;
+  display:flex; flex-direction:column; gap:8px; text-align:start;
+}
+.tm-trial-checks li{
+  position:relative; padding:8px 12px 8px 34px; border-radius:10px;
+  background:var(--surface); border:1px solid var(--border); font-size:13.5px;
+}
+.tm-trial-checks li::before{
+  content:""; position:absolute; inset-inline-start:12px; top:50%; transform:translateY(-50%);
+  width:10px; height:10px; border-radius:50%; background:var(--brand);
+}
+
+.tm-bill-plans{
+  max-width:960px; margin:0 auto; width:100%;
+  container-type:inline-size; container-name:tm-plans;
+}
+.tm-bill-plans-head{
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  margin:0 0 18px;
+}
+.tm-bill-plans-head h2{margin:0; font-size:20px; font-weight:700; letter-spacing:-.02em}
+.tm-billing-toggle{
+  display:inline-flex; gap:4px; padding:4px;
+  background:var(--surface); border:1px solid var(--border); border-radius:999px;
+}
+.tm-billing-toggle button{
+  border:0; background:transparent; color:var(--muted); cursor:pointer;
+  padding:8px 16px; border-radius:999px; font-weight:600; font-size:13px;
+}
+.tm-billing-toggle button.on{background:var(--text); color:var(--surface)}
+.tm-billing-toggle .save{margin-inline-start:6px; font-size:11px; opacity:.85; font-weight:500}
+
+.tm-billing-grid{
+  display:grid; grid-template-columns:1fr; gap:14px;
+  align-items:stretch;
+}
+@container tm-plans (min-width: 720px){
+  .tm-billing-grid{grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px}
+}
+.tm-plan-card{
+  position:relative; background:var(--surface); border:1px solid var(--border);
+  border-radius:16px; padding:22px 18px 18px; display:flex; flex-direction:column; gap:10px;
+  min-height:100%; min-width:0;
+}
+.tm-plan-card.popular{
+  border-color:color-mix(in srgb, var(--brand) 50%, var(--border));
+  box-shadow:0 10px 28px color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.tm-plan-badge{
+  position:absolute; inset-block-start:14px; inset-inline-end:14px;
+  font-size:10.5px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--brand); background:var(--brand-soft); padding:4px 8px; border-radius:999px;
+}
+.tm-plan-card h3{margin:0; font-size:18px; font-weight:700; letter-spacing:-.02em}
+.tm-plan-price{margin:0; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap}
+.tm-plan-price strong{font-size:clamp(26px, 3.2vw, 32px); font-weight:750; letter-spacing:-.035em; font-variant-numeric:tabular-nums}
+.tm-plan-price span{color:var(--muted); font-size:13px}
+.tm-plan-limits{margin:0; font-size:12.5px; color:var(--muted)}
+.tm-plan-card ul{margin:4px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:8px; flex:1}
+.tm-plan-card li{
+  position:relative; padding-inline-start:18px; font-size:13.5px; line-height:1.45;
+}
+.tm-plan-card li::before{
+  content:""; position:absolute; inset-inline-start:0; top:.55em;
+  width:8px; height:8px; border-radius:50%; background:var(--brand);
+}
+.tm-plan-card .btn{width:100%; justify-content:center; margin-block-start:auto; padding-block:10px}
+.tm-plan-ask{margin:8px 0 0; font-size:13px; color:var(--muted); text-align:center}
+
+.tm-bill-faq{max-width:720px; margin:56px auto 0}
+.tm-bill-faq h2{margin:0 0 18px; font-size:20px; font-weight:700; letter-spacing:-.02em; text-align:center}
+.tm-faq-row{
+  padding:16px 0; border-block-end:1px solid var(--border);
+}
+.tm-faq-row dt{font-size:14.5px; font-weight:650; margin:0 0 6px}
+.tm-faq-row dd{margin:0; font-size:13.5px; color:var(--muted); line-height:1.55}
+.tm-billing-foot{
+  margin:40px auto 0; max-width:36rem; text-align:center;
+  font-size:12.5px; color:var(--muted); line-height:1.5;
+}
+@media (max-width:720px){
+  .tm-trial-chip{max-width:42vw; overflow:hidden; text-overflow:ellipsis}
+  .tm-billing-grid{gap:12px}
+  .tm-trial-clock{width:min(100%, 22rem); justify-content:center}
+}

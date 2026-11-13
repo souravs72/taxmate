@@ -58,7 +58,6 @@ ALLOWED_SEARCH_DOCTYPES = frozenset(
 		"Account",
 		"Bank",
 		"Bank Account",
-		"Payment Gateway Account",
 		"File",
 		"Print Format",
 		"Letter Head",
@@ -178,6 +177,14 @@ DENIED_SEARCH_DOCTYPES = frozenset(
 		"Role",
 		"Has Role",
 		"TaxMate Mobile Device",
+		"Stripe Settings",
+		"Payment Gateway",
+		"Payment Gateway Account",
+		"Integration Request",
+		"TaxMate Plan",
+		"GoCardless Settings",
+		"Razorpay Settings",
+		"PayPal Settings",
 	}
 )
 

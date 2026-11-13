@@ -28,6 +28,18 @@ export type Session = {
   lang?: "en" | "ar" | null;
   /** SPA: light | dark | system when desk_theme is set. */
   theme?: "light" | "dark" | "system" | null;
+  billing?: {
+    enabled?: boolean;
+    status?: string | null;
+    plan?: string | null;
+    billing_cycle?: string | null;
+    trial_ends_on?: string | null;
+    period_end?: string | null;
+    days_left?: number | null;
+    can_access?: boolean;
+    can_manage_billing?: boolean;
+    is_operator_company?: boolean;
+  };
 };
 
 const SessionContext = createContext<Session>({ user: "", roles: [] });

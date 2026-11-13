@@ -1,0 +1,150 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-11-11 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "company",
+  "status",
+  "plan",
+  "billing_cycle",
+  "column_break_1",
+  "trial_started_on",
+  "trial_ends_on",
+  "current_period_start",
+  "current_period_end",
+  "billing_section",
+  "billing_customer",
+  "last_sales_invoice",
+  "last_payment_request"
+ ],
+ "fields": [
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Trial\nActive\nPast Due\nUnpaid",
+   "reqd": 1,
+   "default": "Trial",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "plan",
+   "fieldtype": "Link",
+   "label": "Plan",
+   "options": "TaxMate Plan",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "billing_cycle",
+   "fieldtype": "Select",
+   "label": "Billing Cycle",
+   "options": "\nMonthly\nAnnual"
+  },
+  {
+   "fieldname": "column_break_1",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "trial_started_on",
+   "fieldtype": "Date",
+   "label": "Trial Started On"
+  },
+  {
+   "fieldname": "trial_ends_on",
+   "fieldtype": "Date",
+   "label": "Trial Ends On",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "current_period_start",
+   "fieldtype": "Date",
+   "label": "Current Period Start"
+  },
+  {
+   "fieldname": "current_period_end",
+   "fieldtype": "Date",
+   "label": "Current Period End",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "billing_section",
+   "fieldtype": "Section Break",
+   "label": "Billing Links"
+  },
+  {
+   "fieldname": "billing_customer",
+   "fieldtype": "Link",
+   "label": "Billing Customer",
+   "options": "Customer",
+   "description": "Customer on the operator company used for SaaS invoices."
+  },
+  {
+   "fieldname": "last_sales_invoice",
+   "fieldtype": "Link",
+   "label": "Last Sales Invoice",
+   "options": "Sales Invoice",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_payment_request",
+   "fieldtype": "Link",
+   "label": "Last Payment Request",
+   "options": "Payment Request",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-11 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "TaxMate",
+ "name": "TaxMate Company Subscription",
+ "naming_rule": "Random",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "share": 1
+  },
+  {
+   "role": "Accounts Manager",
+   "read": 1,
+   "write": 0,
+   "create": 0,
+   "delete": 0,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "report": 1,
+   "share": 0
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "title_field": "company",
+ "track_changes": 1
+}
