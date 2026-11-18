@@ -219,6 +219,9 @@ doc_events = {
 	"Item": {
 		"validate": "taxmate.uae_vat.overrides.item.validate",
 	},
+	"Item Tax Template": {
+		"before_validate": "taxmate.uae_vat.overrides.item_tax_template.before_validate",
+	},
 	"Quotation": {
 		"validate": "taxmate.uae_vat.overrides.quotation.validate",
 	},
