@@ -6,9 +6,11 @@ from unittest.mock import MagicMock, patch
 import frappe
 from frappe.utils import getdate
 
+from taxmate.uae_vat.overrides.supplier_quotation import before_validate as sq_before_validate
 from taxmate.uae_vat.utils.place_of_supply import (
 	purchase_order_zone_guidance,
 	sales_order_zone_guidance,
+	stamp_vat_emirate,
 	validate_delivery_note,
 	validate_purchase_order,
 	validate_quotation,
@@ -44,6 +46,28 @@ class TestTradeComplianceOverrides(unittest.TestCase):
 		doc = frappe._dict(doctype="Purchase Order", company="Test Co", vat_emirate=None)
 		validate_purchase_order(doc, on_submit=False)
 		self.assertEqual(doc.vat_emirate, "Sharjah")
+
+	@patch("taxmate.uae_vat.utils.place_of_supply._is_uae_company", return_value=True)
+	@patch("taxmate.uae_vat.utils.place_of_supply._resolve_company_emirate", return_value="Ajman")
+	def test_stamp_vat_emirate_fills_blank(self, mock_resolve, mock_is_uae):
+		doc = frappe._dict(doctype="Quotation", company="Test Co", vat_emirate=None)
+		stamp_vat_emirate(doc)
+		self.assertEqual(doc.vat_emirate, "Ajman")
+
+	@patch("taxmate.uae_vat.utils.place_of_supply._is_uae_company", return_value=True)
+	@patch("taxmate.uae_vat.utils.place_of_supply._resolve_company_emirate", return_value="Dubai")
+	def test_stamp_vat_emirate_keeps_chosen(self, mock_resolve, mock_is_uae):
+		doc = frappe._dict(doctype="Quotation", company="Test Co", vat_emirate="Sharjah")
+		stamp_vat_emirate(doc)
+		self.assertEqual(doc.vat_emirate, "Sharjah")
+		mock_resolve.assert_not_called()
+
+	@patch("taxmate.uae_vat.utils.place_of_supply._is_uae_company", return_value=True)
+	@patch("taxmate.uae_vat.utils.place_of_supply._resolve_company_emirate", return_value="Ras Al Khaimah")
+	def test_supplier_quotation_before_validate_stamps_emirate(self, mock_resolve, mock_is_uae):
+		doc = frappe._dict(doctype="Supplier Quotation", company="Test Co", vat_emirate=None)
+		sq_before_validate(doc)
+		self.assertEqual(doc.vat_emirate, "Ras Al Khaimah")
 
 	@patch("taxmate.uae_vat.utils.place_of_supply._zone_flag")
 	def test_purchase_order_zone_guidance(self, mock_zone):

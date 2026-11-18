@@ -170,24 +170,36 @@ def validate_delivery_note(doc, on_submit: bool = False) -> None:
 		)
 
 
-def validate_quotation(doc) -> None:
-	"""Resolve company emirate on Quotation so it carries through to Sales Order and Invoice."""
+def stamp_vat_emirate(doc) -> None:
+	"""Fill required ``vat_emirate`` from the company address before mandatory check.
+
+	TaxMate marks Quotation / Purchase Order / Supplier Quotation ``vat_emirate``
+	reqd. ERPNext mapping and Desk save can arrive with it empty when
+	``company_address`` has not fetched an emirate. ``ignore_validate`` skips
+	``validate`` but still runs ``before_validate`` then ``_validate_mandatory``.
+	"""
+	meta = getattr(doc, "meta", None)
+	if meta is not None and not meta.has_field("vat_emirate"):
+		return
+	if doc.get("vat_emirate"):
+		return
 	if not _is_uae_company(doc):
 		return
-	if not doc.get("vat_emirate"):
-		resolved = _resolve_company_emirate(doc)
-		if resolved:
-			doc.vat_emirate = resolved
+	resolved = _resolve_company_emirate(doc)
+	if resolved:
+		doc.vat_emirate = resolved
+
+
+def validate_quotation(doc) -> None:
+	"""Resolve company emirate on Quotation so it carries through to Sales Order and Invoice."""
+	stamp_vat_emirate(doc)
 
 
 def validate_purchase_order(doc, on_submit: bool = False) -> None:
 	"""Resolve company emirate and validate designated zone rules for Purchase Orders."""
 	if not _is_uae_company(doc):
 		return
-	if not doc.get("vat_emirate"):
-		resolved = _resolve_company_emirate(doc)
-		if resolved:
-			doc.vat_emirate = resolved
+	stamp_vat_emirate(doc)
 
 	if on_submit and (_zone_flag("Company", doc.get("company")) or _zone_flag("Supplier", doc.get("supplier"))):
 		_validate_designated_zone(
