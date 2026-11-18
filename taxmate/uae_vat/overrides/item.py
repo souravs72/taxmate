@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import frappe
 from frappe import _
+from frappe.utils import cint
 
 from taxmate.uae.constants import UAE_COUNTRY
 from taxmate.uae_e_invoicing.constants import (
@@ -12,6 +13,21 @@ from taxmate.uae_e_invoicing.constants import (
 	ITEM_TYPE_SERVICE,
 )
 from taxmate.utils.company import get_default_company
+
+
+def before_validate(doc, method=None):
+	"""Stamp ``uae_item_type`` before Frappe's mandatory check.
+
+	TaxMate's Custom Field is reqd. ERPNext fixtures, POS seed, and Desk
+	``New Item`` insert without it. ``ignore_validate`` skips ``validate``
+	but still runs ``before_validate`` then ``_validate_mandatory``.
+	"""
+	meta = getattr(doc, "meta", None)
+	if meta is not None and not meta.has_field("uae_item_type"):
+		return
+	if doc.get("uae_item_type"):
+		return
+	doc.uae_item_type = ITEM_TYPE_SERVICE if not cint(doc.get("is_stock_item")) else ITEM_TYPE_GOODS
 
 
 def validate(doc, method=None):

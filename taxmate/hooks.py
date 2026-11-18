@@ -217,12 +217,14 @@ doc_events = {
 	},
 
 	"Item": {
+		"before_validate": "taxmate.uae_vat.overrides.item.before_validate",
 		"validate": "taxmate.uae_vat.overrides.item.validate",
 	},
 	"Item Tax Template": {
 		"before_validate": "taxmate.uae_vat.overrides.item_tax_template.before_validate",
 	},
 	"Quotation": {
+		"before_validate": "taxmate.uae_vat.overrides.quotation.before_validate",
 		"validate": "taxmate.uae_vat.overrides.quotation.validate",
 	},
 	"Sales Order": {
@@ -234,8 +236,12 @@ doc_events = {
 		"before_submit": "taxmate.uae_vat.overrides.delivery_note.before_submit",
 	},
 	"Purchase Order": {
+		"before_validate": "taxmate.uae_vat.overrides.purchase_order.before_validate",
 		"validate": "taxmate.uae_vat.overrides.purchase_order.validate",
 		"before_submit": "taxmate.uae_vat.overrides.purchase_order.before_submit",
+	},
+	"Supplier Quotation": {
+		"before_validate": "taxmate.uae_vat.overrides.supplier_quotation.before_validate",
 	},
 	"Sales Invoice": {
 		"validate": [

@@ -7,8 +7,14 @@ from frappe import _
 
 from taxmate.uae_vat.utils.place_of_supply import (
 	purchase_order_zone_guidance,
+	stamp_vat_emirate,
 	validate_purchase_order,
 )
+
+
+def before_validate(doc, method=None):
+	"""Stamp vat_emirate before Frappe's mandatory check."""
+	stamp_vat_emirate(doc)
 
 
 def validate(doc, method=None):
