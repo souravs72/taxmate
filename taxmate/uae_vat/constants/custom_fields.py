@@ -688,6 +688,7 @@ CUSTOM_FIELDS = {
 			"options": "\nStandard\nZero Rated\nExempt\nOut of Scope\nReverse Charge\nMargin Scheme",
 			"insert_after": "uae_vat_section",
 			"reqd": 1,
+			"default": "Standard",
 			"translatable": 0,
 		},
 		{

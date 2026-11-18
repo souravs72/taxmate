@@ -15,6 +15,7 @@ from taxmate.uae_vat.utils.recoverability import (
 	recovery_percent_for_template,
 	standard_rated_vat,
 )
+from taxmate.uae.setup import vat_category_for_item_tax_title
 from taxmate.uae_vat.utils.vat_201 import include_in_box_9
 
 
@@ -116,6 +117,24 @@ class TestSimplifiedInvoice(unittest.TestCase):
 
 	def test_b2c_over_threshold(self):
 		self.assertFalse(is_simplified_tax_invoice(False, 10000.01))
+
+
+class TestItemTaxTitleCategory(unittest.TestCase):
+	def test_erpnext_uae_seed_titles(self):
+		self.assertEqual(vat_category_for_item_tax_title("UAE VAT 5%"), "Standard")
+		self.assertEqual(vat_category_for_item_tax_title("UAE VAT Zero"), "Zero Rated")
+		self.assertEqual(vat_category_for_item_tax_title("UAE VAT Exempted"), "Exempt")
+		self.assertEqual(vat_category_for_item_tax_title("UAE Excise 50%"), "Out of Scope")
+		self.assertEqual(vat_category_for_item_tax_title("UAE Excise 100%"), "Out of Scope")
+
+	def test_company_abbr_suffix(self):
+		self.assertEqual(vat_category_for_item_tax_title("UAE VAT 5% - LM"), "Standard")
+		self.assertEqual(vat_category_for_item_tax_title("UAE VAT Zero - LM"), "Zero Rated")
+
+	def test_unknown_and_blank(self):
+		self.assertIsNone(vat_category_for_item_tax_title("Custom VAT"))
+		self.assertIsNone(vat_category_for_item_tax_title(""))
+		self.assertIsNone(vat_category_for_item_tax_title(None))
 
 
 class TestBox9Filter(unittest.TestCase):

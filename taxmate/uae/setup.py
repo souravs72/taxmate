@@ -106,12 +106,31 @@ def bootstrap_existing_uae_companies() -> None:
 		ensure_company_uae_ready(company)
 
 
-# Map ERPNext UAE Item Tax Template titles → TaxMate uae_vat_category
+# Map ERPNext UAE Item Tax Template titles → TaxMate uae_vat_category.
+# ERPNext's country tax seed also creates UAE Excise templates; those are not VAT.
 _ITEM_TAX_CATEGORY_BY_TITLE = {
 	"UAE VAT 5%": "Standard",
 	"UAE VAT Zero": "Zero Rated",
 	"UAE VAT Exempted": "Exempt",
+	"UAE Excise 50%": "Out of Scope",
+	"UAE Excise 100%": "Out of Scope",
 }
+
+
+def vat_category_for_item_tax_title(title: str | None) -> str | None:
+	"""Return the TaxMate VAT category for an ERPNext UAE Item Tax Template title.
+
+	Desk / seed names are ``UAE VAT 5%``; stored names are often ``UAE VAT 5% - ABBR``.
+	"""
+	if not title:
+		return None
+	name = title.strip()
+	if name in _ITEM_TAX_CATEGORY_BY_TITLE:
+		return _ITEM_TAX_CATEGORY_BY_TITLE[name]
+	for prefix, category in _ITEM_TAX_CATEGORY_BY_TITLE.items():
+		if name.startswith(f"{prefix} -") or name.startswith(f"{prefix}-"):
+			return category
+	return None
 
 
 def ensure_item_tax_template_vat_categories(company: str | None = None) -> int:
@@ -143,9 +162,10 @@ def ensure_item_tax_template_vat_categories(company: str | None = None) -> int:
 				fields=["name", "uae_vat_category"],
 			)
 		for row in rows:
-			if row.uae_vat_category == category:
+			wanted = vat_category_for_item_tax_title(row.name) or category
+			if row.uae_vat_category == wanted:
 				continue
-			frappe.db.set_value("Item Tax Template", row.name, "uae_vat_category", category)
+			frappe.db.set_value("Item Tax Template", row.name, "uae_vat_category", wanted)
 			updated += 1
 	return updated
 
