@@ -129,10 +129,14 @@ def install_workflow_patch() -> None:
 	if _ORIGINAL_META_GET_WORKFLOW is None:
 		_ORIGINAL_META_GET_WORKFLOW = frappe.model.meta.Meta.get_workflow
 
-		def patched_meta_get_workflow(self) -> str | None:
+		def patched_meta_get_workflow(self, doc=None) -> str | None:
 			company = None
-			if hasattr(frappe.local, "workflow_doc_company") and frappe.local.workflow_doc_company:
+			if doc and hasattr(doc, "get") and doc.get("company"):
+				company = doc.get("company")
+			elif hasattr(frappe.local, "workflow_doc_company") and frappe.local.workflow_doc_company:
 				company = frappe.local.workflow_doc_company
+			elif hasattr(frappe.local, "form_dict") and frappe.local.form_dict.get("company"):
+				company = frappe.local.form_dict.get("company")
 			return get_workflow_name(self.name, company=company)
 
 		frappe.model.meta.Meta.get_workflow = patched_meta_get_workflow
