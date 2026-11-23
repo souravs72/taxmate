@@ -115,10 +115,12 @@ def install_workflow_patch() -> None:
 	if _ORIGINAL_GET_WORKFLOW_NAME is None:
 		_ORIGINAL_GET_WORKFLOW_NAME = frappe.model.workflow.get_workflow_name
 
-		def patched_get_workflow_name(doctype: str) -> str | None:
+		def patched_get_workflow_name(doctype: str, doc: "Document | dict | None" = None) -> str | None:
 			# If the caller has a current document with a company field, use it
 			company = None
-			if hasattr(frappe.local, "workflow_doc_company") and frappe.local.workflow_doc_company:
+			if doc and hasattr(doc, "get") and doc.get("company"):
+				company = doc.get("company")
+			elif hasattr(frappe.local, "workflow_doc_company") and frappe.local.workflow_doc_company:
 				company = frappe.local.workflow_doc_company
 			elif hasattr(frappe.local, "form_dict") and frappe.local.form_dict.get("company"):
 				company = frappe.local.form_dict.get("company")
